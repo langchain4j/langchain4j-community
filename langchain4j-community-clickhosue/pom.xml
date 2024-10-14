@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>langchain4j-clickhouse</artifactId>
-    <name>LangChain4j :: Community :: Clickhouse</name>
+    <name>LangChain4j :: Community :: ClickHouse</name>
 
     <properties>
         <clickhouse.version>0.7.0</clickhouse.version>
