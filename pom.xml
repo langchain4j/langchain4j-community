@@ -24,7 +24,6 @@
         <module>langchain4j-community-bom</module>
 
         <!-- LangChain4j Community integration of embedding store -->
-        <module>langchain4j-community-clickhosue</module>
 
         <!-- LangChain4j Community integration of model provider -->
     </modules>
@@ -34,7 +33,7 @@
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <configuration>
-                    <!-- do not deploy langchain4j-aggregator's pom.xml (this file) -->
+                    <!-- do not deploy langchain4j-community's pom.xml (this file) -->
                     <skip>true</skip>
                 </configuration>
             </plugin>
