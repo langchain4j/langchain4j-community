@@ -9,7 +9,7 @@
         <version>0.36.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>langchain4j-clickhouse</artifactId>
+    <artifactId>langchain4j-community-clickhouse</artifactId>
     <name>LangChain4j :: Community :: ClickHouse</name>
 
     <properties>
