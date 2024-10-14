@@ -17,4 +17,14 @@
         Bill of Materials POM for getting full, complete set of compatible versions of LangChain4j Community modules
     </description>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-clickhouse</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
 </project>
