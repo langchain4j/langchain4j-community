@@ -34,7 +34,7 @@
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <configuration>
-                    <!-- do not deploy langchain4j-aggregator's pom.xml (this file) -->
+                    <!-- do not deploy langchain4j-community's pom.xml (this file) -->
                     <skip>true</skip>
                 </configuration>
             </plugin>
