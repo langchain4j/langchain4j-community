@@ -18,6 +18,10 @@
     <description>Parent POM for langchain4j-community submodules</description>
     <url>https://github.com/langchain4j/langchain4j-community</url>
 
+    <properties>
+        <gib.disable>true</gib.disable>
+    </properties>
+
     <modules>
 
         <!-- LangChain4j Community Bill of Materials POM -->
@@ -26,6 +30,7 @@
         <!-- LangChain4j Community integration of embedding store -->
 
         <!-- LangChain4j Community integration of model provider -->
+
     </modules>
 
     <build>
@@ -62,6 +67,22 @@
             </plugin>
         </plugins>
     </build>
+
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <reporting>
         <plugins>
