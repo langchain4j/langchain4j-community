@@ -30,15 +30,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Authenticate to Google Cloud
-        # Needed for langchain4j-vertex-ai and langchain4j-vertex-ai-gemini modules
-        uses: 'google-github-actions/auth@v2'
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
-
       - name: Build with JDK ${{ matrix.java_version }}
         run: |
+          ## compile and verify javadocs on ALL modules
+          mvn -B -U -T4C process-test-classes javadoc:aggregate
+          
           ## run tests for some modules
           mvn -B -U --fail-at-end \
               -Dmaven.test.failure.ignore=true \
