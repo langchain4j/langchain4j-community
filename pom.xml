@@ -77,6 +77,40 @@
         </license>
     </licenses>
 
+    <developers>
+        <developer>
+            <id>deep-learning-dynamo</id>
+            <email>deeplearningdynamo@gmail.com</email>
+            <url>https://github.com/deep-learning-dynamo</url>
+        </developer>
+        <developer>
+            <id>kuraleta</id>
+            <email>digital.kuraleta@gmail.com</email>
+            <url>https://github.com/kuraleta</url>
+        </developer>
+        <developer>
+            <id>Martin7-1</id>
+            <email>yi.zheng.se@gmail.com</email>
+            <url>https://github.com/Martin7-1</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/langchain4j/langchain4j-community</url>
+        <connection>scm:git:git://github.com/langchain4j/langchain4j-community.git</connection>
+        <developerConnection>scm:git:git@github.com:langchain4j/langchain4j-community.git</developerConnection>
+    </scm>
+
+    <repositories>
+        <repository>
+            <id>ossrh-snapshots</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
