@@ -1,0 +1,52 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  java_build:
+    if: github.repository == 'langchain4j/langchain4j-community'
+    strategy:
+      matrix:
+        java_version:
+          - 17
+          - 21
+        include:
+          - java_version: '17'
+            included_modules: ''
+          - java_version: '21'
+            included_modules: ''
+      max-parallel: 1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java_version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Authenticate to Google Cloud
+        # Needed for langchain4j-vertex-ai and langchain4j-vertex-ai-gemini modules
+        uses: 'google-github-actions/auth@v2'
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Build with JDK ${{ matrix.java_version }}
+        run: |
+          ## run tests for some modules
+          mvn -B -U --fail-at-end \
+              -Dmaven.test.failure.ignore=true \
+              ${{ matrix.included_modules }} verify
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Test-Reports-${{ matrix.java-version }}
+          path: '**/target/surefire-reports/*'
