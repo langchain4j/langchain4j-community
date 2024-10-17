@@ -1,0 +1,48 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  java_build:
+    if: github.repository == 'langchain4j/langchain4j-community'
+    strategy:
+      matrix:
+        java_version:
+          - 17
+          - 21
+        include:
+          - java_version: '17'
+            maven_opts: ''
+          - java_version: '21'
+            maven_opts: ''
+      max-parallel: 1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java_version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with JDK ${{ matrix.java_version }}
+        run: |
+          ## compile and verify javadocs on ALL modules
+          mvn -B -U -T4C test javadoc:aggregate
+          
+          ## run tests for some modules
+          mvn -B -U --fail-at-end \
+              -Dmaven.test.failure.ignore=true \
+              ${{ matrix.maven_opts }} verify
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Test-Reports-${{ matrix.java-version }}
+          path: '**/target/surefire-reports/*'

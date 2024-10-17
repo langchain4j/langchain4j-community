@@ -18,6 +18,10 @@
     <description>Parent POM for langchain4j-community submodules</description>
     <url>https://github.com/langchain4j/langchain4j-community</url>
 
+    <properties>
+        <gib.disable>true</gib.disable>
+    </properties>
+
     <modules>
 
         <!-- LangChain4j Community Bill of Materials POM -->
@@ -26,9 +30,17 @@
         <!-- LangChain4j Community integration of embedding store -->
 
         <!-- LangChain4j Community integration of model provider -->
+
     </modules>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>com.vackosar.gitflowincrementalbuilder</groupId>
+                <artifactId>gitflow-incremental-builder</artifactId>
+                <version>3.15.0</version>
+            </extension>
+        </extensions>
         <plugins>
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
@@ -55,6 +67,56 @@
             </plugin>
         </plugins>
     </build>
+
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>deep-learning-dynamo</id>
+            <email>deeplearningdynamo@gmail.com</email>
+            <url>https://github.com/deep-learning-dynamo</url>
+        </developer>
+        <developer>
+            <id>kuraleta</id>
+            <email>digital.kuraleta@gmail.com</email>
+            <url>https://github.com/kuraleta</url>
+        </developer>
+        <developer>
+            <id>Martin7-1</id>
+            <email>yi.zheng.se@gmail.com</email>
+            <url>https://github.com/Martin7-1</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/langchain4j/langchain4j-community</url>
+        <connection>scm:git:git://github.com/langchain4j/langchain4j-community.git</connection>
+        <developerConnection>scm:git:git@github.com:langchain4j/langchain4j-community.git</developerConnection>
+    </scm>
+
+    <repositories>
+        <repository>
+            <id>ossrh-snapshots</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <reporting>
         <plugins>
