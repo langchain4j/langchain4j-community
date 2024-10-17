@@ -28,6 +28,7 @@
         <module>langchain4j-community-bom</module>
 
         <!-- LangChain4j Community integration of embedding store -->
+        <module>langchain4j-community-clickhouse</module>
 
         <!-- LangChain4j Community integration of model provider -->
 
