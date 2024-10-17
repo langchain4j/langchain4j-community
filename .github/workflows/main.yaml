@@ -31,9 +31,9 @@ jobs:
           - 21
         include:
           - java_version: '17'
-            included_modules: ''
+            maven_opts: ''
           - java_version: '21'
-            included_modules: ''
+            maven_opts: ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,14 +56,14 @@ jobs:
         run: |
           mvn -B -U -T4C test javadoc:aggregate \
             -Dgib.disable=false -Dgib.referenceBranch=__branch_before \
-            ${{ matrix.included_modules }}
+            ${{ matrix.maven_opts }}
 
       - name: Integration test with JDK ${{ matrix.java_version }}
         if: ${{ github.repository == 'langchain4j/langchain4j-community' }}
         run: |
           mvn -B -U verify \
             -Dgib.disable=false -Dgib.referenceBranch=__branch_before \
-            ${{ matrix.included_modules }}
+            ${{ matrix.maven_opts }}
 
   # For checking some compliance things (require a recent JDK due to plugins so in a separate step)
   compliance:
