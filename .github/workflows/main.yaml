@@ -62,6 +62,7 @@ jobs:
         if: ${{ github.repository == 'langchain4j/langchain4j-community' }}
         run: |
           mvn -B -U verify \
+            -Dtinylog.writer.level=info \
             -Dgib.disable=false -Dgib.referenceBranch=__branch_before \
             ${{ matrix.maven_opts }}
 
