@@ -38,6 +38,7 @@ jobs:
           ## run tests for some modules
           mvn -B -U --fail-at-end \
               -Dmaven.test.failure.ignore=true \
+              -Dtinylog.writer.level=info \
               ${{ matrix.maven_opts }} verify
 
       - name: Upload Test Reports
