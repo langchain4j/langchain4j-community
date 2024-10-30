@@ -34,7 +34,6 @@ jobs:
         run: |
           mvn -B -U --fail-at-end \
             -DskipTests -DskipITs \
-            -pl !langchain4j-core,!langchain4j-parent \
             clean deploy
 
       - name: Publish Test Report
