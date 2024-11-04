@@ -35,6 +35,10 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		this(builder.baseUrl, builder.duration != null ? builder.duration : Duration.ofSeconds(10L));
 	}
 	
+	/**
+	 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
+	 * @return {@link Builder}
+	 */
 	public static Builder builder(String baseUrl) {
 		return new Builder(baseUrl);
 	}
@@ -63,19 +67,36 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 				results.getResults().stream().filter(r -> includeResult(r)).map(r -> toWebSearchOrganicResult(r)).limit(maxResults(webSearchRequest)).collect(Collectors.toList()));
 	}
 	
+	/**
+	 *  <p>{@summary Builder for new instances of
+	 *  {@link SearXNGWebSearchEngine}.}</p>
+	 */  
 	public static class Builder {
 		private String baseUrl;
 		private Duration duration;
 		
+		/**
+		 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
+		 */
 		public Builder(String baseUrl) {
 			this.baseUrl = baseUrl;
 		}
 		
+		/**
+		 * @param duration connection timeout specified as a {@link Duration} 
+		 * @return {@link Builder}
+		 */
 		public Builder duration(Duration duration) {
 			this.duration = duration;
 			return this;
 		}
-		
+
+		/**
+		 *  Creates a new instance of
+		 *  {@link SearXNGWebSearchEngine}.
+		 *
+		 *  @return The new instance.
+		 */
 		public SearXNGWebSearchEngine build() {
 			return new SearXNGWebSearchEngine(this);
 		}
