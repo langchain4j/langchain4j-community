@@ -9,7 +9,6 @@ import dev.langchain4j.web.search.WebSearchInformationResult;
 import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchRequest;
 import dev.langchain4j.web.search.WebSearchResults;
-import lombok.Builder;
 
 /**
  * Represents a SearXNG instance with its API enabled as a {@code WebSearchEngine}.
@@ -20,7 +19,6 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 	/**
 	 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
 	 */
-	@Builder
 	public SearXNGWebSearchEngine(String baseUrl) {
 		this(baseUrl, Duration.ofSeconds(10L));
 	}
@@ -29,11 +27,18 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 	 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
 	 * @param timeout connection timeout duration
 	 */
-	@Builder
 	public SearXNGWebSearchEngine(String baseUrl, Duration timeout) {
 		this.client = new SearXNGClient(baseUrl, timeout);
 	}
 
+	private SearXNGWebSearchEngine(Builder builder) {
+		this(builder.baseUrl, builder.duration != null ? builder.duration : Duration.ofSeconds(10L));
+	}
+	
+	public static Builder builder() {
+		return new Builder();
+	}
+	
 	private static WebSearchOrganicResult toWebSearchOrganicResult(SearXNGResult result) {
 		return WebSearchOrganicResult.from(result.getTitle(), URI.create(result.getUrl()), result.getContent(), null);
 	}
@@ -56,5 +61,24 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		
 		return WebSearchResults.from(WebSearchInformationResult.from((long) results.getNumberOfResults()),
 				results.getResults().stream().filter(r -> includeResult(r)).map(r -> toWebSearchOrganicResult(r)).limit(maxResults(webSearchRequest)).collect(Collectors.toList()));
+	}
+	
+	public static class Builder {
+		private String baseUrl;
+		private Duration duration;
+		
+		public Builder baseUrl(String baseUrl) {
+			this.baseUrl = baseUrl;
+			return this;
+		}
+		
+		public Builder duration(Duration duration) {
+			this.duration = duration;
+			return this;
+		}
+		
+		public SearXNGWebSearchEngine build() {
+			return new SearXNGWebSearchEngine(this);
+		}
 	}
 }

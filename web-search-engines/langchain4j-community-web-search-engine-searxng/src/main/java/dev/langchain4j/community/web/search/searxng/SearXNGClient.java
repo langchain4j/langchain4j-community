@@ -8,7 +8,6 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.langchain4j.web.search.WebSearchRequest;
-import lombok.Builder;
 import okhttp3.OkHttpClient;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -18,7 +17,6 @@ class SearXNGClient {
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 	private SearXNGApi api;
 
-	@Builder
 	public SearXNGClient(String baseUrl, Duration timeout) {
 		OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
 				.callTimeout(timeout)
