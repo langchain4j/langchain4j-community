@@ -16,23 +16,8 @@ import dev.langchain4j.web.search.WebSearchResults;
 public class SearXNGWebSearchEngine implements WebSearchEngine {
 	private SearXNGClient client;
 
-	/**
-	 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
-	 */
-	public SearXNGWebSearchEngine(String baseUrl) {
-		this(baseUrl, Duration.ofSeconds(10L));
-	}
-
-	/**
-	 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
-	 * @param timeout connection timeout duration
-	 */
-	public SearXNGWebSearchEngine(String baseUrl, Duration timeout) {
-		this.client = new SearXNGClient(baseUrl, timeout);
-	}
-
 	private SearXNGWebSearchEngine(Builder builder) {
-		this(builder.baseUrl, builder.duration != null ? builder.duration : Duration.ofSeconds(10L));
+		this.client = new SearXNGClient(builder.baseUrl, builder.duration != null ? builder.duration : Duration.ofSeconds(10L));
 	}
 	
 	/**
