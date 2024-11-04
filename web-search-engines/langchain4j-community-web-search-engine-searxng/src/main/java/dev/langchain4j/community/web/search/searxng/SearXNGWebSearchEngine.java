@@ -35,8 +35,8 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		this(builder.baseUrl, builder.duration != null ? builder.duration : Duration.ofSeconds(10L));
 	}
 	
-	public static Builder builder() {
-		return new Builder();
+	public static Builder builder(String baseUrl) {
+		return new Builder(baseUrl);
 	}
 	
 	private static WebSearchOrganicResult toWebSearchOrganicResult(SearXNGResult result) {
@@ -67,9 +67,8 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		private String baseUrl;
 		private Duration duration;
 		
-		public Builder baseUrl(String baseUrl) {
+		public Builder(String baseUrl) {
 			this.baseUrl = baseUrl;
-			return this;
 		}
 		
 		public Builder duration(Duration duration) {
