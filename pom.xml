@@ -30,7 +30,7 @@
         <!-- LangChain4j Community integration of embedding store -->
         <module>langchain4j-community-clickhouse</module>
 
-        <!-- LangChain4j Community integration of SearXNG web search engine -->
+        <!-- LangChain4j Community integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
 
         <!-- LangChain4j Community integration of model provider -->

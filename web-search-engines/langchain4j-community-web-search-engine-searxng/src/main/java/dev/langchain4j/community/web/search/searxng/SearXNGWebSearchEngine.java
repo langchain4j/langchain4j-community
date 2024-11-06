@@ -9,15 +9,16 @@ import dev.langchain4j.web.search.WebSearchInformationResult;
 import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchRequest;
 import dev.langchain4j.web.search.WebSearchResults;
+import static dev.langchain4j.internal.Utils.getOrDefault;
 
 /**
  * Represents a SearXNG instance with its API enabled as a {@code WebSearchEngine}.
  */
 public class SearXNGWebSearchEngine implements WebSearchEngine {
-	private SearXNGClient client;
+	private final SearXNGClient client;
 
 	private SearXNGWebSearchEngine(Builder builder) {
-		this.client = new SearXNGClient(builder.baseUrl, builder.duration != null ? builder.duration : Duration.ofSeconds(10L));
+		this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)));
 	}
 	
 	/**
@@ -46,7 +47,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 	
 	@Override
 	public WebSearchResults search(WebSearchRequest webSearchRequest) {
-		final SearXNGResults results = client.search(webSearchRequest);
+		final SearXNGResponse results = client.search(webSearchRequest);
 		
 		return WebSearchResults.from(WebSearchInformationResult.from((long) results.getNumberOfResults()),
 				results.getResults().stream().filter(r -> includeResult(r)).map(r -> toWebSearchOrganicResult(r)).limit(maxResults(webSearchRequest)).collect(Collectors.toList()));

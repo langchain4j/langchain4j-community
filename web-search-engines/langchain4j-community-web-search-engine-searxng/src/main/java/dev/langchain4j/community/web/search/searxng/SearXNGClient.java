@@ -31,7 +31,7 @@ class SearXNGClient {
 		this.api = retrofit.create(SearXNGApi.class);
 	}
 
-	SearXNGResults search(WebSearchRequest request) {
+	SearXNGResponse search(WebSearchRequest request) {
 		try {
 			final Map<String, Object> args = new HashMap<>();
 			args.put("q", request.searchTerms());
@@ -52,7 +52,7 @@ class SearXNGClient {
 			if (request.language() != null) {
 				args.put("language", request.language());
 			}
-			final Response<SearXNGResults> response = api.search(args).execute();
+			final Response<SearXNGResponse> response = api.search(args).execute();
 			return response.body();
 		}
 		catch (IOException e) {

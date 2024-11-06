@@ -10,5 +10,5 @@ import retrofit2.http.QueryMap;
 interface SearXNGApi {
 	@GET("search")
 	@Headers({"Content-Type: application/json"})
-	Call<SearXNGResults> search(@QueryMap Map<String, Object> params);
+	Call<SearXNGResponse> search(@QueryMap Map<String, Object> params);
 }

@@ -8,9 +8,9 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
-class SearXNGResults {
+class SearXNGResponse {
 	private String query;
-	private int numberOfResults;
+	private long numberOfResults;
 	private List<SearXNGResult> results;
 	private List<String> answers;
 	private List<String> corrections;
@@ -22,7 +22,7 @@ class SearXNGResults {
 		return query;
 	}
 	
-	public int getNumberOfResults() {
+	public long getNumberOfResults() {
 		return numberOfResults;
 	}
 	
