@@ -65,6 +65,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		
 		/**
 		 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
+		 * @return {@link Builder}
 		 */
 		public Builder baseUrl(String baseUrl) {
 			this.baseUrl = baseUrl;
