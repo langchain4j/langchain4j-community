@@ -10,6 +10,7 @@ import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchRequest;
 import dev.langchain4j.web.search.WebSearchResults;
 import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 /**
  * Represents a SearXNG instance with its API enabled as a {@code WebSearchEngine}.
@@ -22,11 +23,11 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 	}
 	
 	/**
-	 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
+	 * builder for a new SearXNG instance
 	 * @return {@link Builder}
 	 */
-	public static Builder builder(String baseUrl) {
-		return new Builder(baseUrl);
+	public static Builder builder() {
+		return new Builder();
 	}
 	
 	private static WebSearchOrganicResult toWebSearchOrganicResult(SearXNGResult result) {
@@ -64,8 +65,9 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		/**
 		 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
 		 */
-		public Builder(String baseUrl) {
+		public Builder baseUrl(String baseUrl) {
 			this.baseUrl = baseUrl;
+			return this;
 		}
 		
 		/**
@@ -84,6 +86,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		 *  @return The new instance.
 		 */
 		public SearXNGWebSearchEngine build() {
+			ensureNotNull(baseUrl, "baseUrl");
 			return new SearXNGWebSearchEngine(this);
 		}
 	}
