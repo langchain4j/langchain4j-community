@@ -36,6 +36,22 @@ class SearXNGClient {
 			final Map<String, Object> args = new HashMap<>();
 			args.put("q", request.searchTerms());
 			args.put("format", "json");
+			// Only consider explicit safesearch requests, otherwise keep the default
+			if (request.safeSearch() != null) {
+				if (request.safeSearch()) {
+					// Set to strict as opposed to moderate
+					args.put("safesearch", 2);
+				}
+				else {
+					args.put("safesearch", 0);
+				}
+			}
+			if (request.startPage() != null) {
+				args.put("pageno", request.startPage());
+			}
+			if (request.language() != null) {
+				args.put("language", request.language());
+			}
 			final Response<SearXNGResults> response = api.search(args).execute();
 			return response.body();
 		}
