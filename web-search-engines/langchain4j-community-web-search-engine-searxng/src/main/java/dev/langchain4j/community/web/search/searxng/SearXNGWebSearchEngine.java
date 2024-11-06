@@ -19,6 +19,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 	private final SearXNGClient client;
 
 	private SearXNGWebSearchEngine(Builder builder) {
+		ensureNotNull(builder.baseUrl, "baseUrl");
 		this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)));
 	}
 	
@@ -86,7 +87,6 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		 *  @return The new instance.
 		 */
 		public SearXNGWebSearchEngine build() {
-			ensureNotNull(baseUrl, "baseUrl");
 			return new SearXNGWebSearchEngine(this);
 		}
 	}
