@@ -3,14 +3,14 @@ package dev.langchain4j.community.web.search.searxng;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
-
-import java.io.IOException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 class SearXNGResponseLoggingInterceptor implements Interceptor {
-	private static final Logger log = LoggerFactory.getLogger(SearXNGResponseLoggingInterceptor.class);
+
+    private static final Logger log = LoggerFactory.getLogger(SearXNGResponseLoggingInterceptor.class);
 
     @Override
     public Response intercept(Chain chain) throws IOException {
@@ -23,7 +23,7 @@ class SearXNGResponseLoggingInterceptor implements Interceptor {
     private void log(Response response) {
         try {
             log.debug("Response:\n- status code: {}\n- headers: {}\n- body: {}",
-                    response.code(), response.headers(), this.getBody(response));
+                response.code(), response.headers(), this.getBody(response));
         } catch (Exception e) {
             log.warn("Error while logging response: {}", e.getMessage());
         }
@@ -31,8 +31,8 @@ class SearXNGResponseLoggingInterceptor implements Interceptor {
 
     private String getBody(Response response) throws IOException {
         return isEventStream(response)
-                ? "[skipping response body due to streaming]"
-                : response.peekBody(Long.MAX_VALUE).string();
+            ? "[skipping response body due to streaming]"
+            : response.peekBody(Long.MAX_VALUE).string();
     }
 
     private static boolean isEventStream(Response response) {
