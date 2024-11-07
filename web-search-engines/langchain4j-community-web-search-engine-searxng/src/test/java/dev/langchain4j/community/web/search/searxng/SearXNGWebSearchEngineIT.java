@@ -58,10 +58,6 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
     	return metadataForComparison(webSearchOrganicResult, "engine");
     }
     
-    private static String engines(WebSearchRequest webSearchRequest) {
-    	return (String) webSearchRequest.additionalParams().get("engines");
-    }
-    
     @Test
     void should_search_with_start_page() {
     	// given
@@ -147,14 +143,6 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
         WebSearchResults webSearchResults1 = searchEngine().search(request1);
         WebSearchResults webSearchResults2 = searchEngine().search(request2);
         WebSearchResults webSearchResults3 = searchEngine().search(request3);
-
-        System.out.println(engines(request1));
-        System.out.println(engines(request2));
-        System.out.println(engines(request3));
-
-        System.out.println(engine(webSearchResults1.results().get(0)));
-        System.out.println(engine(webSearchResults2.results().get(0)));
-        System.out.println(engine(webSearchResults3.results().get(0)));
 
         // then
         assertNotEquals(engine(webSearchResults1.results().get(0)), engine(webSearchResults2.results().get(0)));
