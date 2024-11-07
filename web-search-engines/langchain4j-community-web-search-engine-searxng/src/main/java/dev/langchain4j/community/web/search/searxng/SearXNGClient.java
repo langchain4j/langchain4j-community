@@ -12,9 +12,10 @@ import okhttp3.OkHttpClient;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
+import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 
 class SearXNGClient {
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
 	private SearXNGApi api;
 
 	public SearXNGClient(String baseUrl, Duration timeout) {
