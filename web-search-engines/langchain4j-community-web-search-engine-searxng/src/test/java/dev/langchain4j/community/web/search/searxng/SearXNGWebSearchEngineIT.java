@@ -1,5 +1,6 @@
 package dev.langchain4j.community.web.search.searxng;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.HashMap;
@@ -145,12 +146,17 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
         WebSearchResults webSearchResults3 = searchEngine().search(request3);
 
         // then
-        assertNotEquals(engine(webSearchResults1.results().get(0)), engine(webSearchResults2.results().get(0)));
-        assertNotEquals(engine(webSearchResults1.results().get(0)), engine(webSearchResults3.results().get(0)));
-        assertNotEquals(engine(webSearchResults2.results().get(0)), engine(webSearchResults3.results().get(0)));
-
-        assertNotEquals(engine(webSearchResults1.results().get(1)), engine(webSearchResults2.results().get(1)));
-        assertNotEquals(engine(webSearchResults1.results().get(1)), engine(webSearchResults3.results().get(1)));
-        assertNotEquals(engine(webSearchResults2.results().get(1)), engine(webSearchResults3.results().get(1)));    
+        for (final WebSearchOrganicResult result: webSearchResults1.results()) {
+        	assertEquals("google", engine(result));
+        	
+        }
+        for (final WebSearchOrganicResult result: webSearchResults2.results()) {
+        	assertEquals("bing", engine(result));
+        	
+        }
+        for (final WebSearchOrganicResult result: webSearchResults3.results()) {
+        	assertEquals("yahoo", engine(result));
+        	
+        }
     }
 }
