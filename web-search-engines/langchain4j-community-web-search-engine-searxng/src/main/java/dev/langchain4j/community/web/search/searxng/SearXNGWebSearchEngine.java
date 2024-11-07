@@ -35,17 +35,20 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		return new Builder();
 	}
 	
-	private static String toCSV(List<String> values) {
-		if (values == null || values.size() == 0) {
-			return "";
+	private static String toCSV(List<?> values) {
+		if (values == null) {
+			return null;
 		}
-		return String.join(",", values);
+		return String.join(",", values.toString());
 	}
 	
 	private static Map<String, String> extractMetadata(SearXNGResult result) {
 		final Map<String, String> metadata = new HashMap<>();
-		metadata.put("engine", getOrDefault(result.getEngine(), ""));
+		metadata.put("engine", result.getEngine());
 		metadata.put("engines", toCSV(result.getEngines()));
+		metadata.put("score", Double.toString(result.getScore()));
+		metadata.put("category", result.getCategory());
+		metadata.put("positions", toCSV(result.getPositions()));
 		return metadata;
 	}
 	
