@@ -1,7 +1,13 @@
 package dev.langchain4j.community.web.search.searxng;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -11,6 +17,9 @@ import org.testcontainers.utility.MountableFile;
 
 import dev.langchain4j.web.search.WebSearchEngine;
 import dev.langchain4j.web.search.WebSearchEngineIT;
+import dev.langchain4j.web.search.WebSearchOrganicResult;
+import dev.langchain4j.web.search.WebSearchRequest;
+import dev.langchain4j.web.search.WebSearchResults;
 
 @Testcontainers
 class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
@@ -35,5 +44,125 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
     static void stopContainers() {
        	searxng.stop();
        	searxng.close();
+    }
+    
+    private static String contentForComparison(WebSearchOrganicResult webSearchOrganicResult) {
+    	return webSearchOrganicResult.toString();
+    }
+    
+    private static String metadataForComparison(WebSearchOrganicResult webSearchOrganicResult, String key) {
+    	return webSearchOrganicResult.metadata().get(key);
+    }
+    
+    private static String engine(WebSearchOrganicResult webSearchOrganicResult) {
+    	return metadataForComparison(webSearchOrganicResult, "engine");
+    }
+    
+    private static String engines(WebSearchRequest webSearchRequest) {
+    	return (String) webSearchRequest.additionalParams().get("engines");
+    }
+    
+    @Test
+    void should_search_with_start_page() {
+    	// given
+    	final String searchTerms = "What is Artificial Intelligence?";
+        WebSearchRequest request1 = WebSearchRequest.builder()
+                .searchTerms(searchTerms)
+                .build();
+
+        WebSearchRequest request2 = WebSearchRequest.builder()
+                .searchTerms(searchTerms)
+                .startPage(2)
+                .build();
+
+        WebSearchRequest request3 = WebSearchRequest.builder()
+                .searchTerms(searchTerms)
+                .startPage(3)
+                .build();
+        // when
+        WebSearchResults webSearchResults1 = searchEngine().search(request1);
+        WebSearchResults webSearchResults2 = searchEngine().search(request2);
+        WebSearchResults webSearchResults3 = searchEngine().search(request3);
+
+        // then
+        assertNotEquals(contentForComparison(webSearchResults1.results().get(0)), contentForComparison(webSearchResults2.results().get(0)));
+        assertNotEquals(contentForComparison(webSearchResults1.results().get(0)), contentForComparison(webSearchResults3.results().get(0)));
+        assertNotEquals(contentForComparison(webSearchResults2.results().get(0)), contentForComparison(webSearchResults3.results().get(0)));
+
+        assertNotEquals(contentForComparison(webSearchResults1.results().get(1)), contentForComparison(webSearchResults2.results().get(1)));
+        assertNotEquals(contentForComparison(webSearchResults1.results().get(1)), contentForComparison(webSearchResults3.results().get(1)));
+        assertNotEquals(contentForComparison(webSearchResults2.results().get(1)), contentForComparison(webSearchResults3.results().get(1)));
+    }
+
+    @Test
+    void should_search_with_language() {
+    	// given
+    	// should be generic across many languages
+    	final String searchTerms = "AI";
+        WebSearchRequest request1 = WebSearchRequest.builder()
+                .searchTerms(searchTerms)
+                .language("en-US")
+                .build();
+
+        WebSearchRequest request2 = WebSearchRequest.builder()
+                .searchTerms(searchTerms)
+                .language("fr")
+                .build();
+
+        // when
+        WebSearchResults webSearchResults1 = searchEngine().search(request1);
+        WebSearchResults webSearchResults2 = searchEngine().search(request2);
+
+        // then
+        assertNotEquals(contentForComparison(webSearchResults1.results().get(0)), contentForComparison(webSearchResults2.results().get(0)));
+        assertNotEquals(contentForComparison(webSearchResults1.results().get(1)), contentForComparison(webSearchResults2.results().get(1)));
+    }
+    
+    @Test
+    void should_search_with_additional_params() {
+    	// given
+    	// Choose three very different search engines
+    	final String searchTerms = "qqq stock quote";
+    	final Map<String, Object> additionalParams1 = new HashMap<>();
+        additionalParams1.put("engines", "google");
+        WebSearchRequest request1 = WebSearchRequest.builder()
+                .searchTerms(searchTerms)
+                .additionalParams(additionalParams1)
+                .build();
+
+    	final Map<String, Object> additionalParams2 = new HashMap<>();
+        additionalParams2.put("engines", "bing");
+        WebSearchRequest request2 = WebSearchRequest.builder()
+                .searchTerms(searchTerms)
+                .additionalParams(additionalParams2)
+                .build();
+
+    	final Map<String, Object> additionalParams3 = new HashMap<>();
+    	additionalParams3.put("engines", "yahoo");
+        WebSearchRequest request3 = WebSearchRequest.builder()
+                .searchTerms(searchTerms)
+                .additionalParams(additionalParams3)
+                .build();
+        // when
+        WebSearchResults webSearchResults1 = searchEngine().search(request1);
+        WebSearchResults webSearchResults2 = searchEngine().search(request2);
+        WebSearchResults webSearchResults3 = searchEngine().search(request3);
+
+        System.out.println(engines(request1));
+        System.out.println(engines(request2));
+        System.out.println(engines(request3));
+
+        System.out.println(engine(webSearchResults1.results().get(0)));
+        System.out.println(engine(webSearchResults2.results().get(0)));
+        System.out.println(engine(webSearchResults3.results().get(0)));
+
+        // then
+        assertNotEquals(engine(webSearchResults1.results().get(0)), engine(webSearchResults2.results().get(0)));
+        assertNotEquals(engine(webSearchResults1.results().get(0)), engine(webSearchResults3.results().get(0)));
+        assertNotEquals(engine(webSearchResults2.results().get(0)), engine(webSearchResults3.results().get(0)));
+
+        assertNotEquals(engine(webSearchResults1.results().get(1)), engine(webSearchResults2.results().get(1)));
+        assertNotEquals(engine(webSearchResults1.results().get(1)), engine(webSearchResults3.results().get(1)));
+        assertNotEquals(engine(webSearchResults2.results().get(1)), engine(webSearchResults3.results().get(1)));    
     }
 }

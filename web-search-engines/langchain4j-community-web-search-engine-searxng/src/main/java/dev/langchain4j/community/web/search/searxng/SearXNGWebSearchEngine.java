@@ -2,6 +2,8 @@ package dev.langchain4j.community.web.search.searxng;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -11,6 +13,7 @@ import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchRequest;
 import dev.langchain4j.web.search.WebSearchResults;
 import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.copyIfNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 /**
@@ -32,8 +35,22 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		return new Builder();
 	}
 	
+	private static String toCSV(List<String> values) {
+		if (values == null || values.size() == 0) {
+			return "";
+		}
+		return String.join(",", values);
+	}
+	
+	private static Map<String, String> extractMetadata(SearXNGResult result) {
+		final Map<String, String> metadata = new HashMap<>();
+		metadata.put("engine", getOrDefault(result.getEngine(), ""));
+		metadata.put("engines", toCSV(result.getEngines()));
+		return metadata;
+	}
+	
 	private static WebSearchOrganicResult toWebSearchOrganicResult(SearXNGResult result) {
-		return WebSearchOrganicResult.from(result.getTitle(), URI.create(result.getUrl()), result.getContent(), null);
+		return WebSearchOrganicResult.from(result.getTitle(), URI.create(result.getUrl()), result.getContent(), null, extractMetadata(result));
 	}
 	
 	private static boolean hasValue(String value) {
@@ -88,7 +105,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		 * @return {@link Builder}
 		 */
 		public Builder optionalParams(Map<String, Object> optionalParams) {
-			this.optionalParams = optionalParams;
+			this.optionalParams = copyIfNotNull(optionalParams);
 			return this;
 		}
 
