@@ -2,6 +2,7 @@ package dev.langchain4j.community.web.search.searxng;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import dev.langchain4j.web.search.WebSearchEngine;
@@ -20,7 +21,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 
 	private SearXNGWebSearchEngine(Builder builder) {
 		ensureNotNull(builder.baseUrl, "baseUrl");
-		this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)));
+		this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)), builder.optionalParameters);
 	}
 	
 	/**
@@ -62,6 +63,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 	public static class Builder {
 		private String baseUrl;
 		private Duration duration;
+		private Map<String, Object> optionalParameters;
 		
 		/**
 		 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
@@ -78,6 +80,15 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		 */
 		public Builder duration(Duration duration) {
 			this.duration = duration;
+			return this;
+		}
+
+		/**
+		 * @param optionalParameters any optional parameters to be passed in on all requests
+		 * @return {@link Builder}
+		 */
+		public Builder optionalParameters(Map<String, Object> optionalParameters) {
+			this.optionalParameters = optionalParameters;
 			return this;
 		}
 
