@@ -21,7 +21,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 
 	private SearXNGWebSearchEngine(Builder builder) {
 		ensureNotNull(builder.baseUrl, "baseUrl");
-		this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)), builder.optionalParameters);
+		this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)), builder.optionalParams);
 	}
 	
 	/**
@@ -63,7 +63,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 	public static class Builder {
 		private String baseUrl;
 		private Duration duration;
-		private Map<String, Object> optionalParameters;
+		private Map<String, Object> optionalParams;
 		
 		/**
 		 * @param baseUrl base URL of the SearXNG instance e.g. http://localhost:8080
@@ -84,11 +84,11 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		}
 
 		/**
-		 * @param optionalParameters any optional parameters to be passed in on all requests
+		 * @param optionalParams any optional parameters to be passed in on all requests
 		 * @return {@link Builder}
 		 */
-		public Builder optionalParameters(Map<String, Object> optionalParameters) {
-			this.optionalParameters = optionalParameters;
+		public Builder optionalParams(Map<String, Object> optionalParams) {
+			this.optionalParams = optionalParams;
 			return this;
 		}
 

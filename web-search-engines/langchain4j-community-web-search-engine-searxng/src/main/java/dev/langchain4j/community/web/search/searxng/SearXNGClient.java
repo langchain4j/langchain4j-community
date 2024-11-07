@@ -1,7 +1,8 @@
 package dev.langchain4j.community.web.search.searxng;
 
-import java.io.IOException;
+import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,16 +14,14 @@ import okhttp3.OkHttpClient;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
-import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
-import static dev.langchain4j.internal.Utils.getOrDefault;
 
 class SearXNGClient {
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
 	private final SearXNGApi api;
-	private final Map<String, Object> optionalParameters;
+	private final Map<String, Object> optionalParams;
 
-	public SearXNGClient(String baseUrl, Duration timeout, Map<String, Object> optionalParameters) {
-		this.optionalParameters = optionalParameters;
+	public SearXNGClient(String baseUrl, Duration timeout, Map<String, Object> optionalParams) {
+		this.optionalParams = optionalParams;
 		OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
 				.callTimeout(timeout)
 				.connectTimeout(timeout)
@@ -39,8 +38,8 @@ class SearXNGClient {
 	SearXNGResponse search(WebSearchRequest request) {
 		try {
 			final Map<String, Object> args = new HashMap<>();
-			if (optionalParameters != null) {
-				args.putAll(optionalParameters);
+			if (optionalParams != null) {
+				args.putAll(optionalParams);
 			}
 			if (request.additionalParams() != null) {
 				args.putAll(request.additionalParams());
