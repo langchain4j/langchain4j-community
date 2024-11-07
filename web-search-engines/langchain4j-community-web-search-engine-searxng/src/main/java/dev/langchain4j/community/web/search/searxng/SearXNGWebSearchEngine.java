@@ -24,7 +24,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 
 	private SearXNGWebSearchEngine(Builder builder) {
 		ensureNotNull(builder.baseUrl, "baseUrl");
-		this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)), builder.optionalParams);
+		this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)), builder.logRequests, builder.logResponses, builder.optionalParams);
 	}
 	
 	/**
@@ -83,6 +83,8 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 	public static class Builder {
 		private String baseUrl;
 		private Duration duration;
+		private boolean logRequests;
+		private boolean logResponses;
 		private Map<String, Object> optionalParams;
 		
 		/**
@@ -100,6 +102,24 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 		 */
 		public Builder duration(Duration duration) {
 			this.duration = duration;
+			return this;
+		}
+
+		/**
+		 * @param logRequests log okhttp3 request objects 
+		 * @return {@link Builder}
+		 */
+		public Builder logRequests(boolean logRequests) {
+			this.logRequests = logRequests;
+			return this;
+		}
+
+		/**
+		 * @param logResponses log okhttp3 response objects 
+		 * @return {@link Builder}
+		 */
+		public Builder logResponses(boolean logResponses) {
+			this.logResponses = logResponses;
 			return this;
 		}
 

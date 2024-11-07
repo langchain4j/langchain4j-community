@@ -20,13 +20,19 @@ class SearXNGClient {
 	private final SearXNGApi api;
 	private final Map<String, Object> optionalParams;
 
-	public SearXNGClient(String baseUrl, Duration timeout, Map<String, Object> optionalParams) {
+	public SearXNGClient(String baseUrl, Duration timeout, boolean logRequests, boolean logResponses, Map<String, Object> optionalParams) {
 		this.optionalParams = optionalParams;
 		OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
 				.callTimeout(timeout)
 				.connectTimeout(timeout)
 				.readTimeout(timeout)
 				.writeTimeout(timeout);
+        if (logRequests) {
+            okHttpClientBuilder.addInterceptor(new SearXNGRequestLoggingInterceptor());
+        }
+        if (logResponses) {
+            okHttpClientBuilder.addInterceptor(new SearXNGResponseLoggingInterceptor());
+        }
 		Retrofit retrofit = new Retrofit.Builder()
 				.baseUrl(baseUrl)
 				.client(okHttpClientBuilder.build())
