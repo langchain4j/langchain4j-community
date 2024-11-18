@@ -27,8 +27,11 @@
         <!-- LangChain4j Community Bill of Materials POM -->
         <module>langchain4j-community-bom</module>
 
+        <!-- LangChain4j Community integration of models -->
+        <module>models/langchain4j-community-chatglm</module>
+
         <!-- LangChain4j Community integration of embedding store -->
-        <module>langchain4j-community-clickhouse</module>
+        <module>embedding-stores/langchain4j-community-clickhouse</module>
 
         <!-- LangChain4j Community integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
