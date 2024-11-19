@@ -1,95 +1,85 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
-public class ChatTokenResponse {
-    private final String refreshToken;
-    private final Integer expiresIn;
-    private final String sessionKey;
-    private final String accessToken;
-    private final String scope;
-    private final String sessionSecret;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
-    private ChatTokenResponse(Builder builder) {
-        this.refreshToken = builder.refreshToken;
-        this.expiresIn = builder.expiresIn;
-        this.sessionKey = builder.sessionKey;
-        this.accessToken = builder.accessToken;
-        this.scope = builder.scope;
-        this.sessionSecret = builder.sessionSecret;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
+public class ChatTokenResponse {
+
+    private String refreshToken;
+    private Integer expiresIn;
+    private String sessionKey;
+    private String accessToken;
+    private String scope;
+    private String sessionSecret;
+
+    public ChatTokenResponse() {
+
     }
 
     public String getRefreshToken() {
         return refreshToken;
     }
 
+    public void setRefreshToken(final String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
     public Integer getExpiresIn() {
         return expiresIn;
+    }
+
+    public void setExpiresIn(final Integer expiresIn) {
+        this.expiresIn = expiresIn;
     }
 
     public String getSessionKey() {
         return sessionKey;
     }
 
+    public void setSessionKey(final String sessionKey) {
+        this.sessionKey = sessionKey;
+    }
+
     public String getAccessToken() {
         return accessToken;
+    }
+
+    public void setAccessToken(final String accessToken) {
+        this.accessToken = accessToken;
     }
 
     public String getScope() {
         return scope;
     }
 
+    public void setScope(final String scope) {
+        this.scope = scope;
+    }
+
     public String getSessionSecret() {
         return sessionSecret;
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public void setSessionSecret(final String sessionSecret) {
+        this.sessionSecret = sessionSecret;
     }
 
-    public static final class Builder {
-        private String refreshToken;
-        private Integer expiresIn;
-        private String sessionKey;
-        private String accessToken;
-        private String scope;
-        private String sessionSecret;
-
-        private Builder() {
-        }
-
-        public Builder refreshToken(String refreshToken) {
-            this.refreshToken = refreshToken;
-            return this;
-        }
-
-        public Builder expiresIn(Integer expiresIn) {
-            this.expiresIn = expiresIn;
-            return this;
-        }
-
-        public Builder accessToken(String accessToken) {
-            this.accessToken = accessToken;
-            return this;
-        }
-
-        public Builder scope(String scope) {
-            this.scope = scope;
-            return this;
-        }
-
-        public Builder sessionKey(String sessionKey) {
-            this.sessionKey = sessionKey;
-            return this;
-        }
-
-        public Builder sessionSecret(String sessionSecret) {
-            this.sessionSecret = sessionSecret;
-            return this;
-        }
-
-        public ChatTokenResponse build() {
-            return new ChatTokenResponse(this);
-        }
+    @Override
+    public String toString() {
+        return "ChatTokenResponse{" +
+                "refreshToken='" + refreshToken + '\'' +
+                ", expiresIn=" + expiresIn +
+                ", sessionKey='" + sessionKey + '\'' +
+                ", accessToken='" + accessToken + '\'' +
+                ", scope='" + scope + '\'' +
+                ", sessionSecret='" + sessionSecret + '\'' +
+                '}';
     }
-
-
 }

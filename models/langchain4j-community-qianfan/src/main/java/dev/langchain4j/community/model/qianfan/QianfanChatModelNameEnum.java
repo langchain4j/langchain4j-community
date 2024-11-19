@@ -1,8 +1,5 @@
 package dev.langchain4j.community.model.qianfan;
 
-import lombok.Getter;
-
-@Getter
 public enum QianfanChatModelNameEnum {
 
     ERNIE_BOT("ERNIE-Bot", "completions"),
@@ -22,9 +19,7 @@ public enum QianfanChatModelNameEnum {
     CHATGLM2_6B_32K("ChatGLM2-6B-32K", "chatglm2_6b_32k"),
     AQUILACHAT_7B("AquilaChat-7B", "aquilachat_7b");
 
-
     private final String modelName;
-
     private final String endpoint;
 
     QianfanChatModelNameEnum(String modelName, String endpoint) {
@@ -32,8 +27,15 @@ public enum QianfanChatModelNameEnum {
         this.endpoint = endpoint;
     }
 
+    public String getModelName() {
+        return modelName;
+    }
 
-    public static String getEndpoint(String modelName) {
+    public String getEndpoint() {
+        return endpoint;
+    }
+
+    public static String fromModelName(String modelName) {
         for (QianfanChatModelNameEnum qianfanChatModelNameEnum : QianfanChatModelNameEnum.values()) {
             if (qianfanChatModelNameEnum.getModelName().equals(modelName)) {
                 return qianfanChatModelNameEnum.getEndpoint();

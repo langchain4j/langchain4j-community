@@ -1,45 +1,54 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
-import java.lang.reflect.Type;
-import java.util.Map;
 import java.util.Objects;
 
-public class FunctionCall<T> {
-    private static final Gson GSON = new Gson();
-    private static final Type MAP_TYPE = (new TypeToken<Map<String, Object>>() {
-    }).getType();
-    private final String name;
-    private final String thoughts;
-    private final String arguments;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
+public class FunctionCall {
+
+    private String name;
+    private String thoughts;
+    private String arguments;
+
+    public FunctionCall() {
+    }
 
     private FunctionCall(Builder builder) {
         this.name = builder.name;
-        this.arguments = builder.arguments;
         this.thoughts = builder.thoughts;
+        this.arguments = builder.arguments;
     }
 
-    public String name() {
-        return this.name;
+    public String getName() {
+        return name;
     }
 
-    public String thoughts() {
+    public void setName(final String name) {
+        this.name = name;
+    }
+
+    public String getThoughts() {
         return thoughts;
     }
 
-    public String arguments() {
-        return this.arguments;
+    public void setThoughts(final String thoughts) {
+        this.thoughts = thoughts;
     }
 
-    public Map<String, T> argumentsAsMap() {
-        return GSON.fromJson(this.arguments, MAP_TYPE);
+    public String getArguments() {
+        return arguments;
     }
 
-    public <T> T argument(String name) {
-        Map<String, T> arguments = (Map<String, T>) this.argumentsAsMap();
-        return arguments.get(name);
+    public void setArguments(final String arguments) {
+        this.arguments = arguments;
     }
 
     public boolean equals(Object another) {
@@ -72,31 +81,28 @@ public class FunctionCall<T> {
         return h;
     }
 
-
     public static Builder builder() {
         return new Builder();
     }
 
     public static final class Builder {
-        private String name;
-        private String arguments;
-        private String thoughts;
 
-        private Builder() {
-        }
+        private String name;
+        private String thoughts;
+        private String arguments;
 
         public Builder name(String name) {
             this.name = name;
             return this;
         }
 
-        public Builder arguments(String arguments) {
-            this.arguments = arguments;
+        public Builder thoughts(String thoughts) {
+            this.thoughts = thoughts;
             return this;
         }
 
-        public Builder thoughts(String thoughts) {
-            this.thoughts = thoughts;
+        public Builder arguments(String arguments) {
+            this.arguments = arguments;
             return this;
         }
 

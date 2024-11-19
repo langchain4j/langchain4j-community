@@ -1,51 +1,85 @@
 package dev.langchain4j.community.model.qianfan.client.embedding;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.qianfan.client.Usage;
-import lombok.Getter;
 
-import java.util.Collections;
 import java.util.List;
 
-@Getter
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public final class EmbeddingResponse {
-    private final String object;
-    private final String id;
-    private final Integer created;
-    private final List<EmbeddingData> data;
-    private final Usage usage;
+
+    private String object;
+    private String id;
+    private Integer created;
+    private List<EmbeddingData> data;
+    private Usage usage;
     private String errorCode;
     private String errorMsg;
 
-    private EmbeddingResponse(Builder builder) {
-        this.object = builder.object;
-        this.data = builder.data;
-        this.usage = builder.usage;
-        this.id = builder.id;
-        this.created = builder.created;
+    public EmbeddingResponse() {
     }
 
-    public String object() {
-        return this.object;
+    public String getObject() {
+        return object;
     }
 
-    public List<EmbeddingData> data() {
-        return this.data;
+    public void setObject(final String object) {
+        this.object = object;
     }
 
-    public Usage usage() {
-        return this.usage;
+    public String getId() {
+        return id;
     }
 
-    public String id() {
-        return this.id;
+    public void setId(final String id) {
+        this.id = id;
     }
 
-    public Integer created() {
-        return this.created;
+    public Integer getCreated() {
+        return created;
     }
 
-    public List<Float> embedding() {
-        return this.data.get(0).embedding();
+    public void setCreated(final Integer created) {
+        this.created = created;
+    }
+
+    public List<EmbeddingData> getData() {
+        return data;
+    }
+
+    public void setData(final List<EmbeddingData> data) {
+        this.data = data;
+    }
+
+    public Usage getUsage() {
+        return usage;
+    }
+
+    public void setUsage(final Usage usage) {
+        this.usage = usage;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public void setErrorCode(final String errorCode) {
+        this.errorCode = errorCode;
+    }
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(final String errorMsg) {
+        this.errorMsg = errorMsg;
     }
 
     @Override
@@ -57,53 +91,6 @@ public final class EmbeddingResponse {
                 ", data=" + data +
                 ", usage=" + usage +
                 '}';
-    }
-
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static final class Builder {
-        private String object;
-        private String id;
-        private Integer created;
-        private List<EmbeddingData> data;
-        private Usage usage;
-
-        private Builder() {
-        }
-
-        public Builder object(String object) {
-            this.object = object;
-            return this;
-        }
-
-        public Builder data(List<EmbeddingData> data) {
-            if (data != null) {
-                this.data = Collections.unmodifiableList(data);
-            }
-            return this;
-        }
-
-        public Builder usage(Usage usage) {
-            this.usage = usage;
-            return this;
-        }
-
-        public Builder id(String id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder created(Integer created) {
-            this.created = created;
-            return this;
-        }
-
-        public EmbeddingResponse build() {
-            return new EmbeddingResponse(this);
-        }
     }
 }
 

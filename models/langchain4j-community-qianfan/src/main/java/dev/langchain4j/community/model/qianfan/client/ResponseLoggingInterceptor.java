@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 public class ResponseLoggingInterceptor implements Interceptor {
+
     private static final Logger log = LoggerFactory.getLogger(ResponseLoggingInterceptor.class);
 
     public ResponseLoggingInterceptor() {

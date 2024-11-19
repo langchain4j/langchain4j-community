@@ -2,15 +2,13 @@ package dev.langchain4j.community.model.qianfan.client;
 
 import okhttp3.Request;
 import okio.Buffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import retrofit2.Call;
 
 import java.io.IOException;
 import java.util.function.Function;
 
 public class SyncRequestExecutor<Response, ResponseContent> {
-    private final static Logger LOG = LoggerFactory.getLogger(SyncRequestExecutor.class);
+
     private final Call<Response> call;
     private final Function<Response, ResponseContent> responseContentExtractor;
 

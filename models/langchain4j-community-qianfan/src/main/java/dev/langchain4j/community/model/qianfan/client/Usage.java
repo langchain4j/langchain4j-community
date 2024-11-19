@@ -1,28 +1,48 @@
 package dev.langchain4j.community.model.qianfan.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.util.Objects;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public final class Usage {
-    private final Integer promptTokens;
-    private final Integer completionTokens;
-    private final Integer totalTokens;
 
-    private Usage(Builder builder) {
-        this.promptTokens = builder.promptTokens;
-        this.completionTokens = builder.completionTokens;
-        this.totalTokens = builder.totalTokens;
+    private Integer promptTokens;
+    private Integer completionTokens;
+    private Integer totalTokens;
+
+    public Usage() {
     }
 
-    public Integer promptTokens() {
-        return this.promptTokens;
+    public Integer getPromptTokens() {
+        return promptTokens;
     }
 
-    public Integer completionTokens() {
-        return this.completionTokens;
+    public void setPromptTokens(final Integer promptTokens) {
+        this.promptTokens = promptTokens;
     }
 
-    public Integer totalTokens() {
-        return this.totalTokens;
+    public Integer getCompletionTokens() {
+        return completionTokens;
+    }
+
+    public void setCompletionTokens(final Integer completionTokens) {
+        this.completionTokens = completionTokens;
+    }
+
+    public Integer getTotalTokens() {
+        return totalTokens;
+    }
+
+    public void setTotalTokens(final Integer totalTokens) {
+        this.totalTokens = totalTokens;
     }
 
     public boolean equals(Object another) {
@@ -45,40 +65,13 @@ public final class Usage {
         return h;
     }
 
+    @Override
     public String toString() {
-        return "Usage{promptTokens=" + this.promptTokens + ", completionTokens=" + this.completionTokens + ", totalTokens=" + this.totalTokens + "}";
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static final class Builder {
-        private Integer promptTokens;
-        private Integer completionTokens;
-        private Integer totalTokens;
-
-        private Builder() {
-        }
-
-        public Builder promptTokens(Integer promptTokens) {
-            this.promptTokens = promptTokens;
-            return this;
-        }
-
-        public Builder completionTokens(Integer completionTokens) {
-            this.completionTokens = completionTokens;
-            return this;
-        }
-
-        public Builder totalTokens(Integer totalTokens) {
-            this.totalTokens = totalTokens;
-            return this;
-        }
-
-        public Usage build() {
-            return new Usage(this);
-        }
+        return "Usage{" +
+                "promptTokens=" + promptTokens +
+                ", completionTokens=" + completionTokens +
+                ", totalTokens=" + totalTokens +
+                '}';
     }
 }
 

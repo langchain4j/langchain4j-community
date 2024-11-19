@@ -28,7 +28,7 @@
         </dependency>
         <dependency>
             <groupId>com.squareup.retrofit2</groupId>
-            <artifactId>converter-gson</artifactId>
+            <artifactId>converter-jackson</artifactId>
         </dependency>
 
         <!-- DEPENDENCY CONFLICT RESOLUTION FOR OKHTTP (START) -->
@@ -47,12 +47,6 @@
             <artifactId>kotlin-stdlib-jdk8</artifactId>
         </dependency>
         <!-- DEPENDENCY CONFLICT RESOLUTION FOR OKHTTP (END)  -->
-
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -101,6 +95,16 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>slf4j-tinylog</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-impl</artifactId>
+        </dependency>
+
     </dependencies>
 
     <licenses>
@@ -111,5 +115,4 @@
             <comments>A business-friendly OSS license</comments>
         </license>
     </licenses>
-
 </project>

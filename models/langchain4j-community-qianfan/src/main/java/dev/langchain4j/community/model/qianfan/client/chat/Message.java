@@ -1,8 +1,19 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.util.Objects;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public final class Message {
+
     private final Role role;
     private final String content;
     private final String name;
@@ -15,20 +26,20 @@ public final class Message {
         this.functionCall = builder.functionCall;
     }
 
-    public Role role() {
-        return this.role;
+    public Role getRole() {
+        return role;
     }
 
-    public String content() {
-        return this.content;
+    public String getContent() {
+        return content;
     }
 
-    public String name() {
-        return this.name;
+    public String getName() {
+        return name;
     }
 
-    public FunctionCall functionCall() {
-        return this.functionCall;
+    public FunctionCall getFunctionCall() {
+        return functionCall;
     }
 
     public boolean equals(Object another) {

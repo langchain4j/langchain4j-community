@@ -9,7 +9,6 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.embedding.DimensionAwareEmbeddingModel;
 import dev.langchain4j.model.output.Response;
-import lombok.Builder;
 
 import java.net.Proxy;
 import java.util.List;
@@ -33,7 +32,6 @@ public class QianfanEmbeddingModel extends DimensionAwareEmbeddingModel {
     private final String user;
     private final String endpoint;
 
-    @Builder
     public QianfanEmbeddingModel(String baseUrl,
                                  String apiKey,
                                  String secretKey,
@@ -51,7 +49,7 @@ public class QianfanEmbeddingModel extends DimensionAwareEmbeddingModel {
 
 
         this.modelName = modelName;
-        this.endpoint = Utils.isNullOrBlank(endpoint) ? QianfanEmbeddingModelNameEnum.getEndpoint(modelName) : endpoint;
+        this.endpoint = Utils.isNullOrBlank(endpoint) ? QianfanEmbeddingModelNameEnum.fromModelName(modelName) : endpoint;
 
         if (Utils.isNullOrBlank(this.endpoint)) {
             throw new IllegalArgumentException("Qianfan is no such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
@@ -90,8 +88,8 @@ public class QianfanEmbeddingModel extends DimensionAwareEmbeddingModel {
 
         EmbeddingResponse response = withRetry(() -> client.embedding(request, endpoint).execute(), maxRetries);
 
-        List<Embedding> embeddings = response.data().stream()
-                .map(openAiEmbedding -> Embedding.from(openAiEmbedding.embedding()))
+        List<Embedding> embeddings = response.getData().stream()
+                .map(embedding -> Embedding.from(embedding.getEmbedding()))
                 .collect(toList());
 
         return Response.from(
@@ -108,9 +106,86 @@ public class QianfanEmbeddingModel extends DimensionAwareEmbeddingModel {
     }
 
     public static class QianfanEmbeddingModelBuilder {
+
+        private String baseUrl;
+        private String apiKey;
+        private String secretKey;
+        private Integer maxRetries;
+        private String modelName;
+        private String endpoint;
+        private String user;
+        private Boolean logRequests;
+        private Boolean logResponses;
+        private Proxy proxy;
+
         public QianfanEmbeddingModelBuilder() {
             // This is public so it can be extended
             // By default with Lombok it becomes package private
+        }
+
+        public QianfanEmbeddingModelBuilder baseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder apiKey(String apiKey) {
+            this.apiKey = apiKey;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder secretKey(String secretKey) {
+            this.secretKey = secretKey;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder maxRetries(Integer maxRetries) {
+            this.maxRetries = maxRetries;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder modelName(String modelName) {
+            this.modelName = modelName;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder endpoint(String endpoint) {
+            this.endpoint = endpoint;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder user(String user) {
+            this.user = user;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder logRequests(Boolean logRequests) {
+            this.logRequests = logRequests;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder logResponses(Boolean logResponses) {
+            this.logResponses = logResponses;
+            return this;
+        }
+
+        public QianfanEmbeddingModelBuilder proxy(Proxy proxy) {
+            this.proxy = proxy;
+            return this;
+        }
+
+        public QianfanEmbeddingModel build() {
+            return new QianfanEmbeddingModel(
+                    baseUrl,
+                    apiKey,
+                    secretKey,
+                    maxRetries,
+                    modelName,
+                    endpoint,
+                    user,
+                    logRequests,
+                    logResponses,
+                    proxy
+            );
         }
     }
 }

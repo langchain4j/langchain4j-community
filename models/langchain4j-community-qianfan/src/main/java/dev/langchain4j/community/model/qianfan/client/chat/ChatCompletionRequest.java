@@ -1,11 +1,20 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public final class ChatCompletionRequest {
 
     private final List<Message> messages;
@@ -18,7 +27,6 @@ public final class ChatCompletionRequest {
     private final String system;
     private final List<String> stop;
     private final Integer maxOutputTokens;
-
     private final String responseFormat;
 
     private ChatCompletionRequest(Builder builder) {
@@ -35,42 +43,49 @@ public final class ChatCompletionRequest {
         this.maxOutputTokens = builder.maxOutputTokens;
     }
 
-
-    public List<Message> messages() {
-        return this.messages;
+    public List<Message> getMessages() {
+        return messages;
     }
 
-    public Double temperature() {
-        return this.temperature;
+    public Double getTemperature() {
+        return temperature;
     }
 
-
-    public Double topP() {
-        return this.topP;
+    public Double getTopP() {
+        return topP;
     }
 
-    public Boolean stream() {
-        return this.stream;
+    public Boolean getStream() {
+        return stream;
     }
 
-    public String system() {
-        return this.system;
+    public Double getPenaltyScore() {
+        return penaltyScore;
     }
 
-
-    public Double penaltyScore() {
-        return this.penaltyScore;
+    public String getUserId() {
+        return userId;
     }
 
-
-    public String userId() {
-        return this.userId;
+    public List<Function> getFunctions() {
+        return functions;
     }
 
-    public List<Function> functions() {
-        return this.functions;
+    public String getSystem() {
+        return system;
     }
 
+    public Integer getMaxOutputTokens() {
+        return maxOutputTokens;
+    }
+
+    public List<String> getStop() {
+        return stop;
+    }
+
+    public String getResponseFormat() {
+        return responseFormat;
+    }
 
     @Override
     public String toString() {
@@ -103,7 +118,6 @@ public final class ChatCompletionRequest {
         private String userId;
         private List<Function> functions;
         private String system;
-
         private String responseFormat;
         private List<String> stop;
         private Integer maxOutputTokens;
@@ -124,7 +138,6 @@ public final class ChatCompletionRequest {
             this.responseFormat(instance.responseFormat);
             return this;
         }
-
 
         public Builder messages(List<Message> messages) {
             if (messages != null) {

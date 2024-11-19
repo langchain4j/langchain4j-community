@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class RequestLoggingInterceptor implements Interceptor {
+
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingInterceptor.class);
     private static final Pattern BEARER_PATTERN = Pattern.compile("(Bearer\\s*sk-)(\\w{2})(\\w+)(\\w{2})");
 

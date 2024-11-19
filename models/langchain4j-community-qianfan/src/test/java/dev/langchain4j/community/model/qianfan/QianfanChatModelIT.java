@@ -39,6 +39,8 @@ class QianfanChatModelIT {
             .maxRetries(1)
             .apiKey(apiKey)
             .secretKey(secretKey)
+            .logRequests(true)
+            .logResponses(true)
             .build();
 
     ToolSpecification calculator = ToolSpecification.builder()

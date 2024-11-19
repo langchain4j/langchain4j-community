@@ -1,15 +1,20 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
-import java.util.HashMap;
-import java.util.Map;
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public class Function {
 
     private final String name;
     private final String description;
     private final Parameters parameters;
-
     private final Responses responses;
     private final Examples examples;
 
@@ -21,27 +26,25 @@ public class Function {
         this.responses = builder.responses;
     }
 
-
-    public String name() {
-        return this.name;
+    public String getName() {
+        return name;
     }
 
-    public String description() {
-        return this.description;
+    public String getDescription() {
+        return description;
     }
 
-    public Parameters parameters() {
-        return this.parameters;
+    public Parameters getParameters() {
+        return parameters;
     }
 
-    public Responses responses() {
+    public Responses getResponses() {
         return responses;
     }
 
-    public Examples examples() {
+    public Examples getExamples() {
         return examples;
     }
-
 
     @Override
     public String toString() {
@@ -81,30 +84,6 @@ public class Function {
 
         public Builder parameters(Parameters parameters) {
             this.parameters = parameters;
-            return this;
-        }
-
-        public Builder addParameter(String name, JsonSchemaProperty... jsonSchemaProperties) {
-            this.addOptionalParameter(name, jsonSchemaProperties);
-            this.parameters.required().add(name);
-            return this;
-        }
-
-        public Builder addOptionalParameter(String name, JsonSchemaProperty... jsonSchemaProperties) {
-            if (this.parameters == null) {
-                this.parameters = Parameters.builder().build();
-            }
-
-            Map<String, Object> jsonSchemaPropertiesMap = new HashMap();
-            JsonSchemaProperty[] var4 = jsonSchemaProperties;
-            int var5 = jsonSchemaProperties.length;
-
-            for (int var6 = 0; var6 < var5; ++var6) {
-                JsonSchemaProperty jsonSchemaProperty = var4[var6];
-                jsonSchemaPropertiesMap.put(jsonSchemaProperty.key(), jsonSchemaProperty.value());
-            }
-
-            this.parameters.properties().put(name, jsonSchemaPropertiesMap);
             return this;
         }
 

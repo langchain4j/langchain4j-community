@@ -7,6 +7,7 @@ import okhttp3.Response;
 import java.io.IOException;
 
 public class AuthorizationHeaderInjector implements Interceptor {
+
     private final String apiKey;
 
     public AuthorizationHeaderInjector(String apiKey) {

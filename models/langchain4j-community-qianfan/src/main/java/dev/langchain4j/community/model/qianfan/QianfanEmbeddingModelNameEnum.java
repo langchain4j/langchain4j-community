@@ -1,8 +1,5 @@
 package dev.langchain4j.community.model.qianfan;
 
-import lombok.Getter;
-
-@Getter
 public enum QianfanEmbeddingModelNameEnum {
 
     EMBEDDING_V1("Embedding-V1", "embedding-v1"),
@@ -11,7 +8,6 @@ public enum QianfanEmbeddingModelNameEnum {
     TAO_8K("tao-8k", "tao_8k");
 
     private final String modelName;
-
     private final String endpoint;
 
     QianfanEmbeddingModelNameEnum(String modelName, String endpoint) {
@@ -19,8 +15,15 @@ public enum QianfanEmbeddingModelNameEnum {
         this.endpoint = endpoint;
     }
 
+    public String getModelName() {
+        return modelName;
+    }
 
-    public static String getEndpoint(String modelName) {
+    public String getEndpoint() {
+        return endpoint;
+    }
+
+    public static String fromModelName(String modelName) {
         for (QianfanEmbeddingModelNameEnum qianfanEmbeddingModelNameEnum : QianfanEmbeddingModelNameEnum.values()) {
             if (qianfanEmbeddingModelNameEnum.getModelName().equals(modelName)) {
                 return qianfanEmbeddingModelNameEnum.getEndpoint();

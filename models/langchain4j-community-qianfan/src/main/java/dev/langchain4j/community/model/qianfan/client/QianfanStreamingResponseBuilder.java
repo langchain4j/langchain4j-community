@@ -1,6 +1,5 @@
 package dev.langchain4j.community.model.qianfan.client;
 
-
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.qianfan.InternalQianfanHelper;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
@@ -50,12 +49,10 @@ public class QianfanStreamingResponseBuilder {
             return;
         }
 
-
         String finishReason = partialResponse.getFinishReason();
         if (finishReason != null) {
             this.finishReason = finishReason;
         }
-
 
         String content = partialResponse.getResult();
         if (content != null) {
@@ -63,27 +60,22 @@ public class QianfanStreamingResponseBuilder {
         }
 
         Usage usage = partialResponse.getUsage();
-
         if (usage != null) {
-            inputTokenCount = usage.promptTokens();
-            outputTokenCount = usage.completionTokens();
+            inputTokenCount = usage.getPromptTokens();
+            outputTokenCount = usage.getCompletionTokens();
         }
-
 
         FunctionCall functionCall = partialResponse.getFunctionCall();
 
         if (functionCall != null) {
-
-
-            if (functionCall.name() != null) {
-                toolNameBuilder.append(functionCall.name());
+            if (functionCall.getName() != null) {
+                toolNameBuilder.append(functionCall.getName());
             }
 
-            if (functionCall.arguments() != null) {
-                toolArgumentsBuilder.append(functionCall.arguments());
+            if (functionCall.getArguments() != null) {
+                toolArgumentsBuilder.append(functionCall.getArguments());
             }
         }
-
     }
 
     public void append(CompletionResponse partialResponse) {

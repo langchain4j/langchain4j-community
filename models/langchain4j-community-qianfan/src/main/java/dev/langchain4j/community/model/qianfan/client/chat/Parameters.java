@@ -1,12 +1,23 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public class Parameters {
+
     private final String type;
     private final Map<String, Map<String, Object>> properties;
     private final List<String> required;
@@ -17,16 +28,16 @@ public class Parameters {
         this.required = builder.required;
     }
 
-    public String type() {
-        return this.type;
+    public String getType() {
+        return type;
     }
 
-    public Map<String, Map<String, Object>> properties() {
-        return this.properties;
+    public Map<String, Map<String, Object>> getProperties() {
+        return properties;
     }
 
-    public List<String> required() {
-        return this.required;
+    public List<String> getRequired() {
+        return required;
     }
 
     public boolean equals(Object another) {
@@ -59,14 +70,15 @@ public class Parameters {
     }
 
     public static final class Builder {
+
         private String type;
         private Map<String, Map<String, Object>> properties;
         private List<String> required;
 
         private Builder() {
             this.type = "object";
-            this.properties = new HashMap();
-            this.required = new ArrayList();
+            this.properties = new HashMap<>();
+            this.required = new ArrayList<>();
         }
 
         public Builder type(String type) {

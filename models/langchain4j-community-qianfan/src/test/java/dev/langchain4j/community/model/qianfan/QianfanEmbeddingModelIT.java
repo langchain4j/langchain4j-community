@@ -19,8 +19,14 @@ class QianfanEmbeddingModelIT {
     private final String apiKey = System.getenv("QIANFAN_API_KEY");
     private final String secretKey = System.getenv("QIANFAN_SECRET_KEY");
 
-    QianfanEmbeddingModel model = QianfanEmbeddingModel.builder().user("111").apiKey(apiKey)
-            .secretKey(secretKey).endpoint("embedding-v1").build();
+    QianfanEmbeddingModel model = QianfanEmbeddingModel.builder()
+            .user("111")
+            .apiKey(apiKey)
+            .secretKey(secretKey)
+            .endpoint("embedding-v1")
+            .logRequests(true)
+            .logResponses(true)
+            .build();
 
 
     @Test

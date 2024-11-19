@@ -61,16 +61,21 @@ public class RequestExecutor<Request, Response, ResponseContent> implements Sync
     }
 
     public ResponseContent execute() {
-        return (new SyncRequestExecutor<>(this.call, this.responseContentExtractor)).execute();
+        return new SyncRequestExecutor<>(this.call, this.responseContentExtractor).execute();
     }
 
-    public AsyncResponseHandling onResponse(Consumer<ResponseContent> responseHandler) {
-        return (new AsyncRequestExecutor<>(this.call, this.responseContentExtractor)).onResponse(responseHandler);
+    public AsyncResponseHandling onResponse(Consumer<ResponseContent> responseContentConsumer) {
+        return new AsyncRequestExecutor<>(this.call, this.responseContentExtractor).onResponse(responseContentConsumer);
     }
 
-    public StreamingResponseHandling onPartialResponse(Consumer<ResponseContent> partialResponseHandler) {
-        return (new StreamingRequestExecutor(this.okHttpClient, this.endpointUrl, this.requestWithStreamSupplier,
-                this.responseClass, this.streamEventContentExtractor, this.logStreamingResponses)).onPartialResponse(
-                partialResponseHandler);
+    public StreamingResponseHandling onPartialResponse(Consumer<ResponseContent> responseContentConsumer) {
+        return new StreamingRequestExecutor<>(
+                this.okHttpClient,
+                this.endpointUrl,
+                this.requestWithStreamSupplier,
+                this.responseClass,
+                this.streamEventContentExtractor,
+                this.logStreamingResponses
+        ).onPartialResponse(responseContentConsumer);
     }
 }

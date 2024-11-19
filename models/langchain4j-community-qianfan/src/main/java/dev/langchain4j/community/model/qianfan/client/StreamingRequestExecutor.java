@@ -38,25 +38,14 @@ public class StreamingRequestExecutor<Request, Response, ResponseContent> {
 
     StreamingResponseHandling onPartialResponse(final Consumer<ResponseContent> partialResponseHandler) {
         return new StreamingResponseHandling() {
-            public StreamingCompletionHandling onComplete(final Runnable streamingCompletionCallback) {
+            public StreamingCompletionHandling onComplete(final Runnable runnable) {
                 return new StreamingCompletionHandling() {
                     public ErrorHandling onError(final Consumer<Throwable> errorHandler) {
-                        return new ErrorHandling() {
-                            public void execute() {
-                                StreamingRequestExecutor.this.stream(partialResponseHandler,
-                                        streamingCompletionCallback, errorHandler);
-                            }
-                        };
+                        return () -> StreamingRequestExecutor.this.stream(partialResponseHandler, runnable, errorHandler);
                     }
 
                     public ErrorHandling ignoreErrors() {
-                        return new ErrorHandling() {
-                            public void execute() {
-                                StreamingRequestExecutor.this.stream(partialResponseHandler,
-                                        streamingCompletionCallback, (e) -> {
-                                        });
-                            }
-                        };
+                        return () -> StreamingRequestExecutor.this.stream(partialResponseHandler, runnable, e -> {});
                     }
                 };
             }

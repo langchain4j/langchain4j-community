@@ -1,11 +1,22 @@
 package dev.langchain4j.community.model.qianfan.client.embedding;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public final class EmbeddingRequest {
+
     private final String model;
     private final List<String> input;
     private final String user;
@@ -16,16 +27,16 @@ public final class EmbeddingRequest {
         this.user = builder.user;
     }
 
-    public String model() {
-        return this.model;
+    public String getModel() {
+        return model;
     }
 
-    public List<String> input() {
-        return this.input;
+    public List<String> getInput() {
+        return input;
     }
 
-    public String user() {
-        return this.user;
+    public String getUser() {
+        return user;
     }
 
     public boolean equals(Object another) {
@@ -58,6 +69,7 @@ public final class EmbeddingRequest {
     }
 
     public static final class Builder {
+
         private String model;
         private List<String> input;
         private String user;

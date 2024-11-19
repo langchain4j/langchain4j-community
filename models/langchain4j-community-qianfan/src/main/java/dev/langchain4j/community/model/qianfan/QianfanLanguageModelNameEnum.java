@@ -1,15 +1,11 @@
 package dev.langchain4j.community.model.qianfan;
 
-import lombok.Getter;
-
-@Getter
 public enum QianfanLanguageModelNameEnum {
 
     SQLCODER_7B("SQLCoder-7B", "sqlcoder_7b"),
     CODELLAMA_7B_INSTRUCT("CodeLlama-7b-Instruct", "codellama_7b_instruct");
 
     private final String modelName;
-
     private final String endpoint;
 
     QianfanLanguageModelNameEnum(String modelName, String endpoint) {
@@ -17,8 +13,15 @@ public enum QianfanLanguageModelNameEnum {
         this.endpoint = endpoint;
     }
 
+    public String getModelName() {
+        return modelName;
+    }
 
-    public static String getEndpoint(String modelName) {
+    public String getEndpoint() {
+        return endpoint;
+    }
+
+    public static String fromModelName(String modelName) {
         for (QianfanLanguageModelNameEnum qianfanLanguageModelNameEnum : QianfanLanguageModelNameEnum.values()) {
             if (qianfanLanguageModelNameEnum.getModelName().equals(modelName)) {
                 return qianfanLanguageModelNameEnum.getEndpoint();

@@ -1,6 +1,5 @@
 package dev.langchain4j.community.model.qianfan.client;
 
-
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatTokenResponse;
@@ -14,13 +13,12 @@ import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.time.Duration;
-
 
 public class QianfanClient {
 
@@ -50,9 +48,7 @@ public class QianfanClient {
         } else if (serviceBuilder.secretKey == null) {
             throw new IllegalArgumentException("secretKey must be defined");
         } else {
-            if (serviceBuilder.apiKey != null) {
-                okHttpClientBuilder.addInterceptor(new AuthorizationHeaderInjector(serviceBuilder.apiKey));
-            }
+            okHttpClientBuilder.addInterceptor(new AuthorizationHeaderInjector(serviceBuilder.apiKey));
 
             if (serviceBuilder.proxy != null) {
                 okHttpClientBuilder.proxy(serviceBuilder.proxy);
@@ -71,7 +67,7 @@ public class QianfanClient {
             this.secretKey = serviceBuilder.secretKey;
             this.okHttpClient = okHttpClientBuilder.build();
             Retrofit retrofit = (new Retrofit.Builder()).baseUrl(Utils.ensureTrailingForwardSlash(serviceBuilder.baseUrl)).client(this.okHttpClient)
-                    .addConverterFactory(GsonConverterFactory.create(Json.GSON)).build();
+                    .addConverterFactory(JacksonConverterFactory.create(Json.OBJECT_MAPPER)).build();
             this.qianfanApi = retrofit.create(QianfanApi.class);
         }
     }
@@ -94,45 +90,45 @@ public class QianfanClient {
         return new Builder();
     }
 
-
     public SyncOrAsyncOrStreaming<ChatCompletionResponse> chatCompletion(ChatCompletionRequest request, String endpoint) {
         refreshToken();
 
-        return new RequestExecutor(this.qianfanApi.chatCompletions(endpoint, request, this.token), (r) -> {
-            if (r instanceof final ChatCompletionResponse response && ((ChatCompletionResponse) r).getErrorCode() != null) {
-                throw new QianfanApiException(response.getErrorCode(), response.getErrorMsg());
-            }
-            return r;
-        }, this.okHttpClient, this.formatUrl("rpc/2.0/ai_custom/v1/wenxinworkshop/chat/" + endpoint + "?access_token=" + this.token), () -> {
-            return ChatCompletionRequest.builder().from(request).stream(true).build();
-        }, ChatCompletionResponse.class, (r) -> {
-            return r;
-        }, this.logStreamingResponses);
-
+        return new RequestExecutor<>(
+                this.qianfanApi.chatCompletions(endpoint, request, this.token),
+                r -> {
+                    if (r.getErrorCode() != null) {
+                        throw new QianfanApiException(r.getErrorCode(), r.getErrorMsg());
+                    }
+                    return r;
+                },
+                this.okHttpClient,
+                this.formatUrl("rpc/2.0/ai_custom/v1/wenxinworkshop/chat/" + endpoint + "?access_token=" + this.token),
+                () -> ChatCompletionRequest.builder().from(request).stream(true).build(),
+                ChatCompletionResponse.class,
+                r -> r,
+                this.logStreamingResponses
+        );
     }
 
-
-    public SyncOrAsyncOrStreaming<CompletionResponse> completion(CompletionRequest request, boolean stream,
-                                                                 String endpoint) {
+    public SyncOrAsyncOrStreaming<CompletionResponse> completion(CompletionRequest request, boolean stream, String endpoint) {
         refreshToken();
-        CompletionRequest syncRequest = CompletionRequest.builder().from(request).stream(stream).build();
-        return new RequestExecutor(this.qianfanApi.completions(endpoint, request, this.token), (r) -> {
-            return r;
-        }, this.okHttpClient, this.formatUrl("rpc/2.0/ai_custom/v1/wenxinworkshop/completions/" + endpoint + "?access_token=" + this.token), () -> {
-            return CompletionRequest.builder().from(request).stream(true).build();
-        }, CompletionResponse.class, (r) -> {
-            return r;
-        }, this.logStreamingResponses);
+        return new RequestExecutor<>(this.qianfanApi.completions(endpoint, request, this.token),
+                r -> r, this.okHttpClient,
+                this.formatUrl("rpc/2.0/ai_custom/v1/wenxinworkshop/completions/" + endpoint + "?access_token=" + this.token),
+                () -> CompletionRequest.builder().from(request).stream(stream).build(),
+                CompletionResponse.class,
+                r -> r,
+                this.logStreamingResponses
+        );
     }
-
 
     public SyncOrAsync<EmbeddingResponse> embedding(EmbeddingRequest request, String serviceName) {
         refreshToken();
-        return new RequestExecutor(this.qianfanApi.embeddings(serviceName, request, this.token), (r) -> {
-            return r;
-        });
+        return new RequestExecutor<>(
+                this.qianfanApi.embeddings(serviceName, request, this.token),
+                r -> r
+        );
     }
-
 
     private void refreshToken() {
         RequestExecutor<String, ChatTokenResponse, String> executor = new RequestExecutor<>(
@@ -145,7 +141,6 @@ public class QianfanClient {
     private String formatUrl(String endpoint) {
         return this.baseUrl + endpoint;
     }
-
 
     public static class Builder {
 

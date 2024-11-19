@@ -74,7 +74,7 @@ public class InternalQianfanHelper {
         if (message instanceof final UserMessage userMessage) {
             return Message.builder()
                     .role(Role.USER)
-                    .content(userMessage.text())
+                    .content(userMessage.singleText())
                     .name(userMessage.name())
                     .build();
         }
@@ -84,7 +84,7 @@ public class InternalQianfanHelper {
             if (!aiMessage.hasToolExecutionRequests()) {
 
                 return Message.builder()
-                        .content(message.text())
+                        .content(aiMessage.text())
                         .role(Role.ASSISTANT)
                         .build();
             }
@@ -97,7 +97,7 @@ public class InternalQianfanHelper {
                         .build();
 
                 return Message.builder()
-                        .content(message.text())
+                        .content(aiMessage.text())
                         .role(Role.ASSISTANT)
                         .functionCall(functionCall)
                         .build();
@@ -111,9 +111,9 @@ public class InternalQianfanHelper {
                     .arguments(toolExecutionResultMessage.text())
                     .build();
             return Message.builder()
-                    .content(message.text())
+                    .content(toolExecutionResultMessage.text())
                     .role(Role.FUNCTION)
-                    .name(functionCall.name())
+                    .name(functionCall.getName())
                     .build();
 
         }
@@ -123,14 +123,14 @@ public class InternalQianfanHelper {
     static TokenUsage tokenUsageFrom(ChatCompletionResponse response) {
         return Optional.of(response)
                 .map(ChatCompletionResponse::getUsage)
-                .map(usage -> new TokenUsage(usage.promptTokens(), usage.completionTokens(), usage.totalTokens()))
+                .map(usage -> new TokenUsage(usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens()))
                 .orElse(null);
     }
 
     static TokenUsage tokenUsageFrom(CompletionResponse response) {
         return Optional.of(response)
                 .map(CompletionResponse::getUsage)
-                .map(usage -> new TokenUsage(usage.promptTokens(), usage.completionTokens(), usage.totalTokens()))
+                .map(usage -> new TokenUsage(usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens()))
                 .orElse(null);
     }
 
@@ -138,7 +138,7 @@ public class InternalQianfanHelper {
     static TokenUsage tokenUsageFrom(EmbeddingResponse response) {
         return Optional.of(response)
                 .map(EmbeddingResponse::getUsage)
-                .map(usage -> new TokenUsage(usage.promptTokens(), usage.completionTokens(), usage.totalTokens()))
+                .map(usage -> new TokenUsage(usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens()))
                 .orElse(null);
     }
 
@@ -149,20 +149,13 @@ public class InternalQianfanHelper {
             return null;
         }
 
-        switch (finishReason) {
-            case "normal":
-                return STOP;
-            case "stop":
-                return STOP;
-            case "length":
-                return LENGTH;
-            case "content_filter":
-                return CONTENT_FILTER;
-            case "function_call":
-                return TOOL_EXECUTION;
-            default:
-                return null;
-        }
+        return switch (finishReason) {
+            case "normal", "stop" -> STOP;
+            case "length" -> LENGTH;
+            case "content_filter" -> CONTENT_FILTER;
+            case "function_call" -> TOOL_EXECUTION;
+            default -> null;
+        };
     }
 
     public static AiMessage aiMessageFrom(ChatCompletionResponse response) {
@@ -171,8 +164,8 @@ public class InternalQianfanHelper {
 
         if (functionCall != null) {
             ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder()
-                    .name(functionCall.name())
-                    .arguments(functionCall.arguments())
+                    .name(functionCall.getName())
+                    .arguments(functionCall.getArguments())
                     .build();
             return aiMessage(toolExecutionRequest);
         }
@@ -204,7 +197,7 @@ public class InternalQianfanHelper {
                 .collect(toList());
 
         // ensure the length of messages is odd
-        if (aiMessages.size() == 0 || aiMessages.size() % 2 == 1) {
+        if (aiMessages.isEmpty() || aiMessages.size() % 2 == 1) {
             return aiMessages;
         }
 

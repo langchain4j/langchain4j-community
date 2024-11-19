@@ -1,18 +1,26 @@
 package dev.langchain4j.community.model.qianfan.client.completion;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.util.List;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public final class CompletionRequest {
+
     private final String prompt;
     private final Boolean stream;
     private final String userId;
-
     private final Double temperature;
     private final Integer topK;
-
     private final Double topP;
     private final Double penaltyScore;
-
     private final List<String> stop;
 
     private CompletionRequest(Builder builder) {
@@ -26,36 +34,54 @@ public final class CompletionRequest {
         this.stop = builder.stop;
     }
 
-
-    public String prompt() {
-        return this.prompt;
+    public String getPrompt() {
+        return prompt;
     }
 
-
-    public Boolean stream() {
-        return this.stream;
+    public Boolean getStream() {
+        return stream;
     }
 
+    public String getUserId() {
+        return userId;
+    }
+
+    public Double getTemperature() {
+        return temperature;
+    }
+
+    public Integer getTopK() {
+        return topK;
+    }
+
+    public Double getTopP() {
+        return topP;
+    }
+
+    public Double getPenaltyScore() {
+        return penaltyScore;
+    }
+
+    public List<String> getStop() {
+        return stop;
+    }
 
     public static Builder builder() {
         return new Builder();
     }
 
     public static final class Builder {
+
         private String prompt;
         private Boolean stream;
         private String userId;
-
         private Double temperature;
         private Integer topK;
-
         private Double topP;
         private Double penaltyScore;
-
         private List<String> stop;
 
         private Builder() {
-
         }
 
         public Builder from(

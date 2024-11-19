@@ -1,25 +1,31 @@
 package dev.langchain4j.community.model.qianfan.client;
 
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class Json {
-    public static final Gson GSON;
+import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
+
+class Json {
+
+    static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .enable(INDENT_OUTPUT);
 
     Json() {
     }
 
-    static String toJson(Object o) {
-        return GSON.toJson(o);
+    static String toJson(Object object) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static <T> T fromJson(String json, Class<T> type) {
-        return GSON.fromJson(json, type);
-    }
-
-    static {
-        GSON = (new GsonBuilder()).setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).registerTypeAdapterFactory(
-                MessageTypeAdapter.MESSAGE_TYPE_ADAPTER_FACTORY).create();
+        try {
+            return OBJECT_MAPPER.readValue(json, type);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

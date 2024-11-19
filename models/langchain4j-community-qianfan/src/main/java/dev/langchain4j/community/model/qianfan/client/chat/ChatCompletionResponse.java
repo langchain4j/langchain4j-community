@@ -1,43 +1,147 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.qianfan.client.Usage;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@JsonNaming(SnakeCaseStrategy.class)
 public final class ChatCompletionResponse {
 
-    private final String id;
-    private final Integer errorCode;
-    private final String errorMsg;
-    private final String object;
-    private final Integer created;
-    private final Integer sentenceId;
-    private final Boolean isEnd;
-    private final Boolean isTruncated;
-    private final String result;
-    private final Boolean needClearHistory;
-    private final Integer banRound;
-    private final Usage usage;
-    private final FunctionCall functionCall;
+    private String id;
+    private Integer errorCode;
+    private String errorMsg;
+    private String object;
+    private Integer created;
+    private Integer sentenceId;
+    private Boolean isEnd;
+    private Boolean isTruncated;
+    private String result;
+    private Boolean needClearHistory;
+    private Integer banRound;
+    private Usage usage;
+    private FunctionCall functionCall;
+    private String finishReason;
 
-
-    private final String finishReason;
-
-    private ChatCompletionResponse(Builder builder) {
-        this.id = builder.id;
-        this.created = builder.created;
-        this.object = builder.object;
-        this.sentenceId = builder.sentenceId;
-        this.isEnd = builder.isEnd;
-        this.isTruncated = builder.isTruncated;
-        this.result = builder.result;
-        this.needClearHistory = builder.needClearHistory;
-        this.banRound = builder.banRound;
-        this.functionCall = builder.functionCall;
-        this.usage = builder.usage;
-        this.errorCode = builder.errorCode;
-        this.errorMsg = builder.errorMsg;
-        this.finishReason = builder.finishReason;
+    public ChatCompletionResponse() {
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(final String id) {
+        this.id = id;
+    }
+
+    public Integer getErrorCode() {
+        return errorCode;
+    }
+
+    public void setErrorCode(final Integer errorCode) {
+        this.errorCode = errorCode;
+    }
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(final String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
+
+    public String getObject() {
+        return object;
+    }
+
+    public void setObject(final String object) {
+        this.object = object;
+    }
+
+    public Integer getCreated() {
+        return created;
+    }
+
+    public void setCreated(final Integer created) {
+        this.created = created;
+    }
+
+    public Integer getSentenceId() {
+        return sentenceId;
+    }
+
+    public void setSentenceId(final Integer sentenceId) {
+        this.sentenceId = sentenceId;
+    }
+
+    public Boolean getEnd() {
+        return isEnd;
+    }
+
+    public void setEnd(final Boolean end) {
+        isEnd = end;
+    }
+
+    public Boolean getTruncated() {
+        return isTruncated;
+    }
+
+    public void setTruncated(final Boolean truncated) {
+        isTruncated = truncated;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public void setResult(final String result) {
+        this.result = result;
+    }
+
+    public Boolean getNeedClearHistory() {
+        return needClearHistory;
+    }
+
+    public void setNeedClearHistory(final Boolean needClearHistory) {
+        this.needClearHistory = needClearHistory;
+    }
+
+    public Integer getBanRound() {
+        return banRound;
+    }
+
+    public void setBanRound(final Integer banRound) {
+        this.banRound = banRound;
+    }
+
+    public Usage getUsage() {
+        return usage;
+    }
+
+    public void setUsage(final Usage usage) {
+        this.usage = usage;
+    }
+
+    public FunctionCall getFunctionCall() {
+        return functionCall;
+    }
+
+    public void setFunctionCall(final FunctionCall functionCall) {
+        this.functionCall = functionCall;
+    }
+
+    public String getFinishReason() {
+        return finishReason;
+    }
+
+    public void setFinishReason(final String finishReason) {
+        this.finishReason = finishReason;
+    }
 
     @Override
     public String toString() {
@@ -57,158 +161,6 @@ public final class ChatCompletionResponse {
                 ", functionCall=" + functionCall +
                 ", finishReason=" + finishReason +
                 '}';
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public Integer getErrorCode() {
-        return errorCode;
-    }
-
-    public String getErrorMsg() {
-        return errorMsg;
-    }
-
-    public String getObject() {
-        return object;
-    }
-
-    public Integer getCreated() {
-        return created;
-    }
-
-    public Integer getSentenceId() {
-        return sentenceId;
-    }
-
-    public Boolean getIsEnd() {
-        return isEnd;
-    }
-
-    public Boolean getIsTruncated() {
-        return isTruncated;
-    }
-
-    public String getResult() {
-        return result;
-    }
-
-    public Boolean getNeedClearHistory() {
-        return needClearHistory;
-    }
-
-    public Integer getBanRound() {
-        return banRound;
-    }
-
-    public Usage getUsage() {
-        return usage;
-    }
-
-    public FunctionCall getFunctionCall() {
-        return functionCall;
-    }
-
-    public String getFinishReason() {
-        return finishReason;
-    }
-
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static final class Builder {
-
-        private String id;
-        private String object;
-        private Integer created;
-        private Integer sentenceId;
-        private Boolean isEnd;
-        private Boolean isTruncated;
-        private String result;
-        private Boolean needClearHistory;
-        private Integer banRound;
-        private Usage usage;
-        private FunctionCall functionCall;
-        private Integer errorCode;
-        private String errorMsg;
-
-        private String finishReason;
-
-        private Builder() {
-        }
-
-        public Builder errorCode(Integer errorCode) {
-            this.errorCode = errorCode;
-            return this;
-        }
-
-        public Builder errorMsg(String errorMsg) {
-            this.errorMsg = errorMsg;
-            return this;
-        }
-
-        public Builder created(Integer created) {
-            this.created = created;
-            return this;
-        }
-
-        public Builder object(String object) {
-            this.object = object;
-            return this;
-        }
-
-        public Builder sentenceId(Integer sentenceId) {
-            this.sentenceId = sentenceId;
-            return this;
-        }
-
-        public Builder isEnd(Boolean isEnd) {
-            this.isEnd = isEnd;
-            return this;
-        }
-
-        public Builder result(String result) {
-            this.result = result;
-            return this;
-        }
-
-        public Builder needClearHistory(Boolean needClearHistory) {
-            this.needClearHistory = needClearHistory;
-            return this;
-        }
-
-        public Builder banRound(Integer banRound) {
-            this.banRound = banRound;
-            return this;
-        }
-
-        public Builder usage(Usage usage) {
-            this.usage = usage;
-            return this;
-        }
-
-        public Builder functionCall(FunctionCall functionCall) {
-            this.functionCall = functionCall;
-            return this;
-        }
-
-        public Builder isTruncated(Boolean isTruncated) {
-            this.isTruncated = isTruncated;
-            return this;
-        }
-
-        public Builder finishReason(String finishReason) {
-            this.finishReason = finishReason;
-            return this;
-        }
-
-        public ChatCompletionResponse build() {
-            return new ChatCompletionResponse(this);
-        }
     }
 }
 

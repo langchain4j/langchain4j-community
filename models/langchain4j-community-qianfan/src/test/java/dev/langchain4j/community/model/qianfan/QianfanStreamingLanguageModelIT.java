@@ -14,10 +14,11 @@ class QianfanStreamingLanguageModelIT {
     private final String apiKey = System.getenv("QIANFAN_API_KEY");
     private final String secretKey = System.getenv("QIANFAN_SECRET_KEY");
 
-    QianfanStreamingLanguageModel model = QianfanStreamingLanguageModel.builder().endpoint("sqlcoder_7b").topP(1.0).maxRetries(1)
+    QianfanStreamingLanguageModel model = QianfanStreamingLanguageModel.builder()
+            .endpoint("sqlcoder_7b")
+            .topP(1.0)
             .apiKey(apiKey)
             .secretKey(secretKey)
-
             .build();
 
     @Test
