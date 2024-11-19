@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.zhipu;
 
+import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.service.AiServicesWithNewToolsIT;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -17,7 +18,7 @@ class ZhipuAiAiServicesWithToolsIT extends AiServicesWithNewToolsIT {
         return Collections.singletonList(
                 ZhipuAiChatModel.builder()
                         .apiKey(System.getenv("ZHIPU_API_KEY"))
-                        // .model() TODO specify model
+                        .model(ChatCompletionModel.GLM_4_AIR)
                         .temperature(0.0)
                         .callTimeout(ofSeconds(60))
                         .connectTimeout(ofSeconds(60))
