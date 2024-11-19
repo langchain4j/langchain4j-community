@@ -39,6 +39,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-vearch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- web search engines -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
