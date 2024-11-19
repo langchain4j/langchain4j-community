@@ -29,6 +29,7 @@
 
         <!-- LangChain4j Community integration of models -->
         <module>models/langchain4j-community-chatglm</module>
+        <module>models/langchain4j-community-zhipu-ai</module>
 
         <!-- LangChain4j Community integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
