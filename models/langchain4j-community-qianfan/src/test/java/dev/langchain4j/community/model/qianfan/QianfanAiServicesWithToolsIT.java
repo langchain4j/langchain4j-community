@@ -8,6 +8,9 @@ import java.util.List;
 
 import static java.util.Collections.singletonList;
 
+/**
+ * FIXME: there are some failed test.
+ */
 @EnabledIfEnvironmentVariable(named = "QIANFAN_API_KEY", matches = ".+")
 class QianfanAiServicesWithToolsIT extends AiServicesWithNewToolsIT {
 
