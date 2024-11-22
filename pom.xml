@@ -7,7 +7,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>0.36.2</version>
+        <version>0.37.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
@@ -143,7 +143,7 @@
                 <configuration>
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
 
