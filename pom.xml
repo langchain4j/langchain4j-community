@@ -31,6 +31,7 @@
         <module>models/langchain4j-community-chatglm</module>
         <module>models/langchain4j-community-dashscope</module>
         <module>models/langchain4j-community-qianfan</module>
+        <module>models/langchain4j-community-xinference</module>
         <module>models/langchain4j-community-zhipu-ai</module>
 
         <!-- LangChain4j Community integration of embedding store -->
