@@ -38,7 +38,7 @@ class ResponseLoggingInterceptor implements Interceptor {
     }
 
     public void log(String message, Object... args) {
-        log.info(message, args);
+        log.debug(message, args);
     }
 
     private String getBody(Response response) throws IOException {

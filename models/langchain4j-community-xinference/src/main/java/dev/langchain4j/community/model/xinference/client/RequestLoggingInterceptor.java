@@ -72,7 +72,7 @@ class RequestLoggingInterceptor implements Interceptor {
 
     private void log(Request request) {
         try {
-            log.info("Request:\n- method: {}\n- url: {}\n- headers: {}\n- body: {}",
+            log.debug("Request:\n- method: {}\n- url: {}\n- headers: {}\n- body: {}",
                     request.method(), request.url(), getHeaders(request.headers()), getBody(request));
         } catch (Exception e) {
             log.warn("Error while logging request: {}", e.getMessage());
