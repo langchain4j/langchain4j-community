@@ -9,8 +9,6 @@ import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionResp
 import dev.langchain4j.community.model.xinference.spi.XinferenceChatModelBuilderFactory;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.internal.Utils;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -29,7 +27,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.aiMessageFrom;
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toToolChoice;
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toTools;
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toXinferenceMessages;
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceChatModel implements ChatLanguageModel {
@@ -71,7 +78,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
                                Boolean logResponses,
                                Map<String, String> customHeaders,
                                List<ChatModelListener> listeners) {
-        timeout = Utils.getOrDefault(timeout, Duration.ofSeconds(60));
+        timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
         this.client = XinferenceClient.builder()
                 .baseUrl(baseUrl)
@@ -86,7 +93,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
                 .customHeaders(customHeaders)
                 .build();
 
-        this.modelName = ValidationUtils.ensureNotBlank(modelName, "modelName");
+        this.modelName = ensureNotBlank(modelName, "modelName");
         this.temperature = temperature;
         this.topP = topP;
         this.n = n;
@@ -98,8 +105,8 @@ public class XinferenceChatModel implements ChatLanguageModel {
         this.user = user;
         this.toolChoice = toolChoice;
         this.parallelToolCalls = parallelToolCalls;
-        this.maxRetries = Utils.getOrDefault(maxRetries, 3);
-        this.listeners = Utils.getOrDefault(listeners, List.of());
+        this.maxRetries = getOrDefault(maxRetries, 3);
+        this.listeners = getOrDefault(listeners, List.of());
     }
 
     @Override
@@ -133,7 +140,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
                                          ToolSpecification toolThatMustBeExecuted) {
         final ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
                 .model(modelName)
-                .messages(InternalXinferenceHelper.toXinferenceMessages(messages))
+                .messages(toXinferenceMessages(messages))
                 .temperature(temperature)
                 .topP(topP)
                 .n(n)
@@ -147,15 +154,15 @@ public class XinferenceChatModel implements ChatLanguageModel {
                 .parallelToolCalls(parallelToolCalls);
 
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
-            builder.tools(InternalXinferenceHelper.toTools(toolSpecifications));
+            builder.tools(toTools(toolSpecifications));
         }
 
         if (toolThatMustBeExecuted != null) {
-            if (Utils.isNullOrEmpty(toolSpecifications)) {
-                builder.tools(InternalXinferenceHelper.toTools(List.of(toolThatMustBeExecuted)));
+            if (isNullOrEmpty(toolSpecifications)) {
+                builder.tools(toTools(List.of(toolThatMustBeExecuted)));
             }
 
-            builder.toolChoice(InternalXinferenceHelper.toToolChoice(toolThatMustBeExecuted));
+            builder.toolChoice(toToolChoice(toolThatMustBeExecuted));
         }
 
         final ChatCompletionRequest request = builder.build();
@@ -183,9 +190,9 @@ public class XinferenceChatModel implements ChatLanguageModel {
 
             final ChatCompletionChoice completionChoice = chatCompletionResponse.getChoices().get(0);
             Response<AiMessage> response = Response.from(
-                    InternalXinferenceHelper.aiMessageFrom(completionChoice.getMessage()),
-                    InternalXinferenceHelper.tokenUsageFrom(chatCompletionResponse.getUsage()),
-                    InternalXinferenceHelper.finishReasonFrom(completionChoice.getFinishReason())
+                    aiMessageFrom(completionChoice.getMessage()),
+                    tokenUsageFrom(chatCompletionResponse.getUsage()),
+                    finishReasonFrom(completionChoice.getFinishReason())
             );
 
             ChatModelResponse modelListenerResponse = ChatModelResponse.builder()

@@ -1,7 +1,5 @@
 package dev.langchain4j.community.model.xinference.client;
 
-import dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil;
-import dev.langchain4j.community.model.xinference.client.utils.JsonUtil;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -16,6 +14,10 @@ import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil.toException;
+import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.toJson;
+import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.toObject;
 
 class StreamingRequestExecutor<Request, Response, ResponseContent> {
     private static final Logger log = LoggerFactory.getLogger(StreamingRequestExecutor.class);
@@ -104,7 +106,7 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
 
         Request request = requestWithStreamSupplier.get();
 
-        String requestJson = JsonUtil.toJson(request);
+        String requestJson = toJson(request);
 
         okhttp3.Request okHttpRequest = new okhttp3.Request.Builder()
                 .url(endpointUrl)
@@ -144,7 +146,7 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
                 }
 
                 try {
-                    Response response = JsonUtil.toObject(data, responseClass);
+                    Response response = toObject(data, responseClass);
                     ResponseContent responseContent = streamEventContentExtractor.apply(response);
                     if (responseContent != null) {
                         partialResponseHandler.accept(responseContent); // do not handle exception, fail-fast
@@ -187,7 +189,7 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
                     errorHandler.accept(t); // TODO also include information from response?
                 } else {
                     try {
-                        errorHandler.accept(ExceptionUtil.toException(response));
+                        errorHandler.accept(toException(response));
                     } catch (IOException e) {
                         errorHandler.accept(e); // TODO right thing to do?
                     }

@@ -2,12 +2,13 @@ package dev.langchain4j.community.model.xinference;
 
 import dev.langchain4j.community.model.xinference.client.chat.message.ImageUrl;
 import dev.langchain4j.data.image.Image;
-import dev.langchain4j.internal.Utils;
 
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+
+import static dev.langchain4j.internal.Utils.readBytes;
 
 class ImageUtils {
 
@@ -18,7 +19,7 @@ class ImageUtils {
             return Base64.getDecoder().decode(image.base64Data());
         } else {
             if (SUPPORTED_URL_SCHEMES.contains(image.url().getScheme())) {
-                return Utils.readBytes(image.url().toString());
+                return readBytes(image.url().toString());
             } else {
                 throw new RuntimeException("only supports http/https and file urls. unsupported url scheme: " + image.url().getScheme());
             }

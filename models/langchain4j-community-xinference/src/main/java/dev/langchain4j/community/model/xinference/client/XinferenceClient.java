@@ -12,7 +12,7 @@ import dev.langchain4j.community.model.xinference.client.image.OcrRequest;
 import dev.langchain4j.community.model.xinference.client.rerank.RerankRequest;
 import dev.langchain4j.community.model.xinference.client.rerank.RerankResponse;
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
-import dev.langchain4j.community.model.xinference.client.utils.JsonUtil;
+
 import dev.langchain4j.internal.Utils;
 import okhttp3.Cache;
 import okhttp3.MediaType;
@@ -31,6 +31,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.getObjectMapper;
 
 public class XinferenceClient {
     private static final Logger log = LoggerFactory.getLogger(XinferenceClient.class);
@@ -65,7 +67,7 @@ public class XinferenceClient {
         this.logStreamingResponses = builder.logStreamingResponses;
         this.okHttpClient = okHttpClientBuilder.build();
         Retrofit.Builder retrofitBuilder = new Retrofit.Builder().baseUrl(this.baseUrl).client(okHttpClient);
-        retrofitBuilder.addConverterFactory(JacksonConverterFactory.create(JsonUtil.getObjectMapper()));
+        retrofitBuilder.addConverterFactory(JacksonConverterFactory.create(getObjectMapper()));
         this.xinferenceApi = retrofitBuilder.build().create(XinferenceApi.class);
     }
 

@@ -1,7 +1,7 @@
 package dev.langchain4j.community.model.xinference;
 
 import dev.langchain4j.community.model.xinference.client.image.ResponseFormat;
-import dev.langchain4j.community.model.xinference.client.utils.JsonUtil;
+
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
@@ -17,6 +17,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.toJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -65,7 +66,7 @@ class XinferenceImageModelIT extends AbstractModelInfrastructure {
 
     @Test
     void simple_image_edit_with_mask_works() {
-        final ImageModel model = modelBuilder.responseFormat(ResponseFormat.URL).kwargs(JsonUtil.toJson(KW_ARGS)).negativePrompt(NEGATIVE_PROMPT).build();
+        final ImageModel model = modelBuilder.responseFormat(ResponseFormat.URL).kwargs(toJson(KW_ARGS)).negativePrompt(NEGATIVE_PROMPT).build();
         final Image sourceImage = Image.builder().url("https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog.png").build();
         final Image maskImage = Image.builder().url("https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog.png").build();
         final Response<Image> response = model.edit(sourceImage, maskImage, "Face of a yellow cat, high resolution, sitting on a park bench");

@@ -6,8 +6,6 @@ import dev.langchain4j.community.model.xinference.client.completion.CompletionRe
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
 import dev.langchain4j.community.model.xinference.spi.XinferenceStreamingLanguageModelBuilderFactory;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.internal.Utils;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
@@ -17,6 +15,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceStreamingLanguageModel implements StreamingLanguageModel {
@@ -52,7 +53,7 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
                                             Boolean logRequests,
                                             Boolean logResponses,
                                             Map<String, String> customHeaders) {
-        timeout = Utils.getOrDefault(timeout, Duration.ofSeconds(60));
+        timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
         this.client = XinferenceClient.builder()
                 .baseUrl(baseUrl)
@@ -67,7 +68,7 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
                 .customHeaders(customHeaders)
                 .build();
 
-        this.modelName = ValidationUtils.ensureNotBlank(modelName, "modelName");
+        this.modelName = ensureNotBlank(modelName, "modelName");
         this.maxTokens = maxTokens;
         this.temperature = temperature;
         this.topP = topP;
@@ -104,7 +105,7 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
                     responseBuilder.append(completionResponse);
                     for (final CompletionChoice choice : completionResponse.getChoices()) {
                         final String text = choice.getText();
-                        if (Utils.isNotNullOrEmpty(text)) {
+                        if (isNotNullOrEmpty(text)) {
                             handler.onNext(text);
                         }
                     }

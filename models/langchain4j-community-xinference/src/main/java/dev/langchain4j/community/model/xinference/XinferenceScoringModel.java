@@ -7,8 +7,6 @@ import dev.langchain4j.community.model.xinference.client.rerank.RerankResult;
 import dev.langchain4j.community.model.xinference.client.rerank.RerankTokens;
 import dev.langchain4j.community.model.xinference.spi.XinferenceScoringModelBuilderFactory;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.internal.Utils;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import dev.langchain4j.model.scoring.ScoringModel;
@@ -20,6 +18,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Comparator.comparingInt;
 import static java.util.stream.Collectors.toList;
@@ -44,7 +44,7 @@ public class XinferenceScoringModel implements ScoringModel {
                                   Boolean logRequests,
                                   Boolean logResponses,
                                   Map<String, String> customHeaders) {
-        timeout = Utils.getOrDefault(timeout, Duration.ofSeconds(60));
+        timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
         this.client = XinferenceClient.builder()
                 .baseUrl(baseUrl)
@@ -59,11 +59,11 @@ public class XinferenceScoringModel implements ScoringModel {
                 .customHeaders(customHeaders)
                 .build();
 
-        this.modelName = ValidationUtils.ensureNotBlank(modelName, "modelName");
+        this.modelName = ensureNotBlank(modelName, "modelName");
         this.topN = topN;
-        this.returnDocuments = Utils.getOrDefault(returnDocuments, false);
-        this.returnLen = Utils.getOrDefault(returnLen, true);
-        this.maxRetries = Utils.getOrDefault(maxRetries, 3);
+        this.returnDocuments = getOrDefault(returnDocuments, false);
+        this.returnLen = getOrDefault(returnLen, true);
+        this.maxRetries = getOrDefault(maxRetries, 3);
     }
 
     @Override

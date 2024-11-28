@@ -23,8 +23,6 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.VideoContent;
 import dev.langchain4j.data.video.Video;
-import dev.langchain4j.internal.Exceptions;
-import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper;
 import dev.langchain4j.model.output.FinishReason;
@@ -41,9 +39,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import static dev.langchain4j.community.model.xinference.ImageUtils.base64Image;
+import static dev.langchain4j.internal.Exceptions.illegalArgument;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+
 class InternalXinferenceHelper {
     static List<Message> toXinferenceMessages(List<ChatMessage> messages) {
-        if (Utils.isNullOrEmpty(messages)) {
+        if (isNullOrEmpty(messages)) {
             return null;
         }
         return messages.stream().map(msg -> {
@@ -72,30 +76,30 @@ class InternalXinferenceHelper {
                         if (item instanceof TextContent content) {
                             return Content.text(content.text());
                         } else if (item instanceof ImageContent content) {
-                            return Content.image(ImageUtils.base64Image(content.image(), content.detailLevel().name()));
+                            return Content.image(base64Image(content.image(), content.detailLevel().name()));
                         } else if (item instanceof VideoContent content) {
                             String url = null;
                             final Video video = content.video();
                             if (Objects.nonNull(video.url())) {
                                 url = video.url().toString();
-                            } else if (Utils.isNotNullOrBlank(video.base64Data())) {
+                            } else if (isNotNullOrBlank(video.base64Data())) {
                                 url = saveDataAsTemporaryFile(video.base64Data(), video.mimeType());
                             }
                             return Content.video(VideoUrl.of(url));
                         }
-                        throw Exceptions.illegalArgument("Unknown content type: " + item);
+                        throw illegalArgument("Unknown content type: " + item);
                     }).toList();
                     return UserMessage.builder().content(list).name(message.name()).build();
                 }
             } else if (msg instanceof ToolExecutionResultMessage message) {
                 return ToolMessage.of(message.id(), message.text());
             }
-            throw Exceptions.illegalArgument("Unknown message type: " + msg.type());
+            throw illegalArgument("Unknown message type: " + msg.type());
         }).toList();
     }
 
     static List<Tool> toTools(List<ToolSpecification> toolSpecifications) {
-        if (Utils.isNullOrEmpty(toolSpecifications)) {
+        if (isNullOrEmpty(toolSpecifications)) {
             return null;
         }
         return toolSpecifications.stream().map(InternalXinferenceHelper::toTool).toList();
@@ -119,12 +123,12 @@ class InternalXinferenceHelper {
     static AiMessage aiMessageFrom(AssistantMessage assistantMessage) {
         String text = assistantMessage.getContent();
         List<ToolCall> toolCalls = assistantMessage.getToolCalls();
-        if (!Utils.isNullOrEmpty(toolCalls)) {
+        if (!isNullOrEmpty(toolCalls)) {
             List<ToolExecutionRequest> toolExecutionRequests = toolCalls.stream()
                     .filter(toolCall -> toolCall.getType() == ToolType.FUNCTION)
                     .map(InternalXinferenceHelper::toToolExecutionRequest)
                     .toList();
-            return Utils.isNullOrBlank(text) ?
+            return isNullOrBlank(text) ?
                     AiMessage.from(toolExecutionRequests) :
                     AiMessage.from(text, toolExecutionRequests);
         }
@@ -164,7 +168,7 @@ class InternalXinferenceHelper {
     }
 
     public static FinishReason finishReasonFrom(String finishReason) {
-        if (Utils.isNullOrBlank(finishReason)) {
+        if (isNullOrBlank(finishReason)) {
             return null;
         }
         return switch (finishReason) {
@@ -179,7 +183,7 @@ class InternalXinferenceHelper {
     static String saveDataAsTemporaryFile(String base64Data, String mimeType) {
         String tmpDir = System.getProperty("java.io.tmpdir", "/tmp");
         String tmpFileName = UUID.randomUUID().toString();
-        if (Utils.isNotNullOrBlank(mimeType)) {
+        if (isNotNullOrBlank(mimeType)) {
             // e.g. "image/png", "image/jpeg"...
             int lastSlashIndex = mimeType.lastIndexOf("/");
             if (lastSlashIndex >= 0 && lastSlashIndex < mimeType.length() - 1) {

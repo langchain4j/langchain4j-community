@@ -5,8 +5,6 @@ import dev.langchain4j.community.model.xinference.client.completion.CompletionCh
 import dev.langchain4j.community.model.xinference.client.completion.CompletionRequest;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionResponse;
 import dev.langchain4j.community.model.xinference.spi.XinferenceLanguageModelBuilderFactory;
-import dev.langchain4j.internal.Utils;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.output.Response;
 
@@ -15,7 +13,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceLanguageModel implements LanguageModel {
@@ -53,7 +55,7 @@ public class XinferenceLanguageModel implements LanguageModel {
                                    Boolean logRequests,
                                    Boolean logResponses,
                                    Map<String, String> customHeaders) {
-        timeout = Utils.getOrDefault(timeout, Duration.ofSeconds(60));
+        timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
         this.client = XinferenceClient.builder()
                 .baseUrl(baseUrl)
@@ -68,7 +70,7 @@ public class XinferenceLanguageModel implements LanguageModel {
                 .customHeaders(customHeaders)
                 .build();
 
-        this.modelName = ValidationUtils.ensureNotBlank(modelName, "modelName");
+        this.modelName = ensureNotBlank(modelName, "modelName");
         this.maxTokens = maxTokens;
         this.temperature = temperature;
         this.topP = topP;
@@ -79,7 +81,7 @@ public class XinferenceLanguageModel implements LanguageModel {
         this.presencePenalty = presencePenalty;
         this.frequencyPenalty = frequencyPenalty;
         this.user = user;
-        this.maxRetries = Utils.getOrDefault(maxRetries, 3);
+        this.maxRetries = getOrDefault(maxRetries, 3);
     }
 
     @Override
@@ -102,8 +104,8 @@ public class XinferenceLanguageModel implements LanguageModel {
         CompletionChoice completionChoice = response.getChoices().get(0);
         return Response.from(
                 completionChoice.getText(),
-                InternalXinferenceHelper.tokenUsageFrom(response.getUsage()),
-                InternalXinferenceHelper.finishReasonFrom(completionChoice.getFinishReason())
+                tokenUsageFrom(response.getUsage()),
+                finishReasonFrom(completionChoice.getFinishReason())
         );
     }
 
