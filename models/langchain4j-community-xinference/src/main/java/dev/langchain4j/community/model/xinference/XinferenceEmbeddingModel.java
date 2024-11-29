@@ -6,8 +6,6 @@ import dev.langchain4j.community.model.xinference.client.embedding.EmbeddingResp
 import dev.langchain4j.community.model.xinference.spi.XinferenceEmbeddingModelBuilderFactory;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.internal.Utils;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.embedding.DimensionAwareEmbeddingModel;
 import dev.langchain4j.model.output.Response;
 
@@ -16,7 +14,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.stream.Collectors.toList;
 
@@ -36,7 +37,7 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
                                     Boolean logRequests,
                                     Boolean logResponses,
                                     Map<String, String> customHeaders) {
-        timeout = Utils.getOrDefault(timeout, Duration.ofSeconds(60));
+        timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
         this.client = XinferenceClient.builder()
                 .baseUrl(baseUrl)
@@ -50,9 +51,9 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .logResponses(logResponses)
                 .customHeaders(customHeaders)
                 .build();
-        this.modelName = ValidationUtils.ensureNotBlank(modelName, "modelName");
+        this.modelName = ensureNotBlank(modelName, "modelName");
         this.user = user;
-        this.maxRetries = Utils.getOrDefault(maxRetries, 3);
+        this.maxRetries = getOrDefault(maxRetries, 3);
     }
 
     @Override
@@ -73,7 +74,7 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .collect(toList());
         return Response.from(
                 embeddings,
-                InternalXinferenceHelper.tokenUsageFrom(response.getUsage())
+                tokenUsageFrom(response.getUsage())
         );
     }
 

@@ -1,11 +1,12 @@
 package dev.langchain4j.community.model.xinference.client;
 
-import dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil;
 import retrofit2.Call;
 
 import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil.toException;
 
 class AsyncRequestExecutor<Response, ResponseContent> {
 
@@ -31,7 +32,7 @@ class AsyncRequestExecutor<Response, ResponseContent> {
                             ResponseContent responseContent = AsyncRequestExecutor.this.responseContentExtractor.apply(response);
                             responseHandler.accept(responseContent);
                         } else {
-                            errorHandler.accept(ExceptionUtil.toException(retrofitResponse));
+                            errorHandler.accept(toException(retrofitResponse));
                         }
                     } catch (IOException e) {
                         errorHandler.accept(e);

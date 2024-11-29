@@ -7,15 +7,18 @@ import dev.langchain4j.model.output.TokenUsage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.LLM_MODEL_NAME;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_API_KEY;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceStreamingLanguageModelIT extends AbstractModelInfrastructure {
+class XinferenceStreamingLanguageModelIT extends AbstractInferenceLanguageModelInfrastructure {
 
     StreamingLanguageModel model = XinferenceStreamingLanguageModel.builder()
-            .baseUrl(XINFERENCE_BASE_URL)
-            .modelName(LANGUAGE_MODEL_NAME)
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
+            .modelName(modelName())
             .temperature(0.0)
             .logRequests(true)
             .logResponses(true)

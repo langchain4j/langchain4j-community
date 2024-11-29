@@ -1,7 +1,7 @@
 package dev.langchain4j.community.model.xinference;
 
 import dev.langchain4j.community.model.xinference.client.image.ResponseFormat;
-import dev.langchain4j.community.model.xinference.client.utils.JsonUtil;
+
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
@@ -17,18 +17,20 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.toJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceImageModelIT extends AbstractModelInfrastructure {
+class XinferenceImageModelIT extends AbstractXinferenceImageModelInfrastructure {
 
     final String NEGATIVE_PROMPT = "lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, username, watermark, signature";
     final Map<String, Object> KW_ARGS = Map.of("num_inference_steps", 20, "guidance_scale", 7.5, "seed", System.currentTimeMillis());
 
     final XinferenceImageModel.XinferenceImageModelBuilder modelBuilder = XinferenceImageModel.builder()
-            .modelName(IMAGE_MODEL_NAME)
-            .baseUrl(XINFERENCE_BASE_URL)
+            .modelName(modelName())
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
             .size("256x256")
             .timeout(Duration.ofMinutes(3))
             .logRequests(true)
@@ -65,7 +67,7 @@ class XinferenceImageModelIT extends AbstractModelInfrastructure {
 
     @Test
     void simple_image_edit_with_mask_works() {
-        final ImageModel model = modelBuilder.responseFormat(ResponseFormat.URL).kwargs(JsonUtil.toJson(KW_ARGS)).negativePrompt(NEGATIVE_PROMPT).build();
+        final ImageModel model = modelBuilder.responseFormat(ResponseFormat.URL).kwargs(toJson(KW_ARGS)).negativePrompt(NEGATIVE_PROMPT).build();
         final Image sourceImage = Image.builder().url("https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog.png").build();
         final Image maskImage = Image.builder().url("https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog.png").build();
         final Response<Image> response = model.edit(sourceImage, maskImage, "Face of a yellow cat, high resolution, sitting on a park bench");

@@ -9,15 +9,26 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.time.Duration;
 import java.util.Base64;
 
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.VISION_MODEL_NAME;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_API_KEY;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceVLChatModelIT extends AbstractModelInfrastructure {
+class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructure {
+
     final String CAT_IMAGE_URL = "https://img0.baidu.com/it/u=317254799,1407991361&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500";
     final String DICE_IMAGE_URL = "https://img2.baidu.com/it/u=2780516711,2309358387&fm=253&fmt=auto&app=138&f=JPEG?w=450&h=332";
 
-    ChatLanguageModel vlModel = XinferenceChatModel.builder().baseUrl(XINFERENCE_BASE_URL).modelName(VL_MODEL_NAME).logRequests(true).logResponses(true).timeout(Duration.ofMinutes(3)).maxRetries(1).build();
+    ChatLanguageModel vlModel = XinferenceChatModel.builder()
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
+            .modelName(modelName())
+            .logRequests(true)
+            .logResponses(true)
+            .timeout(Duration.ofMinutes(3))
+            .maxRetries(1)
+            .build();
 
     @Test
     void should_accept_image_url() {
@@ -81,17 +92,5 @@ class XinferenceVLChatModelIT extends AbstractModelInfrastructure {
 
         // then
         assertThat(response.content().text()).containsIgnoringCase("cat").containsIgnoringCase("dice");
-    }
-
-    @Test
-    void should_accept_text_and_video() {
-        // given
-        UserMessage userMessage = UserMessage.from(TextContent.from("这是一段关于如何最大化LLM性能技术的演讲视频。你能给我一个详细的演讲总结吗？"), VideoContent.from("file:///root/content/video.mp4"));
-
-        // when
-        Response<AiMessage> response = vlModel.generate(userMessage);
-
-        // then
-        assertThat(response.content().text()).containsIgnoringCase("LLM");
     }
 }

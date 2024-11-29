@@ -15,11 +15,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceScoringModelIT extends AbstractModelInfrastructure {
+class XinferenceScoringModelIT extends AbstractXinferenceScoringModelInfrastructure {
 
     ScoringModel model = XinferenceScoringModel.builder()
-            .baseUrl(XINFERENCE_BASE_URL)
-            .modelName(RERANK_MODEL_NAME)
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
+            .modelName(modelName())
             .timeout(Duration.ofSeconds(60))
             .maxRetries(1)
             .logRequests(true)

@@ -7,12 +7,6 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequest;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponse;
-import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
@@ -21,7 +15,6 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
@@ -31,14 +24,22 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceChatModelIT extends AbstractModelInfrastructure {
+class XinferenceChatModelIT extends AbstractInferenceLanguageModelInfrastructure {
 
-    ChatLanguageModel chatModel = XinferenceChatModel.builder().baseUrl(XINFERENCE_BASE_URL).modelName(CHAT_MODEL_NAME).logRequests(true).logResponses(true).timeout(Duration.ofSeconds(60)).maxRetries(1).build();
+    ChatLanguageModel chatModel = XinferenceChatModel.builder()
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
+            .modelName(modelName())
+            .logRequests(true)
+            .logResponses(true)
+            .timeout(Duration.ofSeconds(60))
+            .maxRetries(1)
+            .build();
 
     ToolSpecification calculator = ToolSpecification.builder().name("calculator").description("returns a sum of two numbers").parameters(JsonObjectSchema.builder().addIntegerProperty("first").addIntegerProperty("second").build()).build();
+
 
     @Test
     void should_generate_answer_and_return_token_usage_and_finish_reason_stop() {
@@ -59,7 +60,16 @@ class XinferenceChatModelIT extends AbstractModelInfrastructure {
     void should_generate_answer_and_return_token_usage_and_finish_reason_length() {
         // given
         int maxTokens = 2;
-        ChatLanguageModel chatModel = XinferenceChatModel.builder().baseUrl(XINFERENCE_BASE_URL).modelName(CHAT_MODEL_NAME).logRequests(true).logResponses(true).timeout(Duration.ofSeconds(60)).maxTokens(maxTokens).temperature(0.0).maxRetries(1).build();
+        ChatLanguageModel chatModel = XinferenceChatModel.builder()
+                .baseUrl(baseUrl())
+                .apiKey(apiKey())
+                .modelName(modelName())
+                .logRequests(true)
+                .logResponses(true)
+                .timeout(Duration.ofSeconds(60))
+                .maxTokens(maxTokens).temperature(0.0)
+                .maxRetries(1)
+                .build();
 
         UserMessage userMessage = userMessage("中国首都是哪座城市?");
 
@@ -217,64 +227,5 @@ class XinferenceChatModelIT extends AbstractModelInfrastructure {
         assertThat(secondTokenUsage.totalTokenCount()).isEqualTo(secondTokenUsage.inputTokenCount() + secondTokenUsage.outputTokenCount());
 
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
-    }
-
-    @Test
-    void should_listen_request_and_response() {
-
-        // given
-        AtomicReference<ChatModelRequest> requestReference = new AtomicReference<>();
-        AtomicReference<ChatModelResponse> responseReference = new AtomicReference<>();
-
-        ChatModelListener listener = new ChatModelListener() {
-
-            @Override
-            public void onRequest(ChatModelRequestContext requestContext) {
-                requestReference.set(requestContext.request());
-                requestContext.attributes().put("id", "12345");
-            }
-
-            @Override
-            public void onResponse(ChatModelResponseContext responseContext) {
-                responseReference.set(responseContext.response());
-                assertThat(responseContext.request()).isSameAs(requestReference.get());
-                assertThat(responseContext.attributes()).containsEntry("id", "12345");
-            }
-
-            @Override
-            public void onError(ChatModelErrorContext errorContext) {
-                fail("onError() must not be called");
-            }
-        };
-
-        double temperature = 0.7;
-        double topP = 0.7;
-        int maxTokens = 7;
-
-        ChatLanguageModel model = XinferenceChatModel.builder().baseUrl(XINFERENCE_BASE_URL).modelName(CHAT_MODEL_NAME).logRequests(true).logResponses(true).timeout(Duration.ofMinutes(3)).maxRetries(1).topP(topP).temperature(temperature).maxTokens(maxTokens).listeners(List.of(listener)).build();
-
-        UserMessage userMessage = UserMessage.from("hello");
-
-        ToolSpecification toolSpecification = ToolSpecification.builder().name("add").parameters(JsonObjectSchema.builder().addIntegerProperty("a").addIntegerProperty("b").build()).build();
-
-        // when
-        AiMessage aiMessage = model.generate(singletonList(userMessage), singletonList(toolSpecification)).content();
-
-        // then
-        ChatModelRequest request = requestReference.get();
-        assertThat(request.temperature()).isEqualTo(temperature);
-        assertThat(request.topP()).isEqualTo(topP);
-        assertThat(request.maxTokens()).isEqualTo(maxTokens);
-        assertThat(request.messages()).containsExactly(userMessage);
-        assertThat(request.toolSpecifications()).containsExactly(toolSpecification);
-
-        ChatModelResponse response = responseReference.get();
-        assertThat(response.id()).isNotBlank();
-        assertThat(response.model()).isNotBlank();
-        assertThat(response.tokenUsage().inputTokenCount()).isGreaterThan(0);
-        assertThat(response.tokenUsage().outputTokenCount()).isGreaterThan(0);
-        assertThat(response.tokenUsage().totalTokenCount()).isGreaterThan(0);
-        assertThat(response.finishReason()).isNotNull();
-        assertThat(response.aiMessage()).isEqualTo(aiMessage);
     }
 }

@@ -7,8 +7,6 @@ import dev.langchain4j.community.model.xinference.client.image.ImageResponse;
 import dev.langchain4j.community.model.xinference.client.image.ResponseFormat;
 import dev.langchain4j.community.model.xinference.spi.XinferenceImageModelBuilderFactory;
 import dev.langchain4j.data.image.Image;
-import dev.langchain4j.internal.Utils;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
 
@@ -17,7 +15,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static dev.langchain4j.community.model.xinference.ImageUtils.imageByteArray;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceImageModel implements ImageModel {
@@ -46,7 +48,7 @@ public class XinferenceImageModel implements ImageModel {
                                 Boolean logRequests,
                                 Boolean logResponses,
                                 Map<String, String> customHeaders) {
-        timeout = Utils.getOrDefault(timeout, Duration.ofSeconds(60));
+        timeout = getOrDefault(timeout, Duration.ofSeconds(60));
         this.client = XinferenceClient.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
@@ -59,14 +61,14 @@ public class XinferenceImageModel implements ImageModel {
                 .logResponses(logResponses)
                 .customHeaders(customHeaders)
                 .build();
-        this.modelName = ValidationUtils.ensureNotBlank(modelName, "modelName");
+        this.modelName = ensureNotBlank(modelName, "modelName");
         this.negativePrompt = negativePrompt;
-        this.n = Utils.getOrDefault(n, 1);
-        this.responseFormat = Utils.getOrDefault(responseFormat, ResponseFormat.B64_JSON);
-        this.size = Utils.getOrDefault(size, "256x256");
+        this.n = getOrDefault(n, 1);
+        this.responseFormat = getOrDefault(responseFormat, ResponseFormat.B64_JSON);
+        this.size = getOrDefault(size, "256x256");
         this.kwargs = kwargs;
         this.user = user;
-        this.maxRetries = Utils.getOrDefault(maxRetries, 3);
+        this.maxRetries = getOrDefault(maxRetries, 3);
     }
 
     @Override
@@ -114,7 +116,7 @@ public class XinferenceImageModel implements ImageModel {
                 .kwargs(kwargs)
                 .user(user)
                 .build();
-        ImageResponse response = withRetry(() -> client.variations(request, ImageUtils.imageByteArray(image)), maxRetries).execute();
+        ImageResponse response = withRetry(() -> client.variations(request, imageByteArray(image)), maxRetries).execute();
         return Response.from(fromImageData(response.getData().get(0)));
     }
 
@@ -130,13 +132,13 @@ public class XinferenceImageModel implements ImageModel {
                 .kwargs(kwargs)
                 .user(user)
                 .build();
-        ImageResponse response = withRetry(() -> client.inpainting(request, ImageUtils.imageByteArray(image), ImageUtils.imageByteArray(mask)), maxRetries).execute();
+        ImageResponse response = withRetry(() -> client.inpainting(request, imageByteArray(image), imageByteArray(mask)), maxRetries).execute();
         return Response.from(fromImageData(response.getData().get(0)));
     }
 
     private static Image fromImageData(ImageData data) {
         final Image.Builder builder = Image.builder().base64Data(data.getB64Json());
-        if (Utils.isNotNullOrBlank(data.getUrl())) {
+        if (isNotNullOrBlank(data.getUrl())) {
             builder.url(data.getUrl());
         }
         return builder.build();
