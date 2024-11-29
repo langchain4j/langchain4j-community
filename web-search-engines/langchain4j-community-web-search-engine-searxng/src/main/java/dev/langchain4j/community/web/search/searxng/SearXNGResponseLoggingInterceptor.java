@@ -23,7 +23,7 @@ class SearXNGResponseLoggingInterceptor implements Interceptor {
     private void log(Response response) {
         try {
             log.debug("Response:\n- status code: {}\n- headers: {}\n- body: {}",
-                response.code(), response.headers(), this.getBody(response));
+                    response.code(), response.headers(), this.getBody(response));
         } catch (Exception e) {
             log.warn("Error while logging response: {}", e.getMessage());
         }
@@ -31,8 +31,8 @@ class SearXNGResponseLoggingInterceptor implements Interceptor {
 
     private String getBody(Response response) throws IOException {
         return isEventStream(response)
-            ? "[skipping response body due to streaming]"
-            : response.peekBody(Long.MAX_VALUE).string();
+                ? "[skipping response body due to streaming]"
+                : response.peekBody(Long.MAX_VALUE).string();
     }
 
     private static boolean isEventStream(Response response) {
