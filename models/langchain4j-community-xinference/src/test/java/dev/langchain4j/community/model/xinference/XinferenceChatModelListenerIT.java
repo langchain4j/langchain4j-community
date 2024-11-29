@@ -4,18 +4,16 @@ import dev.langchain4j.community.model.xinference.client.XinferenceHttpException
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.ChatModelListenerIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import static java.util.Collections.singletonList;
 
-@EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
 class XinferenceChatModelListenerIT extends ChatModelListenerIT {
 
     @Override
     protected ChatLanguageModel createModel(ChatModelListener listener) {
         return XinferenceChatModel.builder()
-                .baseUrl(AbstractInferenceLanguageModelInfrastructure.baseUrl())
-                .apiKey(AbstractInferenceLanguageModelInfrastructure.apiKey())
+                .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
+                .apiKey(AbstractInferenceChatModelInfrastructure.apiKey())
                 .modelName(modelName())
                 .temperature(temperature())
                 .topP(topP())
@@ -28,7 +26,7 @@ class XinferenceChatModelListenerIT extends ChatModelListenerIT {
 
     @Override
     protected String modelName() {
-        return AbstractInferenceLanguageModelInfrastructure.modelName();
+        return AbstractInferenceChatModelInfrastructure.modelName();
     }
 
     @Override
