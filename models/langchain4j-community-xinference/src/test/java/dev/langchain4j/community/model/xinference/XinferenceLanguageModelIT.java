@@ -8,7 +8,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.time.Duration;
 
-import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
@@ -20,6 +20,7 @@ class XinferenceLanguageModelIT extends AbstractInferenceLanguageModelInfrastruc
             .modelName(modelName())
             .logRequests(true)
             .logResponses(true)
+            .maxTokens(2)
             .timeout(Duration.ofSeconds(60))
             .build();
 
@@ -36,6 +37,6 @@ class XinferenceLanguageModelIT extends AbstractInferenceLanguageModelInfrastruc
         assertThat(tokenUsage.totalTokenCount())
                 .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
 
-        assertThat(response.finishReason()).isEqualTo(STOP);
+        assertThat(response.finishReason()).isEqualTo(LENGTH);
     }
 }

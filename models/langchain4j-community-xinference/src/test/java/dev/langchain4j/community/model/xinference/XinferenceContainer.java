@@ -10,9 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +43,9 @@ class XinferenceContainer extends GenericContainer<XinferenceContainer> {
             });
         }
         this.withExposedPorts(EXPOSED_PORT);
-        this.withEnv("XINFERENCE_MODEL_SRC", "modelscope");
+        // https://github.com/xorbitsai/inference/issues/2573
         this.withCommand("bash", "-c", "pip install tokenizers==0.20.1 transformers==4.45.2 qwen-vl-utils==0.0.8 && xinference-local -H 0.0.0.0");
+        this.waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(5)));
     }
 
     @Override
