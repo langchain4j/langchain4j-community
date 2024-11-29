@@ -22,7 +22,7 @@ class SearXNGRequestLoggingInterceptor implements Interceptor {
     private static final Logger log = LoggerFactory.getLogger(SearXNGRequestLoggingInterceptor.class);
 
     private static final Set<String> COMMON_SECRET_HEADERS =
-        new HashSet<>(asList("authorization", "x-api-key", "x-auth-token"));
+            new HashSet<>(asList("authorization", "x-api-key", "x-auth-token"));
 
     @Override
     public Response intercept(Chain chain) throws IOException {
@@ -34,7 +34,7 @@ class SearXNGRequestLoggingInterceptor implements Interceptor {
     private void log(Request request) {
         try {
             log.debug("Request:\n- method: {}\n- url: {}\n- headers: {}\n- body: {}",
-                request.method(), request.url(), getHeaders(request.headers()), getBody(request));
+                    request.method(), request.url(), getHeaders(request.headers()), getBody(request));
         } catch (Exception e) {
             log.warn("Error while logging request: {}", e.getMessage());
         }
@@ -55,8 +55,8 @@ class SearXNGRequestLoggingInterceptor implements Interceptor {
 
     private static String getHeaders(Headers headers) {
         return StreamSupport.stream(headers.spliterator(), false)
-            .map(header -> formatHeader(header.component1(), header.component2()))
-            .collect(joining(", "));
+                .map(header -> formatHeader(header.component1(), header.component2()))
+                .collect(joining(", "));
     }
 
     private static String formatHeader(String headerKey, String headerValue) {

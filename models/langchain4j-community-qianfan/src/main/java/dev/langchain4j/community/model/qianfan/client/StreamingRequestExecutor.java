@@ -45,7 +45,8 @@ public class StreamingRequestExecutor<Request, Response, ResponseContent> {
                     }
 
                     public ErrorHandling ignoreErrors() {
-                        return () -> StreamingRequestExecutor.this.stream(partialResponseHandler, runnable, e -> {});
+                        return () -> StreamingRequestExecutor.this.stream(partialResponseHandler, runnable, e -> {
+                        });
                     }
                 };
             }

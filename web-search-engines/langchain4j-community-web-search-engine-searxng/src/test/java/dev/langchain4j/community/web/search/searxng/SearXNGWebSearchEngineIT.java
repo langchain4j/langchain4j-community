@@ -27,9 +27,9 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
     @SuppressWarnings("resource")
     @Container
     static GenericContainer<?> searxng = new GenericContainer<>(DockerImageName.parse("searxng/searxng:latest"))
-        .withExposedPorts(8080)
-        .withCopyFileToContainer(MountableFile.forClasspathResource("settings.yml"), "/usr/local/searxng/searx/settings.yml")
-        .waitingFor(Wait.forLogMessage(".*spawned uWSGI worker.*\\n", 1));
+            .withExposedPorts(8080)
+            .withCopyFileToContainer(MountableFile.forClasspathResource("settings.yml"), "/usr/local/searxng/searx/settings.yml")
+            .waitingFor(Wait.forLogMessage(".*spawned uWSGI worker.*\\n", 1));
 
     @Override
     protected WebSearchEngine searchEngine() {
@@ -64,18 +64,18 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
         // given
         final String searchTerms = "What is Artificial Intelligence?";
         WebSearchRequest request1 = WebSearchRequest.builder()
-            .searchTerms(searchTerms)
-            .build();
+                .searchTerms(searchTerms)
+                .build();
 
         WebSearchRequest request2 = WebSearchRequest.builder()
-            .searchTerms(searchTerms)
-            .startPage(2)
-            .build();
+                .searchTerms(searchTerms)
+                .startPage(2)
+                .build();
 
         WebSearchRequest request3 = WebSearchRequest.builder()
-            .searchTerms(searchTerms)
-            .startPage(3)
-            .build();
+                .searchTerms(searchTerms)
+                .startPage(3)
+                .build();
         // when
         WebSearchResults webSearchResults1 = searchEngine().search(request1);
         WebSearchResults webSearchResults2 = searchEngine().search(request2);
@@ -97,14 +97,14 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
         // should be generic across many languages
         final String searchTerms = "AI";
         WebSearchRequest request1 = WebSearchRequest.builder()
-            .searchTerms(searchTerms)
-            .language("en-US")
-            .build();
+                .searchTerms(searchTerms)
+                .language("en-US")
+                .build();
 
         WebSearchRequest request2 = WebSearchRequest.builder()
-            .searchTerms(searchTerms)
-            .language("fr")
-            .build();
+                .searchTerms(searchTerms)
+                .language("fr")
+                .build();
 
         // when
         WebSearchResults webSearchResults1 = searchEngine().search(request1);
@@ -123,23 +123,23 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
         final Map<String, Object> additionalParams1 = new HashMap<>();
         additionalParams1.put("engines", "google");
         WebSearchRequest request1 = WebSearchRequest.builder()
-            .searchTerms(searchTerms)
-            .additionalParams(additionalParams1)
-            .build();
+                .searchTerms(searchTerms)
+                .additionalParams(additionalParams1)
+                .build();
 
         final Map<String, Object> additionalParams2 = new HashMap<>();
         additionalParams2.put("engines", "bing");
         WebSearchRequest request2 = WebSearchRequest.builder()
-            .searchTerms(searchTerms)
-            .additionalParams(additionalParams2)
-            .build();
+                .searchTerms(searchTerms)
+                .additionalParams(additionalParams2)
+                .build();
 
         final Map<String, Object> additionalParams3 = new HashMap<>();
         additionalParams3.put("engines", "yahoo");
         WebSearchRequest request3 = WebSearchRequest.builder()
-            .searchTerms(searchTerms)
-            .additionalParams(additionalParams3)
-            .build();
+                .searchTerms(searchTerms)
+                .additionalParams(additionalParams3)
+                .build();
         // when
         WebSearchResults webSearchResults1 = searchEngine().search(request1);
         WebSearchResults webSearchResults2 = searchEngine().search(request2);

@@ -76,7 +76,7 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
         final SearXNGResponse results = client.search(webSearchRequest);
 
         return WebSearchResults.from(WebSearchInformationResult.from(results.getNumberOfResults()),
-            results.getResults().stream().filter(r -> includeResult(r)).map(r -> toWebSearchOrganicResult(r)).limit(maxResults(webSearchRequest)).collect(Collectors.toList()));
+                results.getResults().stream().filter(r -> includeResult(r)).map(r -> toWebSearchOrganicResult(r)).limit(maxResults(webSearchRequest)).collect(Collectors.toList()));
     }
 
     /**
