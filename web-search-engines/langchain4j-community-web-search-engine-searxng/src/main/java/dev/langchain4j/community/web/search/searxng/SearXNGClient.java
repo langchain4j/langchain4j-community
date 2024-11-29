@@ -23,10 +23,10 @@ class SearXNGClient {
     public SearXNGClient(String baseUrl, Duration timeout, boolean logRequests, boolean logResponses, Map<String, Object> optionalParams) {
         this.optionalParams = optionalParams;
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
-            .callTimeout(timeout)
-            .connectTimeout(timeout)
-            .readTimeout(timeout)
-            .writeTimeout(timeout);
+                .callTimeout(timeout)
+                .connectTimeout(timeout)
+                .readTimeout(timeout)
+                .writeTimeout(timeout);
         if (logRequests) {
             okHttpClientBuilder.addInterceptor(new SearXNGRequestLoggingInterceptor());
         }
@@ -34,10 +34,10 @@ class SearXNGClient {
             okHttpClientBuilder.addInterceptor(new SearXNGResponseLoggingInterceptor());
         }
         Retrofit retrofit = new Retrofit.Builder()
-            .baseUrl(baseUrl)
-            .client(okHttpClientBuilder.build())
-            .addConverterFactory(JacksonConverterFactory.create(OBJECT_MAPPER))
-            .build();
+                .baseUrl(baseUrl)
+                .client(okHttpClientBuilder.build())
+                .addConverterFactory(JacksonConverterFactory.create(OBJECT_MAPPER))
+                .build();
         this.api = retrofit.create(SearXNGApi.class);
     }
 
