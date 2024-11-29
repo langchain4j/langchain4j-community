@@ -31,7 +31,6 @@
             <artifactId>converter-jackson</artifactId>
         </dependency>
 
-        <!-- DEPENDENCY CONFLICT RESOLUTION FOR OKHTTP (START) -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
@@ -41,12 +40,6 @@
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp-sse</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
-        </dependency>
-        <!-- DEPENDENCY CONFLICT RESOLUTION FOR OKHTTP (END)  -->
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
