@@ -14,7 +14,8 @@ class XinferenceStreamingChatModelListenerIT extends StreamingChatModelListenerI
     @Override
     protected StreamingChatLanguageModel createModel(ChatModelListener listener) {
         return XinferenceStreamingChatModel.builder()
-                .baseUrl(AbstractModelInfrastructure.XINFERENCE_BASE_URL)
+                .baseUrl(AbstractInferenceLanguageModelInfrastructure.baseUrl())
+                .apiKey(AbstractInferenceLanguageModelInfrastructure.apiKey())
                 .modelName(modelName())
                 .temperature(temperature())
                 .topP(topP())
@@ -27,7 +28,7 @@ class XinferenceStreamingChatModelListenerIT extends StreamingChatModelListenerI
 
     @Override
     protected String modelName() {
-        return AbstractModelInfrastructure.CHAT_MODEL_NAME;
+        return AbstractInferenceLanguageModelInfrastructure.modelName();
     }
 
     @Override

@@ -14,7 +14,8 @@ class XinferenceChatModelListenerIT extends ChatModelListenerIT {
     @Override
     protected ChatLanguageModel createModel(ChatModelListener listener) {
         return XinferenceChatModel.builder()
-                .baseUrl(AbstractModelInfrastructure.XINFERENCE_BASE_URL)
+                .baseUrl(AbstractInferenceLanguageModelInfrastructure.baseUrl())
+                .apiKey(AbstractInferenceLanguageModelInfrastructure.apiKey())
                 .modelName(modelName())
                 .temperature(temperature())
                 .topP(topP())
@@ -27,7 +28,7 @@ class XinferenceChatModelListenerIT extends ChatModelListenerIT {
 
     @Override
     protected String modelName() {
-        return AbstractModelInfrastructure.CHAT_MODEL_NAME;
+        return AbstractInferenceLanguageModelInfrastructure.modelName();
     }
 
     @Override

@@ -12,11 +12,12 @@ import static dev.langchain4j.model.output.FinishReason.STOP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceLanguageModelIT extends AbstractModelInfrastructure {
+class XinferenceLanguageModelIT extends AbstractInferenceLanguageModelInfrastructure {
 
     LanguageModel model = XinferenceLanguageModel.builder()
-            .baseUrl(XINFERENCE_BASE_URL)
-            .modelName(LANGUAGE_MODEL_NAME)
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
+            .modelName(modelName())
             .logRequests(true)
             .logResponses(true)
             .timeout(Duration.ofSeconds(60))

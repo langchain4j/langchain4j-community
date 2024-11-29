@@ -14,10 +14,12 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceEmbeddingModelIT extends AbstractModelInfrastructure {
+class XinferenceEmbeddingModelIT extends AbstractXinferenceEmbeddingModelInfrastructure {
+
     EmbeddingModel model = XinferenceEmbeddingModel.builder()
-            .baseUrl(XINFERENCE_BASE_URL)
-            .modelName(EMBEDDING_MODEL_NAME)
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
+            .modelName(modelName())
             .logRequests(true)
             .logResponses(true)
             .build();

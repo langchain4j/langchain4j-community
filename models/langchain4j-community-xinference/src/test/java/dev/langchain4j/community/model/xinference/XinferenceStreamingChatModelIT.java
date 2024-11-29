@@ -21,10 +21,13 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceStreamingChatModelIT extends AbstractModelInfrastructure {
+class XinferenceStreamingChatModelIT extends AbstractInferenceLanguageModelInfrastructure {
+
+
     final XinferenceStreamingChatModel model = XinferenceStreamingChatModel.builder()
-            .baseUrl(XINFERENCE_BASE_URL)
-            .modelName(CHAT_MODEL_NAME)
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
+            .modelName(modelName())
             .temperature(0.0)
             .logRequests(true)
             .logResponses(true)

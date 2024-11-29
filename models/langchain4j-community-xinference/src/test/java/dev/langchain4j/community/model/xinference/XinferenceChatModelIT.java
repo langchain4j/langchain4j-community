@@ -26,11 +26,20 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceChatModelIT extends AbstractModelInfrastructure {
+class XinferenceChatModelIT extends AbstractInferenceLanguageModelInfrastructure {
 
-    ChatLanguageModel chatModel = XinferenceChatModel.builder().baseUrl(XINFERENCE_BASE_URL).modelName(CHAT_MODEL_NAME).logRequests(true).logResponses(true).timeout(Duration.ofSeconds(60)).maxRetries(1).build();
+    ChatLanguageModel chatModel = XinferenceChatModel.builder()
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
+            .modelName(modelName())
+            .logRequests(true)
+            .logResponses(true)
+            .timeout(Duration.ofSeconds(60))
+            .maxRetries(1)
+            .build();
 
     ToolSpecification calculator = ToolSpecification.builder().name("calculator").description("returns a sum of two numbers").parameters(JsonObjectSchema.builder().addIntegerProperty("first").addIntegerProperty("second").build()).build();
+
 
     @Test
     void should_generate_answer_and_return_token_usage_and_finish_reason_stop() {
@@ -51,7 +60,16 @@ class XinferenceChatModelIT extends AbstractModelInfrastructure {
     void should_generate_answer_and_return_token_usage_and_finish_reason_length() {
         // given
         int maxTokens = 2;
-        ChatLanguageModel chatModel = XinferenceChatModel.builder().baseUrl(XINFERENCE_BASE_URL).modelName(CHAT_MODEL_NAME).logRequests(true).logResponses(true).timeout(Duration.ofSeconds(60)).maxTokens(maxTokens).temperature(0.0).maxRetries(1).build();
+        ChatLanguageModel chatModel = XinferenceChatModel.builder()
+                .baseUrl(baseUrl())
+                .apiKey(apiKey())
+                .modelName(modelName())
+                .logRequests(true)
+                .logResponses(true)
+                .timeout(Duration.ofSeconds(60))
+                .maxTokens(maxTokens).temperature(0.0)
+                .maxRetries(1)
+                .build();
 
         UserMessage userMessage = userMessage("中国首都是哪座城市?");
 

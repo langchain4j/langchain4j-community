@@ -22,14 +22,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 @EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceImageModelIT extends AbstractModelInfrastructure {
+class XinferenceImageModelIT extends AbstractXinferenceImageModelInfrastructure {
 
     final String NEGATIVE_PROMPT = "lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, username, watermark, signature";
     final Map<String, Object> KW_ARGS = Map.of("num_inference_steps", 20, "guidance_scale", 7.5, "seed", System.currentTimeMillis());
 
     final XinferenceImageModel.XinferenceImageModelBuilder modelBuilder = XinferenceImageModel.builder()
-            .modelName(IMAGE_MODEL_NAME)
-            .baseUrl(XINFERENCE_BASE_URL)
+            .modelName(modelName())
+            .baseUrl(baseUrl())
+            .apiKey(apiKey())
             .size("256x256")
             .timeout(Duration.ofMinutes(3))
             .logRequests(true)
