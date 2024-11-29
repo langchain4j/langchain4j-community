@@ -16,7 +16,6 @@ class AbstractXinferenceVisionModelInfrastructure {
         }
     }
 
-
     public static String baseUrl() {
         if (isNullOrEmpty(XINFERENCE_BASE_URL)) {
             return container.getEndpoint();

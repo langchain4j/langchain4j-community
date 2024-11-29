@@ -4,18 +4,16 @@ import dev.langchain4j.community.model.xinference.client.XinferenceHttpException
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatModelListenerIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import static java.util.Collections.singletonList;
 
-@EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
 class XinferenceStreamingChatModelListenerIT extends StreamingChatModelListenerIT {
 
     @Override
     protected StreamingChatLanguageModel createModel(ChatModelListener listener) {
         return XinferenceStreamingChatModel.builder()
-                .baseUrl(AbstractInferenceLanguageModelInfrastructure.baseUrl())
-                .apiKey(AbstractInferenceLanguageModelInfrastructure.apiKey())
+                .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
+                .apiKey(AbstractInferenceChatModelInfrastructure.apiKey())
                 .modelName(modelName())
                 .temperature(temperature())
                 .topP(topP())
@@ -26,9 +24,19 @@ class XinferenceStreamingChatModelListenerIT extends StreamingChatModelListenerI
                 .build();
     }
 
+    /**
+     * Streaming support for tool calls is available only when using Qwen models with vLLM backend or GLM4-chat models without vLLM backend.
+     *
+     * @return
+     */
+    @Override
+    protected boolean supportsTools() {
+        return false;
+    }
+
     @Override
     protected String modelName() {
-        return AbstractInferenceLanguageModelInfrastructure.modelName();
+        return AbstractInferenceChatModelInfrastructure.modelName();
     }
 
     @Override

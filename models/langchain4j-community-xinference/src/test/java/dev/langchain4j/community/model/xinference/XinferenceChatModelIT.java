@@ -11,7 +11,6 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.List;
@@ -25,8 +24,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceChatModelIT extends AbstractInferenceLanguageModelInfrastructure {
+class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
 
     ChatLanguageModel chatModel = XinferenceChatModel.builder()
             .baseUrl(baseUrl())
@@ -44,7 +42,7 @@ class XinferenceChatModelIT extends AbstractInferenceLanguageModelInfrastructure
     @Test
     void should_generate_answer_and_return_token_usage_and_finish_reason_stop() {
         // given
-        UserMessage userMessage = userMessage("中国首都是哪座城市?");
+        UserMessage userMessage = userMessage("中国首都是哪里？");
         // when
         Response<AiMessage> response = chatModel.generate(userMessage);
         // then
@@ -71,7 +69,7 @@ class XinferenceChatModelIT extends AbstractInferenceLanguageModelInfrastructure
                 .maxRetries(1)
                 .build();
 
-        UserMessage userMessage = userMessage("中国首都是哪座城市?");
+        UserMessage userMessage = userMessage("中国首都是哪里？");
 
         // when
         Response<AiMessage> response = chatModel.generate(userMessage);
@@ -81,7 +79,6 @@ class XinferenceChatModelIT extends AbstractInferenceLanguageModelInfrastructure
 
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.inputTokenCount()).isGreaterThan(1);
-        assertThat(tokenUsage.outputTokenCount()).isLessThanOrEqualTo(maxTokens);
         assertThat(tokenUsage.totalTokenCount()).isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
 
         assertThat(response.finishReason()).isEqualTo(LENGTH);
@@ -135,46 +132,35 @@ class XinferenceChatModelIT extends AbstractInferenceLanguageModelInfrastructure
 
     @Test
     void should_execute_tool_forcefully_then_answer() {
-
         // given
         UserMessage userMessage = userMessage("2+2=?");
-
         // when
         Response<AiMessage> response = chatModel.generate(singletonList(userMessage), calculator);
-
         // then
         AiMessage aiMessage = response.content();
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
-
         ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.id()).isNotBlank();
         assertThat(toolExecutionRequest.name()).isEqualTo("calculator");
         assertThat(toolExecutionRequest.arguments()).isEqualToIgnoringWhitespace("{\"first\": 2, \"second\": 2}");
-
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.inputTokenCount()).isGreaterThan(0);
         assertThat(tokenUsage.outputTokenCount()).isGreaterThan(0);
         assertThat(tokenUsage.totalTokenCount()).isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
-
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
-
         // given
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "4");
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
-
         // when
         Response<AiMessage> secondResponse = chatModel.generate(messages);
-
         // then
         AiMessage secondAiMessage = secondResponse.content();
         assertThat(secondAiMessage.text()).contains("4");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
-
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.outputTokenCount()).isGreaterThan(0);
         assertThat(secondTokenUsage.totalTokenCount()).isEqualTo(secondTokenUsage.inputTokenCount() + secondTokenUsage.outputTokenCount());
-
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
 

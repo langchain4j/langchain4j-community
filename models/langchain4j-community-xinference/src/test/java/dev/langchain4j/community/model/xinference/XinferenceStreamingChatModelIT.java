@@ -7,8 +7,8 @@ import dev.langchain4j.model.chat.TestStreamingResponseHandler;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,9 +20,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
-class XinferenceStreamingChatModelIT extends AbstractInferenceLanguageModelInfrastructure {
-
+class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastructure {
 
     final XinferenceStreamingChatModel model = XinferenceStreamingChatModel.builder()
             .baseUrl(baseUrl())
@@ -48,7 +46,7 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceLanguageModelInfra
 
         TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
 
-        model.generate("中国首都是哪座城市?", handler);
+        model.generate("中国首都是哪里？", handler);
 
         Response<AiMessage> response = handler.get();
         assertThat(response.content().text()).containsIgnoringCase("北京");
@@ -60,6 +58,7 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceLanguageModelInfra
     }
 
     @Test
+    @Disabled("Streaming support for tool calls is available only when using Qwen models with vLLM backend or GLM4-chat models without vLLM backend.")
     void should_execute_a_tool_then_stream_answer() throws Exception {
 
         // given
@@ -109,6 +108,7 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceLanguageModelInfra
     }
 
     @Test
+    @Disabled("Streaming support for tool calls is available only when using Qwen models with vLLM backend or GLM4-chat models without vLLM backend.")
     void should_execute_tool_forcefully_then_stream_answer() throws Exception {
 
         // given
@@ -158,6 +158,7 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceLanguageModelInfra
     }
 
     @Test
+    @Disabled("Streaming support for tool calls is available only when using Qwen models with vLLM backend or GLM4-chat models without vLLM backend.")
     void should_execute_multiple_tools_in_parallel_then_stream_answer() throws Exception {
 
         UserMessage userMessage = userMessage("2+2=? 3+3=?");
@@ -209,7 +210,6 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceLanguageModelInfra
 
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
-
 
     private static void assertTokenUsage(TokenUsage tokenUsage) {
         assertThat(tokenUsage.inputTokenCount()).isGreaterThan(0);

@@ -4,17 +4,13 @@ import dev.langchain4j.data.message.*;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.time.Duration;
 import java.util.Base64;
 
-import static dev.langchain4j.community.model.xinference.XinferenceUtils.VISION_MODEL_NAME;
-import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_API_KEY;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@EnabledIfEnvironmentVariable(named = "XINFERENCE_BASE_URL", matches = ".+")
 class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructure {
 
     final String CAT_IMAGE_URL = "https://img0.baidu.com/it/u=317254799,1407991361&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500";
@@ -43,28 +39,22 @@ class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructur
 
     @Test
     void should_accept_base64_image() {
-
         // given
         String base64Data = Base64.getEncoder().encodeToString(readBytes(CAT_IMAGE_URL));
         ImageContent imageContent = ImageContent.from(base64Data, "image/png");
         UserMessage userMessage = UserMessage.from(imageContent);
-
         // when
         Response<AiMessage> response = vlModel.generate(userMessage);
-
         // then
         assertThat(response.content().text()).containsIgnoringCase("cat");
     }
 
     @Test
     void should_accept_text_and_image() {
-
         // given
         UserMessage userMessage = UserMessage.from(TextContent.from("What do you see? Reply in one word."), ImageContent.from(CAT_IMAGE_URL));
-
         // when
         Response<AiMessage> response = vlModel.generate(userMessage);
-
         // then
         assertThat(response.content().text()).containsIgnoringCase("cat");
     }
