@@ -79,17 +79,17 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * Initializes a new instance of DuckDBEmbeddingStore with the specified parameters.
      *
-     * @param filePath       File used to persist DuckDB database. If not specified, the database will be stored in-memory.
-     * @param tableName      The database table name to use. If not specified, "embeddings" will be used
+     * @param filePath  File used to persist DuckDB database. If not specified, the database will be stored in-memory.
+     * @param tableName The database table name to use. If not specified, "embeddings" will be used
      */
     public DuckDBEmbeddingStore(String filePath, String tableName) {
         try {
-            var dbUrl = filePath != null ? "jdbc:duckdb:"+filePath : "jdbc:duckdb:";
+            var dbUrl = filePath != null ? "jdbc:duckdb:" + filePath : "jdbc:duckdb:";
             this.tableName = getOrDefault(tableName, "embeddings");
             this.duckDBConnection = (DuckDBConnection) DriverManager.getConnection(dbUrl);
             initTable();
         } catch (SQLException e) {
-            throw new DuckDBSQLException("Unable to load duckdb connection",e);
+            throw new DuckDBSQLException("Unable to load duckdb connection", e);
         }
     }
 
@@ -97,8 +97,8 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * @return a new instance of DuckDBEmbeddingStore with the default configuration and database stored in-memory
      */
-    public static DuckDBEmbeddingStore inMemory(){
-        return new DuckDBEmbeddingStore(null,null);
+    public static DuckDBEmbeddingStore inMemory() {
+        return new DuckDBEmbeddingStore(null, null);
     }
 
     public static Builder builder() {
@@ -137,7 +137,7 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
 
         public DuckDBEmbeddingStore build() {
-            return new DuckDBEmbeddingStore(filePath,tableName);
+            return new DuckDBEmbeddingStore(filePath, tableName);
         }
     }
 
@@ -158,7 +158,7 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     public List<String> addAll(final List<Embedding> embeddings) {
-        return addAll(embeddings,null);
+        return addAll(embeddings, null);
     }
 
     public List<String> addAll(final List<Embedding> embeddings, final List<TextSegment> embedded) {
@@ -172,13 +172,13 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public void removeAll(final Collection<String> ids) {
         ensureNotEmpty(ids, "ids");
-        var idsParam = ids.stream().map(id -> "'"+id+"'").collect(Collectors.joining(","));
-        String sql = format(DELETE_BY_IDS_QUERY_TEMPLATE, tableName,idsParam);
-        try(var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()){
+        var idsParam = ids.stream().map(id -> "'" + id + "'").collect(Collectors.joining(","));
+        String sql = format(DELETE_BY_IDS_QUERY_TEMPLATE, tableName, idsParam);
+        try (var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()) {
             log.debug(sql);
             statement.execute(sql);
         } catch (SQLException e) {
-            throw new DuckDBSQLException("Unable to remove embeddings by ids",e);
+            throw new DuckDBSQLException("Unable to remove embeddings by ids", e);
         }
     }
 
@@ -186,35 +186,35 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(final Filter filter) {
         ensureNotNull(filter, "filter");
         var whereClause = jsonFilterMapper.map(filter);
-        String sql = format(DELETE_QUERY_TEMPLATE, tableName,whereClause);
-        try(var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()){
+        String sql = format(DELETE_QUERY_TEMPLATE, tableName, whereClause);
+        try (var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()) {
             log.debug(sql);
             statement.execute(sql);
         } catch (SQLException e) {
-            throw new DuckDBSQLException("Unable to remove embeddings with filter",e);
+            throw new DuckDBSQLException("Unable to remove embeddings with filter", e);
         }
     }
 
     @Override
     public void removeAll() {
-        var sql = format(TRUNCATE_QUERY_TEMPLATE,tableName);
-        try(var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()){
+        var sql = format(TRUNCATE_QUERY_TEMPLATE, tableName);
+        try (var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()) {
             statement.execute(sql);
         } catch (SQLException e) {
-            throw new DuckDBSQLException("Unable to remove all embeddings",e);
+            throw new DuckDBSQLException("Unable to remove all embeddings", e);
         }
     }
 
     @Override
     public EmbeddingSearchResult<TextSegment> search(final EmbeddingSearchRequest request) {
-        try(var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()){
+        try (var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()) {
             var matches = new ArrayList<EmbeddingMatch<TextSegment>>();
             var param = embeddingToParam(request.queryEmbedding());
-            var filterClause = request.filter() != null ? "and "+jsonFilterMapper.map(request.filter()) : "";
-            var query = format(SEARCH_QUERY_TEMPLATE,param,tableName, request.minScore(),filterClause,request.maxResults());
+            var filterClause = request.filter() != null ? "and " + jsonFilterMapper.map(request.filter()) : "";
+            var query = format(SEARCH_QUERY_TEMPLATE, param, tableName, request.minScore(), filterClause, request.maxResults());
             log.debug(query);
             var resultSet = statement.executeQuery(query);
-            while (resultSet.next()){
+            while (resultSet.next()) {
 
                 var id = resultSet.getString("id");
                 var text = resultSet.getString("text");
@@ -222,20 +222,21 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 var sqlArray = resultSet.getArray("embedding");
                 var metadataJson = resultSet.getString("metadata");
 
-                var typeReference = new TypeReference<HashMap<String,Object>>() {};
-                Map<String,?> metadataMap = metadataJson != null ? jsonMetadataSerializer.readValue(metadataJson, typeReference) : Collections.emptyMap();
+                var typeReference = new TypeReference<HashMap<String, Object>>() {
+                };
+                Map<String, ?> metadataMap = metadataJson != null ? jsonMetadataSerializer.readValue(metadataJson, typeReference) : Collections.emptyMap();
 
                 var sqlList = (Object[]) sqlArray.getArray();
-                var vector =new float[sqlList.length];
-                for(int i=0;i<sqlList.length;i++){
+                var vector = new float[sqlList.length];
+                for (int i = 0; i < sqlList.length; i++) {
                     vector[i] = (float) sqlList[i];
                 }
-                var ts = text != null ? TextSegment.from(text,Metadata.from(metadataMap)) : null;
-                matches.add(new EmbeddingMatch<>(score,id,new Embedding(vector),ts));
+                var ts = text != null ? TextSegment.from(text, Metadata.from(metadataMap)) : null;
+                matches.add(new EmbeddingMatch<>(score, id, new Embedding(vector), ts));
             }
             return new EmbeddingSearchResult<>(matches);
         } catch (SQLException | JsonProcessingException e) {
-            throw new DuckDBSQLException("Error while searching embeddings",e);
+            throw new DuckDBSQLException("Error while searching embeddings", e);
         }
     }
 
@@ -254,26 +255,26 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         try (var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()) {
             var values = new ArrayList<String>(ids.size());
-            for(int i=0;i<ids.size();i++){
+            for (int i = 0; i < ids.size(); i++) {
                 var text = "NULL";
-                if(embedded != null && embedded.get(i) != null){
-                    text = "'"+embedded.get(i).text()+"'";
+                if (embedded != null && embedded.get(i) != null) {
+                    text = "'" + embedded.get(i).text() + "'";
                 }
                 var metadata = embedded != null && embedded.get(i) != null ? embedded.get(i).metadata().toMap() : null;
                 values.add(format("('%s',%s,%s,'%s')", ids.get(i), embeddingToParam(embeddings.get(i)), text, jsonMetadataSerializer.writeValueAsString(metadata)));
             }
 
-            var sql = format(INSERT_QUERY_TEMPLATE, tableName, String.join(",",values));
+            var sql = format(INSERT_QUERY_TEMPLATE, tableName, String.join(",", values));
             log.debug(sql);
             statement.execute(sql);
-        } catch (SQLException | JsonProcessingException  e) {
-            throw new DuckDBSQLException("Unable to add embeddings in DuckDB",e);
+        } catch (SQLException | JsonProcessingException e) {
+            throw new DuckDBSQLException("Unable to add embeddings in DuckDB", e);
         }
     }
 
-    private void initTable(){
+    private void initTable() {
         var sql = format(CREATE_TABLE_TEMPLATE, tableName);
-        try(var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()){
+        try (var connection = duckDBConnection.duplicate(); var statement = connection.createStatement()) {
             log.debug(sql);
             statement.execute(sql);
         } catch (SQLException e) {
@@ -281,11 +282,11 @@ public class DuckDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    protected String embeddingToParam(Embedding embedding){
+    protected String embeddingToParam(Embedding embedding) {
         return embedding.vectorAsList()
                 .stream()
                 .map(Object::toString)
-                .collect(Collectors.joining(",","[","]"))
+                .collect(Collectors.joining(",", "[", "]"))
                 .concat("::float[]");
     }
 }
