@@ -127,4 +127,12 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
     protected void should_execute_tool_with_pojo_with_primitives() {
         super.should_execute_tool_with_pojo_with_primitives();
     }
+
+    @Test
+    @Disabled("The support isn't great, and there are cases where it fails.")
+    @Override
+    protected void should_execute_tool_with_map_parameter() {
+        super.should_execute_tool_with_map_parameter();
+    }
 }
+

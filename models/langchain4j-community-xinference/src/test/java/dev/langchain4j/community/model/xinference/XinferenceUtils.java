@@ -13,9 +13,9 @@ class XinferenceUtils {
     public static final String XINFERENCE_BASE_URL = System.getenv("XINFERENCE_BASE_URL");
     public static final String XINFERENCE_API_KEY = System.getenv("XINFERENCE_BASE_URL");
     // CPU
-//    public static final String XINFERENCE_IMAGE = "xprobe/xinference:latest-cpu";
+    public static final String XINFERENCE_IMAGE = "xprobe/xinference:latest-cpu";
     // GPU
-    public static final String XINFERENCE_IMAGE = "xprobe/xinference:latest";
+//    public static final String XINFERENCE_IMAGE = "xprobe/xinference:latest";
 
     public static final String CHAT_MODEL_NAME = "qwen2.5-instruct";
     public static final String GENERATE_MODEL_NAME = "qwen2.5";

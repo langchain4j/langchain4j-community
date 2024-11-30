@@ -3,6 +3,7 @@ package dev.langchain4j.community.model.xinference;
 import dev.langchain4j.data.message.*;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -11,6 +12,7 @@ import java.util.Base64;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Disabled("Torch not compiled with CUDA enabled.")
 class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructure {
 
     final String CAT_IMAGE_URL = "https://img0.baidu.com/it/u=317254799,1407991361&fm=253&fmt=auto&app=138&f=JPEG?w=889&h=500";
