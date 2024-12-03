@@ -9,37 +9,38 @@ import static java.util.Collections.singletonList;
 
 class XinferenceChatModelListenerIT extends ChatModelListenerIT {
 
-    @Override
-    protected ChatLanguageModel createModel(ChatModelListener listener) {
-        return XinferenceChatModel.builder()
-                .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
-                .apiKey(AbstractInferenceChatModelInfrastructure.apiKey())
-                .modelName(modelName())
-                .temperature(temperature())
-                .topP(topP())
-                .maxTokens(maxTokens())
-                .logRequests(true)
-                .logResponses(true)
-                .listeners(singletonList(listener))
-                .build();
-    }
+  @Override
+  protected ChatLanguageModel createModel(ChatModelListener listener) {
+    return XinferenceChatModel.builder()
+        .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
+        .apiKey(AbstractInferenceChatModelInfrastructure.apiKey())
+        .modelName(modelName())
+        .temperature(temperature())
+        .topP(topP())
+        .maxTokens(maxTokens())
+        .logRequests(true)
+        .logResponses(true)
+        .listeners(singletonList(listener))
+        .build();
+  }
 
-    @Override
-    protected String modelName() {
-        return AbstractInferenceChatModelInfrastructure.modelName();
-    }
+  @Override
+  protected String modelName() {
+    return AbstractInferenceChatModelInfrastructure.modelName();
+  }
 
-    @Override
-    protected ChatLanguageModel createFailingModel(ChatModelListener listener) {
-        return XinferenceChatModel.builder()
-                .apiKey("banana")
-                .maxRetries(1)
-                .listeners(singletonList(listener))
-                .build();
-    }
+  @Override
+  protected ChatLanguageModel createFailingModel(ChatModelListener listener) {
+    return XinferenceChatModel.builder()
+        .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
+        .modelName("llama3.1")
+        .maxRetries(1)
+        .listeners(singletonList(listener))
+        .build();
+  }
 
-    @Override
-    protected Class<? extends Exception> expectedExceptionClass() {
-        return XinferenceHttpException.class;
-    }
+  @Override
+  protected Class<? extends Exception> expectedExceptionClass() {
+    return XinferenceHttpException.class;
+  }
 }
