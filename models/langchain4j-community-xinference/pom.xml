@@ -11,6 +11,10 @@
     <artifactId>langchain4j-community-xinference</artifactId>
     <name>LangChain4j :: Community :: Integration :: Xinference</name>
 
+    <properties>
+        <skipXinferenceITs>false</skipXinferenceITs>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -117,6 +121,18 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <skipTests>${skipXinferenceITs}</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <licenses>
         <license>

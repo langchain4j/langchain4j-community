@@ -26,7 +26,8 @@ jobs:
       - name: release
         run: |
           mvn -B -U --fail-at-end \
-            -DskipTests -DskipITs -Psign clean deploy
+            -DskipTests -DskipITs -Psign \
+            clean deploy
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
