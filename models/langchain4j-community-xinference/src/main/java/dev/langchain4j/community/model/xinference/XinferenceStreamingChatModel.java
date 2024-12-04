@@ -19,6 +19,7 @@ import dev.langchain4j.model.chat.listener.ChatModelResponse;
 import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.output.Response;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.Proxy;
 import java.time.Duration;
@@ -36,12 +37,11 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceStreamingChatModel implements StreamingChatLanguageModel {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(XinferenceStreamingChatModel.class);
+    private static final Logger log = LoggerFactory.getLogger(XinferenceStreamingChatModel.class);
     private final XinferenceClient client;
     private final String modelName;
     private final Double temperature;
     private final Double topP;
-    private final Integer n;
     private final List<String> stop;
     private final Integer maxTokens;
     private final Double presencePenalty;
@@ -52,45 +52,45 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
     private final Boolean parallelToolCalls;
     private final List<ChatModelListener> listeners;
 
-    public XinferenceStreamingChatModel(String baseUrl,
-                                        String apiKey,
-                                        String modelName,
-                                        Double temperature,
-                                        Double topP,
-                                        Integer n,
-                                        List<String> stop,
-                                        Integer maxTokens,
-                                        Double presencePenalty,
-                                        Double frequencyPenalty,
-                                        Integer seed,
-                                        String user,
-                                        Object toolChoice,
-                                        Boolean parallelToolCalls,
-                                        Duration timeout,
-                                        Proxy proxy,
-                                        Boolean logRequests,
-                                        Boolean logResponses,
-                                        Map<String, String> customHeaders,
-                                        List<ChatModelListener> listeners) {
+    public XinferenceStreamingChatModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            Double temperature,
+            Double topP,
+            List<String> stop,
+            Integer maxTokens,
+            Double presencePenalty,
+            Double frequencyPenalty,
+            Integer seed,
+            String user,
+            Object toolChoice,
+            Boolean parallelToolCalls,
+            Duration timeout,
+            Proxy proxy,
+            Boolean logRequests,
+            Boolean logResponses,
+            Map<String, String> customHeaders,
+            List<ChatModelListener> listeners) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
-        this.client = XinferenceClient.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout)
-                .proxy(proxy)
-                .logRequests(logRequests)
-                .logStreamingResponses(logResponses)
-                .customHeaders(customHeaders)
-                .build();
+        this.client =
+                XinferenceClient.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .callTimeout(timeout)
+                        .connectTimeout(timeout)
+                        .readTimeout(timeout)
+                        .writeTimeout(timeout)
+                        .proxy(proxy)
+                        .logRequests(logRequests)
+                        .logStreamingResponses(logResponses)
+                        .customHeaders(customHeaders)
+                        .build();
 
         this.modelName = ensureNotBlank(modelName, "modelName");
         this.temperature = temperature;
         this.topP = topP;
-        this.n = n;
         this.stop = stop;
         this.maxTokens = maxTokens;
         this.presencePenalty = presencePenalty;
@@ -103,40 +103,47 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
     }
 
     @Override
-    public void generate(final List<ChatMessage> list, final StreamingResponseHandler<AiMessage> handler) {
+    public void generate(
+            final List<ChatMessage> list, final StreamingResponseHandler<AiMessage> handler) {
         generate(list, null, null, handler);
     }
 
     @Override
-    public void generate(final List<ChatMessage> messages, final List<ToolSpecification> toolSpecifications, final StreamingResponseHandler<AiMessage> handler) {
+    public void generate(
+            final List<ChatMessage> messages,
+            final List<ToolSpecification> toolSpecifications,
+            final StreamingResponseHandler<AiMessage> handler) {
         generate(messages, toolSpecifications, null, handler);
     }
 
     @Override
-    public void generate(final List<ChatMessage> messages, final ToolSpecification toolSpecification, final StreamingResponseHandler<AiMessage> handler) {
+    public void generate(
+            final List<ChatMessage> messages,
+            final ToolSpecification toolSpecification,
+            final StreamingResponseHandler<AiMessage> handler) {
         generate(messages, null, toolSpecification, handler);
     }
 
-    private void generate(List<ChatMessage> messages,
-                          List<ToolSpecification> toolSpecifications,
-                          ToolSpecification toolThatMustBeExecuted,
-                          StreamingResponseHandler<AiMessage> handler) {
-        final ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
-                .stream(true)
-                .streamOptions(StreamOptions.of(true))
-                .model(modelName)
-                .messages(toXinferenceMessages(messages))
-                .temperature(temperature)
-                .topP(topP)
-                .n(n)
-                .stop(stop)
-                .maxTokens(maxTokens)
-                .presencePenalty(presencePenalty)
-                .frequencyPenalty(frequencyPenalty)
-                .user(user)
-                .seed(seed)
-                .toolChoice(toolChoice)
-                .parallelToolCalls(parallelToolCalls);
+    private void generate(
+            List<ChatMessage> messages,
+            List<ToolSpecification> toolSpecifications,
+            ToolSpecification toolThatMustBeExecuted,
+            StreamingResponseHandler<AiMessage> handler) {
+        final ChatCompletionRequest.Builder builder =
+                ChatCompletionRequest.builder().stream(true)
+                        .streamOptions(StreamOptions.of(true))
+                        .model(modelName)
+                        .messages(toXinferenceMessages(messages))
+                        .temperature(temperature)
+                        .topP(topP)
+                        .stop(stop)
+                        .maxTokens(maxTokens)
+                        .presencePenalty(presencePenalty)
+                        .frequencyPenalty(frequencyPenalty)
+                        .user(user)
+                        .seed(seed)
+                        .toolChoice(toolChoice)
+                        .parallelToolCalls(parallelToolCalls);
 
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.tools(toTools(toolSpecifications));
@@ -151,82 +158,92 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
 
         final ChatCompletionRequest request = builder.build();
 
-        ChatModelRequest modelListenerRequest = ChatModelRequest.builder()
-                .model(request.getModel())
-                .temperature(request.getTemperature())
-                .topP(request.getTopP())
-                .maxTokens(request.getMaxTokens())
-                .messages(messages)
-                .toolSpecifications(toolSpecifications)
-                .build();
+        ChatModelRequest modelListenerRequest =
+                ChatModelRequest.builder()
+                        .model(request.getModel())
+                        .temperature(request.getTemperature())
+                        .topP(request.getTopP())
+                        .maxTokens(request.getMaxTokens())
+                        .messages(messages)
+                        .toolSpecifications(toolSpecifications)
+                        .build();
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(modelListenerRequest, attributes);
-        listeners.forEach(listener -> {
-            try {
-                listener.onRequest(requestContext);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        });
-        XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder();
-        client.chatCompletions(request)
-                .onPartialResponse(partialResponse -> {
-                    responseBuilder.append(partialResponse);
-                    final List<ChatCompletionChoice> choices = partialResponse.getChoices();
-                    if (!isNullOrEmpty(choices)) {
-                        for (final ChatCompletionChoice choice : choices) {
-                            final Delta delta = choice.getDelta();
-                            final String content = delta.getContent();
-                            if (isNotNullOrEmpty(content)) {
-                                handler.onNext(content);
-                            }
-                        }
+        ChatModelRequestContext requestContext =
+                new ChatModelRequestContext(modelListenerRequest, attributes);
+        listeners.forEach(
+                listener -> {
+                    try {
+                        listener.onRequest(requestContext);
+                    } catch (Exception e) {
+                        log.warn("Exception while calling model listener", e);
                     }
-                })
-                .onComplete(() -> {
-                    Response<AiMessage> response = responseBuilder.build();
-                    ChatModelResponse modelListenerResponse = createModelListenerResponse(responseBuilder.getResponseId(), responseBuilder.getResponseModel(), response);
-                    ChatModelResponseContext responseContext = new ChatModelResponseContext(
-                            modelListenerResponse,
-                            modelListenerRequest,
-                            attributes
-                    );
-                    listeners.forEach(listener -> {
-                        try {
-                            listener.onResponse(responseContext);
-                        } catch (Exception e) {
-                            log.warn("Exception while calling model listener", e);
-                        }
-                    });
+                });
+        XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder();
+        client
+                .chatCompletions(request)
+                .onPartialResponse(
+                        partialResponse -> {
+                            responseBuilder.append(partialResponse);
+                            final List<ChatCompletionChoice> choices = partialResponse.getChoices();
+                            if (!isNullOrEmpty(choices)) {
+                                final Delta delta = choices.get(0).getDelta();
+                                final String content = delta.getContent();
+                                if (isNotNullOrEmpty(content)) {
+                                    handler.onNext(content);
+                                }
+                            }
+                        })
+                .onComplete(
+                        () -> {
+                            Response<AiMessage> response = responseBuilder.build();
+                            ChatModelResponse modelListenerResponse =
+                                    createModelListenerResponse(
+                                            responseBuilder.getResponseId(),
+                                            responseBuilder.getResponseModel(),
+                                            response);
+                            ChatModelResponseContext responseContext =
+                                    new ChatModelResponseContext(
+                                            modelListenerResponse, modelListenerRequest, attributes);
+                            listeners.forEach(
+                                    listener -> {
+                                        try {
+                                            listener.onResponse(responseContext);
+                                        } catch (Exception e) {
+                                            log.warn("Exception while calling model listener", e);
+                                        }
+                                    });
 
-                    handler.onComplete(response);
-                })
-                .onError(throwable -> {
-                    Response<AiMessage> response = responseBuilder.build();
-                    ChatModelResponse modelListenerPartialResponse = createModelListenerResponse(responseBuilder.getResponseId(), responseBuilder.getResponseModel(), response);
+                            handler.onComplete(response);
+                        })
+                .onError(
+                        throwable -> {
+                            Response<AiMessage> response = responseBuilder.build();
+                            ChatModelResponse modelListenerPartialResponse =
+                                    createModelListenerResponse(
+                                            responseBuilder.getResponseId(),
+                                            responseBuilder.getResponseModel(),
+                                            response);
 
-                    ChatModelErrorContext errorContext = new ChatModelErrorContext(
-                            throwable,
-                            modelListenerRequest,
-                            modelListenerPartialResponse,
-                            attributes
-                    );
+                            ChatModelErrorContext errorContext =
+                                    new ChatModelErrorContext(
+                                            throwable, modelListenerRequest, modelListenerPartialResponse, attributes);
 
-                    listeners.forEach(listener -> {
-                        try {
-                            listener.onError(errorContext);
-                        } catch (Exception e) {
-                            log.warn("Exception while calling model listener", e);
-                        }
-                    });
+                            listeners.forEach(
+                                    listener -> {
+                                        try {
+                                            listener.onError(errorContext);
+                                        } catch (Exception e) {
+                                            log.warn("Exception while calling model listener", e);
+                                        }
+                                    });
 
-                    handler.onError(throwable);
-                })
+                            handler.onError(throwable);
+                        })
                 .execute();
-
     }
 
-    private static ChatModelResponse createModelListenerResponse(String responseId, String responseModel, Response<AiMessage> response) {
+    private static ChatModelResponse createModelListenerResponse(
+            String responseId, String responseModel, Response<AiMessage> response) {
         if (response == null) {
             return null;
         }
@@ -240,7 +257,8 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
     }
 
     public static XinferenceStreamingChatModelBuilder builder() {
-        for (XinferenceStreamingChatModelBuilderFactory factory : loadFactories(XinferenceStreamingChatModelBuilderFactory.class)) {
+        for (XinferenceStreamingChatModelBuilderFactory factory :
+                loadFactories(XinferenceStreamingChatModelBuilderFactory.class)) {
             return factory.get();
         }
         return new XinferenceStreamingChatModelBuilder();
@@ -252,7 +270,6 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
         private String modelName;
         private Double temperature;
         private Double topP;
-        private Integer n;
         private List<String> stop;
         private Integer maxTokens;
         private Double presencePenalty;
@@ -290,11 +307,6 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
 
         public XinferenceStreamingChatModelBuilder topP(Double topP) {
             this.topP = topP;
-            return this;
-        }
-
-        public XinferenceStreamingChatModelBuilder n(Integer n) {
-            this.n = n;
             return this;
         }
 
@@ -369,12 +381,12 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
         }
 
         public XinferenceStreamingChatModel build() {
-            return new XinferenceStreamingChatModel(this.baseUrl,
+            return new XinferenceStreamingChatModel(
+                    this.baseUrl,
                     this.apiKey,
                     this.modelName,
                     this.temperature,
                     this.topP,
-                    this.n,
                     this.stop,
                     this.maxTokens,
                     this.presencePenalty,
@@ -388,8 +400,7 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
                     this.logRequests,
                     this.logResponses,
                     this.customHeaders,
-                    this.listeners
-            );
+                    this.listeners);
         }
     }
 }

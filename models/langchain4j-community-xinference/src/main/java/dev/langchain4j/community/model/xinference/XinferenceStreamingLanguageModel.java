@@ -1,6 +1,8 @@
 package dev.langchain4j.community.model.xinference;
 
 import dev.langchain4j.community.model.xinference.client.XinferenceClient;
+import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionChoice;
+import dev.langchain4j.community.model.xinference.client.chat.Delta;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionChoice;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionRequest;
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
@@ -17,6 +19,7 @@ import java.util.Map;
 
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
@@ -27,7 +30,6 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
     private final Integer maxTokens;
     private final Double temperature;
     private final Double topP;
-    private final Integer n;
     private final Integer logprobs;
     private final Boolean echo;
     private final List<String> stop;
@@ -35,44 +37,44 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
     private final Double frequencyPenalty;
     private final String user;
 
-    public XinferenceStreamingLanguageModel(String baseUrl,
-                                            String apiKey,
-                                            String modelName,
-                                            Integer maxTokens,
-                                            Double temperature,
-                                            Double topP,
-                                            Integer n,
-                                            Integer logprobs,
-                                            Boolean echo,
-                                            List<String> stop,
-                                            Double presencePenalty,
-                                            Double frequencyPenalty,
-                                            String user,
-                                            Duration timeout,
-                                            Proxy proxy,
-                                            Boolean logRequests,
-                                            Boolean logResponses,
-                                            Map<String, String> customHeaders) {
+    public XinferenceStreamingLanguageModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            Integer maxTokens,
+            Double temperature,
+            Double topP,
+            Integer logprobs,
+            Boolean echo,
+            List<String> stop,
+            Double presencePenalty,
+            Double frequencyPenalty,
+            String user,
+            Duration timeout,
+            Proxy proxy,
+            Boolean logRequests,
+            Boolean logResponses,
+            Map<String, String> customHeaders) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
-        this.client = XinferenceClient.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout)
-                .proxy(proxy)
-                .logRequests(logRequests)
-                .logStreamingResponses(logResponses)
-                .customHeaders(customHeaders)
-                .build();
+        this.client =
+                XinferenceClient.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .callTimeout(timeout)
+                        .connectTimeout(timeout)
+                        .readTimeout(timeout)
+                        .writeTimeout(timeout)
+                        .proxy(proxy)
+                        .logRequests(logRequests)
+                        .logStreamingResponses(logResponses)
+                        .customHeaders(customHeaders)
+                        .build();
 
         this.modelName = ensureNotBlank(modelName, "modelName");
         this.maxTokens = maxTokens;
         this.temperature = temperature;
         this.topP = topP;
-        this.n = n;
         this.logprobs = logprobs;
         this.echo = echo;
         this.stop = stop;
@@ -83,52 +85,54 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
 
     @Override
     public void generate(final String prompt, final StreamingResponseHandler<String> handler) {
-        final CompletionRequest request = CompletionRequest.builder()
-                .stream(true)
-                .streamOptions(StreamOptions.of(true))
-                .model(modelName)
-                .prompt(prompt)
-                .maxTokens(maxTokens)
-                .temperature(temperature)
-                .topP(topP)
-                .n(n)
-                .logprobs(logprobs)
-                .echo(echo)
-                .stop(stop)
-                .presencePenalty(presencePenalty)
-                .frequencyPenalty(frequencyPenalty)
-                .user(user)
-                .build();
-        final XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder();
-        client.completions(request)
-                .onPartialResponse(completionResponse -> {
-                    responseBuilder.append(completionResponse);
-                    for (final CompletionChoice choice : completionResponse.getChoices()) {
-                        final String text = choice.getText();
-                        if (isNotNullOrEmpty(text)) {
-                            handler.onNext(text);
-                        }
-                    }
-                })
-                .onComplete(() -> {
-                    Response<AiMessage> response = responseBuilder.build();
-                    handler.onComplete(Response.from(
-                            response.content().text(),
-                            response.tokenUsage(),
-                            response.finishReason()
-                    ));
-                })
+        final CompletionRequest request =
+                CompletionRequest.builder().stream(true)
+                        .streamOptions(StreamOptions.of(true))
+                        .model(modelName)
+                        .prompt(prompt)
+                        .maxTokens(maxTokens)
+                        .temperature(temperature)
+                        .topP(topP)
+                        .logprobs(logprobs)
+                        .echo(echo)
+                        .stop(stop)
+                        .presencePenalty(presencePenalty)
+                        .frequencyPenalty(frequencyPenalty)
+                        .user(user)
+                        .build();
+        final XinferenceStreamingResponseBuilder responseBuilder =
+                new XinferenceStreamingResponseBuilder();
+        client
+                .completions(request)
+                .onPartialResponse(
+                        partialResponse -> {
+                            responseBuilder.append(partialResponse);
+                            final List<CompletionChoice> choices = partialResponse.getChoices();
+                            if (!isNullOrEmpty(choices)) {
+                                final String text = choices.get(0).getText();
+                                if (isNotNullOrEmpty(text)) {
+                                    handler.onNext(text);
+                                }
+                            }
+                        })
+                .onComplete(
+                        () -> {
+                            Response<AiMessage> response = responseBuilder.build();
+                            handler.onComplete(
+                                    Response.from(
+                                            response.content().text(), response.tokenUsage(), response.finishReason()));
+                        })
                 .onError(handler::onError)
                 .execute();
     }
 
     public static XinferenceStreamingLanguageModelBuilder builder() {
-        for (XinferenceStreamingLanguageModelBuilderFactory factory : loadFactories(XinferenceStreamingLanguageModelBuilderFactory.class)) {
+        for (XinferenceStreamingLanguageModelBuilderFactory factory :
+                loadFactories(XinferenceStreamingLanguageModelBuilderFactory.class)) {
             return factory.get();
         }
         return new XinferenceStreamingLanguageModelBuilder();
     }
-
 
     public static class XinferenceStreamingLanguageModelBuilder {
 
@@ -138,7 +142,6 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
         private Integer maxTokens;
         private Double temperature;
         private Double topP;
-        private Integer n;
         private Integer logprobs;
         private Boolean echo;
         private List<String> stop;
@@ -178,11 +181,6 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
 
         public XinferenceStreamingLanguageModelBuilder topP(Double topP) {
             this.topP = topP;
-            return this;
-        }
-
-        public XinferenceStreamingLanguageModelBuilder n(Integer n) {
-            this.n = n;
             return this;
         }
 
@@ -236,7 +234,8 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
             return this;
         }
 
-        public XinferenceStreamingLanguageModelBuilder customHeaders(Map<String, String> customHeaders) {
+        public XinferenceStreamingLanguageModelBuilder customHeaders(
+                Map<String, String> customHeaders) {
             this.customHeaders = customHeaders;
             return this;
         }
@@ -249,7 +248,6 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
                     maxTokens,
                     temperature,
                     topP,
-                    n,
                     logprobs,
                     echo,
                     stop,
@@ -260,8 +258,7 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
                     proxy,
                     logRequests,
                     logResponses,
-                    customHeaders
-            );
+                    customHeaders);
         }
     }
 }

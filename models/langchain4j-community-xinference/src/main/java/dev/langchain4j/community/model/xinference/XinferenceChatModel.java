@@ -20,6 +20,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.Response;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.Proxy;
 import java.time.Duration;
@@ -40,12 +41,11 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceChatModel implements ChatLanguageModel {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(XinferenceChatModel.class);
+    private static final Logger log = LoggerFactory.getLogger(XinferenceChatModel.class);
     private final XinferenceClient client;
     private final String modelName;
     private final Double temperature;
     private final Double topP;
-    private final Integer n;
     private final List<String> stop;
     private final Integer maxTokens;
     private final Double presencePenalty;
@@ -57,46 +57,14 @@ public class XinferenceChatModel implements ChatLanguageModel {
     private final Integer maxRetries;
     private final List<ChatModelListener> listeners;
 
-    public XinferenceChatModel(String baseUrl,
-                               String apiKey,
-                               String modelName,
-                               Double temperature,
-                               Double topP,
-                               Integer n,
-                               List<String> stop,
-                               Integer maxTokens,
-                               Double presencePenalty,
-                               Double frequencyPenalty,
-                               Integer seed,
-                               String user,
-                               Object toolChoice,
-                               Boolean parallelToolCalls,
-                               Integer maxRetries,
-                               Duration timeout,
-                               Proxy proxy,
-                               Boolean logRequests,
-                               Boolean logResponses,
-                               Map<String, String> customHeaders,
-                               List<ChatModelListener> listeners) {
+    public XinferenceChatModel(String baseUrl, String apiKey, String modelName, Double temperature, Double topP, List<String> stop, Integer maxTokens, Double presencePenalty, Double frequencyPenalty, Integer seed, String user, Object toolChoice, Boolean parallelToolCalls, Integer maxRetries, Duration timeout, Proxy proxy, Boolean logRequests, Boolean logResponses, Map<String, String> customHeaders, List<ChatModelListener> listeners) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
-        this.client = XinferenceClient.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout)
-                .proxy(proxy)
-                .logRequests(logRequests)
-                .logResponses(logResponses)
-                .customHeaders(customHeaders)
-                .build();
+        this.client = XinferenceClient.builder().baseUrl(baseUrl).apiKey(apiKey).callTimeout(timeout).connectTimeout(timeout).readTimeout(timeout).writeTimeout(timeout).proxy(proxy).logRequests(logRequests).logResponses(logResponses).customHeaders(customHeaders).build();
 
         this.modelName = ensureNotBlank(modelName, "modelName");
         this.temperature = temperature;
         this.topP = topP;
-        this.n = n;
         this.stop = stop;
         this.maxTokens = maxTokens;
         this.presencePenalty = presencePenalty;
@@ -112,7 +80,6 @@ public class XinferenceChatModel implements ChatLanguageModel {
     @Override
     public Response<AiMessage> generate(final List<ChatMessage> list) {
         return generate(list, null, null);
-
     }
 
     @Override
@@ -128,30 +95,11 @@ public class XinferenceChatModel implements ChatLanguageModel {
     @Override
     public ChatResponse chat(final ChatRequest request) {
         final Response<AiMessage> response = generate(request.messages(), request.toolSpecifications(), null);
-        return ChatResponse.builder()
-                .aiMessage(response.content())
-                .tokenUsage(response.tokenUsage())
-                .finishReason(response.finishReason())
-                .build();
+        return ChatResponse.builder().aiMessage(response.content()).tokenUsage(response.tokenUsage()).finishReason(response.finishReason()).build();
     }
 
-    private Response<AiMessage> generate(List<ChatMessage> messages,
-                                         List<ToolSpecification> toolSpecifications,
-                                         ToolSpecification toolThatMustBeExecuted) {
-        final ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
-                .model(modelName)
-                .messages(toXinferenceMessages(messages))
-                .temperature(temperature)
-                .topP(topP)
-                .n(n)
-                .stop(stop)
-                .maxTokens(maxTokens)
-                .presencePenalty(presencePenalty)
-                .frequencyPenalty(frequencyPenalty)
-                .user(user)
-                .seed(seed)
-                .toolChoice(toolChoice)
-                .parallelToolCalls(parallelToolCalls);
+    private Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications, ToolSpecification toolThatMustBeExecuted) {
+        final ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder().model(modelName).messages(toXinferenceMessages(messages)).temperature(temperature).topP(topP).stop(stop).maxTokens(maxTokens).presencePenalty(presencePenalty).frequencyPenalty(frequencyPenalty).user(user).seed(seed).toolChoice(toolChoice).parallelToolCalls(parallelToolCalls);
 
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.tools(toTools(toolSpecifications));
@@ -167,14 +115,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
 
         final ChatCompletionRequest request = builder.build();
 
-        ChatModelRequest modelListenerRequest = ChatModelRequest.builder()
-                .model(request.getModel())
-                .temperature(request.getTemperature())
-                .topP(request.getTopP())
-                .maxTokens(request.getMaxTokens())
-                .messages(messages)
-                .toolSpecifications(toolSpecifications)
-                .build();
+        ChatModelRequest modelListenerRequest = ChatModelRequest.builder().model(request.getModel()).temperature(request.getTemperature()).topP(request.getTopP()).maxTokens(request.getMaxTokens()).messages(messages).toolSpecifications(toolSpecifications).build();
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
         ChatModelRequestContext requestContext = new ChatModelRequestContext(modelListenerRequest, attributes);
         listeners.forEach(listener -> {
@@ -189,25 +130,11 @@ public class XinferenceChatModel implements ChatLanguageModel {
             ChatCompletionResponse chatCompletionResponse = withRetry(() -> client.chatCompletions(request).execute(), maxRetries);
 
             final ChatCompletionChoice completionChoice = chatCompletionResponse.getChoices().get(0);
-            Response<AiMessage> response = Response.from(
-                    aiMessageFrom(completionChoice.getMessage()),
-                    tokenUsageFrom(chatCompletionResponse.getUsage()),
-                    finishReasonFrom(completionChoice.getFinishReason())
-            );
+            Response<AiMessage> response = Response.from(aiMessageFrom(completionChoice.getMessage()), tokenUsageFrom(chatCompletionResponse.getUsage()), finishReasonFrom(completionChoice.getFinishReason()));
 
-            ChatModelResponse modelListenerResponse = ChatModelResponse.builder()
-                    .id(chatCompletionResponse.getId())
-                    .model(chatCompletionResponse.getModel())
-                    .tokenUsage(response.tokenUsage())
-                    .finishReason(response.finishReason())
-                    .aiMessage(response.content())
-                    .build();
+            ChatModelResponse modelListenerResponse = ChatModelResponse.builder().id(chatCompletionResponse.getId()).model(chatCompletionResponse.getModel()).tokenUsage(response.tokenUsage()).finishReason(response.finishReason()).aiMessage(response.content()).build();
 
-            ChatModelResponseContext responseContext = new ChatModelResponseContext(
-                    modelListenerResponse,
-                    modelListenerRequest,
-                    attributes
-            );
+            ChatModelResponseContext responseContext = new ChatModelResponseContext(modelListenerResponse, modelListenerRequest, attributes);
             listeners.forEach(listener -> {
                 try {
                     listener.onResponse(responseContext);
@@ -226,12 +153,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
                 error = e;
             }
 
-            ChatModelErrorContext errorContext = new ChatModelErrorContext(
-                    error,
-                    modelListenerRequest,
-                    null,
-                    attributes
-            );
+            ChatModelErrorContext errorContext = new ChatModelErrorContext(error, modelListenerRequest, null, attributes);
 
             listeners.forEach(listener -> {
                 try {
@@ -258,7 +180,6 @@ public class XinferenceChatModel implements ChatLanguageModel {
         private String modelName;
         private Double temperature;
         private Double topP;
-        private Integer n;
         private List<String> stop;
         private Integer maxTokens;
         private Double presencePenalty;
@@ -297,11 +218,6 @@ public class XinferenceChatModel implements ChatLanguageModel {
 
         public XinferenceChatModelBuilder topP(Double topP) {
             this.topP = topP;
-            return this;
-        }
-
-        public XinferenceChatModelBuilder n(Integer n) {
-            this.n = n;
             return this;
         }
 
@@ -381,28 +297,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
         }
 
         public XinferenceChatModel build() {
-            return new XinferenceChatModel(this.baseUrl,
-                    this.apiKey,
-                    this.modelName,
-                    this.temperature,
-                    this.topP,
-                    this.n,
-                    this.stop,
-                    this.maxTokens,
-                    this.presencePenalty,
-                    this.frequencyPenalty,
-                    this.seed,
-                    this.user,
-                    this.toolChoice,
-                    this.parallelToolCalls,
-                    this.maxRetries,
-                    this.timeout,
-                    this.proxy,
-                    this.logRequests,
-                    this.logResponses,
-                    this.customHeaders,
-                    this.listeners
-            );
+            return new XinferenceChatModel(this.baseUrl, this.apiKey, this.modelName, this.temperature, this.topP, this.stop, this.maxTokens, this.presencePenalty, this.frequencyPenalty, this.seed, this.user, this.toolChoice, this.parallelToolCalls, this.maxRetries, this.timeout, this.proxy, this.logRequests, this.logResponses, this.customHeaders, this.listeners);
         }
     }
 }

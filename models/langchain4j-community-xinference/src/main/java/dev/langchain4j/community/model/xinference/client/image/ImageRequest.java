@@ -74,7 +74,7 @@ public final class ImageRequest {
         private String model;
         private String prompt;
         private String negativePrompt;
-        private Integer n;
+        private Integer n = 1;
         private ResponseFormat responseFormat;
         private String size;
         private String kwargs;

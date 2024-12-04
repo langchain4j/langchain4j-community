@@ -42,11 +42,6 @@
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp-sse</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
-        </dependency>
         <!-- DEPENDENCY CONFLICT RESOLUTION FOR OKHTTP (END)  -->
 
         <dependency>
@@ -103,7 +98,7 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
-        
+
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
@@ -112,12 +107,14 @@
 
         <dependency>
             <groupId>org.tinylog</groupId>
-            <artifactId>slf4j-tinylog</artifactId>
+            <artifactId>tinylog-impl</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.tinylog</groupId>
-            <artifactId>tinylog-impl</artifactId>
+            <artifactId>slf4j-tinylog</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

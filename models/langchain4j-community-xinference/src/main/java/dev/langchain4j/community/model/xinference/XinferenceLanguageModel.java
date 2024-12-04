@@ -27,7 +27,6 @@ public class XinferenceLanguageModel implements LanguageModel {
     private final Integer maxTokens;
     private final Double temperature;
     private final Double topP;
-    private final Integer n;
     private final Integer logprobs;
     private final Boolean echo;
     private final List<String> stop;
@@ -36,45 +35,45 @@ public class XinferenceLanguageModel implements LanguageModel {
     private final String user;
     private final Integer maxRetries;
 
-    public XinferenceLanguageModel(String baseUrl,
-                                   String apiKey,
-                                   String modelName,
-                                   Integer maxTokens,
-                                   Double temperature,
-                                   Double topP,
-                                   Integer n,
-                                   Integer logprobs,
-                                   Boolean echo,
-                                   List<String> stop,
-                                   Double presencePenalty,
-                                   Double frequencyPenalty,
-                                   String user,
-                                   Integer maxRetries,
-                                   Duration timeout,
-                                   Proxy proxy,
-                                   Boolean logRequests,
-                                   Boolean logResponses,
-                                   Map<String, String> customHeaders) {
+    public XinferenceLanguageModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            Integer maxTokens,
+            Double temperature,
+            Double topP,
+            Integer logprobs,
+            Boolean echo,
+            List<String> stop,
+            Double presencePenalty,
+            Double frequencyPenalty,
+            String user,
+            Integer maxRetries,
+            Duration timeout,
+            Proxy proxy,
+            Boolean logRequests,
+            Boolean logResponses,
+            Map<String, String> customHeaders) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
-        this.client = XinferenceClient.builder()
-                .baseUrl(baseUrl)
-                .apiKey(apiKey)
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout)
-                .proxy(proxy)
-                .logRequests(logRequests)
-                .logResponses(logResponses)
-                .customHeaders(customHeaders)
-                .build();
+        this.client =
+                XinferenceClient.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .callTimeout(timeout)
+                        .connectTimeout(timeout)
+                        .readTimeout(timeout)
+                        .writeTimeout(timeout)
+                        .proxy(proxy)
+                        .logRequests(logRequests)
+                        .logResponses(logResponses)
+                        .customHeaders(customHeaders)
+                        .build();
 
         this.modelName = ensureNotBlank(modelName, "modelName");
         this.maxTokens = maxTokens;
         this.temperature = temperature;
         this.topP = topP;
-        this.n = n;
         this.logprobs = logprobs;
         this.echo = echo;
         this.stop = stop;
@@ -86,31 +85,32 @@ public class XinferenceLanguageModel implements LanguageModel {
 
     @Override
     public Response<String> generate(final String prompt) {
-        final CompletionRequest request = CompletionRequest.builder()
-                .model(modelName)
-                .prompt(prompt)
-                .maxTokens(maxTokens)
-                .temperature(temperature)
-                .topP(topP)
-                .n(n)
-                .logprobs(logprobs)
-                .echo(echo)
-                .stop(stop)
-                .presencePenalty(presencePenalty)
-                .frequencyPenalty(frequencyPenalty)
-                .user(user)
-                .build();
-        CompletionResponse response = withRetry(() -> client.completions(request).execute(), maxRetries);
+        final CompletionRequest request =
+                CompletionRequest.builder()
+                        .model(modelName)
+                        .prompt(prompt)
+                        .maxTokens(maxTokens)
+                        .temperature(temperature)
+                        .topP(topP)
+                        .logprobs(logprobs)
+                        .echo(echo)
+                        .stop(stop)
+                        .presencePenalty(presencePenalty)
+                        .frequencyPenalty(frequencyPenalty)
+                        .user(user)
+                        .build();
+        CompletionResponse response =
+                withRetry(() -> client.completions(request).execute(), maxRetries);
         CompletionChoice completionChoice = response.getChoices().get(0);
         return Response.from(
                 completionChoice.getText(),
                 tokenUsageFrom(response.getUsage()),
-                finishReasonFrom(completionChoice.getFinishReason())
-        );
+                finishReasonFrom(completionChoice.getFinishReason()));
     }
 
     public static XinferenceLanguageModelBuilder builder() {
-        for (XinferenceLanguageModelBuilderFactory factory : loadFactories(XinferenceLanguageModelBuilderFactory.class)) {
+        for (XinferenceLanguageModelBuilderFactory factory :
+                loadFactories(XinferenceLanguageModelBuilderFactory.class)) {
             return factory.get();
         }
         return new XinferenceLanguageModelBuilder();
@@ -124,7 +124,6 @@ public class XinferenceLanguageModel implements LanguageModel {
         private Integer maxTokens;
         private Double temperature;
         private Double topP;
-        private Integer n;
         private Integer logprobs;
         private Boolean echo;
         private List<String> stop;
@@ -165,11 +164,6 @@ public class XinferenceLanguageModel implements LanguageModel {
 
         public XinferenceLanguageModelBuilder topP(Double topP) {
             this.topP = topP;
-            return this;
-        }
-
-        public XinferenceLanguageModelBuilder n(Integer n) {
-            this.n = n;
             return this;
         }
 
@@ -242,7 +236,6 @@ public class XinferenceLanguageModel implements LanguageModel {
                     maxTokens,
                     temperature,
                     topP,
-                    n,
                     logprobs,
                     echo,
                     stop,
@@ -254,8 +247,7 @@ public class XinferenceLanguageModel implements LanguageModel {
                     proxy,
                     logRequests,
                     logResponses,
-                    customHeaders
-            );
+                    customHeaders);
         }
     }
 }
