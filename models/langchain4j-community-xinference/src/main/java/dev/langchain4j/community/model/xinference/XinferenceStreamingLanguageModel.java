@@ -1,8 +1,6 @@
 package dev.langchain4j.community.model.xinference;
 
 import dev.langchain4j.community.model.xinference.client.XinferenceClient;
-import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionChoice;
-import dev.langchain4j.community.model.xinference.client.chat.Delta;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionChoice;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionRequest;
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
