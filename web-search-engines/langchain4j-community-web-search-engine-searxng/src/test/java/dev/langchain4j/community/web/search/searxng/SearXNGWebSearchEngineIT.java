@@ -18,8 +18,7 @@ import org.testcontainers.utility.MountableFile;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
 class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
@@ -28,12 +27,15 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
     @Container
     static GenericContainer<?> searxng = new GenericContainer<>(DockerImageName.parse("searxng/searxng:latest"))
             .withExposedPorts(8080)
-            .withCopyFileToContainer(MountableFile.forClasspathResource("settings.yml"), "/usr/local/searxng/searx/settings.yml")
+            .withCopyFileToContainer(
+                    MountableFile.forClasspathResource("settings.yml"), "/usr/local/searxng/searx/settings.yml")
             .waitingFor(Wait.forLogMessage(".*spawned uWSGI worker.*\\n", 1));
 
     @Override
     protected WebSearchEngine searchEngine() {
-        return SearXNGWebSearchEngine.builder().baseUrl("http://" + searxng.getHost() + ":" + searxng.getMappedPort(8080)).build();
+        return SearXNGWebSearchEngine.builder()
+                .baseUrl("http://" + searxng.getHost() + ":" + searxng.getMappedPort(8080))
+                .build();
     }
 
     @BeforeAll
@@ -63,32 +65,33 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
     void should_search_with_start_page() {
         // given
         final String searchTerms = "What is Artificial Intelligence?";
-        WebSearchRequest request1 = WebSearchRequest.builder()
-                .searchTerms(searchTerms)
-                .build();
+        WebSearchRequest request1 =
+                WebSearchRequest.builder().searchTerms(searchTerms).build();
 
-        WebSearchRequest request2 = WebSearchRequest.builder()
-                .searchTerms(searchTerms)
-                .startPage(2)
-                .build();
+        WebSearchRequest request2 =
+                WebSearchRequest.builder().searchTerms(searchTerms).startPage(2).build();
 
-        WebSearchRequest request3 = WebSearchRequest.builder()
-                .searchTerms(searchTerms)
-                .startPage(3)
-                .build();
+        WebSearchRequest request3 =
+                WebSearchRequest.builder().searchTerms(searchTerms).startPage(3).build();
         // when
         WebSearchResults webSearchResults1 = searchEngine().search(request1);
         WebSearchResults webSearchResults2 = searchEngine().search(request2);
         WebSearchResults webSearchResults3 = searchEngine().search(request3);
 
         // then
-        assertNotEquals(contentForComparison(webSearchResults1.results().get(0)), contentForComparison(webSearchResults2.results().get(0)));
-        assertNotEquals(contentForComparison(webSearchResults1.results().get(0)), contentForComparison(webSearchResults3.results().get(0)));
-        assertNotEquals(contentForComparison(webSearchResults2.results().get(0)), contentForComparison(webSearchResults3.results().get(0)));
+        assertThat(contentForComparison(webSearchResults1.results().get(0)))
+                .isNotEqualTo(contentForComparison(webSearchResults2.results().get(0)));
+        assertThat(contentForComparison(webSearchResults1.results().get(0)))
+                .isNotEqualTo(contentForComparison(webSearchResults3.results().get(0)));
+        assertThat(contentForComparison(webSearchResults2.results().get(0)))
+                .isNotEqualTo(contentForComparison(webSearchResults3.results().get(0)));
 
-        assertNotEquals(contentForComparison(webSearchResults1.results().get(1)), contentForComparison(webSearchResults2.results().get(1)));
-        assertNotEquals(contentForComparison(webSearchResults1.results().get(1)), contentForComparison(webSearchResults3.results().get(1)));
-        assertNotEquals(contentForComparison(webSearchResults2.results().get(1)), contentForComparison(webSearchResults3.results().get(1)));
+        assertThat(contentForComparison(webSearchResults1.results().get(1)))
+                .isNotEqualTo(contentForComparison(webSearchResults2.results().get(1)));
+        assertThat(contentForComparison(webSearchResults1.results().get(1)))
+                .isNotEqualTo(contentForComparison(webSearchResults3.results().get(1)));
+        assertThat(contentForComparison(webSearchResults2.results().get(1)))
+                .isNotEqualTo(contentForComparison(webSearchResults3.results().get(1)));
     }
 
     @Test
@@ -111,8 +114,10 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
         WebSearchResults webSearchResults2 = searchEngine().search(request2);
 
         // then
-        assertNotEquals(contentForComparison(webSearchResults1.results().get(0)), contentForComparison(webSearchResults2.results().get(0)));
-        assertNotEquals(contentForComparison(webSearchResults1.results().get(1)), contentForComparison(webSearchResults2.results().get(1)));
+        assertThat(contentForComparison(webSearchResults1.results().get(0)))
+                .isNotEqualTo(contentForComparison(webSearchResults2.results().get(0)));
+        assertThat(contentForComparison(webSearchResults1.results().get(1)))
+                .isNotEqualTo(contentForComparison(webSearchResults2.results().get(1)));
     }
 
     @Test
@@ -147,16 +152,13 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
 
         // then
         for (final WebSearchOrganicResult result : webSearchResults1.results()) {
-            assertEquals("google", engine(result));
-
+            assertThat(engine(result)).isEqualTo("google");
         }
         for (final WebSearchOrganicResult result : webSearchResults2.results()) {
-            assertEquals("bing", engine(result));
-
+            assertThat(engine(result)).isEqualTo("bing");
         }
         for (final WebSearchOrganicResult result : webSearchResults3.results()) {
-            assertEquals("yahoo", engine(result));
-
+            assertThat(engine(result)).isEqualTo("yahoo");
         }
     }
 }

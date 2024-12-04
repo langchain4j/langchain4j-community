@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
         <version>0.37.0-SNAPSHOT</version>
-        <relativePath/>
+        <relativePath></relativePath>
     </parent>
 
     <artifactId>langchain4j-community</artifactId>
@@ -18,9 +16,32 @@
     <description>Parent POM for langchain4j-community submodules</description>
     <url>https://github.com/langchain4j/langchain4j-community</url>
 
-    <properties>
-        <gib.disable>true</gib.disable>
-    </properties>
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>deep-learning-dynamo</id>
+            <email>deeplearningdynamo@gmail.com</email>
+            <url>https://github.com/deep-learning-dynamo</url>
+        </developer>
+        <developer>
+            <id>kuraleta</id>
+            <email>digital.kuraleta@gmail.com</email>
+            <url>https://github.com/kuraleta</url>
+        </developer>
+        <developer>
+            <id>Martin7-1</id>
+            <email>yi.zheng.se@gmail.com</email>
+            <url>https://github.com/Martin7-1</url>
+        </developer>
+    </developers>
 
     <modules>
 
@@ -44,14 +65,34 @@
 
     </modules>
 
+    <scm>
+        <connection>scm:git:git://github.com/langchain4j/langchain4j-community.git</connection>
+        <developerConnection>scm:git:git@github.com:langchain4j/langchain4j-community.git</developerConnection>
+        <url>https://github.com/langchain4j/langchain4j-community</url>
+    </scm>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <properties>
+        <gib.disable>true</gib.disable>
+    </properties>
+
+    <repositories>
+        <repository>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>ossrh-snapshots</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
+
     <build>
-        <extensions>
-            <extension>
-                <groupId>com.vackosar.gitflowincrementalbuilder</groupId>
-                <artifactId>gitflow-incremental-builder</artifactId>
-                <version>3.15.0</version>
-            </extension>
-        </extensions>
         <plugins>
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
@@ -75,6 +116,19 @@
                         <phase>site</phase>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <configuration>
+                    <ratchetFrom>origin/main</ratchetFrom>
+                    <pom>
+                        <sortPom>
+                            <nrOfIndentSpace>4</nrOfIndentSpace>
+                        </sortPom>
+                    </pom>
+                </configuration>
             </plugin>
 
             <plugin>
@@ -166,75 +220,31 @@
                 <executions>
                     <execution>
                         <id>enforce</id>
-                        <configuration>
-                            <rules>
-                                <banDuplicatePomDependencyVersions/>
-                                <dependencyConvergence/>
-                                <requireMavenVersion>
-                                    <version>3.8</version>
-                                </requireMavenVersion>
-                                <requireUpperBoundDeps>
-                                </requireUpperBoundDeps>
-                            </rules>
-                        </configuration>
                         <goals>
                             <goal>enforce</goal>
                         </goals>
+                        <configuration>
+                            <rules>
+                                <banDuplicatePomDependencyVersions></banDuplicatePomDependencyVersions>
+                                <dependencyConvergence></dependencyConvergence>
+                                <requireMavenVersion>
+                                    <version>3.8</version>
+                                </requireMavenVersion>
+                                <requireUpperBoundDeps></requireUpperBoundDeps>
+                            </rules>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
+        <extensions>
+            <extension>
+                <groupId>com.vackosar.gitflowincrementalbuilder</groupId>
+                <artifactId>gitflow-incremental-builder</artifactId>
+                <version>3.15.0</version>
+            </extension>
+        </extensions>
     </build>
-
-    <licenses>
-        <license>
-            <name>Apache-2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-            <comments>A business-friendly OSS license</comments>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <id>deep-learning-dynamo</id>
-            <email>deeplearningdynamo@gmail.com</email>
-            <url>https://github.com/deep-learning-dynamo</url>
-        </developer>
-        <developer>
-            <id>kuraleta</id>
-            <email>digital.kuraleta@gmail.com</email>
-            <url>https://github.com/kuraleta</url>
-        </developer>
-        <developer>
-            <id>Martin7-1</id>
-            <email>yi.zheng.se@gmail.com</email>
-            <url>https://github.com/Martin7-1</url>
-        </developer>
-    </developers>
-
-    <scm>
-        <url>https://github.com/langchain4j/langchain4j-community</url>
-        <connection>scm:git:git://github.com/langchain4j/langchain4j-community.git</connection>
-        <developerConnection>scm:git:git@github.com:langchain4j/langchain4j-community.git</developerConnection>
-    </scm>
-
-    <repositories>
-        <repository>
-            <id>ossrh-snapshots</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <reporting>
         <plugins>
@@ -245,10 +255,10 @@
                 <reportSets>
                     <reportSet>
                         <id>aggregate</id>
-                        <inherited>false</inherited>
                         <reports>
                             <report>aggregate</report>
                         </reports>
+                        <inherited>false</inherited>
                     </reportSet>
                     <reportSet>
                         <id>default</id>
