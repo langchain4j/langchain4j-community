@@ -45,8 +45,7 @@ public final class FunctionCall {
         private String name;
         private String arguments;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder id(String val) {
             id = val;

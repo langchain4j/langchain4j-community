@@ -1,5 +1,12 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
+import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.stream.Collectors.toList;
+
 import dev.langchain4j.community.model.xinference.client.XinferenceClient;
 import dev.langchain4j.community.model.xinference.client.embedding.EmbeddingRequest;
 import dev.langchain4j.community.model.xinference.client.embedding.EmbeddingResponse;
@@ -8,18 +15,10 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.DimensionAwareEmbeddingModel;
 import dev.langchain4j.model.output.Response;
-
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-
-import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
-import static dev.langchain4j.internal.RetryUtils.withRetry;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.stream.Collectors.toList;
 
 public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
     private final XinferenceClient client;
@@ -27,16 +26,17 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
     private final String user;
     private final Integer maxRetries;
 
-    public XinferenceEmbeddingModel(String baseUrl,
-                                    String apiKey,
-                                    String modelName,
-                                    String user,
-                                    Integer maxRetries,
-                                    Duration timeout,
-                                    Proxy proxy,
-                                    Boolean logRequests,
-                                    Boolean logResponses,
-                                    Map<String, String> customHeaders) {
+    public XinferenceEmbeddingModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            String user,
+            Integer maxRetries,
+            Duration timeout,
+            Proxy proxy,
+            Boolean logRequests,
+            Boolean logResponses,
+            Map<String, String> customHeaders) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
         this.client = XinferenceClient.builder()
@@ -72,14 +72,12 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
         List<Embedding> embeddings = response.getData().stream()
                 .map(embedding -> Embedding.from(embedding.getEmbedding()))
                 .collect(toList());
-        return Response.from(
-                embeddings,
-                tokenUsageFrom(response.getUsage())
-        );
+        return Response.from(embeddings, tokenUsageFrom(response.getUsage()));
     }
 
     public static XinferenceEmbeddingModelBuilder builder() {
-        for (XinferenceEmbeddingModelBuilderFactory factory : loadFactories(XinferenceEmbeddingModelBuilderFactory.class)) {
+        for (XinferenceEmbeddingModelBuilderFactory factory :
+                loadFactories(XinferenceEmbeddingModelBuilderFactory.class)) {
             return factory.get();
         }
         return new XinferenceEmbeddingModelBuilder();
@@ -148,7 +146,8 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
         }
 
         public XinferenceEmbeddingModel build() {
-            return new XinferenceEmbeddingModel(this.baseUrl,
+            return new XinferenceEmbeddingModel(
+                    this.baseUrl,
                     this.apiKey,
                     this.modelName,
                     this.user,
@@ -157,8 +156,7 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
                     this.proxy,
                     this.logRequests,
                     this.logResponses,
-                    this.customHeaders
-            );
+                    this.customHeaders);
         }
     }
 }

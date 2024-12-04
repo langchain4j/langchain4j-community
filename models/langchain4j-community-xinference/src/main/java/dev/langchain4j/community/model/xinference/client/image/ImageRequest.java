@@ -80,8 +80,7 @@ public final class ImageRequest {
         private String kwargs;
         private String user;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder model(String val) {
             model = val;

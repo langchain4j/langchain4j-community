@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 
 @JsonDeserialize(builder = EmbeddingRequest.Builder.class)
@@ -47,8 +46,7 @@ public final class EmbeddingRequest {
         private List<String> input;
         private String user;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder model(String val) {
             model = val;

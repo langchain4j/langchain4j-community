@@ -9,8 +9,7 @@ class AbstractXinferenceVisionModelInfrastructure {
 
     static {
         if (isNullOrEmpty(XINFERENCE_BASE_URL)) {
-            container = new XinferenceContainer(resolve(XINFERENCE_IMAGE, LOCAL_IMAGE))
-                    .withModel(modelName());
+            container = new XinferenceContainer(resolve(XINFERENCE_IMAGE, LOCAL_IMAGE)).withModel(modelName());
             container.start();
             container.commitToImage(LOCAL_IMAGE);
         }

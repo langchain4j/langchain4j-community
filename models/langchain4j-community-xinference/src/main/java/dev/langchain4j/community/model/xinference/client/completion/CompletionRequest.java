@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
-
 import java.util.List;
 
 @JsonDeserialize(builder = CompletionRequest.Builder.class)
@@ -125,8 +124,7 @@ public final class CompletionRequest {
         private Double frequencyPenalty;
         private String user;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder from(CompletionRequest request) {
             this.model(request.getModel());

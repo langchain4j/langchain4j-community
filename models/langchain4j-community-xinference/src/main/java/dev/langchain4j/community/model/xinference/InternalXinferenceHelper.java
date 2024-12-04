@@ -1,5 +1,11 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.community.model.xinference.ImageUtils.base64Image;
+import static dev.langchain4j.internal.Exceptions.illegalArgument;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.xinference.client.chat.Function;
@@ -27,7 +33,6 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,63 +44,70 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import static dev.langchain4j.community.model.xinference.ImageUtils.base64Image;
-import static dev.langchain4j.internal.Exceptions.illegalArgument;
-import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-
 class InternalXinferenceHelper {
     static List<Message> toXinferenceMessages(List<ChatMessage> messages) {
         if (isNullOrEmpty(messages)) {
             return null;
         }
-        return messages.stream().map(msg -> {
-            if (msg instanceof dev.langchain4j.data.message.SystemMessage message) {
-                return SystemMessage.of(message.text());
-            } else if (msg instanceof AiMessage message) {
-                if (!message.hasToolExecutionRequests()) {
-                    return AssistantMessage.of(message.text());
-                }
-                final List<ToolCall> list = message.toolExecutionRequests().stream().map(it -> ToolCall.builder()
-                        .id(it.id())
-                        .type(ToolType.FUNCTION)
-                        .function(FunctionCall.builder()
-                                .id(it.id())
-                                .name(it.name())
-                                .arguments(it.arguments())
-                                .build()
-                        ).build()
-                ).toList();
-                return AssistantMessage.of(message.text(), list.toArray(new ToolCall[0]));
-            } else if (msg instanceof dev.langchain4j.data.message.UserMessage message) {
-                if (message.hasSingleText()) {
-                    return UserMessage.builder().content(message.singleText()).name(message.name()).build();
-                } else {
-                    final List<Content> list = message.contents().stream().map(item -> {
-                        if (item instanceof TextContent content) {
-                            return Content.text(content.text());
-                        } else if (item instanceof ImageContent content) {
-                            return Content.image(base64Image(content.image(), content.detailLevel().name()));
-                        } else if (item instanceof VideoContent content) {
-                            String url = null;
-                            final Video video = content.video();
-                            if (Objects.nonNull(video.url())) {
-                                url = video.url().toString();
-                            } else if (isNotNullOrBlank(video.base64Data())) {
-                                url = saveDataAsTemporaryFile(video.base64Data(), video.mimeType());
-                            }
-                            return Content.video(VideoUrl.of(url));
+        return messages.stream()
+                .map(msg -> {
+                    if (msg instanceof dev.langchain4j.data.message.SystemMessage message) {
+                        return SystemMessage.of(message.text());
+                    } else if (msg instanceof AiMessage message) {
+                        if (!message.hasToolExecutionRequests()) {
+                            return AssistantMessage.of(message.text());
                         }
-                        throw illegalArgument("Unknown content type: " + item);
-                    }).toList();
-                    return UserMessage.builder().content(list).name(message.name()).build();
-                }
-            } else if (msg instanceof ToolExecutionResultMessage message) {
-                return ToolMessage.of(message.id(), message.text());
-            }
-            throw illegalArgument("Unknown message type: " + msg.type());
-        }).toList();
+                        final List<ToolCall> list = message.toolExecutionRequests().stream()
+                                .map(it -> ToolCall.builder()
+                                        .id(it.id())
+                                        .type(ToolType.FUNCTION)
+                                        .function(FunctionCall.builder()
+                                                .id(it.id())
+                                                .name(it.name())
+                                                .arguments(it.arguments())
+                                                .build())
+                                        .build())
+                                .toList();
+                        return AssistantMessage.of(message.text(), list.toArray(new ToolCall[0]));
+                    } else if (msg instanceof dev.langchain4j.data.message.UserMessage message) {
+                        if (message.hasSingleText()) {
+                            return UserMessage.builder()
+                                    .content(message.singleText())
+                                    .name(message.name())
+                                    .build();
+                        } else {
+                            final List<Content> list = message.contents().stream()
+                                    .map(item -> {
+                                        if (item instanceof TextContent content) {
+                                            return Content.text(content.text());
+                                        } else if (item instanceof ImageContent content) {
+                                            return Content.image(base64Image(
+                                                    content.image(),
+                                                    content.detailLevel().name()));
+                                        } else if (item instanceof VideoContent content) {
+                                            String url = null;
+                                            final Video video = content.video();
+                                            if (Objects.nonNull(video.url())) {
+                                                url = video.url().toString();
+                                            } else if (isNotNullOrBlank(video.base64Data())) {
+                                                url = saveDataAsTemporaryFile(video.base64Data(), video.mimeType());
+                                            }
+                                            return Content.video(VideoUrl.of(url));
+                                        }
+                                        throw illegalArgument("Unknown content type: " + item);
+                                    })
+                                    .toList();
+                            return UserMessage.builder()
+                                    .content(list)
+                                    .name(message.name())
+                                    .build();
+                        }
+                    } else if (msg instanceof ToolExecutionResultMessage message) {
+                        return ToolMessage.of(message.id(), message.text());
+                    }
+                    throw illegalArgument("Unknown message type: " + msg.type());
+                })
+                .toList();
     }
 
     static List<Tool> toTools(List<ToolSpecification> toolSpecifications) {
@@ -111,13 +123,14 @@ class InternalXinferenceHelper {
                         .description(toolSpecification.description())
                         .name(toolSpecification.name())
                         .parameters(toParameters(toolSpecification))
-                        .build()
-                )
+                        .build())
                 .build();
     }
 
     static Tool toToolChoice(ToolSpecification toolSpecification) {
-        return Tool.builder().function(Function.builder().name(toolSpecification.name()).build()).build();
+        return Tool.builder()
+                .function(Function.builder().name(toolSpecification.name()).build())
+                .build();
     }
 
     static AiMessage aiMessageFrom(AssistantMessage assistantMessage) {
@@ -128,9 +141,9 @@ class InternalXinferenceHelper {
                     .filter(toolCall -> toolCall.getType() == ToolType.FUNCTION)
                     .map(InternalXinferenceHelper::toToolExecutionRequest)
                     .toList();
-            return isNullOrBlank(text) ?
-                    AiMessage.from(toolExecutionRequests) :
-                    AiMessage.from(text, toolExecutionRequests);
+            return isNullOrBlank(text)
+                    ? AiMessage.from(toolExecutionRequests)
+                    : AiMessage.from(text, toolExecutionRequests);
         }
         return AiMessage.from(text);
     }
@@ -160,11 +173,7 @@ class InternalXinferenceHelper {
         if (Objects.isNull(usage)) {
             return null;
         }
-        return new TokenUsage(
-                usage.getPromptTokens(),
-                usage.getCompletionTokens(),
-                usage.getTotalTokens()
-        );
+        return new TokenUsage(usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens());
     }
 
     public static FinishReason finishReasonFrom(String finishReason) {

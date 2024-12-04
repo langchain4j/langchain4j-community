@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.xinference.client;
 
+import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.getObjectMapper;
+
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionRequest;
@@ -12,8 +14,14 @@ import dev.langchain4j.community.model.xinference.client.image.OcrRequest;
 import dev.langchain4j.community.model.xinference.client.rerank.RerankRequest;
 import dev.langchain4j.community.model.xinference.client.rerank.RerankResponse;
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
-
 import dev.langchain4j.internal.Utils;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import okhttp3.Cache;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -24,16 +32,6 @@ import org.slf4j.LoggerFactory;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
-import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.getObjectMapper;
-
 public class XinferenceClient {
     private static final Logger log = LoggerFactory.getLogger(XinferenceClient.class);
     private final String baseUrl;
@@ -43,7 +41,11 @@ public class XinferenceClient {
 
     private XinferenceClient(Builder builder) {
         this.baseUrl = builder.baseUrl;
-        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder().callTimeout(builder.callTimeout).connectTimeout(builder.connectTimeout).readTimeout(builder.readTimeout).writeTimeout(builder.writeTimeout);
+        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
+                .callTimeout(builder.callTimeout)
+                .connectTimeout(builder.connectTimeout)
+                .readTimeout(builder.readTimeout)
+                .writeTimeout(builder.writeTimeout);
 
         if (builder.apiKey != null) {
             okHttpClientBuilder.addInterceptor(new AuthorizationHeaderInjector(builder.apiKey));
@@ -66,7 +68,8 @@ public class XinferenceClient {
         }
         this.logStreamingResponses = builder.logStreamingResponses;
         this.okHttpClient = okHttpClientBuilder.build();
-        Retrofit.Builder retrofitBuilder = new Retrofit.Builder().baseUrl(this.baseUrl).client(okHttpClient);
+        Retrofit.Builder retrofitBuilder =
+                new Retrofit.Builder().baseUrl(this.baseUrl).client(okHttpClient);
         retrofitBuilder.addConverterFactory(JacksonConverterFactory.create(getObjectMapper()));
         this.xinferenceApi = retrofitBuilder.build().create(XinferenceApi.class);
     }
@@ -85,11 +88,33 @@ public class XinferenceClient {
     }
 
     public SyncOrAsyncOrStreaming<CompletionResponse> completions(CompletionRequest request) {
-        return new RequestExecutor<>(xinferenceApi.completions(CompletionRequest.builder().from(request).stream(null).build()), r -> r, okHttpClient, formatUrl("v1/completions"), () -> CompletionRequest.builder().from(request).stream(true).streamOptions(StreamOptions.of(true)).build(), CompletionResponse.class, r -> r, logStreamingResponses);
+        return new RequestExecutor<>(
+                xinferenceApi.completions(
+                        CompletionRequest.builder().from(request).stream(null).build()),
+                r -> r,
+                okHttpClient,
+                formatUrl("v1/completions"),
+                () -> CompletionRequest.builder().from(request).stream(true)
+                        .streamOptions(StreamOptions.of(true))
+                        .build(),
+                CompletionResponse.class,
+                r -> r,
+                logStreamingResponses);
     }
 
     public SyncOrAsyncOrStreaming<ChatCompletionResponse> chatCompletions(ChatCompletionRequest request) {
-        return new RequestExecutor<>(xinferenceApi.chatCompletions(ChatCompletionRequest.builder().from(request).stream(null).build()), r -> r, okHttpClient, formatUrl("v1/chat/completions"), () -> ChatCompletionRequest.builder().from(request).stream(true).streamOptions(StreamOptions.of(true)).build(), ChatCompletionResponse.class, r -> r, logStreamingResponses);
+        return new RequestExecutor<>(
+                xinferenceApi.chatCompletions(ChatCompletionRequest.builder().from(request).stream(null)
+                        .build()),
+                r -> r,
+                okHttpClient,
+                formatUrl("v1/chat/completions"),
+                () -> ChatCompletionRequest.builder().from(request).stream(true)
+                        .streamOptions(StreamOptions.of(true))
+                        .build(),
+                ChatCompletionResponse.class,
+                r -> r,
+                logStreamingResponses);
     }
 
     public SyncOrAsync<EmbeddingResponse> embeddings(EmbeddingRequest request) {

@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.xinference.client.chat.message.ToolCall;
-
 import java.util.List;
 
 @JsonDeserialize(builder = Delta.Builder.class)
@@ -48,8 +47,7 @@ public final class Delta {
         private String content;
         private List<ToolCall> toolCalls;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder role(Role val) {
             role = val;

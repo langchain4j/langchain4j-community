@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 
 @JsonDeserialize(builder = ImageResponse.Builder.class)
@@ -40,8 +39,7 @@ public final class ImageResponse {
         private Integer created;
         private List<ImageData> data;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder created(Integer val) {
             created = val;

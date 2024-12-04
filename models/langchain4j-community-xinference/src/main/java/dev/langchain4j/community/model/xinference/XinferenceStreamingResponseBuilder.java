@@ -1,5 +1,11 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionChoice;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionResponse;
@@ -12,15 +18,8 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
-import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 /**
  * This class needs to be thread safe because it is called when a streaming result comes back
@@ -71,20 +70,23 @@ public class XinferenceStreamingResponseBuilder {
             return;
         }
         if (!isNullOrEmpty(delta.getToolCalls())) {
-            toolExecutionRequestList = delta.getToolCalls().stream().map(toolCall -> {
-                final ToolExecutionRequestBuilder toolExecutionRequestBuilder = new ToolExecutionRequestBuilder();
-                if (toolCall.getId() != null) {
-                    toolExecutionRequestBuilder.idBuilder.append(toolCall.getId());
-                }
-                FunctionCall functionCall = toolCall.getFunction();
-                if (functionCall.getName() != null) {
-                    toolExecutionRequestBuilder.nameBuilder.append(functionCall.getName());
-                }
-                if (functionCall.getArguments() != null) {
-                    toolExecutionRequestBuilder.argumentsBuilder.append(functionCall.getArguments());
-                }
-                return toolExecutionRequestBuilder;
-            }).toList();
+            toolExecutionRequestList = delta.getToolCalls().stream()
+                    .map(toolCall -> {
+                        final ToolExecutionRequestBuilder toolExecutionRequestBuilder =
+                                new ToolExecutionRequestBuilder();
+                        if (toolCall.getId() != null) {
+                            toolExecutionRequestBuilder.idBuilder.append(toolCall.getId());
+                        }
+                        FunctionCall functionCall = toolCall.getFunction();
+                        if (functionCall.getName() != null) {
+                            toolExecutionRequestBuilder.nameBuilder.append(functionCall.getName());
+                        }
+                        if (functionCall.getArguments() != null) {
+                            toolExecutionRequestBuilder.argumentsBuilder.append(functionCall.getArguments());
+                        }
+                        return toolExecutionRequestBuilder;
+                    })
+                    .toList();
         }
     }
 
@@ -117,26 +119,18 @@ public class XinferenceStreamingResponseBuilder {
     public Response<AiMessage> build() {
         String text = contentBuilder.toString();
         if (!isNullOrEmpty(toolExecutionRequestList)) {
-            final List<ToolExecutionRequest> list = toolExecutionRequestList.stream().map(it -> ToolExecutionRequest.builder()
-                    .id(it.idBuilder.toString())
-                    .name(it.nameBuilder.toString())
-                    .arguments(it.argumentsBuilder.toString())
-                    .build()).toList();
-            AiMessage aiMessage = isNullOrBlank(text) ?
-                    AiMessage.from(list) :
-                    AiMessage.from(text, list);
-            return Response.from(
-                    aiMessage,
-                    tokenUsage,
-                    finishReason
-            );
+            final List<ToolExecutionRequest> list = toolExecutionRequestList.stream()
+                    .map(it -> ToolExecutionRequest.builder()
+                            .id(it.idBuilder.toString())
+                            .name(it.nameBuilder.toString())
+                            .arguments(it.argumentsBuilder.toString())
+                            .build())
+                    .toList();
+            AiMessage aiMessage = isNullOrBlank(text) ? AiMessage.from(list) : AiMessage.from(text, list);
+            return Response.from(aiMessage, tokenUsage, finishReason);
         }
         if (!isNullOrBlank(text)) {
-            return Response.from(
-                    AiMessage.from(text),
-                    tokenUsage,
-                    finishReason
-            );
+            return Response.from(AiMessage.from(text), tokenUsage, finishReason);
         }
         return null;
     }

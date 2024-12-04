@@ -45,8 +45,7 @@ public final class CompletionUsage {
         private Integer promptTokens;
         private Integer completionTokens;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder totalTokens(Integer val) {
             totalTokens = val;

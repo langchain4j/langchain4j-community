@@ -37,7 +37,12 @@ public final class ImageUrl {
     }
 
     public enum ImageDetail {
-        @JsonProperty("low") LOW, @JsonProperty("high") HIGH, @JsonProperty("auto") AUTO
+        @JsonProperty("low")
+        LOW,
+        @JsonProperty("high")
+        HIGH,
+        @JsonProperty("auto")
+        AUTO
     }
 
     @JsonPOJOBuilder(withPrefix = "")
@@ -47,8 +52,7 @@ public final class ImageUrl {
         private String url;
         private ImageDetail detail;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder url(String val) {
             url = val;

@@ -1,7 +1,6 @@
 package dev.langchain4j.community.model.xinference.client.utils;
 
 import dev.langchain4j.community.model.xinference.client.XinferenceHttpException;
-
 import java.io.IOException;
 
 public final class ExceptionUtil {

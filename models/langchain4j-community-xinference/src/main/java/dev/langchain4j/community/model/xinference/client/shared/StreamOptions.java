@@ -35,8 +35,7 @@ public final class StreamOptions {
     public static final class Builder {
         private Boolean includeUsage;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder includeUsage(Boolean val) {
             includeUsage = val;

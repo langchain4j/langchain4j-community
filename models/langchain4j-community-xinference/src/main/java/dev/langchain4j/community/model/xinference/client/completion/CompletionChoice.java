@@ -52,8 +52,7 @@ public final class CompletionChoice {
         private CompletionLogprobs logprobs;
         private String finishReason;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder text(String val) {
             text = val;
@@ -80,4 +79,3 @@ public final class CompletionChoice {
         }
     }
 }
-

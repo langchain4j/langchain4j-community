@@ -1,5 +1,13 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.data.message.SystemMessage.systemMessage;
+import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
+import static dev.langchain4j.data.message.UserMessage.userMessage;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -9,18 +17,9 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.Response;
+import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
-import static dev.langchain4j.data.message.SystemMessage.systemMessage;
-import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
-import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastructure {
 
@@ -28,9 +27,12 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
             .name("get_current_weather")
             .description("returns a sum of two numbers")
             .parameters(JsonObjectSchema.builder()
-                    .addEnumProperty("format", List.of("celsius", "fahrenheit"), "The format to return the weather in, e.g. 'celsius' or 'fahrenheit'")
-                    .addStringProperty("location", "The location to get the weather for, e.g. San Francisco, CA").build()
-            )
+                    .addEnumProperty(
+                            "format",
+                            List.of("celsius", "fahrenheit"),
+                            "The format to return the weather in, e.g. 'celsius' or 'fahrenheit'")
+                    .addStringProperty("location", "The location to get the weather for, e.g. San Francisco, CA")
+                    .build())
             .build();
 
     ToolSpecification toolWithoutParameter = ToolSpecification.builder()
@@ -67,12 +69,15 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo("get_current_weather");
-        assertThat(toolExecutionRequest.arguments()).isEqualToIgnoringWhitespace("{\"format\": \"celsius\", \"location\": \"Paris\"}");
+        assertThat(toolExecutionRequest.arguments())
+                .isEqualToIgnoringWhitespace("{\"format\": \"celsius\", \"location\": \"Paris\"}");
 
         // given
-        ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "{\"format\": \"celsius\", \"location\": \"Paris\", \"temperature\": \"32\"}");
+        ToolExecutionResultMessage toolExecutionResultMessage = from(
+                toolExecutionRequest, "{\"format\": \"celsius\", \"location\": \"Paris\", \"temperature\": \"32\"}");
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
@@ -91,10 +96,7 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
         List<ToolSpecification> toolSpecifications = singletonList(weatherToolSpecification);
 
         // when
-        List<ChatMessage> chatMessages = asList(
-                systemMessage("Use tools only if needed"),
-                userMessage("Tell a joke")
-        );
+        List<ChatMessage> chatMessages = asList(systemMessage("Use tools only if needed"), userMessage("Tell a joke"));
         Response<AiMessage> response = ollamaChatModel.generate(chatMessages, toolSpecifications);
 
         // then
@@ -110,15 +112,12 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
         List<ToolSpecification> toolSpecifications = singletonList(toolWithoutParameter);
 
         // when
-        List<ChatMessage> chatMessages = singletonList(
-                userMessage("What is the current time?")
-        );
+        List<ChatMessage> chatMessages = singletonList(userMessage("What is the current time?"));
 
         // then
         assertDoesNotThrow(() -> {
             ollamaChatModel.generate(chatMessages, toolSpecifications);
         });
-
     }
 
     @Test
@@ -135,4 +134,3 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
         super.should_execute_tool_with_map_parameter();
     }
 }
-

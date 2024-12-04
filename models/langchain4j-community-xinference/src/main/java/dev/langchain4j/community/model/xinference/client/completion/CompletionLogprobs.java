@@ -1,13 +1,11 @@
 package dev.langchain4j.community.model.xinference.client.completion;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 import java.util.Map;
 
@@ -56,8 +54,7 @@ public final class CompletionLogprobs {
         private List<Map<String, Double>> topLogprobs;
         private List<Integer> textOffset;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder tokens(List<String> val) {
             tokens = val;

@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.Test;
-
 import java.time.Duration;
-
-import static dev.langchain4j.model.output.FinishReason.LENGTH;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class XinferenceLanguageModelIT extends AbstractInferenceLanguageModelInfrastructure {
 

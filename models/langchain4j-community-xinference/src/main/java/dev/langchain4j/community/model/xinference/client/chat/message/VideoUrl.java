@@ -35,8 +35,7 @@ public final class VideoUrl {
     public static final class Builder {
         private String url;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder url(String val) {
             url = val;

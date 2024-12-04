@@ -40,8 +40,7 @@ public final class Tool {
     public static final class Builder {
         private Function function;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder function(Function val) {
             function = val;

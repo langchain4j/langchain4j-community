@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.xinference.client.chat.Role;
-
 import java.util.List;
 
 @JsonDeserialize(builder = AssistantMessage.Builder.class)
@@ -51,8 +50,7 @@ public final class AssistantMessage implements Message {
         private String content;
         private List<ToolCall> toolCalls;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder content(String val) {
             content = val;

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 
 @JsonDeserialize(builder = RerankRequest.Builder.class)
@@ -68,8 +67,7 @@ public final class RerankRequest {
         private Boolean returnDocuments;
         private Boolean returnLen;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder model(String val) {
             model = val;

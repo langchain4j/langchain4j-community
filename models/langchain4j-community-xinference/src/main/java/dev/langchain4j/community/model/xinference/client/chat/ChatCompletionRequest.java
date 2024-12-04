@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.xinference.client.chat.message.Message;
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
-
 import java.util.List;
 
 @JsonDeserialize(builder = ChatCompletionRequest.Builder.class)
@@ -140,8 +139,7 @@ public final class ChatCompletionRequest {
         private Object toolChoice;
         private Boolean parallelToolCalls;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder from(ChatCompletionRequest request) {
             this.model(request.getModel());

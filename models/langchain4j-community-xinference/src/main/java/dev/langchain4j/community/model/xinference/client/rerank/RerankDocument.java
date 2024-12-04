@@ -31,8 +31,7 @@ public final class RerankDocument {
     public static final class Builder {
         private String text;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder text(String val) {
             text = val;

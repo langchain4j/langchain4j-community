@@ -1,6 +1,5 @@
 package dev.langchain4j.community.model.xinference.client.chat.message;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -65,8 +64,7 @@ public final class Content {
         private ImageUrl imageUrl;
         private VideoUrl videoUrl;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder type(ContentType val) {
             type = val;

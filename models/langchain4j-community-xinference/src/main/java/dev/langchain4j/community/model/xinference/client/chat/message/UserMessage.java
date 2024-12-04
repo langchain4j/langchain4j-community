@@ -49,8 +49,7 @@ public final class UserMessage implements Message {
         private Object content;
         private String name;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder content(Object val) {
             content = val;

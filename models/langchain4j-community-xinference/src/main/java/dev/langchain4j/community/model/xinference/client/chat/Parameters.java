@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 import java.util.Map;
 
@@ -54,8 +53,7 @@ public final class Parameters {
         private Map<String, Map<String, Object>> properties;
         private List<String> required;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder type(String val) {
             type = val;

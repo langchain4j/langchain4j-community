@@ -45,8 +45,7 @@ public final class RerankResult {
         private Double relevanceScore;
         private RerankDocument document;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder index(Integer val) {
             index = val;

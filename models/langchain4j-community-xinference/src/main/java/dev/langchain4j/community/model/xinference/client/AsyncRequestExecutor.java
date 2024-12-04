@@ -1,20 +1,18 @@
 package dev.langchain4j.community.model.xinference.client;
 
-import retrofit2.Call;
+import static dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil.toException;
 
 import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import static dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil.toException;
+import retrofit2.Call;
 
 class AsyncRequestExecutor<Response, ResponseContent> {
 
     private final Call<Response> call;
     private final Function<Response, ResponseContent> responseContentExtractor;
 
-    AsyncRequestExecutor(Call<Response> call,
-                         Function<Response, ResponseContent> responseContentExtractor) {
+    AsyncRequestExecutor(Call<Response> call, Function<Response, ResponseContent> responseContentExtractor) {
         this.call = call;
         this.responseContentExtractor = responseContentExtractor;
     }
@@ -29,7 +27,8 @@ class AsyncRequestExecutor<Response, ResponseContent> {
                         retrofit2.Response<Response> retrofitResponse = AsyncRequestExecutor.this.call.execute();
                         if (retrofitResponse.isSuccessful()) {
                             Response response = retrofitResponse.body();
-                            ResponseContent responseContent = AsyncRequestExecutor.this.responseContentExtractor.apply(response);
+                            ResponseContent responseContent =
+                                    AsyncRequestExecutor.this.responseContentExtractor.apply(response);
                             responseHandler.accept(responseContent);
                         } else {
                             errorHandler.accept(toException(retrofitResponse));
@@ -48,7 +47,8 @@ class AsyncRequestExecutor<Response, ResponseContent> {
                         retrofit2.Response<Response> retrofitResponse = AsyncRequestExecutor.this.call.execute();
                         if (retrofitResponse.isSuccessful()) {
                             Response response = retrofitResponse.body();
-                            ResponseContent responseContent = AsyncRequestExecutor.this.responseContentExtractor.apply(response);
+                            ResponseContent responseContent =
+                                    AsyncRequestExecutor.this.responseContentExtractor.apply(response);
                             responseHandler.accept(responseContent);
                         }
                     } catch (IOException e) {

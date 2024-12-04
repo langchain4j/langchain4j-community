@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 
 @JsonDeserialize(builder = Embedding.Builder.class)
@@ -40,8 +39,7 @@ public final class Embedding {
         private Integer index;
         private List<Float> embedding;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder index(Integer val) {
             index = val;

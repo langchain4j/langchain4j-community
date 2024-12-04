@@ -38,8 +38,7 @@ public final class RerankTokens {
         private Integer inputTokens;
         private Integer outputTokens;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder inputTokens(Integer val) {
             inputTokens = val;

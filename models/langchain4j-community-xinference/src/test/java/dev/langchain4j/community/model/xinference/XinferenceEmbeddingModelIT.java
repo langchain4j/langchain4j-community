@@ -1,15 +1,14 @@
 package dev.langchain4j.community.model.xinference;
 
+import static java.util.Arrays.asList;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
-import static java.util.Arrays.asList;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class XinferenceEmbeddingModelIT extends AbstractXinferenceEmbeddingModelInfrastructure {
 
@@ -42,10 +41,7 @@ class XinferenceEmbeddingModelIT extends AbstractXinferenceEmbeddingModelInfrast
     void should_embed_multiple_segments() {
 
         // given
-        List<TextSegment> segments = asList(
-                TextSegment.from("hello"),
-                TextSegment.from("world")
-        );
+        List<TextSegment> segments = asList(TextSegment.from("hello"), TextSegment.from("world"));
 
         // when
         Response<List<Embedding>> response = model.embedAll(segments);

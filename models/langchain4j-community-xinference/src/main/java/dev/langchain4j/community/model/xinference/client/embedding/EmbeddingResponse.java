@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.xinference.client.shared.CompletionUsage;
-
 import java.util.List;
 
 @JsonDeserialize(builder = EmbeddingResponse.Builder.class)
@@ -48,8 +47,7 @@ public final class EmbeddingResponse {
         private List<Embedding> data;
         private CompletionUsage usage;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder model(String val) {
             model = val;

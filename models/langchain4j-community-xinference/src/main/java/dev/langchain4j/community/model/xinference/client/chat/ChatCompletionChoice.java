@@ -53,8 +53,7 @@ public final class ChatCompletionChoice {
         private AssistantMessage message;
         private Delta delta;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder index(Integer val) {
             index = val;

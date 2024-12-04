@@ -1,6 +1,6 @@
 package dev.langchain4j.community.model.xinference.client;
 
-
+import java.io.IOException;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -8,13 +8,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
 class ResponseLoggingInterceptor implements Interceptor {
     private static final Logger log = LoggerFactory.getLogger(ResponseLoggingInterceptor.class);
 
-    public ResponseLoggingInterceptor() {
-    }
+    public ResponseLoggingInterceptor() {}
 
     private static boolean isEventStream(Response response) {
         String contentType = response.header("Content-Type");
@@ -31,7 +28,11 @@ class ResponseLoggingInterceptor implements Interceptor {
 
     public void log(Response response) {
         try {
-            log("Response:\n- status code: {}\n- headers: {}\n- body: {}", response.code(), response.headers(), this.getBody(response));
+            log(
+                    "Response:\n- status code: {}\n- headers: {}\n- body: {}",
+                    response.code(),
+                    response.headers(),
+                    this.getBody(response));
         } catch (Exception e) {
             log.warn("Error while logging response: {}", e.getMessage());
         }

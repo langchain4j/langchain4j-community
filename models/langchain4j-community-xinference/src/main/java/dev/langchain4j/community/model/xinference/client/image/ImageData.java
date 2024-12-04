@@ -38,8 +38,7 @@ public final class ImageData {
         private String url;
         private String b64Json;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder url(String val) {
             url = val;

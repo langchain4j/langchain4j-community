@@ -49,8 +49,7 @@ public final class SystemMessage implements Message {
         private String content;
         private String name;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder content(String val) {
             content = val;

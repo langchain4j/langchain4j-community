@@ -1,5 +1,12 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.community.model.xinference.ImageUtils.imageByteArray;
+import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import dev.langchain4j.community.model.xinference.client.XinferenceClient;
 import dev.langchain4j.community.model.xinference.client.image.ImageData;
 import dev.langchain4j.community.model.xinference.client.image.ImageRequest;
@@ -9,18 +16,10 @@ import dev.langchain4j.community.model.xinference.spi.XinferenceImageModelBuilde
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-
-import static dev.langchain4j.community.model.xinference.ImageUtils.imageByteArray;
-import static dev.langchain4j.internal.RetryUtils.withRetry;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceImageModel implements ImageModel {
     private final XinferenceClient client;
@@ -48,19 +47,18 @@ public class XinferenceImageModel implements ImageModel {
             Boolean logResponses,
             Map<String, String> customHeaders) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
-        this.client =
-                XinferenceClient.builder()
-                        .baseUrl(baseUrl)
-                        .apiKey(apiKey)
-                        .callTimeout(timeout)
-                        .connectTimeout(timeout)
-                        .readTimeout(timeout)
-                        .writeTimeout(timeout)
-                        .proxy(proxy)
-                        .logRequests(logRequests)
-                        .logResponses(logResponses)
-                        .customHeaders(customHeaders)
-                        .build();
+        this.client = XinferenceClient.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .callTimeout(timeout)
+                .connectTimeout(timeout)
+                .readTimeout(timeout)
+                .writeTimeout(timeout)
+                .proxy(proxy)
+                .logRequests(logRequests)
+                .logResponses(logResponses)
+                .customHeaders(customHeaders)
+                .build();
         this.modelName = ensureNotBlank(modelName, "modelName");
         this.negativePrompt = negativePrompt;
         this.responseFormat = getOrDefault(responseFormat, ResponseFormat.B64_JSON);
@@ -72,73 +70,70 @@ public class XinferenceImageModel implements ImageModel {
 
     @Override
     public Response<Image> generate(final String prompt) {
-        final ImageRequest request =
-                ImageRequest.builder()
-                        .model(modelName)
-                        .prompt(prompt)
-                        .negativePrompt(negativePrompt)
-                        .responseFormat(responseFormat)
-                        .size(size)
-                        .kwargs(kwargs)
-                        .user(user)
-                        .build();
-        ImageResponse response = withRetry(() -> client.generations(request), maxRetries).execute();
+        final ImageRequest request = ImageRequest.builder()
+                .model(modelName)
+                .prompt(prompt)
+                .negativePrompt(negativePrompt)
+                .responseFormat(responseFormat)
+                .size(size)
+                .kwargs(kwargs)
+                .user(user)
+                .build();
+        ImageResponse response =
+                withRetry(() -> client.generations(request), maxRetries).execute();
         return Response.from(fromImageData(response.getData().get(0)));
     }
 
     @Override
     public Response<List<Image>> generate(final String prompt, final int total) {
-        final ImageRequest request =
-                ImageRequest.builder()
-                        .model(modelName)
-                        .prompt(prompt)
-                        .negativePrompt(negativePrompt)
-                        .n(total)
-                        .responseFormat(responseFormat)
-                        .size(size)
-                        .kwargs(kwargs)
-                        .user(user)
-                        .build();
-        ImageResponse response = withRetry(() -> client.generations(request), maxRetries).execute();
-        final List<Image> list =
-                response.getData().stream().map(XinferenceImageModel::fromImageData).toList();
+        final ImageRequest request = ImageRequest.builder()
+                .model(modelName)
+                .prompt(prompt)
+                .negativePrompt(negativePrompt)
+                .n(total)
+                .responseFormat(responseFormat)
+                .size(size)
+                .kwargs(kwargs)
+                .user(user)
+                .build();
+        ImageResponse response =
+                withRetry(() -> client.generations(request), maxRetries).execute();
+        final List<Image> list = response.getData().stream()
+                .map(XinferenceImageModel::fromImageData)
+                .toList();
         return Response.from(list);
     }
 
     @Override
     public Response<Image> edit(final Image image, final String prompt) {
-        final ImageRequest request =
-                ImageRequest.builder()
-                        .model(modelName)
-                        .prompt(prompt)
-                        .negativePrompt(negativePrompt)
-                        .responseFormat(responseFormat)
-                        .size(size)
-                        .kwargs(kwargs)
-                        .user(user)
-                        .build();
-        ImageResponse response =
-                withRetry(() -> client.variations(request, imageByteArray(image)), maxRetries).execute();
+        final ImageRequest request = ImageRequest.builder()
+                .model(modelName)
+                .prompt(prompt)
+                .negativePrompt(negativePrompt)
+                .responseFormat(responseFormat)
+                .size(size)
+                .kwargs(kwargs)
+                .user(user)
+                .build();
+        ImageResponse response = withRetry(() -> client.variations(request, imageByteArray(image)), maxRetries)
+                .execute();
         return Response.from(fromImageData(response.getData().get(0)));
     }
 
     @Override
     public Response<Image> edit(final Image image, final Image mask, final String prompt) {
-        final ImageRequest request =
-                ImageRequest.builder()
-                        .model(modelName)
-                        .prompt(prompt)
-                        .negativePrompt(negativePrompt)
-                        .responseFormat(responseFormat)
-                        .size(size)
-                        .kwargs(kwargs)
-                        .user(user)
-                        .build();
-        ImageResponse response =
-                withRetry(
-                        () -> client.inpainting(request, imageByteArray(image), imageByteArray(mask)),
-                        maxRetries)
-                        .execute();
+        final ImageRequest request = ImageRequest.builder()
+                .model(modelName)
+                .prompt(prompt)
+                .negativePrompt(negativePrompt)
+                .responseFormat(responseFormat)
+                .size(size)
+                .kwargs(kwargs)
+                .user(user)
+                .build();
+        ImageResponse response = withRetry(
+                        () -> client.inpainting(request, imageByteArray(image), imageByteArray(mask)), maxRetries)
+                .execute();
         return Response.from(fromImageData(response.getData().get(0)));
     }
 
@@ -151,8 +146,7 @@ public class XinferenceImageModel implements ImageModel {
     }
 
     public static XinferenceImageModelBuilder builder() {
-        for (XinferenceImageModelBuilderFactory factory :
-                loadFactories(XinferenceImageModelBuilderFactory.class)) {
+        for (XinferenceImageModelBuilderFactory factory : loadFactories(XinferenceImageModelBuilderFactory.class)) {
             return factory.get();
         }
         return new XinferenceImageModelBuilder();

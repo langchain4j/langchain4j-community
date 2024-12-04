@@ -45,8 +45,7 @@ public final class Function {
         private String description;
         private Parameters parameters;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder name(String val) {
             name = val;

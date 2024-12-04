@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 
 @JsonDeserialize(builder = RerankMeta.Builder.class)
@@ -40,8 +39,7 @@ public final class RerankMeta {
         private RerankTokens tokens;
         private List<String> warnings;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder tokens(RerankTokens val) {
             tokens = val;

@@ -1,10 +1,8 @@
 package dev.langchain4j.community.model.xinference.client.chat;
 
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum Role {
-
     @JsonProperty("system")
     SYSTEM,
     @JsonProperty("user")

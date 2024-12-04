@@ -1,5 +1,12 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
+import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import dev.langchain4j.community.model.xinference.client.XinferenceClient;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionChoice;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionRequest;
@@ -7,18 +14,10 @@ import dev.langchain4j.community.model.xinference.client.completion.CompletionRe
 import dev.langchain4j.community.model.xinference.spi.XinferenceLanguageModelBuilderFactory;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-
-import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
-import static dev.langchain4j.internal.RetryUtils.withRetry;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceLanguageModel implements LanguageModel {
 
@@ -56,19 +55,18 @@ public class XinferenceLanguageModel implements LanguageModel {
             Map<String, String> customHeaders) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
-        this.client =
-                XinferenceClient.builder()
-                        .baseUrl(baseUrl)
-                        .apiKey(apiKey)
-                        .callTimeout(timeout)
-                        .connectTimeout(timeout)
-                        .readTimeout(timeout)
-                        .writeTimeout(timeout)
-                        .proxy(proxy)
-                        .logRequests(logRequests)
-                        .logResponses(logResponses)
-                        .customHeaders(customHeaders)
-                        .build();
+        this.client = XinferenceClient.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .callTimeout(timeout)
+                .connectTimeout(timeout)
+                .readTimeout(timeout)
+                .writeTimeout(timeout)
+                .proxy(proxy)
+                .logRequests(logRequests)
+                .logResponses(logResponses)
+                .customHeaders(customHeaders)
+                .build();
 
         this.modelName = ensureNotBlank(modelName, "modelName");
         this.maxTokens = maxTokens;
@@ -85,20 +83,19 @@ public class XinferenceLanguageModel implements LanguageModel {
 
     @Override
     public Response<String> generate(final String prompt) {
-        final CompletionRequest request =
-                CompletionRequest.builder()
-                        .model(modelName)
-                        .prompt(prompt)
-                        .maxTokens(maxTokens)
-                        .temperature(temperature)
-                        .topP(topP)
-                        .logprobs(logprobs)
-                        .echo(echo)
-                        .stop(stop)
-                        .presencePenalty(presencePenalty)
-                        .frequencyPenalty(frequencyPenalty)
-                        .user(user)
-                        .build();
+        final CompletionRequest request = CompletionRequest.builder()
+                .model(modelName)
+                .prompt(prompt)
+                .maxTokens(maxTokens)
+                .temperature(temperature)
+                .topP(topP)
+                .logprobs(logprobs)
+                .echo(echo)
+                .stop(stop)
+                .presencePenalty(presencePenalty)
+                .frequencyPenalty(frequencyPenalty)
+                .user(user)
+                .build();
         CompletionResponse response =
                 withRetry(() -> client.completions(request).execute(), maxRetries);
         CompletionChoice completionChoice = response.getChoices().get(0);

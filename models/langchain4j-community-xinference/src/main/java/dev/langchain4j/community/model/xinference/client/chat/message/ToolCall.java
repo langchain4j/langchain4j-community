@@ -46,8 +46,7 @@ public final class ToolCall {
         private ToolType type;
         private FunctionCall function;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder id(String val) {
             id = val;

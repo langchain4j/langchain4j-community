@@ -1,6 +1,12 @@
 package dev.langchain4j.community.model.xinference.client;
 
 import dev.langchain4j.internal.Utils;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import okhttp3.Headers;
 import okhttp3.Interceptor;
 import okhttp3.Request;
@@ -9,13 +15,6 @@ import okio.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 class RequestLoggingInterceptor implements Interceptor {
 
@@ -72,8 +71,12 @@ class RequestLoggingInterceptor implements Interceptor {
 
     private void log(Request request) {
         try {
-            log.debug("Request:\n- method: {}\n- url: {}\n- headers: {}\n- body: {}",
-                    request.method(), request.url(), getHeaders(request.headers()), getBody(request));
+            log.debug(
+                    "Request:\n- method: {}\n- url: {}\n- headers: {}\n- body: {}",
+                    request.method(),
+                    request.url(),
+                    getHeaders(request.headers()),
+                    getBody(request));
         } catch (Exception e) {
             log.warn("Error while logging request: {}", e.getMessage());
         }

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 
 @JsonDeserialize(builder = RerankResponse.Builder.class)
@@ -47,8 +46,7 @@ public final class RerankResponse {
         private List<RerankResult> results;
         private RerankMeta meta;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder id(String val) {
             id = val;

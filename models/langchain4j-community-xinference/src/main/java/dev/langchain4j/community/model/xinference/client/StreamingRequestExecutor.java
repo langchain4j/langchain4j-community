@@ -1,5 +1,13 @@
 package dev.langchain4j.community.model.xinference.client;
 
+import static dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil.toException;
+import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.toJson;
+import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.toObject;
+
+import java.io.IOException;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
@@ -9,15 +17,6 @@ import okhttp3.sse.EventSources;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil.toException;
-import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.toJson;
-import static dev.langchain4j.community.model.xinference.client.utils.JsonUtil.toObject;
 
 class StreamingRequestExecutor<Request, Response, ResponseContent> {
     private static final Logger log = LoggerFactory.getLogger(StreamingRequestExecutor.class);
@@ -35,8 +34,7 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
             Supplier<Request> requestWithStreamSupplier,
             Class<Response> responseClass,
             Function<Response, ResponseContent> streamEventContentExtractor,
-            boolean logStreamingResponses
-    ) {
+            boolean logStreamingResponses) {
         this.okHttpClient = okHttpClient;
         this.endpointUrl = endpointUrl;
         this.requestWithStreamSupplier = requestWithStreamSupplier;
@@ -52,22 +50,14 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
                 return new StreamingCompletionHandling() {
                     @Override
                     public ErrorHandling onError(Consumer<Throwable> errorHandler) {
-                        return () -> stream(
-                                partialResponseHandler,
-                                streamingCompletionCallback,
-                                errorHandler
-                        );
+                        return () -> stream(partialResponseHandler, streamingCompletionCallback, errorHandler);
                     }
 
                     @Override
                     public ErrorHandling ignoreErrors() {
-                        return () -> stream(
-                                partialResponseHandler,
-                                streamingCompletionCallback,
-                                (e) -> {
-                                    // intentionally ignoring because user called ignoreErrors()
-                                }
-                        );
+                        return () -> stream(partialResponseHandler, streamingCompletionCallback, (e) -> {
+                            // intentionally ignoring because user called ignoreErrors()
+                        });
                     }
                 };
             }
@@ -79,8 +69,7 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
                         () -> {
                             // intentionally ignoring because user did not provide callback
                         },
-                        errorHandler
-                );
+                        errorHandler);
             }
 
             @Override
@@ -92,8 +81,7 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
                         },
                         (e) -> {
                             // intentionally ignoring because user called ignoreErrors()
-                        }
-                );
+                        });
             }
         };
     }
@@ -101,8 +89,7 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
     private ResponseHandle stream(
             Consumer<ResponseContent> partialResponseHandler,
             Runnable streamingCompletionCallback,
-            Consumer<Throwable> errorHandler
-    ) {
+            Consumer<Throwable> errorHandler) {
 
         Request request = requestWithStreamSupplier.get();
 

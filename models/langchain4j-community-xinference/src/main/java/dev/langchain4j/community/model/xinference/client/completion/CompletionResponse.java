@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.xinference.client.shared.CompletionUsage;
-
 import java.util.List;
 
 @JsonDeserialize(builder = CompletionResponse.Builder.class)
@@ -66,8 +65,7 @@ public final class CompletionResponse {
         private List<CompletionChoice> choices;
         private CompletionUsage usage;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder id(String val) {
             id = val;

@@ -1,5 +1,14 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
+import static dev.langchain4j.data.message.UserMessage.userMessage;
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -10,19 +19,9 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.Test;
-
 import java.time.Duration;
 import java.util.List;
-
-import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
-import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static dev.langchain4j.model.output.FinishReason.LENGTH;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
 
@@ -36,8 +35,14 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
             .maxRetries(1)
             .build();
 
-    ToolSpecification calculator = ToolSpecification.builder().name("calculator").description("returns a sum of two numbers").parameters(JsonObjectSchema.builder().addIntegerProperty("first").addIntegerProperty("second").build()).build();
-
+    ToolSpecification calculator = ToolSpecification.builder()
+            .name("calculator")
+            .description("returns a sum of two numbers")
+            .parameters(JsonObjectSchema.builder()
+                    .addIntegerProperty("first")
+                    .addIntegerProperty("second")
+                    .build())
+            .build();
 
     @Test
     void should_generate_answer_and_return_token_usage_and_finish_reason_stop() {
@@ -50,7 +55,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.inputTokenCount()).isGreaterThan(0);
         assertThat(tokenUsage.outputTokenCount()).isGreaterThan(0);
-        assertThat(tokenUsage.totalTokenCount()).isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
+        assertThat(tokenUsage.totalTokenCount())
+                .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
         assertThat(response.finishReason()).isEqualTo(STOP);
     }
 
@@ -65,7 +71,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
                 .logRequests(true)
                 .logResponses(true)
                 .timeout(Duration.ofSeconds(60))
-                .maxTokens(maxTokens).temperature(0.0)
+                .maxTokens(maxTokens)
+                .temperature(0.0)
                 .maxRetries(1)
                 .build();
 
@@ -79,7 +86,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
 
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.inputTokenCount()).isGreaterThan(1);
-        assertThat(tokenUsage.totalTokenCount()).isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
+        assertThat(tokenUsage.totalTokenCount())
+                .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
 
         assertThat(response.finishReason()).isEqualTo(LENGTH);
     }
@@ -99,7 +107,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.id()).isNotBlank();
         assertThat(toolExecutionRequest.name()).isEqualTo("calculator");
         assertThat(toolExecutionRequest.arguments()).isEqualToIgnoringWhitespace("{\"first\": 2, \"second\": 2}");
@@ -107,7 +116,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.inputTokenCount()).isGreaterThan(0);
         assertThat(tokenUsage.outputTokenCount()).isGreaterThan(0);
-        assertThat(tokenUsage.totalTokenCount()).isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
+        assertThat(tokenUsage.totalTokenCount())
+                .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
 
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
 
@@ -125,7 +135,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.outputTokenCount()).isGreaterThan(0);
-        assertThat(secondTokenUsage.totalTokenCount()).isEqualTo(secondTokenUsage.inputTokenCount() + secondTokenUsage.outputTokenCount());
+        assertThat(secondTokenUsage.totalTokenCount())
+                .isEqualTo(secondTokenUsage.inputTokenCount() + secondTokenUsage.outputTokenCount());
 
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
@@ -140,14 +151,16 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
         AiMessage aiMessage = response.content();
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.id()).isNotBlank();
         assertThat(toolExecutionRequest.name()).isEqualTo("calculator");
         assertThat(toolExecutionRequest.arguments()).isEqualToIgnoringWhitespace("{\"first\": 2, \"second\": 2}");
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.inputTokenCount()).isGreaterThan(0);
         assertThat(tokenUsage.outputTokenCount()).isGreaterThan(0);
-        assertThat(tokenUsage.totalTokenCount()).isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
+        assertThat(tokenUsage.totalTokenCount())
+                .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
         // given
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "4");
@@ -160,7 +173,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.outputTokenCount()).isGreaterThan(0);
-        assertThat(secondTokenUsage.totalTokenCount()).isEqualTo(secondTokenUsage.inputTokenCount() + secondTokenUsage.outputTokenCount());
+        assertThat(secondTokenUsage.totalTokenCount())
+                .isEqualTo(secondTokenUsage.inputTokenCount() + secondTokenUsage.outputTokenCount());
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
 
@@ -178,18 +192,21 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(2);
 
-        ToolExecutionRequest toolExecutionRequest1 = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest1 =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest1.name()).isEqualTo("calculator");
         assertThat(toolExecutionRequest1.arguments()).isEqualToIgnoringWhitespace("{\"first\": 2, \"second\": 2}");
 
-        ToolExecutionRequest toolExecutionRequest2 = aiMessage.toolExecutionRequests().get(1);
+        ToolExecutionRequest toolExecutionRequest2 =
+                aiMessage.toolExecutionRequests().get(1);
         assertThat(toolExecutionRequest2.name()).isEqualTo("calculator");
         assertThat(toolExecutionRequest2.arguments()).isEqualToIgnoringWhitespace("{\"first\": 3, \"second\": 3}");
 
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.inputTokenCount()).isGreaterThan(0);
         assertThat(tokenUsage.outputTokenCount()).isGreaterThan(0);
-        assertThat(tokenUsage.totalTokenCount()).isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
+        assertThat(tokenUsage.totalTokenCount())
+                .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
 
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
 
@@ -197,7 +214,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
         ToolExecutionResultMessage toolExecutionResultMessage1 = from(toolExecutionRequest1, "4");
         ToolExecutionResultMessage toolExecutionResultMessage2 = from(toolExecutionRequest2, "6");
 
-        List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage1, toolExecutionResultMessage2);
+        List<ChatMessage> messages =
+                asList(userMessage, aiMessage, toolExecutionResultMessage1, toolExecutionResultMessage2);
 
         // when
         Response<AiMessage> secondResponse = chatModel.generate(messages);
@@ -210,7 +228,8 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isGreaterThan(0);
         assertThat(secondTokenUsage.outputTokenCount()).isGreaterThan(0);
-        assertThat(secondTokenUsage.totalTokenCount()).isEqualTo(secondTokenUsage.inputTokenCount() + secondTokenUsage.outputTokenCount());
+        assertThat(secondTokenUsage.totalTokenCount())
+                .isEqualTo(secondTokenUsage.inputTokenCount() + secondTokenUsage.outputTokenCount());
 
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }

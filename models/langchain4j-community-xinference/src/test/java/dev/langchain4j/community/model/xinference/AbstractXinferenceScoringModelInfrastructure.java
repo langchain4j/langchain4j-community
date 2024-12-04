@@ -9,13 +9,11 @@ class AbstractXinferenceScoringModelInfrastructure {
 
     static {
         if (isNullOrEmpty(XINFERENCE_BASE_URL)) {
-            container = new XinferenceContainer(resolve(XINFERENCE_IMAGE, LOCAL_IMAGE))
-                    .withModel(modelName());
+            container = new XinferenceContainer(resolve(XINFERENCE_IMAGE, LOCAL_IMAGE)).withModel(modelName());
             container.start();
             container.commitToImage(LOCAL_IMAGE);
         }
     }
-
 
     public static String baseUrl() {
         if (isNullOrEmpty(XINFERENCE_BASE_URL)) {

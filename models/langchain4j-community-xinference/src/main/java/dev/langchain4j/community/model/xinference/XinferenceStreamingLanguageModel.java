@@ -1,5 +1,11 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import dev.langchain4j.community.model.xinference.client.XinferenceClient;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionChoice;
 import dev.langchain4j.community.model.xinference.client.completion.CompletionRequest;
@@ -9,17 +15,10 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class XinferenceStreamingLanguageModel implements StreamingLanguageModel {
 
@@ -55,19 +54,18 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
             Map<String, String> customHeaders) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
-        this.client =
-                XinferenceClient.builder()
-                        .baseUrl(baseUrl)
-                        .apiKey(apiKey)
-                        .callTimeout(timeout)
-                        .connectTimeout(timeout)
-                        .readTimeout(timeout)
-                        .writeTimeout(timeout)
-                        .proxy(proxy)
-                        .logRequests(logRequests)
-                        .logStreamingResponses(logResponses)
-                        .customHeaders(customHeaders)
-                        .build();
+        this.client = XinferenceClient.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .callTimeout(timeout)
+                .connectTimeout(timeout)
+                .readTimeout(timeout)
+                .writeTimeout(timeout)
+                .proxy(proxy)
+                .logRequests(logRequests)
+                .logStreamingResponses(logResponses)
+                .customHeaders(customHeaders)
+                .build();
 
         this.modelName = ensureNotBlank(modelName, "modelName");
         this.maxTokens = maxTokens;
@@ -83,43 +81,37 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
 
     @Override
     public void generate(final String prompt, final StreamingResponseHandler<String> handler) {
-        final CompletionRequest request =
-                CompletionRequest.builder().stream(true)
-                        .streamOptions(StreamOptions.of(true))
-                        .model(modelName)
-                        .prompt(prompt)
-                        .maxTokens(maxTokens)
-                        .temperature(temperature)
-                        .topP(topP)
-                        .logprobs(logprobs)
-                        .echo(echo)
-                        .stop(stop)
-                        .presencePenalty(presencePenalty)
-                        .frequencyPenalty(frequencyPenalty)
-                        .user(user)
-                        .build();
-        final XinferenceStreamingResponseBuilder responseBuilder =
-                new XinferenceStreamingResponseBuilder();
-        client
-                .completions(request)
-                .onPartialResponse(
-                        partialResponse -> {
-                            responseBuilder.append(partialResponse);
-                            final List<CompletionChoice> choices = partialResponse.getChoices();
-                            if (!isNullOrEmpty(choices)) {
-                                final String text = choices.get(0).getText();
-                                if (isNotNullOrEmpty(text)) {
-                                    handler.onNext(text);
-                                }
-                            }
-                        })
-                .onComplete(
-                        () -> {
-                            Response<AiMessage> response = responseBuilder.build();
-                            handler.onComplete(
-                                    Response.from(
-                                            response.content().text(), response.tokenUsage(), response.finishReason()));
-                        })
+        final CompletionRequest request = CompletionRequest.builder().stream(true)
+                .streamOptions(StreamOptions.of(true))
+                .model(modelName)
+                .prompt(prompt)
+                .maxTokens(maxTokens)
+                .temperature(temperature)
+                .topP(topP)
+                .logprobs(logprobs)
+                .echo(echo)
+                .stop(stop)
+                .presencePenalty(presencePenalty)
+                .frequencyPenalty(frequencyPenalty)
+                .user(user)
+                .build();
+        final XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder();
+        client.completions(request)
+                .onPartialResponse(partialResponse -> {
+                    responseBuilder.append(partialResponse);
+                    final List<CompletionChoice> choices = partialResponse.getChoices();
+                    if (!isNullOrEmpty(choices)) {
+                        final String text = choices.get(0).getText();
+                        if (isNotNullOrEmpty(text)) {
+                            handler.onNext(text);
+                        }
+                    }
+                })
+                .onComplete(() -> {
+                    Response<AiMessage> response = responseBuilder.build();
+                    handler.onComplete(
+                            Response.from(response.content().text(), response.tokenUsage(), response.finishReason()));
+                })
                 .onError(handler::onError)
                 .execute();
     }
@@ -232,8 +224,7 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
             return this;
         }
 
-        public XinferenceStreamingLanguageModelBuilder customHeaders(
-                Map<String, String> customHeaders) {
+        public XinferenceStreamingLanguageModelBuilder customHeaders(Map<String, String> customHeaders) {
             this.customHeaders = customHeaders;
             return this;
         }

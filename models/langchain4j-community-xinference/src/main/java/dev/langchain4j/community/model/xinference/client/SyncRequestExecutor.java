@@ -1,19 +1,17 @@
 package dev.langchain4j.community.model.xinference.client;
 
-import retrofit2.Call;
+import static dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil.toException;
 
 import java.io.IOException;
 import java.util.function.Function;
-
-import static dev.langchain4j.community.model.xinference.client.utils.ExceptionUtil.toException;
+import retrofit2.Call;
 
 class SyncRequestExecutor<Response, ResponseContent> {
 
     private final Call<Response> call;
     private final Function<Response, ResponseContent> responseContentExtractor;
 
-    SyncRequestExecutor(Call<Response> call,
-                        Function<Response, ResponseContent> responseContentExtractor) {
+    SyncRequestExecutor(Call<Response> call, Function<Response, ResponseContent> responseContentExtractor) {
         this.call = call;
         this.responseContentExtractor = responseContentExtractor;
     }

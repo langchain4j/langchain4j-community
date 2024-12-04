@@ -49,8 +49,7 @@ public final class ToolMessage implements Message {
         private String content;
         private String toolCallId;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder content(String val) {
             content = val;

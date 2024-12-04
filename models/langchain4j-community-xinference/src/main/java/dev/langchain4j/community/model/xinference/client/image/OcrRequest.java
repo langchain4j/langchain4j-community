@@ -45,8 +45,7 @@ public final class OcrRequest {
         private byte[] image;
         private String kwargs;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder model(String val) {
             model = val;

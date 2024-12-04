@@ -1,5 +1,12 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Comparator.comparingInt;
+import static java.util.stream.Collectors.toList;
+
 import dev.langchain4j.community.model.xinference.client.XinferenceClient;
 import dev.langchain4j.community.model.xinference.client.rerank.RerankRequest;
 import dev.langchain4j.community.model.xinference.client.rerank.RerankResponse;
@@ -10,19 +17,11 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import dev.langchain4j.model.scoring.ScoringModel;
-
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static dev.langchain4j.internal.RetryUtils.withRetry;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Comparator.comparingInt;
-import static java.util.stream.Collectors.toList;
 
 public class XinferenceScoringModel implements ScoringModel {
     private final XinferenceClient client;
@@ -32,18 +31,19 @@ public class XinferenceScoringModel implements ScoringModel {
     private final Boolean returnLen;
     private final Integer maxRetries;
 
-    public XinferenceScoringModel(String baseUrl,
-                                  String apiKey,
-                                  String modelName,
-                                  Integer topN,
-                                  Boolean returnDocuments,
-                                  Boolean returnLen,
-                                  Integer maxRetries,
-                                  Duration timeout,
-                                  Proxy proxy,
-                                  Boolean logRequests,
-                                  Boolean logResponses,
-                                  Map<String, String> customHeaders) {
+    public XinferenceScoringModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            Integer topN,
+            Boolean returnDocuments,
+            Boolean returnLen,
+            Integer maxRetries,
+            Duration timeout,
+            Proxy proxy,
+            Boolean logRequests,
+            Boolean logResponses,
+            Map<String, String> customHeaders) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
 
         this.client = XinferenceClient.builder()
@@ -82,7 +82,8 @@ public class XinferenceScoringModel implements ScoringModel {
                 .sorted(comparingInt(RerankResult::getIndex))
                 .map(RerankResult::getRelevanceScore)
                 .collect(toList());
-        final RerankTokens tokens = Optional.ofNullable(response.getMeta().getTokens()).orElse(RerankTokens.builder().inputTokens(0).outputTokens(0).build());
+        final RerankTokens tokens = Optional.ofNullable(response.getMeta().getTokens())
+                .orElse(RerankTokens.builder().inputTokens(0).outputTokens(0).build());
         return Response.from(scores, new TokenUsage(tokens.getInputTokens(), tokens.getOutputTokens()));
     }
 
@@ -170,7 +171,8 @@ public class XinferenceScoringModel implements ScoringModel {
 
         // Build method to create the object
         public XinferenceScoringModel build() {
-            return new XinferenceScoringModel(baseUrl,
+            return new XinferenceScoringModel(
+                    baseUrl,
                     apiKey,
                     modelName,
                     topN,
@@ -181,8 +183,7 @@ public class XinferenceScoringModel implements ScoringModel {
                     proxy,
                     logRequests,
                     logResponses,
-                    customHeaders
-            );
+                    customHeaders);
         }
     }
 }

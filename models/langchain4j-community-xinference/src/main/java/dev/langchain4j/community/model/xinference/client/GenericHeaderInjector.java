@@ -1,11 +1,9 @@
 package dev.langchain4j.community.model.xinference.client;
 
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
 import okhttp3.Interceptor;
 import okhttp3.Request.Builder;
 import okhttp3.Response;
@@ -15,8 +13,7 @@ class GenericHeaderInjector implements Interceptor {
     private final Map<String, String> headers = new HashMap<>();
 
     GenericHeaderInjector(Map<String, String> headers) {
-        Optional.ofNullable(headers)
-                .ifPresent(this.headers::putAll);
+        Optional.ofNullable(headers).ifPresent(this.headers::putAll);
     }
 
     @NotNull
