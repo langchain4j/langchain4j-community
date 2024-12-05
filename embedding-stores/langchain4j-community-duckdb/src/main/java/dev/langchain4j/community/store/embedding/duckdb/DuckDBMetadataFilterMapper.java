@@ -1,19 +1,18 @@
 package dev.langchain4j.community.store.embedding.duckdb;
 
+import static java.lang.String.format;
+
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.*;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static java.lang.String.format;
 
 public class DuckDBMetadataFilterMapper {
 
@@ -52,39 +51,51 @@ public class DuckDBMetadataFilterMapper {
         } else if (filter instanceof Or or) {
             return mapOr(or);
         } else {
-            throw new UnsupportedOperationException("Unsupported filter type: " + filter.getClass().getName());
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
         }
     }
 
     private String mapEqual(IsEqualTo isEqualTo) {
         String key = formatKey(isEqualTo.key(), isEqualTo.comparisonValue().getClass());
-        return format("%s is not null and %s = %s", key, key,
-                formatValue(isEqualTo.comparisonValue()));
+        return format("%s is not null and %s = %s", key, key, formatValue(isEqualTo.comparisonValue()));
     }
 
     private String mapNotEqual(IsNotEqualTo isNotEqualTo) {
-        String key = formatKey(isNotEqualTo.key(), isNotEqualTo.comparisonValue().getClass());
-        return format("%s is null or %s != %s", key, key,
-                formatValue(isNotEqualTo.comparisonValue()));
+        String key =
+                formatKey(isNotEqualTo.key(), isNotEqualTo.comparisonValue().getClass());
+        return format("%s is null or %s != %s", key, key, formatValue(isNotEqualTo.comparisonValue()));
     }
 
     private String mapGreaterThan(IsGreaterThan isGreaterThan) {
-        return format("%s > %s", formatKey(isGreaterThan.key(), isGreaterThan.comparisonValue().getClass()),
+        return format(
+                "%s > %s",
+                formatKey(isGreaterThan.key(), isGreaterThan.comparisonValue().getClass()),
                 formatValue(isGreaterThan.comparisonValue()));
     }
 
     private String mapGreaterThanOrEqual(IsGreaterThanOrEqualTo isGreaterThanOrEqualTo) {
-        return format("%s >= %s", formatKey(isGreaterThanOrEqualTo.key(), isGreaterThanOrEqualTo.comparisonValue().getClass()),
+        return format(
+                "%s >= %s",
+                formatKey(
+                        isGreaterThanOrEqualTo.key(),
+                        isGreaterThanOrEqualTo.comparisonValue().getClass()),
                 formatValue(isGreaterThanOrEqualTo.comparisonValue()));
     }
 
     private String mapLessThan(IsLessThan isLessThan) {
-        return format("%s < %s", formatKey(isLessThan.key(), isLessThan.comparisonValue().getClass()),
+        return format(
+                "%s < %s",
+                formatKey(isLessThan.key(), isLessThan.comparisonValue().getClass()),
                 formatValue(isLessThan.comparisonValue()));
     }
 
     private String mapLessThanOrEqual(IsLessThanOrEqualTo isLessThanOrEqualTo) {
-        return format("%s <= %s", formatKey(isLessThanOrEqualTo.key(), isLessThanOrEqualTo.comparisonValue().getClass()),
+        return format(
+                "%s <= %s",
+                formatKey(
+                        isLessThanOrEqualTo.key(),
+                        isLessThanOrEqualTo.comparisonValue().getClass()),
                 formatValue(isLessThanOrEqualTo.comparisonValue()));
     }
 
@@ -109,11 +120,11 @@ public class DuckDBMetadataFilterMapper {
         return format("(%s or %s)", map(or.left()), map(or.right()));
     }
 
-    String formatKey(String key, Class<?> valueType){
-        return format("(metadata->>'%s')::%s", key,SQL_TYPE_MAP.get(valueType));
+    String formatKey(String key, Class<?> valueType) {
+        return format("(metadata->>'%s')::%s", key, SQL_TYPE_MAP.get(valueType));
     }
 
-    String formatKeyAsString(String key){
+    String formatKeyAsString(String key) {
         return format("(metadata->>'%s')", key);
     }
 
@@ -126,8 +137,6 @@ public class DuckDBMetadataFilterMapper {
     }
 
     String formatValuesAsString(Collection<?> values) {
-        return "(" + values.stream().map(v -> format("'%s'", v))
-                .collect(Collectors.joining(",")) + ")";
+        return "(" + values.stream().map(v -> format("'%s'", v)).collect(Collectors.joining(",")) + ")";
     }
-
 }
