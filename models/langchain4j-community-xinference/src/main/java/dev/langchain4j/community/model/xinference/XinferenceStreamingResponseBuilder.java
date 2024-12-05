@@ -44,7 +44,7 @@ public class XinferenceStreamingResponseBuilder {
         if (isNotNullOrBlank(partialResponse.getModel())) {
             responseModel.set(partialResponse.getModel());
         }
-        final CompletionUsage usage = partialResponse.getUsage();
+        CompletionUsage usage = partialResponse.getUsage();
         if (usage != null) {
             this.tokenUsage = tokenUsageFrom(usage);
         }
@@ -72,8 +72,7 @@ public class XinferenceStreamingResponseBuilder {
         if (!isNullOrEmpty(delta.getToolCalls())) {
             toolExecutionRequestList = delta.getToolCalls().stream()
                     .map(toolCall -> {
-                        final ToolExecutionRequestBuilder toolExecutionRequestBuilder =
-                                new ToolExecutionRequestBuilder();
+                        ToolExecutionRequestBuilder toolExecutionRequestBuilder = new ToolExecutionRequestBuilder();
                         if (toolCall.getId() != null) {
                             toolExecutionRequestBuilder.idBuilder.append(toolCall.getId());
                         }
@@ -119,7 +118,7 @@ public class XinferenceStreamingResponseBuilder {
     public Response<AiMessage> build() {
         String text = contentBuilder.toString();
         if (!isNullOrEmpty(toolExecutionRequestList)) {
-            final List<ToolExecutionRequest> list = toolExecutionRequestList.stream()
+            List<ToolExecutionRequest> list = toolExecutionRequestList.stream()
                     .map(it -> ToolExecutionRequest.builder()
                             .id(it.idBuilder.toString())
                             .name(it.nameBuilder.toString())

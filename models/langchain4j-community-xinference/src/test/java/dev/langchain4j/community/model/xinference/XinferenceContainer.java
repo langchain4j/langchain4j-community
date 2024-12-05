@@ -54,7 +54,7 @@ class XinferenceContainer extends GenericContainer<XinferenceContainer> {
     }
 
     @Override
-    protected void containerIsStarted(final InspectContainerResponse containerInfo) {
+    protected void containerIsStarted(InspectContainerResponse containerInfo) {
         if (this.modelName != null) {
             try {
                 log.info("Start pulling the '{}' model ... would take several minutes ...", this.modelName);

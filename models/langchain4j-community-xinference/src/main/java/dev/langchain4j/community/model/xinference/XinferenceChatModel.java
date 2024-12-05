@@ -108,24 +108,23 @@ public class XinferenceChatModel implements ChatLanguageModel {
     }
 
     @Override
-    public Response<AiMessage> generate(final List<ChatMessage> list) {
+    public Response<AiMessage> generate(List<ChatMessage> list) {
         return generate(list, null, null);
     }
 
     @Override
-    public Response<AiMessage> generate(
-            final List<ChatMessage> messages, final List<ToolSpecification> toolSpecifications) {
+    public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
         return generate(messages, toolSpecifications, null);
     }
 
     @Override
-    public Response<AiMessage> generate(final List<ChatMessage> messages, final ToolSpecification toolSpecification) {
+    public Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
         return generate(messages, null, toolSpecification);
     }
 
     @Override
-    public ChatResponse chat(final ChatRequest request) {
-        final Response<AiMessage> response = generate(request.messages(), request.toolSpecifications(), null);
+    public ChatResponse chat(ChatRequest request) {
+        Response<AiMessage> response = generate(request.messages(), request.toolSpecifications(), null);
         return ChatResponse.builder()
                 .aiMessage(response.content())
                 .tokenUsage(response.tokenUsage())
@@ -137,7 +136,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
             List<ChatMessage> messages,
             List<ToolSpecification> toolSpecifications,
             ToolSpecification toolThatMustBeExecuted) {
-        final ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
+        ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
                 .model(modelName)
                 .messages(toXinferenceMessages(messages))
                 .temperature(temperature)
@@ -163,7 +162,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
             builder.toolChoice(toToolChoice(toolThatMustBeExecuted));
         }
 
-        final ChatCompletionRequest request = builder.build();
+        ChatCompletionRequest request = builder.build();
 
         ChatModelRequest modelListenerRequest = ChatModelRequest.builder()
                 .model(request.getModel())
@@ -187,7 +186,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
             ChatCompletionResponse chatCompletionResponse =
                     withRetry(() -> client.chatCompletions(request).execute(), maxRetries);
 
-            final ChatCompletionChoice completionChoice =
+            ChatCompletionChoice completionChoice =
                     chatCompletionResponse.getChoices().get(0);
             Response<AiMessage> response = Response.from(
                     aiMessageFrom(completionChoice.getMessage()),
@@ -214,14 +213,12 @@ public class XinferenceChatModel implements ChatLanguageModel {
 
             return response;
         } catch (RuntimeException e) {
-
             Throwable error;
             if (e.getCause() instanceof XinferenceHttpException) {
                 error = e.getCause();
             } else {
                 error = e;
             }
-
             ChatModelErrorContext errorContext =
                     new ChatModelErrorContext(error, modelListenerRequest, null, attributes);
 
@@ -232,7 +229,6 @@ public class XinferenceChatModel implements ChatLanguageModel {
                     log.warn("Exception while calling model listener", e2);
                 }
             });
-
             throw e;
         }
     }

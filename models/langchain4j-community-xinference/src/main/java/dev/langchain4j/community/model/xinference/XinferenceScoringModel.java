@@ -67,9 +67,9 @@ public class XinferenceScoringModel implements ScoringModel {
     }
 
     @Override
-    public Response<List<Double>> scoreAll(final List<TextSegment> segments, final String query) {
-        final List<String> documents = segments.stream().map(TextSegment::text).toList();
-        final RerankRequest request = RerankRequest.builder()
+    public Response<List<Double>> scoreAll(List<TextSegment> segments, String query) {
+        List<String> documents = segments.stream().map(TextSegment::text).toList();
+        RerankRequest request = RerankRequest.builder()
                 .model(modelName)
                 .query(query)
                 .documents(documents)
@@ -82,7 +82,7 @@ public class XinferenceScoringModel implements ScoringModel {
                 .sorted(comparingInt(RerankResult::getIndex))
                 .map(RerankResult::getRelevanceScore)
                 .collect(toList());
-        final RerankTokens tokens = Optional.ofNullable(response.getMeta().getTokens())
+        RerankTokens tokens = Optional.ofNullable(response.getMeta().getTokens())
                 .orElse(RerankTokens.builder().inputTokens(0).outputTokens(0).build());
         return Response.from(scores, new TokenUsage(tokens.getInputTokens(), tokens.getOutputTokens()));
     }

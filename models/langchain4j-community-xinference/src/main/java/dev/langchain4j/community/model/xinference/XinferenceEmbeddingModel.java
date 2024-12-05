@@ -57,8 +57,8 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
     }
 
     @Override
-    public Response<List<Embedding>> embedAll(final List<TextSegment> list) {
-        final List<String> texts = list.stream().map(TextSegment::text).toList();
+    public Response<List<Embedding>> embedAll(List<TextSegment> list) {
+        List<String> texts = list.stream().map(TextSegment::text).toList();
         return embedTexts(texts);
     }
 

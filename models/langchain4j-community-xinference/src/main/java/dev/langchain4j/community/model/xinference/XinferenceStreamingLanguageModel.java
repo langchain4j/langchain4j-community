@@ -80,8 +80,8 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
     }
 
     @Override
-    public void generate(final String prompt, final StreamingResponseHandler<String> handler) {
-        final CompletionRequest request = CompletionRequest.builder().stream(true)
+    public void generate(String prompt, StreamingResponseHandler<String> handler) {
+        CompletionRequest request = CompletionRequest.builder().stream(true)
                 .streamOptions(StreamOptions.of(true))
                 .model(modelName)
                 .prompt(prompt)
@@ -95,13 +95,13 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
                 .frequencyPenalty(frequencyPenalty)
                 .user(user)
                 .build();
-        final XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder();
+        XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder();
         client.completions(request)
                 .onPartialResponse(partialResponse -> {
                     responseBuilder.append(partialResponse);
-                    final List<CompletionChoice> choices = partialResponse.getChoices();
+                    List<CompletionChoice> choices = partialResponse.getChoices();
                     if (!isNullOrEmpty(choices)) {
-                        final String text = choices.get(0).getText();
+                        String text = choices.get(0).getText();
                         if (isNotNullOrEmpty(text)) {
                             handler.onNext(text);
                         }

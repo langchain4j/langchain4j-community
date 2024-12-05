@@ -82,8 +82,8 @@ public class XinferenceLanguageModel implements LanguageModel {
     }
 
     @Override
-    public Response<String> generate(final String prompt) {
-        final CompletionRequest request = CompletionRequest.builder()
+    public Response<String> generate(String prompt) {
+        CompletionRequest request = CompletionRequest.builder()
                 .model(modelName)
                 .prompt(prompt)
                 .maxTokens(maxTokens)

@@ -101,23 +101,23 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
     }
 
     @Override
-    public void generate(final List<ChatMessage> list, final StreamingResponseHandler<AiMessage> handler) {
+    public void generate(List<ChatMessage> list, StreamingResponseHandler<AiMessage> handler) {
         generate(list, null, null, handler);
     }
 
     @Override
     public void generate(
-            final List<ChatMessage> messages,
-            final List<ToolSpecification> toolSpecifications,
-            final StreamingResponseHandler<AiMessage> handler) {
+            List<ChatMessage> messages,
+            List<ToolSpecification> toolSpecifications,
+            StreamingResponseHandler<AiMessage> handler) {
         generate(messages, toolSpecifications, null, handler);
     }
 
     @Override
     public void generate(
-            final List<ChatMessage> messages,
-            final ToolSpecification toolSpecification,
-            final StreamingResponseHandler<AiMessage> handler) {
+            List<ChatMessage> messages,
+            ToolSpecification toolSpecification,
+            StreamingResponseHandler<AiMessage> handler) {
         generate(messages, null, toolSpecification, handler);
     }
 
@@ -126,7 +126,7 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
             List<ToolSpecification> toolSpecifications,
             ToolSpecification toolThatMustBeExecuted,
             StreamingResponseHandler<AiMessage> handler) {
-        final ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder().stream(true)
+        ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder().stream(true)
                 .streamOptions(StreamOptions.of(true))
                 .model(modelName)
                 .messages(toXinferenceMessages(messages))
@@ -152,7 +152,7 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
             builder.toolChoice(toToolChoice(toolThatMustBeExecuted));
         }
 
-        final ChatCompletionRequest request = builder.build();
+        ChatCompletionRequest request = builder.build();
 
         ChatModelRequest modelListenerRequest = ChatModelRequest.builder()
                 .model(request.getModel())
@@ -175,10 +175,10 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
         client.chatCompletions(request)
                 .onPartialResponse(partialResponse -> {
                     responseBuilder.append(partialResponse);
-                    final List<ChatCompletionChoice> choices = partialResponse.getChoices();
+                    List<ChatCompletionChoice> choices = partialResponse.getChoices();
                     if (!isNullOrEmpty(choices)) {
-                        final Delta delta = choices.get(0).getDelta();
-                        final String content = delta.getContent();
+                        Delta delta = choices.get(0).getDelta();
+                        String content = delta.getContent();
                         if (isNotNullOrEmpty(content)) {
                             handler.onNext(content);
                         }

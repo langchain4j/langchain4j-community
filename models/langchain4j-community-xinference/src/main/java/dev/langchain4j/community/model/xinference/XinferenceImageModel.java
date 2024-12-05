@@ -69,8 +69,8 @@ public class XinferenceImageModel implements ImageModel {
     }
 
     @Override
-    public Response<Image> generate(final String prompt) {
-        final ImageRequest request = ImageRequest.builder()
+    public Response<Image> generate(String prompt) {
+        ImageRequest request = ImageRequest.builder()
                 .model(modelName)
                 .prompt(prompt)
                 .negativePrompt(negativePrompt)
@@ -85,8 +85,8 @@ public class XinferenceImageModel implements ImageModel {
     }
 
     @Override
-    public Response<List<Image>> generate(final String prompt, final int total) {
-        final ImageRequest request = ImageRequest.builder()
+    public Response<List<Image>> generate(String prompt, int total) {
+        ImageRequest request = ImageRequest.builder()
                 .model(modelName)
                 .prompt(prompt)
                 .negativePrompt(negativePrompt)
@@ -98,15 +98,15 @@ public class XinferenceImageModel implements ImageModel {
                 .build();
         ImageResponse response =
                 withRetry(() -> client.generations(request), maxRetries).execute();
-        final List<Image> list = response.getData().stream()
+        List<Image> list = response.getData().stream()
                 .map(XinferenceImageModel::fromImageData)
                 .toList();
         return Response.from(list);
     }
 
     @Override
-    public Response<Image> edit(final Image image, final String prompt) {
-        final ImageRequest request = ImageRequest.builder()
+    public Response<Image> edit(Image image, String prompt) {
+        ImageRequest request = ImageRequest.builder()
                 .model(modelName)
                 .prompt(prompt)
                 .negativePrompt(negativePrompt)
@@ -121,8 +121,8 @@ public class XinferenceImageModel implements ImageModel {
     }
 
     @Override
-    public Response<Image> edit(final Image image, final Image mask, final String prompt) {
-        final ImageRequest request = ImageRequest.builder()
+    public Response<Image> edit(Image image, Image mask, String prompt) {
+        ImageRequest request = ImageRequest.builder()
                 .model(modelName)
                 .prompt(prompt)
                 .negativePrompt(negativePrompt)
@@ -138,7 +138,7 @@ public class XinferenceImageModel implements ImageModel {
     }
 
     private static Image fromImageData(ImageData data) {
-        final Image.Builder builder = Image.builder().base64Data(data.getB64Json());
+        Image.Builder builder = Image.builder().base64Data(data.getB64Json());
         if (isNotNullOrBlank(data.getUrl())) {
             builder.url(data.getUrl());
         }

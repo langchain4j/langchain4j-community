@@ -57,7 +57,7 @@ class InternalXinferenceHelper {
                         if (!message.hasToolExecutionRequests()) {
                             return AssistantMessage.of(message.text());
                         }
-                        final List<ToolCall> list = message.toolExecutionRequests().stream()
+                        List<ToolCall> list = message.toolExecutionRequests().stream()
                                 .map(it -> ToolCall.builder()
                                         .id(it.id())
                                         .type(ToolType.FUNCTION)
@@ -76,7 +76,7 @@ class InternalXinferenceHelper {
                                     .name(message.name())
                                     .build();
                         } else {
-                            final List<Content> list = message.contents().stream()
+                            List<Content> list = message.contents().stream()
                                     .map(item -> {
                                         if (item instanceof TextContent content) {
                                             return Content.text(content.text());
@@ -86,7 +86,7 @@ class InternalXinferenceHelper {
                                                     content.detailLevel().name()));
                                         } else if (item instanceof VideoContent content) {
                                             String url = null;
-                                            final Video video = content.video();
+                                            Video video = content.video();
                                             if (Objects.nonNull(video.url())) {
                                                 url = video.url().toString();
                                             } else if (isNotNullOrBlank(video.base64Data())) {
