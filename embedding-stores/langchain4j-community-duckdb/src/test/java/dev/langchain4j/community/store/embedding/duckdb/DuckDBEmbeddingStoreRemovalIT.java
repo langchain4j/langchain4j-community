@@ -9,6 +9,7 @@ import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 public class DuckDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
+
     EmbeddingStore<TextSegment> embeddingStore = DuckDBEmbeddingStore.inMemory();
 
     @Override

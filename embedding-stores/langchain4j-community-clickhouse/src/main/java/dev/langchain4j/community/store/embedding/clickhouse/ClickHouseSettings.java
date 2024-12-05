@@ -1,14 +1,13 @@
 package dev.langchain4j.community.store.embedding.clickhouse;
 
-import com.clickhouse.data.ClickHouseDataType;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.REQUIRED_COLUMN_MAP_KEYS;
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
+import com.clickhouse.data.ClickHouseDataType;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ClickHouseSettings {
 
@@ -34,6 +33,7 @@ public class ClickHouseSettings {
      *
      */
     private Map<String, ClickHouseDataType> metadataTypeMap;
+
     private Integer dimension;
     private Long timeout;
 
@@ -51,15 +51,16 @@ public class ClickHouseSettings {
      * @param dimension       Embedding dimension.
      * @param timeout         Request timeout in milliseconds. (Optional)
      */
-    public ClickHouseSettings(String url,
-                              String username,
-                              String password,
-                              String database,
-                              String table,
-                              Map<String, String> columnMap,
-                              Map<String, ClickHouseDataType> metadataTypeMap,
-                              Integer dimension,
-                              Long timeout) {
+    public ClickHouseSettings(
+            String url,
+            String username,
+            String password,
+            String database,
+            String table,
+            Map<String, String> columnMap,
+            Map<String, ClickHouseDataType> metadataTypeMap,
+            Integer dimension,
+            Long timeout) {
         this.url = ensureNotNull(url, "url");
         this.username = username;
         this.password = password;
@@ -251,7 +252,8 @@ public class ClickHouseSettings {
         }
 
         public ClickHouseSettings build() {
-            return new ClickHouseSettings(url, username, password, database, table, columnMap, metadataTypeMap, dimension, timeout);
+            return new ClickHouseSettings(
+                    url, username, password, database, table, columnMap, metadataTypeMap, dimension, timeout);
         }
     }
 }

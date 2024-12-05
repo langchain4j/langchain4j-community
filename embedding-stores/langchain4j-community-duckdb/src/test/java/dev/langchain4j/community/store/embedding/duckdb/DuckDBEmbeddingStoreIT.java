@@ -9,6 +9,7 @@ import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 class DuckDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
+
     EmbeddingStore<TextSegment> embeddingStore = DuckDBEmbeddingStore.inMemory();
 
     protected EmbeddingStore<TextSegment> embeddingStore() {

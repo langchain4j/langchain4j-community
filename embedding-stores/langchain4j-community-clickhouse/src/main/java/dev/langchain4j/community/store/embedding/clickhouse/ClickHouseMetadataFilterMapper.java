@@ -1,5 +1,8 @@
 package dev.langchain4j.community.store.embedding.clickhouse;
 
+import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.ID_MAPPING_KEY;
+import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.TEXT_MAPPING_KEY;
+
 import com.clickhouse.data.ClickHouseDataType;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
@@ -13,79 +16,86 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.ID_MAPPING_KEY;
-import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.TEXT_MAPPING_KEY;
 
 class ClickHouseMetadataFilterMapper {
 
     private final Map<String, String> columnMap;
     private final Map<String, ClickHouseDataType> typeMap;
 
-    ClickHouseMetadataFilterMapper(Map<String, String> columnMap,
-                                   Map<String, ClickHouseDataType> typeMap) {
+    ClickHouseMetadataFilterMapper(Map<String, String> columnMap, Map<String, ClickHouseDataType> typeMap) {
         this.columnMap = columnMap;
         this.typeMap = typeMap;
     }
 
     String map(Filter filter) {
-        if (filter instanceof IsEqualTo) {
-            return mapEqual((IsEqualTo) filter);
-        } else if (filter instanceof IsNotEqualTo) {
-            return mapNotEqual((IsNotEqualTo) filter);
-        } else if (filter instanceof IsGreaterThan) {
-            return mapGreaterThan((IsGreaterThan) filter);
-        } else if (filter instanceof IsGreaterThanOrEqualTo) {
-            return mapGreaterThanOrEqual((IsGreaterThanOrEqualTo) filter);
-        } else if (filter instanceof IsLessThan) {
-            return mapLessThan((IsLessThan) filter);
-        } else if (filter instanceof IsLessThanOrEqualTo) {
-            return mapLessThanOrEqual((IsLessThanOrEqualTo) filter);
-        } else if (filter instanceof IsIn) {
-            return mapIn((IsIn) filter);
-        } else if (filter instanceof IsNotIn) {
-            return mapNotIn((IsNotIn) filter);
-        } else if (filter instanceof And) {
-            return mapAnd((And) filter);
-        } else if (filter instanceof Not) {
-            return mapNot((Not) filter);
-        } else if (filter instanceof Or) {
-            return mapOr((Or) filter);
+        if (filter instanceof IsEqualTo isEqualTo) {
+            return mapEqual(isEqualTo);
+        } else if (filter instanceof IsNotEqualTo isNotEqualTo) {
+            return mapNotEqual(isNotEqualTo);
+        } else if (filter instanceof IsGreaterThan isGreaterThan) {
+            return mapGreaterThan(isGreaterThan);
+        } else if (filter instanceof IsGreaterThanOrEqualTo isGreaterThanOrEqualTo) {
+            return mapGreaterThanOrEqual(isGreaterThanOrEqualTo);
+        } else if (filter instanceof IsLessThan isLessThan) {
+            return mapLessThan(isLessThan);
+        } else if (filter instanceof IsLessThanOrEqualTo isLessThanOrEqualTo) {
+            return mapLessThanOrEqual(isLessThanOrEqualTo);
+        } else if (filter instanceof IsIn isIn) {
+            return mapIn(isIn);
+        } else if (filter instanceof IsNotIn isNotIn) {
+            return mapNotIn(isNotIn);
+        } else if (filter instanceof And and) {
+            return mapAnd(and);
+        } else if (filter instanceof Not not) {
+            return mapNot(not);
+        } else if (filter instanceof Or or) {
+            return mapOr(or);
         } else {
-            throw new UnsupportedOperationException("Unsupported filter type: " + filter.getClass().getName());
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
         }
     }
 
     private String mapEqual(IsEqualTo isEqualTo) {
-        return mapBinaryOperation(isEqualTo.key(), "==", handleSingleValue(isEqualTo.key(), isEqualTo.comparisonValue()));
+        return mapBinaryOperation(
+                isEqualTo.key(), "==", handleSingleValue(isEqualTo.key(), isEqualTo.comparisonValue()));
     }
 
     private String mapNotEqual(IsNotEqualTo isNotEqualTo) {
         return mapBinaryOperation(
-                mapBinaryOperation(isNotEqualTo.key(), "<>", handleSingleValue(isNotEqualTo.key(), isNotEqualTo.comparisonValue())),
+                mapBinaryOperation(
+                        isNotEqualTo.key(),
+                        "<>",
+                        handleSingleValue(isNotEqualTo.key(), isNotEqualTo.comparisonValue())),
                 "OR",
-                mapIsNull(isNotEqualTo.key())
-        );
+                mapIsNull(isNotEqualTo.key()));
     }
 
     private String mapGreaterThan(IsGreaterThan isGreaterThan) {
-        return mapBinaryOperation(isGreaterThan.key(), ">", handleSingleValue(isGreaterThan.key(), isGreaterThan.comparisonValue()));
+        return mapBinaryOperation(
+                isGreaterThan.key(), ">", handleSingleValue(isGreaterThan.key(), isGreaterThan.comparisonValue()));
     }
 
     private String mapGreaterThanOrEqual(IsGreaterThanOrEqualTo isGreaterThanOrEqualTo) {
-        return mapBinaryOperation(isGreaterThanOrEqualTo.key(), ">=", handleSingleValue(isGreaterThanOrEqualTo.key(), isGreaterThanOrEqualTo.comparisonValue()));
+        return mapBinaryOperation(
+                isGreaterThanOrEqualTo.key(),
+                ">=",
+                handleSingleValue(isGreaterThanOrEqualTo.key(), isGreaterThanOrEqualTo.comparisonValue()));
     }
 
     private String mapLessThan(IsLessThan isLessThan) {
-        return mapBinaryOperation(isLessThan.key(), "<", handleSingleValue(isLessThan.key(), isLessThan.comparisonValue()));
+        return mapBinaryOperation(
+                isLessThan.key(), "<", handleSingleValue(isLessThan.key(), isLessThan.comparisonValue()));
     }
 
     private String mapLessThanOrEqual(IsLessThanOrEqualTo isLessThanOrEqualTo) {
-        return mapBinaryOperation(isLessThanOrEqualTo.key(), "<=", handleSingleValue(isLessThanOrEqualTo.key(), isLessThanOrEqualTo.comparisonValue()));
+        return mapBinaryOperation(
+                isLessThanOrEqualTo.key(),
+                "<=",
+                handleSingleValue(isLessThanOrEqualTo.key(), isLessThanOrEqualTo.comparisonValue()));
     }
 
     public String mapIn(IsIn isIn) {
@@ -94,10 +104,10 @@ class ClickHouseMetadataFilterMapper {
 
     public String mapNotIn(IsNotIn isNotIn) {
         return mapBinaryOperation(
-                mapBinaryOperation(isNotIn.key(), "NOT IN", handleMultiValue(isNotIn.key(), isNotIn.comparisonValues())),
+                mapBinaryOperation(
+                        isNotIn.key(), "NOT IN", handleMultiValue(isNotIn.key(), isNotIn.comparisonValues())),
                 "OR",
-                mapIsNull(isNotIn.key())
-        );
+                mapIsNull(isNotIn.key()));
     }
 
     private String mapAnd(And and) {
@@ -106,11 +116,7 @@ class ClickHouseMetadataFilterMapper {
 
     private String mapNot(Not not) {
         String expression = map(not.expression());
-        return mapBinaryOperation(
-                mapUnaryOperation("NOT", expression),
-                "OR",
-                mapIsNull(expression)
-        );
+        return mapBinaryOperation(mapUnaryOperation("NOT", expression), "OR", mapIsNull(expression));
     }
 
     private String mapOr(Or or) {
@@ -119,7 +125,9 @@ class ClickHouseMetadataFilterMapper {
 
     private String handleSingleValue(String key, Object value) {
         boolean isIdOrText = key.equals(columnMap.get(ID_MAPPING_KEY)) || key.equals(columnMap.get(TEXT_MAPPING_KEY));
-        if (isIdOrText || typeMap.get(key) == ClickHouseDataType.UUID || typeMap.get(key) == ClickHouseDataType.String) {
+        if (isIdOrText
+                || typeMap.get(key) == ClickHouseDataType.UUID
+                || typeMap.get(key) == ClickHouseDataType.String) {
             value = "'" + value + "'";
         }
 
@@ -128,10 +136,10 @@ class ClickHouseMetadataFilterMapper {
 
     private String handleMultiValue(String key, Collection<?> values) {
         boolean isIdOrText = key.equals(columnMap.get(ID_MAPPING_KEY)) || key.equals(columnMap.get(TEXT_MAPPING_KEY));
-        if (isIdOrText || typeMap.get(key) == ClickHouseDataType.UUID || typeMap.get(key) == ClickHouseDataType.String) {
-            values = values.stream()
-                    .map(value -> "'" + value + "'")
-                    .collect(Collectors.toList());
+        if (isIdOrText
+                || typeMap.get(key) == ClickHouseDataType.UUID
+                || typeMap.get(key) == ClickHouseDataType.String) {
+            values = values.stream().map(value -> "'" + value + "'").collect(Collectors.toList());
         }
 
         return "[" + values.stream().map(Object::toString).collect(Collectors.joining(",")) + "]";

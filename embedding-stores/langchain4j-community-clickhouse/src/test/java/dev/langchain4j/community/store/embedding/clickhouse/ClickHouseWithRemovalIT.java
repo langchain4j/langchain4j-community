@@ -6,22 +6,22 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.clickhouse.ClickHouseContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
-
 public class ClickHouseWithRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     private static final String USERNAME = "test-username";
     private static final String PASSWORD = "test-password";
 
-    static ClickHouseContainer clickhouse = new ClickHouseContainer(DockerImageName.parse("clickhouse/clickhouse-server:latest"))
+    static ClickHouseContainer clickhouse = new ClickHouseContainer(
+                    DockerImageName.parse("clickhouse/clickhouse-server:latest"))
             .withDatabaseName("default")
             .withUsername(USERNAME)
             .withPassword(PASSWORD);
@@ -39,9 +39,8 @@ public class ClickHouseWithRemovalIT extends EmbeddingStoreWithRemovalIT {
             .metadataTypeMap(metadataTypeMap)
             .build();
 
-    ClickHouseEmbeddingStore embeddingStore = ClickHouseEmbeddingStore.builder()
-            .settings(settings)
-            .build();
+    ClickHouseEmbeddingStore embeddingStore =
+            ClickHouseEmbeddingStore.builder().settings(settings).build();
 
     @BeforeAll
     static void beforeAll() {

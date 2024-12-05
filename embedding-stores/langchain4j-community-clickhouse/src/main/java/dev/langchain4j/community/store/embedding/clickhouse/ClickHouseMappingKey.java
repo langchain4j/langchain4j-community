@@ -13,5 +13,6 @@ class ClickHouseMappingKey {
 
     static final String EMBEDDING_MAPPING_KEY = "embedding";
 
-    static final List<String> REQUIRED_COLUMN_MAP_KEYS = Arrays.asList(ID_MAPPING_KEY, TEXT_MAPPING_KEY, EMBEDDING_MAPPING_KEY);
+    static final List<String> REQUIRED_COLUMN_MAP_KEYS =
+            Arrays.asList(ID_MAPPING_KEY, TEXT_MAPPING_KEY, EMBEDDING_MAPPING_KEY);
 }

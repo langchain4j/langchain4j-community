@@ -10,6 +10,12 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 import dev.langchain4j.store.embedding.filter.Filter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -18,19 +24,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.clickhouse.ClickHouseContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
-
 class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     private static final String USERNAME = "test-username";
     private static final String PASSWORD = "test-password";
 
-    static ClickHouseContainer clickhouse = new ClickHouseContainer(DockerImageName.parse("clickhouse/clickhouse-server:latest"))
+    static ClickHouseContainer clickhouse = new ClickHouseContainer(
+                    DockerImageName.parse("clickhouse/clickhouse-server:latest"))
             .withDatabaseName("default")
             .withUsername(USERNAME)
             .withPassword(PASSWORD);
@@ -48,9 +48,8 @@ class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
             .metadataTypeMap(metadataTypeMap)
             .build();
 
-    ClickHouseEmbeddingStore embeddingStore = ClickHouseEmbeddingStore.builder()
-            .settings(settings)
-            .build();
+    ClickHouseEmbeddingStore embeddingStore =
+            ClickHouseEmbeddingStore.builder().settings(settings).build();
 
     @BeforeAll
     static void beforeAll() {
@@ -69,9 +68,8 @@ class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     @ParameterizedTest
     @MethodSource
-    protected void should_filter_by_metadata(Filter metadataFilter,
-                                             List<Metadata> matchingMetadatas,
-                                             List<Metadata> notMatchingMetadatas) {
+    protected void should_filter_by_metadata(
+            Filter metadataFilter, List<Metadata> matchingMetadatas, List<Metadata> notMatchingMetadatas) {
         refreshEmbeddingStore(matchingMetadatas, notMatchingMetadatas);
 
         super.should_filter_by_metadata(metadataFilter, matchingMetadatas, notMatchingMetadatas);
@@ -79,9 +77,8 @@ class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     @ParameterizedTest
     @MethodSource
-    protected void should_filter_by_metadata_not(Filter metadataFilter,
-                                                 List<Metadata> matchingMetadatas,
-                                                 List<Metadata> notMatchingMetadatas) {
+    protected void should_filter_by_metadata_not(
+            Filter metadataFilter, List<Metadata> matchingMetadatas, List<Metadata> notMatchingMetadatas) {
         refreshEmbeddingStore(matchingMetadatas, notMatchingMetadatas);
 
         super.should_filter_by_metadata_not(metadataFilter, matchingMetadatas, notMatchingMetadatas);
@@ -111,8 +108,7 @@ class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         return metadataTypeMap;
     }
 
-    private void refreshEmbeddingStore(List<Metadata> matchingMetadatas,
-                                       List<Metadata> notMatchingMetadatas) {
+    private void refreshEmbeddingStore(List<Metadata> matchingMetadatas, List<Metadata> notMatchingMetadatas) {
         // Close old embeddingStore
         if (embeddingStore != null) {
             try {
@@ -144,9 +140,7 @@ class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                 .metadataTypeMap(metadataTypeMap)
                 .build();
 
-        embeddingStore = ClickHouseEmbeddingStore.builder()
-                .settings(settings)
-                .build();
+        embeddingStore = ClickHouseEmbeddingStore.builder().settings(settings).build();
     }
 
     private ClickHouseDataType toClickHouseType(String key, Object value) {
@@ -170,7 +164,8 @@ class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
             return ClickHouseDataType.UUID;
         }
 
-        throw new UnsupportedOperationException("Unsupported type: " + value.getClass().getName());
+        throw new UnsupportedOperationException(
+                "Unsupported type: " + value.getClass().getName());
     }
 
     private void dropTable() {
