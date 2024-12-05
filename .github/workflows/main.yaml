@@ -69,7 +69,6 @@ jobs:
         if: ${{ !matrix.experimental }}
         run: |
           mvn -B -U verify \
-            -DskipXinferenceITs \
             -Dgib.disable=false -Dgib.referenceBranch=__branch_before \
             ${{ matrix.mvn_opts }}
 
