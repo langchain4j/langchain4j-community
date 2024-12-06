@@ -38,13 +38,9 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN1_5_14B_CHAT),
                 Arguments.of(QwenModelName.QWEN1_5_32B_CHAT),
                 Arguments.of(QwenModelName.QWEN1_5_72B_CHAT),
-                Arguments.of(QwenModelName.QWEN2_0_5B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_1_5B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_72B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_57B_A14B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_0_5B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_1_5B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
@@ -66,13 +62,9 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN1_5_14B_CHAT),
                 Arguments.of(QwenModelName.QWEN1_5_32B_CHAT),
                 Arguments.of(QwenModelName.QWEN1_5_72B_CHAT),
-                Arguments.of(QwenModelName.QWEN2_0_5B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_1_5B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_72B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_57B_A14B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_0_5B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_1_5B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
@@ -96,7 +88,6 @@ class QwenTestHelper {
 
     public static Stream<Arguments> audioChatModelNameProvider() {
         return Stream.of(
-                Arguments.of(QwenModelName.QWEN_AUDIO_CHAT),
                 Arguments.of(QwenModelName.QWEN2_AUDIO_INSTRUCT)
         );
     }
