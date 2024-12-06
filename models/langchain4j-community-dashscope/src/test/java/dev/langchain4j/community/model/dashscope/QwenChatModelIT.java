@@ -1,25 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
-import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
@@ -33,16 +13,33 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.output.TokenUsage;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenChatModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
     void should_send_non_multimodal_messages_and_receive_response(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         Response<AiMessage> response = model.generate(QwenTestHelper.chatMessages());
 
@@ -52,10 +49,8 @@ class QwenChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_function_with_no_argument_then_answer(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         String toolName = "getCurrentDateAndTime";
         ToolSpecification noArgToolSpec = ToolSpecification.builder()
@@ -69,7 +64,8 @@ class QwenChatModelIT {
 
         assertThat(response.content().text()).isNull();
         assertThat(response.content().toolExecutionRequests()).hasSize(1);
-        ToolExecutionRequest toolExecutionRequest = response.content().toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                response.content().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).isEqualTo("{}");
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
@@ -94,18 +90,15 @@ class QwenChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_function_with_argument_then_answer(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         String toolName = "getCurrentWeather";
         ToolSpecification hasArgToolSpec = ToolSpecification.builder()
                 .name(toolName)
                 .description("Query the weather of a specified city")
-                .parameters(JsonObjectSchema.builder()
-                        .addStringProperty("cityName")
-                        .build())
+                .parameters(
+                        JsonObjectSchema.builder().addStringProperty("cityName").build())
                 .build();
 
         UserMessage userMessage = UserMessage.from("Weather in Beijing?");
@@ -114,7 +107,8 @@ class QwenChatModelIT {
 
         assertThat(response.content().text()).isNull();
         assertThat(response.content().toolExecutionRequests()).hasSize(1);
-        ToolExecutionRequest toolExecutionRequest = response.content().toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                response.content().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).contains("Beijing");
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
@@ -139,18 +133,15 @@ class QwenChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_must_be_executed_call_function(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         String toolName = "getCurrentWeather";
         ToolSpecification mustBeExecutedTool = ToolSpecification.builder()
                 .name(toolName)
                 .description("Query the weather of a specified city")
-                .parameters(JsonObjectSchema.builder()
-                        .addStringProperty("cityName")
-                        .build())
+                .parameters(
+                        JsonObjectSchema.builder().addStringProperty("cityName").build())
                 .build();
 
         // not related to tools
@@ -160,7 +151,8 @@ class QwenChatModelIT {
 
         assertThat(response.content().text()).isNull();
         assertThat(response.content().toolExecutionRequests()).hasSize(1);
-        ToolExecutionRequest toolExecutionRequest = response.content().toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                response.content().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).hasSizeGreaterThan(0);
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
@@ -169,10 +161,8 @@ class QwenChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_must_be_executed_call_function_with_argument_then_answer(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         String toolName = "calculator";
         ToolSpecification calculator = ToolSpecification.builder()
@@ -192,7 +182,8 @@ class QwenChatModelIT {
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.id()).isNotNull();
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).isEqualToIgnoringWhitespace("{\"first\": 2, \"second\": 2}");
@@ -224,10 +215,8 @@ class QwenChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
     void should_send_multimodal_image_url_and_receive_response(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         Response<AiMessage> response = model.generate(multimodalChatMessagesWithImageUrl());
 
@@ -237,10 +226,8 @@ class QwenChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
     void should_send_multimodal_image_data_and_receive_response(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         Response<AiMessage> response = model.generate(multimodalChatMessagesWithImageData());
 
@@ -250,10 +237,8 @@ class QwenChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_url_and_receive_response(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         Response<AiMessage> response = model.generate(multimodalChatMessagesWithAudioUrl());
 
@@ -263,10 +248,8 @@ class QwenChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_data_and_receive_response(String modelName) {
-        ChatLanguageModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName(modelName)
-                .build();
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         Response<AiMessage> response = model.generate(multimodalChatMessagesWithAudioData());
 
@@ -275,7 +258,8 @@ class QwenChatModelIT {
 
     @Test
     void should_sanitize_messages() {
-        ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder().build();
+        ToolExecutionRequest toolExecutionRequest =
+                ToolExecutionRequest.builder().build();
         List<ChatMessage> messages = new LinkedList<>();
 
         // 1. System message should be the first message.
@@ -283,32 +267,33 @@ class QwenChatModelIT {
         // 3. User message should follow a normal system/AI message.
         // 4. Tool execution result should follow a tool execution request message.
         // 5. AI message should follow a user/tool_execution_result message.
-        // 6. Last message in the message list should be a user message. This serves as the model query/input for the current round.
+        // 6. Last message in the message list should be a user message. This serves as the model query/input for the
+        // current round.
 
         messages.add(SystemMessage.from("System message 1, which should be discarded"));
         messages.add(UserMessage.from("User message 1, which should be discarded"));
         messages.add(SystemMessage.from("System message 2"));
 
         messages.add(AiMessage.from("AI message 1, which should be discarded"));
-        messages.add(ToolExecutionResultMessage.from(toolExecutionRequest,
-                "Tool execution result 1, which should be discards"));
+        messages.add(ToolExecutionResultMessage.from(
+                toolExecutionRequest, "Tool execution result 1, which should be discards"));
         messages.add(UserMessage.from("User message 2, which should be discarded"));
         messages.add(UserMessage.from("User message 3"));
 
         messages.add(AiMessage.from("AI message 2, which should be discarded"));
-        messages.add(AiMessage.from("AI message 3, a tool execution request",
-                Collections.singletonList(toolExecutionRequest)));
+        messages.add(AiMessage.from(
+                "AI message 3, a tool execution request", Collections.singletonList(toolExecutionRequest)));
 
-        messages.add(ToolExecutionResultMessage.from(toolExecutionRequest,
-                "Tool execution result 2, which should be discards"));
-        messages.add(ToolExecutionResultMessage.from(toolExecutionRequest,
-                "Tool execution result 3"));
+        messages.add(ToolExecutionResultMessage.from(
+                toolExecutionRequest, "Tool execution result 2, which should be discards"));
+        messages.add(ToolExecutionResultMessage.from(toolExecutionRequest, "Tool execution result 3"));
 
         messages.add(AiMessage.from("AI message 4"));
 
         messages.add(UserMessage.from("User message 5, which should be discards"));
-        messages.add(AiMessage.from("AI message 5, a tool execution request," +
-                        " which can't be followed by a user message, should be discards",
+        messages.add(AiMessage.from(
+                "AI message 5, a tool execution request,"
+                        + " which can't be followed by a user message, should be discards",
                 Collections.singletonList(toolExecutionRequest)));
         messages.add(UserMessage.from("User message 6"));
 
@@ -334,7 +319,8 @@ class QwenChatModelIT {
         assertThat(((AiMessage) sanitizedMessages.get(2)).text()).isEqualTo("AI message 3, a tool execution request");
 
         assertThat(sanitizedMessages.get(3)).isInstanceOf(ToolExecutionResultMessage.class);
-        assertThat(((ToolExecutionResultMessage) sanitizedMessages.get(3)).text()).isEqualTo("Tool execution result 3");
+        assertThat(((ToolExecutionResultMessage) sanitizedMessages.get(3)).text())
+                .isEqualTo("Tool execution result 3");
 
         assertThat(sanitizedMessages.get(4)).isInstanceOf(AiMessage.class);
         assertThat(((AiMessage) sanitizedMessages.get(4)).text()).isEqualTo("AI message 4");
