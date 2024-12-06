@@ -1,5 +1,8 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
 import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.AiMessage;
@@ -9,8 +12,6 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import org.junit.jupiter.params.provider.Arguments;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,9 +20,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import org.junit.jupiter.params.provider.Arguments;
 
 class QwenTestHelper {
 
@@ -38,19 +37,14 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN1_5_14B_CHAT),
                 Arguments.of(QwenModelName.QWEN1_5_32B_CHAT),
                 Arguments.of(QwenModelName.QWEN1_5_72B_CHAT),
-                Arguments.of(QwenModelName.QWEN2_0_5B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_1_5B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_72B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_57B_A14B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_0_5B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_1_5B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_32B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT)
-        );
+                Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
@@ -66,47 +60,33 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN1_5_14B_CHAT),
                 Arguments.of(QwenModelName.QWEN1_5_32B_CHAT),
                 Arguments.of(QwenModelName.QWEN1_5_72B_CHAT),
-                Arguments.of(QwenModelName.QWEN2_0_5B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_1_5B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_72B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_57B_A14B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_0_5B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_1_5B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_32B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT)
-        );
+                Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN_MAX)
-        );
+        return Stream.of(Arguments.of(QwenModelName.QWEN_MAX));
     }
 
     public static Stream<Arguments> vlChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN_VL_PLUS),
-                Arguments.of(QwenModelName.QWEN_VL_MAX)
-        );
+        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_PLUS), Arguments.of(QwenModelName.QWEN_VL_MAX));
     }
 
     public static Stream<Arguments> audioChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN_AUDIO_CHAT),
-                Arguments.of(QwenModelName.QWEN2_AUDIO_INSTRUCT)
-        );
+        return Stream.of(Arguments.of(QwenModelName.QWEN2_AUDIO_INSTRUCT));
     }
 
     public static Stream<Arguments> embeddingModelNameProvider() {
         return Stream.of(
                 Arguments.of(QwenModelName.TEXT_EMBEDDING_V1),
                 Arguments.of(QwenModelName.TEXT_EMBEDDING_V2),
-                Arguments.of(QwenModelName.TEXT_EMBEDDING_V3)
-        );
+                Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
     }
 
     public static String apiKey() {
@@ -115,10 +95,9 @@ class QwenTestHelper {
 
     public static List<ChatMessage> chatMessages() {
         List<ChatMessage> messages = new LinkedList<>();
-        messages.add(SystemMessage.from("Your name is Jack." +
-                " You like to answer other people's questions briefly." +
-                " It's rainy today." +
-                " Your reply should end with \"That's all!\"."));
+        messages.add(SystemMessage.from("Your name is Jack." + " You like to answer other people's questions briefly."
+                + " It's rainy today."
+                + " Your reply should end with \"That's all!\"."));
         messages.add(UserMessage.from("Hello. What's your name?"));
         messages.add(AiMessage.from("Jack. That's all!"));
         messages.add(UserMessage.from("How about the weather today?"));
@@ -165,7 +144,8 @@ class QwenTestHelper {
                 .url("https://dashscope.oss-cn-beijing.aliyuncs.com/audios/welcome.mp3")
                 .build();
         AudioContent audioContent = AudioContent.from(audio);
-        TextContent textContent = TextContent.from("What is this audio saying? Please note that the audio language is Chinese.");
+        TextContent textContent =
+                TextContent.from("What is this audio saying? Please note that the audio language is Chinese.");
         return Collections.singletonList(UserMessage.from(audioContent, textContent));
     }
 
@@ -175,7 +155,8 @@ class QwenTestHelper {
                 .mimeType("audio/mp3")
                 .build();
         AudioContent audioContent = AudioContent.from(audio);
-        TextContent textContent = TextContent.from("What is this audio saying? Please note that the audio language is Chinese.");
+        TextContent textContent =
+                TextContent.from("What is this audio saying? Please note that the audio language is Chinese.");
         return Collections.singletonList(UserMessage.from(audioContent, textContent));
     }
 
