@@ -16,6 +16,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -274,36 +275,44 @@ class QwenChatModelIT {
 
     @Test
     void should_sanitize_messages() {
+        ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder().build();
         List<ChatMessage> messages = new LinkedList<>();
 
-        // 1. The system message should be the first message.
-        // 2. User/Tool-execution-result messages and AI messages should alternate.
-        // 3. The last message in the message list should be a user message. This serves as the model query/input for the current round.
+        // 1. System message should be the first message.
+        // 2. First non-system message must be a user message.
+        // 3. User message should follow a normal system/AI message.
+        // 4. Tool execution result should follow a tool execution request message.
+        // 5. AI message should follow a user/tool_execution_result message.
+        // 6. Last message in the message list should be a user message. This serves as the model query/input for the current round.
 
         messages.add(SystemMessage.from("System message 1, which should be discarded"));
         messages.add(UserMessage.from("User message 1, which should be discarded"));
         messages.add(SystemMessage.from("System message 2"));
 
         messages.add(AiMessage.from("AI message 1, which should be discarded"));
-        messages.add(ToolExecutionResultMessage.from(ToolExecutionRequest.builder().build(),
+        messages.add(ToolExecutionResultMessage.from(toolExecutionRequest,
                 "Tool execution result 1, which should be discards"));
         messages.add(UserMessage.from("User message 2, which should be discarded"));
         messages.add(UserMessage.from("User message 3"));
 
         messages.add(AiMessage.from("AI message 2, which should be discarded"));
-        messages.add(AiMessage.from("AI message 3"));
+        messages.add(AiMessage.from("AI message 3, a tool execution request",
+                Collections.singletonList(toolExecutionRequest)));
 
-        messages.add(ToolExecutionResultMessage.from(ToolExecutionRequest.builder().build(),
+        messages.add(ToolExecutionResultMessage.from(toolExecutionRequest,
                 "Tool execution result 2, which should be discards"));
-        messages.add(ToolExecutionResultMessage.from(ToolExecutionRequest.builder().build(),
+        messages.add(ToolExecutionResultMessage.from(toolExecutionRequest,
                 "Tool execution result 3"));
 
         messages.add(AiMessage.from("AI message 4"));
 
-        messages.add(UserMessage.from("User message 4, which should be discards"));
-        messages.add(UserMessage.from("User message 5"));
+        messages.add(UserMessage.from("User message 5, which should be discards"));
+        messages.add(AiMessage.from("AI message 5, a tool execution request," +
+                        " which can't be followed by a user message, should be discards",
+                Collections.singletonList(toolExecutionRequest)));
+        messages.add(UserMessage.from("User message 6"));
 
-        messages.add(AiMessage.from("AI message 5, which should be discards"));
+        messages.add(AiMessage.from("AI message 6, which should be discards"));
 
         // The result should be in the following order:
         // 1. System message
@@ -322,7 +331,7 @@ class QwenChatModelIT {
         assertThat(((UserMessage) sanitizedMessages.get(1)).singleText()).isEqualTo("User message 3");
 
         assertThat(sanitizedMessages.get(2)).isInstanceOf(AiMessage.class);
-        assertThat(((AiMessage) sanitizedMessages.get(2)).text()).isEqualTo("AI message 3");
+        assertThat(((AiMessage) sanitizedMessages.get(2)).text()).isEqualTo("AI message 3, a tool execution request");
 
         assertThat(sanitizedMessages.get(3)).isInstanceOf(ToolExecutionResultMessage.class);
         assertThat(((ToolExecutionResultMessage) sanitizedMessages.get(3)).text()).isEqualTo("Tool execution result 3");
@@ -331,6 +340,6 @@ class QwenChatModelIT {
         assertThat(((AiMessage) sanitizedMessages.get(4)).text()).isEqualTo("AI message 4");
 
         assertThat(sanitizedMessages.get(5)).isInstanceOf(UserMessage.class);
-        assertThat(((UserMessage) sanitizedMessages.get(5)).singleText()).isEqualTo("User message 5");
+        assertThat(((UserMessage) sanitizedMessages.get(5)).singleText()).isEqualTo("User message 6");
     }
 }

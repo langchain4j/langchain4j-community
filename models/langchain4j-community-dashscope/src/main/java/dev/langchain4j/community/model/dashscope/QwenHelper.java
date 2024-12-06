@@ -466,7 +466,7 @@ class QwenHelper {
                 .reduce(new LinkedList<>(), messageAccumulator(), messageCombiner());
 
         // Ensure the last message is a user/tool_execution_result message
-        while (!sanitizedMessages.isEmpty() && !isInputMessageType(sanitizedMessages.getLast().type())) {
+        while (!sanitizedMessages.isEmpty() && !isInputMessageType(sanitizedMessages.getLast())) {
             ChatMessage removedMessage = sanitizedMessages.removeLast();
             log.warn("The last message should be a user/tool_execution_result message, but found: {}", removedMessage);
         }
@@ -488,7 +488,6 @@ class QwenHelper {
             }
 
             if (type == SYSTEM) {
-                // Ensure the system message is the first message.
                 log.warn("The system message should be the first message. Drop existed messages: {}", acc);
                 acc.clear();
                 acc.add(message);
@@ -497,16 +496,25 @@ class QwenHelper {
 
             ChatMessageType lastType = acc.getLast().type();
             if (lastType == SYSTEM && type != USER) {
-                // The first non-system message must be a user message.
                 log.warn("The first non-system message must be a user message, but found: {}", message);
                 return acc;
             }
 
-            if (isInputMessageType(type) == isInputMessageType(lastType)) {
-                // The list must be user/tool_execution_result and ai alternating messages.
-                // Use the newest one when duplicated.
-                ChatMessage removedMessage = acc.removeLast();
-                log.warn("User/Tool-execution-result messages and AI messages should alternate. Drop duplicated message: {}", removedMessage);
+            if (type == USER) {
+                while (acc.getLast().type() != SYSTEM && !isNormalAiType(acc.getLast())) {
+                    ChatMessage removedMessage = acc.removeLast();
+                    log.warn("Tool execution result should follow a tool execution request message. Drop duplicated message: {}", removedMessage);
+                }
+            } else if (type == TOOL_EXECUTION_RESULT) {
+                while (!isToolExecutionRequestsAiType(acc.getLast())) {
+                    ChatMessage removedMessage = acc.removeLast();
+                    log.warn("Tool execution result should follow a tool execution request message. Drop duplicated message: {}", removedMessage);
+                }
+            } else if (type == AI) {
+                while (!isInputMessageType(acc.getLast())) {
+                    ChatMessage removedMessage = acc.removeLast();
+                    log.warn("AI message should follow a user/tool_execution_result message. Drop duplicated message: {}", removedMessage);
+                }
             }
 
             acc.add(message);
@@ -520,8 +528,17 @@ class QwenHelper {
         };
     }
 
-    private static boolean isInputMessageType(ChatMessageType messageType) {
-        return messageType == USER || messageType == TOOL_EXECUTION_RESULT;
+    private static boolean isInputMessageType(ChatMessage message) {
+        ChatMessageType type = message.type();
+        return type == USER || type == TOOL_EXECUTION_RESULT;
+    }
+
+    private static boolean isNormalAiType(ChatMessage message) {
+        return message.type() == AI && !((AiMessage) message).hasToolExecutionRequests();
+    }
+
+    private static boolean isToolExecutionRequestsAiType(ChatMessage message) {
+        return message.type() == AI && ((AiMessage) message).hasToolExecutionRequests();
     }
 
     static ChatModelRequest createModelListenerRequest(GenerationParam request,
