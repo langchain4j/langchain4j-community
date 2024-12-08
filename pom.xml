@@ -58,6 +58,7 @@
         <!-- LangChain4j Community integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
         <module>embedding-stores/langchain4j-community-duckdb</module>
+        <module>embedding-stores/langchain4j-community-typesense</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
 
         <!-- LangChain4j Community integration of web search engine -->

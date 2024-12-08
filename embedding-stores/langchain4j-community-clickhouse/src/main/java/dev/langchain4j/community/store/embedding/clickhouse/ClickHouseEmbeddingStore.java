@@ -57,13 +57,13 @@ import org.slf4j.LoggerFactory;
  *     .settings(ClickHouseSettings.builder()
  *             .url("http://localhost:8123")
  *             .dimension(embeddingModel.dimension())
- *             .build();)
+ *             .build())
  *     .build();
  * }
  * }</pre><p>
  * It is recommended to configure a {@link com.clickhouse.client.ClickHouseClient} in order to customize your connection or authorization.
  * </p><p>
- * This embedding store requires a {@link ClickHouseSettings} to be configured
+ * It is required to configure a {@link ClickHouseSettings}.
  * </p>
  */
 public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCloseable {

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.clickhouse.ClickHouseContainer;
 import org.testcontainers.utility.DockerImageName;
 
-public class ClickHouseWithRemovalIT extends EmbeddingStoreWithRemovalIT {
+public class ClickHouseEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     private static final String USERNAME = "test-username";
     private static final String PASSWORD = "test-password";
