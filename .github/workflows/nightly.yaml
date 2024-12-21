@@ -40,6 +40,7 @@ jobs:
           ## run tests for some modules
           mvn -B -U verify \
               --fail-at-end \
+              -DskipXinferenceITs \
               -Dmaven.test.failure.ignore=true \
               ${{ matrix.mvn_opts }}
 

@@ -18,7 +18,6 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.Response;
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastructure {
@@ -120,17 +119,19 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
         });
     }
 
-    @Test
-    @Disabled("Not supported yet.")
-    @Override
-    protected void should_execute_tool_with_pojo_with_primitives() {
-        super.should_execute_tool_with_pojo_with_primitives();
-    }
+    // FIXME: langchain4j upstream remove 'protected'
 
-    @Test
-    @Disabled("The support isn't great, and there are cases where it fails.")
-    @Override
-    protected void should_execute_tool_with_map_parameter() {
-        super.should_execute_tool_with_map_parameter();
-    }
+    //    @Test
+    //    @Disabled("Not supported yet.")
+    //    @Override
+    //    protected void should_execute_tool_with_pojo_with_primitives() {
+    //        super.should_execute_tool_with_pojo_with_primitives();
+    //    }
+    //
+    //    @Test
+    //    @Disabled("The support isn't great, and there are cases where it fails.")
+    //    @Override
+    //    protected void should_execute_tool_with_map_parameter() {
+    //        super.should_execute_tool_with_map_parameter();
+    //    }
 }
