@@ -69,4 +69,27 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <acceptableLicenses combine.children="append">
+                        <!-- due to excludes/includes above -->
+                        <license>
+                            <name>Eclipse Public License</name>
+                            <url>http://www.eclipse.org/legal/epl-v10.html</url>
+                        </license>
+                        <license>
+                            <name>GNU Lesser General Public License</name>
+                            <url>http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html</url>
+                        </license>
+                    </acceptableLicenses>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

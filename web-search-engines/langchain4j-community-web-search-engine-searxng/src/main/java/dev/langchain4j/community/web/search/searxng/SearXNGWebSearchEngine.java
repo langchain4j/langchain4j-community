@@ -1,21 +1,20 @@
 package dev.langchain4j.community.web.search.searxng;
 
+import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import dev.langchain4j.web.search.WebSearchEngine;
 import dev.langchain4j.web.search.WebSearchInformationResult;
 import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchRequest;
 import dev.langchain4j.web.search.WebSearchResults;
-
 import java.net.URI;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static dev.langchain4j.internal.Utils.copyIfNotNull;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 /**
  * Represents a SearXNG instance with its API enabled as a {@code WebSearchEngine}.
@@ -26,7 +25,12 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
 
     private SearXNGWebSearchEngine(Builder builder) {
         ensureNotNull(builder.baseUrl, "baseUrl");
-        this.client = new SearXNGClient(builder.baseUrl, getOrDefault(builder.duration, Duration.ofSeconds(10L)), builder.logRequests, builder.logResponses, builder.optionalParams);
+        this.client = new SearXNGClient(
+                builder.baseUrl,
+                getOrDefault(builder.duration, Duration.ofSeconds(10L)),
+                builder.logRequests,
+                builder.logResponses,
+                builder.optionalParams);
     }
 
     /**
@@ -56,7 +60,13 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
     }
 
     private static WebSearchOrganicResult toWebSearchOrganicResult(SearXNGResult result) {
-        return WebSearchOrganicResult.from(result.getTitle(), URI.create(result.getUrl()), result.getContent(), null, extractMetadata(result));
+        // FIXME: temporarily fix URI illegal character, raise a issue to solve it.
+        String url = result.getUrl();
+        int illegalChar = url.indexOf('#');
+        url = illegalChar == -1 ? url : url.substring(0, illegalChar);
+
+        return WebSearchOrganicResult.from(
+                result.getTitle(), URI.create(url), result.getContent(), null, extractMetadata(result));
     }
 
     private static boolean hasValue(String value) {
@@ -75,8 +85,13 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
     public WebSearchResults search(WebSearchRequest webSearchRequest) {
         final SearXNGResponse results = client.search(webSearchRequest);
 
-        return WebSearchResults.from(WebSearchInformationResult.from(results.getNumberOfResults()),
-                results.getResults().stream().filter(r -> includeResult(r)).map(r -> toWebSearchOrganicResult(r)).limit(maxResults(webSearchRequest)).collect(Collectors.toList()));
+        return WebSearchResults.from(
+                WebSearchInformationResult.from(results.getNumberOfResults()),
+                results.getResults().stream()
+                        .filter(SearXNGWebSearchEngine::includeResult)
+                        .map(SearXNGWebSearchEngine::toWebSearchOrganicResult)
+                        .limit(maxResults(webSearchRequest))
+                        .collect(Collectors.toList()));
     }
 
     /**
