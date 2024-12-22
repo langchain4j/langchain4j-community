@@ -48,20 +48,23 @@
         <!-- LangChain4j Community Bill of Materials POM -->
         <module>langchain4j-community-bom</module>
 
-        <!-- LangChain4j Community integration of models -->
+        <!-- Integration of models -->
         <module>models/langchain4j-community-chatglm</module>
         <module>models/langchain4j-community-dashscope</module>
         <module>models/langchain4j-community-qianfan</module>
         <module>models/langchain4j-community-xinference</module>
         <module>models/langchain4j-community-zhipu-ai</module>
 
-        <!-- LangChain4j Community integration of embedding store -->
+        <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
         <module>embedding-stores/langchain4j-community-duckdb</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
 
-        <!-- LangChain4j Community integration of web search engine -->
+        <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
+
+        <!-- Spring Boot Starters -->
+        <module>spring-boot-starters</module>
 
     </modules>
 
