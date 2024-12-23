@@ -155,10 +155,6 @@ public class ClickHouseSettings {
     }
 
     public String getColumnMapping(String key) {
-        if (!containsMetadata()) {
-            return null;
-        }
-
         return columnMap.get(key);
     }
 
