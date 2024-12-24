@@ -49,7 +49,7 @@ Please note that we do not have the capacity to review PRs immediately. We ask f
 - Document the new integration [here](https://github.com/langchain4j/langchain4j/blob/main/README.md), [here](https://github.com/langchain4j/langchain4j/tree/main/docs/docs/integrations/language-models) and [here](https://github.com/langchain4j/langchain4j/blob/main/docs/docs/integrations/language-models/index.md).
 - Add an example to the [examples repository](https://github.com/langchain4j/langchain4j-examples), similar to [this](https://github.com/langchain4j/langchain4j-examples/tree/main/anthropic-examples).
 - Add a new module to the appropriate section of the [BOM](https://github.com/langchain4j/langchain4j-community/blob/main/langchain4j-community-bom/pom.xml).
-- It would be great if you could add a [Spring Boot starter](https://github.com/langchain4j/langchain4j-spring).
+- It would be great if you could add a [Spring Boot starter](https://github.com/langchain4j/langchain4j-community/tree/main/spring-boot-starters). (after
 
 # Guidelines on adding a new embedding store integration
 
@@ -61,7 +61,7 @@ Please note that we do not have the capacity to review PRs immediately. We ask f
 - Document the new integration [here](https://github.com/langchain4j/langchain4j/blob/main/README.md), [here](https://github.com/langchain4j/langchain4j/tree/main/docs/docs/integrations/embedding-stores) and [here](https://github.com/langchain4j/langchain4j/blob/main/docs/docs/integrations/embedding-stores/index.md).
 - Add an example to the [examples repository](https://github.com/langchain4j/langchain4j-examples), similar to [this](https://github.com/langchain4j/langchain4j-examples/tree/main/chroma-example).
 - Add a new module to the appropriate section of the [BOM](https://github.com/langchain4j/langchain4j-community/blob/main/langchain4j-community-bom/pom.xml).
-- It would be great if you could add a [Spring Boot starter](https://github.com/langchain4j/langchain4j-spring). (after
+- It would be great if you could add a [Spring Boot starter](https://github.com/langchain4j/langchain4j-community/tree/main/spring-boot-starters). (after
 
 # Guidelines on changing an existing embedding store integration
 
