@@ -21,11 +21,9 @@ import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -80,8 +78,7 @@ class AutoConfigIT {
                     streamingChatLanguageModel.generate(
                             "What is the capital of Germany?", new StreamingResponseHandler<AiMessage>() {
                                 @Override
-                                public void onNext(String token) {
-                                }
+                                public void onNext(String token) {}
 
                                 @Override
                                 public void onComplete(Response<AiMessage> response) {
@@ -89,8 +86,7 @@ class AutoConfigIT {
                                 }
 
                                 @Override
-                                public void onError(Throwable error) {
-                                }
+                                public void onError(Throwable error) {}
                             });
                     Response<AiMessage> response = future.get(60, SECONDS);
                     assertThat(response.content().text()).contains("Berlin");
@@ -112,8 +108,8 @@ class AutoConfigIT {
                     LanguageModel languageModel = context.getBean(LanguageModel.class);
                     assertThat(languageModel).isInstanceOf(XinferenceLanguageModel.class);
                     assertThat(languageModel
-                            .generate("What is the capital of Germany?")
-                            .content())
+                                    .generate("What is the capital of Germany?")
+                                    .content())
                             .contains("Berlin");
                     assertThat(context.getBean(XinferenceLanguageModel.class)).isSameAs(languageModel);
                 });
@@ -135,8 +131,7 @@ class AutoConfigIT {
                     streamingLanguageModel.generate(
                             "What is the capital of Germany?", new StreamingResponseHandler<String>() {
                                 @Override
-                                public void onNext(String token) {
-                                }
+                                public void onNext(String token) {}
 
                                 @Override
                                 public void onComplete(Response<String> response) {
@@ -144,8 +139,7 @@ class AutoConfigIT {
                                 }
 
                                 @Override
-                                public void onError(Throwable error) {
-                                }
+                                public void onError(Throwable error) {}
                             });
                     Response<String> response = future.get(60, SECONDS);
                     assertThat(response.content()).contains("Berlin");
