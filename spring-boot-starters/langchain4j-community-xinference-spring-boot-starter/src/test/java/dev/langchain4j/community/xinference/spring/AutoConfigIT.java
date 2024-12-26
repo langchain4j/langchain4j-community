@@ -1,5 +1,12 @@
 package dev.langchain4j.community.xinference.spring;
 
+import static dev.langchain4j.community.xinference.spring.XinferenceUtils.CHAT_MODEL_NAME;
+import static dev.langchain4j.community.xinference.spring.XinferenceUtils.EMBEDDING_MODEL_NAME;
+import static dev.langchain4j.community.xinference.spring.XinferenceUtils.GENERATE_MODEL_NAME;
+import static dev.langchain4j.community.xinference.spring.XinferenceUtils.IMAGE_MODEL_NAME;
+import static dev.langchain4j.community.xinference.spring.XinferenceUtils.RERANK_MODEL_NAME;
+import static dev.langchain4j.community.xinference.spring.XinferenceUtils.XINFERENCE_IMAGE;
+import static dev.langchain4j.community.xinference.spring.XinferenceUtils.launchCmd;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,39 +28,37 @@ import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Xinference Cloud
- * https://docs.inference.top/zh
+ *
  */
-@EnabledIfEnvironmentVariable(named = "XINFERENCE_API_KEY", matches = ".+")
+@Testcontainers
 class AutoConfigIT {
-    private static final String API_KEY = System.getenv("XINFERENCE_API_KEY");
-    private static final String BASE_URL = System.getenv("XINFERENCE_BASE_URL");
     ApplicationContextRunner contextRunner =
             new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(AutoConfig.class));
 
-    @AfterEach
-    void waitForNextTest() throws InterruptedException {
-        Thread.sleep(3000); // 每个测试后延时3秒
-    }
+    @Container
+    XinferenceContainer chatModelContainer = new XinferenceContainer(XINFERENCE_IMAGE);
 
     @Test
-    void should_provide_chat_model() {
+    void should_provide_chat_model() throws IOException, InterruptedException {
+        chatModelContainer.execInContainer("bash", "-c", launchCmd(CHAT_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.chat-model.base-url=" + BASE_URL,
-                        "langchain4j.community.xinference.chat-model.api-key=" + API_KEY,
-                        "langchain4j.community.xinference.chat-model.model-name=qwen2-vl-instruct")
+                        "langchain4j.community.xinference.chat-model.base-url=" + chatModelContainer.getEndpoint(),
+                        "langchain4j.community.xinference.chat-model.model-name=" + CHAT_MODEL_NAME,
+                        "langchain4j.community.xinference.language-model.logRequests=true",
+                        "langchain4j.community.xinference.language-model.logResponses=true")
                 .run(context -> {
                     ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
                     assertThat(chatLanguageModel).isInstanceOf(XinferenceChatModel.class);
@@ -64,12 +69,15 @@ class AutoConfigIT {
     }
 
     @Test
-    void should_provide_streaming_chat_model() {
+    void should_provide_streaming_chat_model() throws IOException, InterruptedException {
+        chatModelContainer.execInContainer("bash", "-c", launchCmd(CHAT_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.streaming-chat-model.base-url=" + BASE_URL,
-                        "langchain4j.community.xinference.streaming-chat-model.api-key=" + API_KEY,
-                        "langchain4j.community.xinference.streaming-chat-model.model-name=qwen2-vl-instruct")
+                        "langchain4j.community.xinference.streaming-chat-model.base-url="
+                                + chatModelContainer.getEndpoint(),
+                        "langchain4j.community.xinference.streaming-chat-model.model-name=" + CHAT_MODEL_NAME,
+                        "langchain4j.community.xinference.language-model.logRequests=true",
+                        "langchain4j.community.xinference.language-model.logResponses=true")
                 .run(context -> {
                     StreamingChatLanguageModel streamingChatLanguageModel =
                             context.getBean(StreamingChatLanguageModel.class);
@@ -96,12 +104,12 @@ class AutoConfigIT {
     }
 
     @Test
-    void should_provide_language_model() {
+    void should_provide_language_model() throws IOException, InterruptedException {
+        chatModelContainer.execInContainer("bash", "-c", launchCmd(GENERATE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.language-model.base-url=" + BASE_URL,
-                        "langchain4j.community.xinference.language-model.api-key=" + API_KEY,
-                        "langchain4j.community.xinference.language-model.model-name=qwen2-vl-instruct",
+                        "langchain4j.community.xinference.language-model.base-url=" + chatModelContainer.getEndpoint(),
+                        "langchain4j.community.xinference.language-model.model-name=" + GENERATE_MODEL_NAME,
                         "langchain4j.community.xinference.language-model.logRequests=true",
                         "langchain4j.community.xinference.language-model.logResponses=true")
                 .run(context -> {
@@ -116,12 +124,13 @@ class AutoConfigIT {
     }
 
     @Test
-    void should_provide_streaming_language_model() {
+    void should_provide_streaming_language_model() throws IOException, InterruptedException {
+        chatModelContainer.execInContainer("bash", "-c", launchCmd(GENERATE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.streaming-language-model.base-url=" + BASE_URL,
-                        "langchain4j.community.xinference.streaming-language-model.api-key=" + API_KEY,
-                        "langchain4j.community.xinference.streaming-language-model.model-name=qwen2-vl-instruct",
+                        "langchain4j.community.xinference.streaming-language-model.base-url="
+                                + chatModelContainer.getEndpoint(),
+                        "langchain4j.community.xinference.streaming-language-model.model-name=" + GENERATE_MODEL_NAME,
                         "langchain4j.community.xinference.streaming-language-model.logRequests=true",
                         "langchain4j.community.xinference.streaming-language-model.logResponses=true")
                 .run(context -> {
@@ -150,29 +159,32 @@ class AutoConfigIT {
     }
 
     @Test
-    void should_provide_embedding_model() {
+    void should_provide_embedding_model() throws IOException, InterruptedException {
+        chatModelContainer.execInContainer("bash", "-c", launchCmd(EMBEDDING_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.embeddingModel.base-url=" + BASE_URL,
-                        "langchain4j.community.xinference.embeddingModel.api-key=" + API_KEY,
-                        "langchain4j.community.xinference.embeddingModel.modelName=bge-m3")
+                        "langchain4j.community.xinference.embeddingModel.base-url=" + chatModelContainer.getEndpoint(),
+                        "langchain4j.community.xinference.embeddingModel.modelName=" + EMBEDDING_MODEL_NAME,
+                        "langchain4j.community.xinference.language-model.logRequests=true",
+                        "langchain4j.community.xinference.language-model.logResponses=true")
                 .run(context -> {
                     EmbeddingModel embeddingModel = context.getBean(EmbeddingModel.class);
                     assertThat(embeddingModel).isInstanceOf(XinferenceEmbeddingModel.class);
                     assertThat(embeddingModel.embed("hello world").content().dimension())
-                            .isEqualTo(1024);
+                            .isEqualTo(768);
                     assertThat(context.getBean(XinferenceEmbeddingModel.class)).isSameAs(embeddingModel);
                 });
     }
 
     @Test
-    @Disabled("Xinference Cloud Not Support")
-    void should_provide_sc_model() {
+    void should_provide_sc_model() throws IOException, InterruptedException {
+        chatModelContainer.execInContainer("bash", "-c", launchCmd(RERANK_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.scoringModel.base-url=" + BASE_URL,
-                        "langchain4j.community.xinference.scoringModel.api-key=" + API_KEY,
-                        "langchain4j.community.xinference.scoringModel.modelName=bge-m3")
+                        "langchain4j.community.xinference.scoringModel.base-url=" + chatModelContainer.getEndpoint(),
+                        "langchain4j.community.xinference.scoringModel.modelName=" + RERANK_MODEL_NAME,
+                        "langchain4j.community.xinference.language-model.logRequests=true",
+                        "langchain4j.community.xinference.language-model.logResponses=true")
                 .run(context -> {
                     ScoringModel scoringModel = context.getBean(ScoringModel.class);
                     assertThat(scoringModel).isInstanceOf(XinferenceScoringModel.class);
@@ -184,18 +196,21 @@ class AutoConfigIT {
                     Response<List<Double>> response = scoringModel.scoreAll(segments, query);
                     List<Double> scores = response.content();
                     assertThat(scores).hasSize(2);
-                    assertThat(scores.get(0)).isLessThan(scores.get(1));
+                    assertThat(scores.get(0)).isGreaterThan(scores.get(1));
                     assertThat(context.getBean(XinferenceScoringModel.class)).isSameAs(scoringModel);
                 });
     }
 
     @Test
-    void should_provide_image_model() {
+    @Disabled("Not supported to run in a Docker environment without GPU .")
+    void should_provide_image_model() throws IOException, InterruptedException {
+        chatModelContainer.execInContainer("bash", "-c", launchCmd(IMAGE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.imageModel.base-url=" + BASE_URL,
-                        "langchain4j.community.xinference.imageModel.api-key=" + API_KEY,
-                        "langchain4j.community.xinference.imageModel.modelName=sd3-medium")
+                        "langchain4j.community.xinference.imageModel.base-url=" + chatModelContainer.getEndpoint(),
+                        "langchain4j.community.xinference.imageModel.modelName=" + IMAGE_MODEL_NAME,
+                        "langchain4j.community.xinference.language-model.logRequests=true",
+                        "langchain4j.community.xinference.language-model.logResponses=true")
                 .run(context -> {
                     ImageModel imageModel = context.getBean(ImageModel.class);
                     assertThat(imageModel).isInstanceOf(XinferenceImageModel.class);
