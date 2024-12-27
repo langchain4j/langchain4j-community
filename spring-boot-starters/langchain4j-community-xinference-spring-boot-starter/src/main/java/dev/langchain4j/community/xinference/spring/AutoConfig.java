@@ -98,7 +98,7 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".streaming-language-model.base-url")
-    public XinferenceStreamingLanguageModel streamingLanguageModel(Properties properties) {
+    public XinferenceStreamingLanguageModel xinferenceStreamingLanguageModel(Properties properties) {
         LanguageModelProperties languageModelProperties = properties.getStreamingLanguageModel();
         return XinferenceStreamingLanguageModel.builder()
                 .baseUrl(languageModelProperties.getBaseUrl())
