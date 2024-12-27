@@ -72,7 +72,7 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".language-model.base-url")
-    public XinferenceLanguageModel languageModel(Properties properties) {
+    public XinferenceLanguageModel xinferenceLanguageModel(Properties properties) {
         LanguageModelProperties languageModelProperties = properties.getLanguageModel();
         return XinferenceLanguageModel.builder()
                 .baseUrl(languageModelProperties.getBaseUrl())
