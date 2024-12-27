@@ -123,7 +123,7 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".embedding-model.base-url")
-    public XinferenceEmbeddingModel embeddingModel(Properties properties) {
+    public XinferenceEmbeddingModel xinferenceEmbeddingModel(Properties properties) {
         EmbeddingModelProperties embeddingModelProperties = properties.getEmbeddingModel();
         return XinferenceEmbeddingModel.builder()
                 .baseUrl(embeddingModelProperties.getBaseUrl())
