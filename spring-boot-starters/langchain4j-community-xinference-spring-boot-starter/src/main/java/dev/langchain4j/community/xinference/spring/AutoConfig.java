@@ -163,7 +163,7 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".scoring-model.base-url")
-    public XinferenceScoringModel scoringModel(Properties properties) {
+    public XinferenceScoringModel xinferenceScoringModel(Properties properties) {
         ScoringModelProperties scoringModelProperties = properties.getScoringModel();
         return XinferenceScoringModel.builder()
                 .baseUrl(scoringModelProperties.getBaseUrl())
