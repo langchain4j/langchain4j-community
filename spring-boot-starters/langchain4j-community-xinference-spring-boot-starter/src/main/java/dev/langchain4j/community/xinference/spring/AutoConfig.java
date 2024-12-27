@@ -46,7 +46,7 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".streaming-chat-model.base-url")
-    public XinferenceStreamingChatModel streamingChatModel(Properties properties) {
+    public XinferenceStreamingChatModel xinferenceStreamingChatModel(Properties properties) {
         ChatModelProperties chatModelProperties = properties.getStreamingChatModel();
         return XinferenceStreamingChatModel.builder()
                 .baseUrl(chatModelProperties.getBaseUrl())
