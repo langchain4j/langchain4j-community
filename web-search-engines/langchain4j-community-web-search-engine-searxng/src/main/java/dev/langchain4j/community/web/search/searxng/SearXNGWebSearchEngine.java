@@ -49,6 +49,13 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
         return String.join(",", values.toString());
     }
 
+    static URI makeURI(String urlString) {
+        if (urlString == null || urlString.isBlank()) {
+            throw new IllegalArgumentException("urlString can not be null or blank");
+        }
+        return URI.create(urlString.replaceAll("\\s+", "%20"));
+    }
+
     private static Map<String, String> extractMetadata(SearXNGResult result) {
         final Map<String, String> metadata = new HashMap<>();
         metadata.put("engine", result.getEngine());
@@ -60,13 +67,8 @@ public class SearXNGWebSearchEngine implements WebSearchEngine {
     }
 
     private static WebSearchOrganicResult toWebSearchOrganicResult(SearXNGResult result) {
-        // FIXME: temporarily fix URI illegal character, raise a issue to solve it.
-        String url = result.getUrl();
-        int illegalChar = url.indexOf('#');
-        url = illegalChar == -1 ? url : url.substring(0, illegalChar);
-
         return WebSearchOrganicResult.from(
-                result.getTitle(), URI.create(url), result.getContent(), null, extractMetadata(result));
+                result.getTitle(), makeURI(result.getUrl()), result.getContent(), null, extractMetadata(result));
     }
 
     private static boolean hasValue(String value) {
