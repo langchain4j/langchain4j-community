@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
 @EnableConfigurationProperties(Properties.class)
-public class AutoConfig {
+public class XinferenceAutoConfiguration {
     @Bean
     @ConditionalOnProperty(PREFIX + ".chat-model.base-url")
     public XinferenceChatModel chatModel(Properties properties) {
