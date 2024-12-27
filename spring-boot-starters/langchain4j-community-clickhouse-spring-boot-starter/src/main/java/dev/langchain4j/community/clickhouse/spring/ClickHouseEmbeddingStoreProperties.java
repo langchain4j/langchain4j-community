@@ -17,9 +17,6 @@ public class ClickHouseEmbeddingStoreProperties {
     private String database;
     private String table;
     private Map<String, String> columnMap;
-    /**
-     * TODO: How to parse ClickHouseDataType
-     */
     private Map<String, ClickHouseDataType> metadataTypeMap;
 
     private Integer dimension;
