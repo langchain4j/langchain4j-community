@@ -141,7 +141,7 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".image-model.base-url")
-    public XinferenceImageModel imageModel(Properties properties) {
+    public XinferenceImageModel xinferenceImageModel(Properties properties) {
         ImageModelProperties imageModelProperties = properties.getImageModel();
         return XinferenceImageModel.builder()
                 .baseUrl(imageModelProperties.getBaseUrl())
