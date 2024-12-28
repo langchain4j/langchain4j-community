@@ -62,6 +62,7 @@
 
         <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
+        <module>code-execution-engines/langchain4j-code-execution-engine-javet</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
