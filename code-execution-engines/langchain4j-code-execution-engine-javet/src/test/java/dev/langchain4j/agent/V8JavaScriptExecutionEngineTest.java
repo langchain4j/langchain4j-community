@@ -1,4 +1,4 @@
-package dev.langchain4j.agent;
+package dev.langchain4j.community.agent;
 
 import dev.langchain4j.code.CodeExecutionEngine;
 import org.junit.jupiter.api.Test;
