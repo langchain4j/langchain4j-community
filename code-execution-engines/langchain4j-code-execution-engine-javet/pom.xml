@@ -11,7 +11,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>langchain4j-code-execution-engine-javet</artifactId>
+    <artifactId>langchain4j-community-code-execution-engine-javet</artifactId>
     <packaging>jar</packaging>
 
     <name>LangChain4j :: Community :: Integration :: Javet</name>
