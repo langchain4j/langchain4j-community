@@ -14,7 +14,7 @@
     <artifactId>langchain4j-code-execution-engine-javet</artifactId>
     <packaging>jar</packaging>
 
-    <name>LangChain4j :: Community :: Integration :: V8</name>
+    <name>LangChain4j :: Community :: Integration :: Javet</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
