@@ -20,12 +20,12 @@ public class V8JavaScriptExecutionEngine implements CodeExecutionEngine {
         javetEnginePool = new JavetEnginePool<>(config);
     }
 
-
     @Override
     public String execute(final String code) {
-        try(V8Value v8Value = javetEnginePool.getEngine().getV8Runtime().getExecutor(code).execute()){
+        try (V8Value v8Value =
+                javetEnginePool.getEngine().getV8Runtime().getExecutor(code).execute()) {
             return v8Value.asString();
-        }catch (JavetException e) {
+        } catch (JavetException e) {
             throw new RuntimeException("Execution failed", e);
         }
     }

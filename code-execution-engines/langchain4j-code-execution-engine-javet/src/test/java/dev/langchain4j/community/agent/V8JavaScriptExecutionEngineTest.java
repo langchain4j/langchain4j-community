@@ -1,16 +1,13 @@
 package dev.langchain4j.community.agent;
 
-import dev.langchain4j.code.CodeExecutionEngine;
-import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.*;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
+import dev.langchain4j.code.CodeExecutionEngine;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+import org.junit.jupiter.api.Test;
 
 class V8JavaScriptExecutionEngineTest {
 
@@ -19,12 +16,13 @@ class V8JavaScriptExecutionEngineTest {
     @Test
     void should_execute_code() {
 
-        String code = """
+        String code =
+                """
                 function fibonacci(n) {
                     if (n <= 1) return n;
                     return fibonacci(n - 1) + fibonacci(n - 2);
                 }
-                                
+
                 fibonacci(10)
                 """;
 
@@ -32,7 +30,6 @@ class V8JavaScriptExecutionEngineTest {
 
         assertThat(result).isEqualTo("55");
     }
-
 
     @Test
     void testV8RuntimeThreadSafety() throws InterruptedException, ExecutionException {
@@ -66,6 +63,4 @@ class V8JavaScriptExecutionEngineTest {
             assertEquals("Hello from thread " + i, result, "Unexpected result in thread " + i);
         }
     }
-
-
 }
