@@ -1,4 +1,4 @@
-package dev.langchain4j.agent;
+package dev.langchain4j.community.agent;
 
 import com.caoccao.javet.exceptions.JavetException;
 import com.caoccao.javet.interop.V8Runtime;
