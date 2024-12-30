@@ -45,7 +45,6 @@ class XinferenceContainer extends GenericContainer<XinferenceContainer> {
             });
         }
         this.withExposedPorts(EXPOSED_PORT);
-        this.withEnv(Map.of("XINFERENCE_MODEL_SRC", "modelscope"));
         // https://github.com/xorbitsai/inference/issues/2573
         this.withCommand("bash", "-c", "xinference-local -H 0.0.0.0");
         this.waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(10)));
