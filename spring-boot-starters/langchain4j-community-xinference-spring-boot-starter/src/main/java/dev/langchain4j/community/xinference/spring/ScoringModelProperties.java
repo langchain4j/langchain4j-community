@@ -2,9 +2,13 @@ package dev.langchain4j.community.xinference.spring;
 
 import java.time.Duration;
 import java.util.Map;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
+@ConfigurationProperties(prefix = ScoringModelProperties.PREFIX)
 public class ScoringModelProperties {
+    static final String PREFIX = "langchain4j.community.xinference.scoring-model";
+
     private String baseUrl;
     private String apiKey;
     private String modelName;

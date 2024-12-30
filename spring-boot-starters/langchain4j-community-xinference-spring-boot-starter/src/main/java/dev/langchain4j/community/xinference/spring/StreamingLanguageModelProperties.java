@@ -6,9 +6,9 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
-@ConfigurationProperties(prefix = LanguageModelProperties.PREFIX)
-public class LanguageModelProperties {
-    static final String PREFIX = "langchain4j.community.xinference.language-model";
+@ConfigurationProperties(prefix = StreamingLanguageModelProperties.PREFIX)
+public class StreamingLanguageModelProperties {
+    static final String PREFIX = "langchain4j.community.xinference.streaming-language-model";
 
     private String baseUrl;
     private String apiKey;
@@ -22,7 +22,6 @@ public class LanguageModelProperties {
     private Double presencePenalty;
     private Double frequencyPenalty;
     private String user;
-    private Integer maxRetries;
     private Duration timeout;
 
     @NestedConfigurationProperty
@@ -126,14 +125,6 @@ public class LanguageModelProperties {
 
     public void setUser(final String user) {
         this.user = user;
-    }
-
-    public Integer getMaxRetries() {
-        return maxRetries;
-    }
-
-    public void setMaxRetries(final Integer maxRetries) {
-        this.maxRetries = maxRetries;
     }
 
     public Duration getTimeout() {

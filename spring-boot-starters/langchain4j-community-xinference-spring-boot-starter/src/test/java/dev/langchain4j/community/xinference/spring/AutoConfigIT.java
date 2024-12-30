@@ -45,7 +45,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class AutoConfigIT {
     ApplicationContextRunner contextRunner =
-            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(AutoConfig.class));
+            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(XinferenceAutoConfiguration.class));
 
     @Container
     XinferenceContainer chatModelContainer = new XinferenceContainer(XINFERENCE_IMAGE);
@@ -55,10 +55,10 @@ class AutoConfigIT {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(CHAT_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.chat-model.base-url=" + chatModelContainer.getEndpoint(),
-                        "langchain4j.community.xinference.chat-model.model-name=" + CHAT_MODEL_NAME,
-                        "langchain4j.community.xinference.language-model.logRequests=true",
-                        "langchain4j.community.xinference.language-model.logResponses=true")
+                        ChatModelProperties.PREFIX + ".base-url=" + chatModelContainer.getEndpoint(),
+                        ChatModelProperties.PREFIX + ".model-name=" + CHAT_MODEL_NAME,
+                        ChatModelProperties.PREFIX + ".logRequests=true",
+                        ChatModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
                     ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
                     assertThat(chatLanguageModel).isInstanceOf(XinferenceChatModel.class);
@@ -73,11 +73,10 @@ class AutoConfigIT {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(CHAT_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.streaming-chat-model.base-url="
-                                + chatModelContainer.getEndpoint(),
-                        "langchain4j.community.xinference.streaming-chat-model.model-name=" + CHAT_MODEL_NAME,
-                        "langchain4j.community.xinference.language-model.logRequests=true",
-                        "langchain4j.community.xinference.language-model.logResponses=true")
+                        StreamingChatModelProperties.PREFIX + ".base-url=" + chatModelContainer.getEndpoint(),
+                        StreamingChatModelProperties.PREFIX + ".model-name=" + CHAT_MODEL_NAME,
+                        StreamingChatModelProperties.PREFIX + ".logRequests=true",
+                        StreamingChatModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
                     StreamingChatLanguageModel streamingChatLanguageModel =
                             context.getBean(StreamingChatLanguageModel.class);
@@ -108,10 +107,10 @@ class AutoConfigIT {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(GENERATE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.language-model.base-url=" + chatModelContainer.getEndpoint(),
-                        "langchain4j.community.xinference.language-model.model-name=" + GENERATE_MODEL_NAME,
-                        "langchain4j.community.xinference.language-model.logRequests=true",
-                        "langchain4j.community.xinference.language-model.logResponses=true")
+                        LanguageModelProperties.PREFIX + ".base-url=" + chatModelContainer.getEndpoint(),
+                        LanguageModelProperties.PREFIX + ".model-name=" + GENERATE_MODEL_NAME,
+                        LanguageModelProperties.PREFIX + ".logRequests=true",
+                        LanguageModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
                     LanguageModel languageModel = context.getBean(LanguageModel.class);
                     assertThat(languageModel).isInstanceOf(XinferenceLanguageModel.class);
@@ -128,11 +127,10 @@ class AutoConfigIT {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(GENERATE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.streaming-language-model.base-url="
-                                + chatModelContainer.getEndpoint(),
-                        "langchain4j.community.xinference.streaming-language-model.model-name=" + GENERATE_MODEL_NAME,
-                        "langchain4j.community.xinference.streaming-language-model.logRequests=true",
-                        "langchain4j.community.xinference.streaming-language-model.logResponses=true")
+                        StreamingLanguageModelProperties.PREFIX + ".base-url=" + chatModelContainer.getEndpoint(),
+                        StreamingLanguageModelProperties.PREFIX + ".model-name=" + GENERATE_MODEL_NAME,
+                        StreamingLanguageModelProperties.PREFIX + ".logRequests=true",
+                        StreamingLanguageModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
                     StreamingLanguageModel streamingLanguageModel = context.getBean(StreamingLanguageModel.class);
                     assertThat(streamingLanguageModel).isInstanceOf(XinferenceStreamingLanguageModel.class);
@@ -163,10 +161,10 @@ class AutoConfigIT {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(EMBEDDING_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.embeddingModel.base-url=" + chatModelContainer.getEndpoint(),
-                        "langchain4j.community.xinference.embeddingModel.modelName=" + EMBEDDING_MODEL_NAME,
-                        "langchain4j.community.xinference.language-model.logRequests=true",
-                        "langchain4j.community.xinference.language-model.logResponses=true")
+                        EmbeddingModelProperties.PREFIX + ".base-url=" + chatModelContainer.getEndpoint(),
+                        EmbeddingModelProperties.PREFIX + ".modelName=" + EMBEDDING_MODEL_NAME,
+                        EmbeddingModelProperties.PREFIX + ".logRequests=true",
+                        EmbeddingModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
                     EmbeddingModel embeddingModel = context.getBean(EmbeddingModel.class);
                     assertThat(embeddingModel).isInstanceOf(XinferenceEmbeddingModel.class);
@@ -181,10 +179,10 @@ class AutoConfigIT {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(RERANK_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.scoringModel.base-url=" + chatModelContainer.getEndpoint(),
-                        "langchain4j.community.xinference.scoringModel.modelName=" + RERANK_MODEL_NAME,
-                        "langchain4j.community.xinference.language-model.logRequests=true",
-                        "langchain4j.community.xinference.language-model.logResponses=true")
+                        ScoringModelProperties.PREFIX + ".base-url=" + chatModelContainer.getEndpoint(),
+                        ScoringModelProperties.PREFIX + ".modelName=" + RERANK_MODEL_NAME,
+                        ScoringModelProperties.PREFIX + ".logRequests=true",
+                        ScoringModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
                     ScoringModel scoringModel = context.getBean(ScoringModel.class);
                     assertThat(scoringModel).isInstanceOf(XinferenceScoringModel.class);
@@ -207,10 +205,10 @@ class AutoConfigIT {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(IMAGE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
-                        "langchain4j.community.xinference.imageModel.base-url=" + chatModelContainer.getEndpoint(),
-                        "langchain4j.community.xinference.imageModel.modelName=" + IMAGE_MODEL_NAME,
-                        "langchain4j.community.xinference.language-model.logRequests=true",
-                        "langchain4j.community.xinference.language-model.logResponses=true")
+                        ImageModelProperties.PREFIX + ".base-url=" + chatModelContainer.getEndpoint(),
+                        ImageModelProperties.PREFIX + ".modelName=" + IMAGE_MODEL_NAME,
+                        ImageModelProperties.PREFIX + ".logRequests=true",
+                        ImageModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
                     ImageModel imageModel = context.getBean(ImageModel.class);
                     assertThat(imageModel).isInstanceOf(XinferenceImageModel.class);

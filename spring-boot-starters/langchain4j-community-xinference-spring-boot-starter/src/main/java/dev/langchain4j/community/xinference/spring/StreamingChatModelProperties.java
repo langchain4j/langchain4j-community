@@ -6,23 +6,23 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
-@ConfigurationProperties(prefix = LanguageModelProperties.PREFIX)
-public class LanguageModelProperties {
-    static final String PREFIX = "langchain4j.community.xinference.language-model";
+@ConfigurationProperties(prefix = StreamingChatModelProperties.PREFIX)
+public class StreamingChatModelProperties {
+    static final String PREFIX = "langchain4j.community.xinference.streaming-chat-model";
 
     private String baseUrl;
     private String apiKey;
     private String modelName;
-    private Integer maxTokens;
     private Double temperature;
     private Double topP;
-    private Integer logprobs;
-    private Boolean echo;
     private List<String> stop;
+    private Integer maxTokens;
     private Double presencePenalty;
     private Double frequencyPenalty;
+    private Integer seed;
     private String user;
-    private Integer maxRetries;
+    private Object toolChoice;
+    private Boolean parallelToolCalls;
     private Duration timeout;
 
     @NestedConfigurationProperty
@@ -56,14 +56,6 @@ public class LanguageModelProperties {
         this.modelName = modelName;
     }
 
-    public Integer getMaxTokens() {
-        return maxTokens;
-    }
-
-    public void setMaxTokens(final Integer maxTokens) {
-        this.maxTokens = maxTokens;
-    }
-
     public Double getTemperature() {
         return temperature;
     }
@@ -80,28 +72,20 @@ public class LanguageModelProperties {
         this.topP = topP;
     }
 
-    public Integer getLogprobs() {
-        return logprobs;
-    }
-
-    public void setLogprobs(final Integer logprobs) {
-        this.logprobs = logprobs;
-    }
-
-    public Boolean getEcho() {
-        return echo;
-    }
-
-    public void setEcho(final Boolean echo) {
-        this.echo = echo;
-    }
-
     public List<String> getStop() {
         return stop;
     }
 
     public void setStop(final List<String> stop) {
         this.stop = stop;
+    }
+
+    public Integer getMaxTokens() {
+        return maxTokens;
+    }
+
+    public void setMaxTokens(final Integer maxTokens) {
+        this.maxTokens = maxTokens;
     }
 
     public Double getPresencePenalty() {
@@ -120,6 +104,14 @@ public class LanguageModelProperties {
         this.frequencyPenalty = frequencyPenalty;
     }
 
+    public Integer getSeed() {
+        return seed;
+    }
+
+    public void setSeed(final Integer seed) {
+        this.seed = seed;
+    }
+
     public String getUser() {
         return user;
     }
@@ -128,12 +120,20 @@ public class LanguageModelProperties {
         this.user = user;
     }
 
-    public Integer getMaxRetries() {
-        return maxRetries;
+    public Object getToolChoice() {
+        return toolChoice;
     }
 
-    public void setMaxRetries(final Integer maxRetries) {
-        this.maxRetries = maxRetries;
+    public void setToolChoice(final Object toolChoice) {
+        this.toolChoice = toolChoice;
+    }
+
+    public Boolean getParallelToolCalls() {
+        return parallelToolCalls;
+    }
+
+    public void setParallelToolCalls(final Boolean parallelToolCalls) {
+        this.parallelToolCalls = parallelToolCalls;
     }
 
     public Duration getTimeout() {
