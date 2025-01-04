@@ -18,8 +18,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.testcontainers.clickhouse.ClickHouseContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -43,11 +41,6 @@ class ClickHouseEmbeddingStoreAutoConfigurationIT extends EmbeddingStoreAutoConf
     static void afterAll() {
         clickhouse.stop();
     }
-
-    // FIXME: make parent contextRunner protected to reuse the contextRunner
-    // TODO: make test source available
-    ApplicationContextRunner contextRunner =
-            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(autoConfigurationClass()));
 
     @Test
     void should_respect_metadata_type_map() {
