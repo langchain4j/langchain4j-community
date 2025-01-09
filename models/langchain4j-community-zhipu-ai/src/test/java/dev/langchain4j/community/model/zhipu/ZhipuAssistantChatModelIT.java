@@ -2,6 +2,7 @@ package dev.langchain4j.community.model.zhipu;
 
 import dev.langchain4j.community.model.zhipu.assistant.AssistantKeyValuePair;
 import dev.langchain4j.community.model.zhipu.assistant.conversation.ConversationId;
+import dev.langchain4j.community.model.zhipu.assistant.problem.Problems;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.output.Response;
@@ -64,6 +65,15 @@ class ZhipuAssistantChatModelIT {
         // then
         assertThat(response.content().text()).contains("北京");
     }
+
+
+    @Test
+    void recommend_problems() {
+        String conversationId = getConversationId();
+        Problems problems = chatModel.sessionRecord(conversationId);
+        assertThat(problems.getProblems()).isNotEmpty();
+    }
+
 
     /**
      * create conversationId

@@ -81,7 +81,7 @@ interface ZhipuAiApi {
      * @param conversationId 会话编号
      * @return ProblemsResponse
      */
-    @POST("api/llm-application/open/history_session_record/{app_id}/{conversation_id}")
+    @GET("api/llm-application/open/history_session_record/{app_id}/{conversation_id}")
     @Headers({"Content-Type: application/json"})
     Call<ProblemsResponse> sessionRecord(@Path("app_id") String appId, @Path("conversation_id") String conversationId);
 }

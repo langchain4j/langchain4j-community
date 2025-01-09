@@ -8,10 +8,8 @@ import dev.langchain4j.community.model.zhipu.assistant.AssistantType;
 import dev.langchain4j.community.model.zhipu.assistant.conversation.ConversationId;
 import dev.langchain4j.community.model.zhipu.assistant.conversation.ConversationRequest;
 import dev.langchain4j.community.model.zhipu.assistant.problem.Problems;
-import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
 import dev.langchain4j.community.model.zhipu.spi.ZhipuAssistantChatModelBuilderFactory;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.StreamingResponseHandler;
 import java.time.Duration;
 import java.util.List;
@@ -31,7 +29,6 @@ public class ZhipuAssistantChatModel {
             String baseUrl,
             String apiKey,
             String appId,
-            String model,
             Boolean logRequests,
             Boolean logResponses,
             Duration callTimeout,
@@ -118,24 +115,12 @@ public class ZhipuAssistantChatModel {
         private String baseUrl;
         private String apiKey;
         private String appId;
-        private String model;
         private Boolean logRequests;
         private Boolean logResponses;
         private Duration callTimeout;
         private Duration connectTimeout;
         private Duration readTimeout;
         private Duration writeTimeout;
-
-        public ZhipuAssistantChatModelBuilder model(ChatCompletionModel model) {
-            this.model = model.toString();
-            return this;
-        }
-
-        public ZhipuAssistantChatModelBuilder model(String model) {
-            ValidationUtils.ensureNotBlank(model, "model");
-            this.model = model;
-            return this;
-        }
 
         public ZhipuAssistantChatModelBuilder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
@@ -187,7 +172,6 @@ public class ZhipuAssistantChatModel {
                     this.baseUrl,
                     this.apiKey,
                     this.appId,
-                    this.model,
                     this.logRequests,
                     this.logResponses,
                     this.callTimeout,
