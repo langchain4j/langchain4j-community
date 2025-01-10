@@ -14,7 +14,7 @@ import dev.langchain4j.model.StreamingResponseHandler;
 import java.time.Duration;
 import java.util.List;
 
-public class ZhipuAssistantChatModel {
+public class ZhipuAiAssistant {
 
     private final String appId;
     private final ZhipuAssistantClient client;
