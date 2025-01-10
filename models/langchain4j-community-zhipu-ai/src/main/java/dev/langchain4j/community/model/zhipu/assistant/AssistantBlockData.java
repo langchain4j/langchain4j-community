@@ -31,7 +31,7 @@ public class AssistantBlockData {
         return blockType;
     }
 
-    public void setBlockType(final String blockType) {
+    public void setBlockType(String blockType) {
         this.blockType = blockType;
     }
 
