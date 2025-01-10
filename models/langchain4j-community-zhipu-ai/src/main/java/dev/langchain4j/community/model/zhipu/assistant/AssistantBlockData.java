@@ -47,7 +47,7 @@ public class AssistantBlockData {
         return errorMsg;
     }
 
-    public void setErrorMsg(final String errorMsg) {
+    public void setErrorMsg(String errorMsg) {
         this.errorMsg = errorMsg;
     }
 
@@ -55,7 +55,7 @@ public class AssistantBlockData {
         return blockDur;
     }
 
-    public void setBlockDur(final String blockDur) {
+    public void setBlockDur(String blockDur) {
         this.blockDur = blockDur;
     }
 
@@ -63,7 +63,7 @@ public class AssistantBlockData {
         return outPut;
     }
 
-    public void setOutPut(final AssistantOutPut outPut) {
+    public void setOutPut(AssistantOutPut outPut) {
         this.outPut = outPut;
     }
 }

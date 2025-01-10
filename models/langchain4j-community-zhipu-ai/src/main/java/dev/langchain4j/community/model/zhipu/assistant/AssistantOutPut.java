@@ -19,7 +19,7 @@ public class AssistantOutPut {
         return functionExecTime;
     }
 
-    public void setFunctionExecTime(final String functionExecTime) {
+    public void setFunctionExecTime(String functionExecTime) {
         this.functionExecTime = functionExecTime;
     }
 
@@ -27,7 +27,7 @@ public class AssistantOutPut {
         return modelExecTime;
     }
 
-    public void setModelExecTime(final String modelExecTime) {
+    public void setModelExecTime(String modelExecTime) {
         this.modelExecTime = modelExecTime;
     }
 
@@ -35,7 +35,7 @@ public class AssistantOutPut {
         return outContent;
     }
 
-    public void setOutContent(final String outContent) {
+    public void setOutContent(String outContent) {
         this.outContent = outContent;
     }
 }

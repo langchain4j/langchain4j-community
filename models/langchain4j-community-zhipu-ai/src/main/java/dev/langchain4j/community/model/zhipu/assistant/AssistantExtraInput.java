@@ -22,7 +22,7 @@ public class AssistantExtraInput {
         return requestId;
     }
 
-    public void setRequestId(final String requestId) {
+    public void setRequestId(String requestId) {
         this.requestId = requestId;
     }
 
@@ -30,7 +30,7 @@ public class AssistantExtraInput {
         return nodeId;
     }
 
-    public void setNodeId(final String nodeId) {
+    public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -38,7 +38,7 @@ public class AssistantExtraInput {
         return pushType;
     }
 
-    public void setPushType(final String pushType) {
+    public void setPushType(String pushType) {
         this.pushType = pushType;
     }
 
@@ -46,7 +46,7 @@ public class AssistantExtraInput {
         return nodeData;
     }
 
-    public void setNodeData(final AssistantNodeData nodeData) {
+    public void setNodeData(AssistantNodeData nodeData) {
         this.nodeData = nodeData;
     }
 
@@ -54,7 +54,7 @@ public class AssistantExtraInput {
         return blockData;
     }
 
-    public void setBlockData(final AssistantBlockData blockData) {
+    public void setBlockData(AssistantBlockData blockData) {
         this.blockData = blockData;
     }
 }

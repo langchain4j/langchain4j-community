@@ -21,7 +21,7 @@ public class AssistantSupportResponse implements ClientResponse<List<AssistantKe
     }
 
     @Override
-    public void setCode(final int code) {
+    public void setCode(int code) {
         this.code = code;
     }
 
@@ -30,7 +30,7 @@ public class AssistantSupportResponse implements ClientResponse<List<AssistantKe
     }
 
     @Override
-    public void setMessage(final String message) {
+    public void setMessage(String message) {
         this.message = message;
     }
 
@@ -40,7 +40,7 @@ public class AssistantSupportResponse implements ClientResponse<List<AssistantKe
     }
 
     @Override
-    public void setData(final List<AssistantKeyValuePair> data) {
+    public void setData(List<AssistantKeyValuePair> data) {
         this.data = data;
     }
 }

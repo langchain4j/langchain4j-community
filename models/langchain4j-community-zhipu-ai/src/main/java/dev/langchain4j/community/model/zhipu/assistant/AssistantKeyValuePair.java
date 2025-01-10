@@ -29,7 +29,7 @@ public class AssistantKeyValuePair {
         return id;
     }
 
-    public void setId(final String id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -37,7 +37,7 @@ public class AssistantKeyValuePair {
         return name;
     }
 
-    public void setName(final String name) {
+    public void setName(String name) {
         this.name = name;
     }
 
@@ -45,7 +45,7 @@ public class AssistantKeyValuePair {
         return type;
     }
 
-    public void setType(final String type) {
+    public void setType(String type) {
         this.type = type;
     }
 
@@ -53,7 +53,7 @@ public class AssistantKeyValuePair {
         return value;
     }
 
-    public void setValue(final String value) {
+    public void setValue(String value) {
         this.value = value;
     }
 
@@ -61,7 +61,7 @@ public class AssistantKeyValuePair {
         return tips;
     }
 
-    public void setTips(final String tips) {
+    public void setTips(String tips) {
         this.tips = tips;
     }
 
@@ -69,7 +69,7 @@ public class AssistantKeyValuePair {
         return allowValues;
     }
 
-    public void setAllowValues(final List<String> allowValues) {
+    public void setAllowValues(List<String> allowValues) {
         this.allowValues = allowValues;
     }
 
@@ -77,7 +77,7 @@ public class AssistantKeyValuePair {
         return files;
     }
 
-    public void setFiles(final List<String> files) {
+    public void setFiles(List<String> files) {
         this.files = files;
     }
 
@@ -85,7 +85,7 @@ public class AssistantKeyValuePair {
         return ivfiles;
     }
 
-    public void setIvfiles(final List<FileData> ivfiles) {
+    public void setIvfiles(List<FileData> ivfiles) {
         this.ivfiles = ivfiles;
     }
 
@@ -93,7 +93,7 @@ public class AssistantKeyValuePair {
         return inputTemplate;
     }
 
-    public void setInputTemplate(final InputTemplate inputTemplate) {
+    public void setInputTemplate(InputTemplate inputTemplate) {
         this.inputTemplate = inputTemplate;
     }
 
@@ -101,7 +101,7 @@ public class AssistantKeyValuePair {
         return inputTemplates;
     }
 
-    public void setInputTemplates(final List<InputTemplate> inputTemplates) {
+    public void setInputTemplates(List<InputTemplate> inputTemplates) {
         this.inputTemplates = inputTemplates;
     }
 }

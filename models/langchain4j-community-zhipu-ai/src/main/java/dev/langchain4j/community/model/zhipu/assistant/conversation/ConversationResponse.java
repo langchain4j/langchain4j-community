@@ -21,7 +21,7 @@ public class ConversationResponse implements ClientResponse<ConversationId> {
     }
 
     @Override
-    public void setCode(final int code) {
+    public void setCode(int code) {
         this.code = code;
     }
 
@@ -30,7 +30,7 @@ public class ConversationResponse implements ClientResponse<ConversationId> {
     }
 
     @Override
-    public void setMessage(final String message) {
+    public void setMessage(String message) {
         this.message = message;
     }
 
@@ -39,7 +39,7 @@ public class ConversationResponse implements ClientResponse<ConversationId> {
         return data;
     }
 
-    public void setData(final ConversationId data) {
+    public void setData(ConversationId data) {
         this.data = data;
     }
 }

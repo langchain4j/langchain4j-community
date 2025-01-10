@@ -16,7 +16,7 @@ public class FileData {
         return type;
     }
 
-    public void setType(final Integer type) {
+    public void setType(Integer type) {
         this.type = type;
     }
 
@@ -24,7 +24,7 @@ public class FileData {
         return url;
     }
 
-    public void setUrl(final String url) {
+    public void setUrl(String url) {
         this.url = url;
     }
 }

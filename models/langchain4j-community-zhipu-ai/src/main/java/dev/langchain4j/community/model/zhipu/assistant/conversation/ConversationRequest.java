@@ -12,7 +12,7 @@ import java.util.List;
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public final class ConversationRequest {
+public class ConversationRequest {
 
     private String appId;
     private String conversationId;
@@ -24,12 +24,12 @@ public final class ConversationRequest {
     public ConversationRequest() {}
 
     public ConversationRequest(
-            final String appId,
-            final String conversationId,
-            final String assistantId,
-            final List<AssistantKeyValuePair> keyValuePairs,
-            final List<String> documentIds,
-            final List<String> knowledgeIds) {
+            String appId,
+            String conversationId,
+            String assistantId,
+            List<AssistantKeyValuePair> keyValuePairs,
+            List<String> documentIds,
+            List<String> knowledgeIds) {
         this.appId = appId;
         this.conversationId = conversationId;
         this.assistantId = assistantId;
@@ -46,7 +46,7 @@ public final class ConversationRequest {
         return appId;
     }
 
-    public void setAppId(final String appId) {
+    public void setAppId(String appId) {
         this.appId = appId;
     }
 
@@ -54,7 +54,7 @@ public final class ConversationRequest {
         return conversationId;
     }
 
-    public void setConversationId(final String conversationId) {
+    public void setConversationId(String conversationId) {
         this.conversationId = conversationId;
     }
 
@@ -62,7 +62,7 @@ public final class ConversationRequest {
         return assistantId;
     }
 
-    public void setAssistantId(final String assistantId) {
+    public void setAssistantId(String assistantId) {
         this.assistantId = assistantId;
     }
 
@@ -70,7 +70,7 @@ public final class ConversationRequest {
         return keyValuePairs;
     }
 
-    public void setKeyValuePairs(final List<AssistantKeyValuePair> keyValuePairs) {
+    public void setKeyValuePairs(List<AssistantKeyValuePair> keyValuePairs) {
         this.keyValuePairs = keyValuePairs;
     }
 
@@ -78,7 +78,7 @@ public final class ConversationRequest {
         return documentIds;
     }
 
-    public void setDocumentIds(final List<String> documentIds) {
+    public void setDocumentIds(List<String> documentIds) {
         this.documentIds = documentIds;
     }
 
@@ -86,7 +86,7 @@ public final class ConversationRequest {
         return knowledgeIds;
     }
 
-    public void setKnowledgeIds(final List<String> knowledgeIds) {
+    public void setKnowledgeIds(List<String> knowledgeIds) {
         this.knowledgeIds = knowledgeIds;
     }
 

@@ -22,7 +22,7 @@ public class AssistantNodeData {
         return nodeId;
     }
 
-    public void setNodeId(final String nodeId) {
+    public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -30,7 +30,7 @@ public class AssistantNodeData {
         return nodeType;
     }
 
-    public void setNodeType(final String nodeType) {
+    public void setNodeType(String nodeType) {
         this.nodeType = nodeType;
     }
 
@@ -38,7 +38,7 @@ public class AssistantNodeData {
         return nodeName;
     }
 
-    public void setNodeName(final String nodeName) {
+    public void setNodeName(String nodeName) {
         this.nodeName = nodeName;
     }
 
@@ -46,7 +46,7 @@ public class AssistantNodeData {
         return nodeStatus;
     }
 
-    public void setNodeStatus(final String nodeStatus) {
+    public void setNodeStatus(String nodeStatus) {
         this.nodeStatus = nodeStatus;
     }
 
@@ -54,7 +54,7 @@ public class AssistantNodeData {
         return nodeDur;
     }
 
-    public void setNodeDur(final String nodeDur) {
+    public void setNodeDur(String nodeDur) {
         this.nodeDur = nodeDur;
     }
 }

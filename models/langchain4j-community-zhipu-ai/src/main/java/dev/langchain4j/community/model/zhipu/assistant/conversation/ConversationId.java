@@ -19,7 +19,7 @@ public class ConversationId {
         return id;
     }
 
-    public void setId(final String id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -27,7 +27,7 @@ public class ConversationId {
         return conversationId;
     }
 
-    public void setConversationId(final String conversationId) {
+    public void setConversationId(String conversationId) {
         this.conversationId = conversationId;
     }
 }

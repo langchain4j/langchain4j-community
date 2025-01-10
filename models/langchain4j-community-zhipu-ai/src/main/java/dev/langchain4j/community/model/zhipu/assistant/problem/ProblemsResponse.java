@@ -18,7 +18,7 @@ public class ProblemsResponse implements ClientResponse<Problems> {
     }
 
     @Override
-    public void setCode(final int code) {
+    public void setCode(int code) {
         this.code = code;
     }
 
@@ -27,7 +27,7 @@ public class ProblemsResponse implements ClientResponse<Problems> {
     }
 
     @Override
-    public void setMessage(final String message) {
+    public void setMessage(String message) {
         this.message = message;
     }
 
@@ -36,7 +36,7 @@ public class ProblemsResponse implements ClientResponse<Problems> {
         return data;
     }
 
-    public void setData(final Problems data) {
+    public void setData(Problems data) {
         this.data = data;
     }
 }

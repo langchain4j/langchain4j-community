@@ -24,7 +24,7 @@ public class AssistantCompletion {
         return msg;
     }
 
-    public void setMsg(final String msg) {
+    public void setMsg(String msg) {
         this.msg = msg;
     }
 
@@ -32,7 +32,7 @@ public class AssistantCompletion {
         return extraInput;
     }
 
-    public void setExtraInput(final AssistantExtraInput extraInput) {
+    public void setExtraInput(AssistantExtraInput extraInput) {
         this.extraInput = extraInput;
     }
 
@@ -40,7 +40,7 @@ public class AssistantCompletion {
         return usage;
     }
 
-    public void setUsage(final Usage usage) {
+    public void setUsage(Usage usage) {
         this.usage = usage;
     }
 }

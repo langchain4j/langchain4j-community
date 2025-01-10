@@ -2,13 +2,14 @@ package dev.langchain4j.community.model.zhipu;
 
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.time.Duration.ofSeconds;
 
 import dev.langchain4j.community.model.zhipu.assistant.AssistantKeyValuePair;
 import dev.langchain4j.community.model.zhipu.assistant.AssistantType;
 import dev.langchain4j.community.model.zhipu.assistant.conversation.ConversationId;
 import dev.langchain4j.community.model.zhipu.assistant.conversation.ConversationRequest;
 import dev.langchain4j.community.model.zhipu.assistant.problem.Problems;
-import dev.langchain4j.community.model.zhipu.spi.ZhipuAssistantChatModelBuilderFactory;
+import dev.langchain4j.community.model.zhipu.spi.ZhipuAssistantBuilderFactory;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
 import java.time.Duration;
@@ -19,7 +20,7 @@ public class ZhipuAiAssistant {
     private final String appId;
     private final ZhipuAssistantClient client;
 
-    public ZhipuAssistantChatModel(
+    public ZhipuAiAssistant(
             String baseUrl,
             String apiKey,
             String appId,
@@ -43,8 +44,7 @@ public class ZhipuAiAssistant {
     }
 
     public static ZhipuAssistantChatModelBuilder builder() {
-        for (ZhipuAssistantChatModelBuilderFactory factories :
-                loadFactories(ZhipuAssistantChatModelBuilderFactory.class)) {
+        for (ZhipuAssistantBuilderFactory factories : loadFactories(ZhipuAssistantBuilderFactory.class)) {
             return factories.get();
         }
         return new ZhipuAssistantChatModelBuilder();
@@ -151,8 +151,8 @@ public class ZhipuAiAssistant {
             return this;
         }
 
-        public ZhipuAssistantChatModel build() {
-            return new ZhipuAssistantChatModel(
+        public ZhipuAiAssistant build() {
+            return new ZhipuAiAssistant(
                     this.baseUrl,
                     this.apiKey,
                     this.appId,

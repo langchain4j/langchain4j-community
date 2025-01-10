@@ -25,7 +25,7 @@ class ZhipuAssistantChatModelIT {
     // Your own appId
     private static final String appId = "";
 
-    ZhipuAssistantChatModel chatModel = ZhipuAssistantChatModel.builder()
+    ZhipuAiAssistant chatModel = ZhipuAiAssistant.builder()
             .apiKey(apiKey)
             .appId(appId)
             .connectTimeout(ofSeconds(60))

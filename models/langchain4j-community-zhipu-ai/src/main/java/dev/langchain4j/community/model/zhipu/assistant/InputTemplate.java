@@ -20,7 +20,7 @@ public class InputTemplate {
         return splicingTemplate;
     }
 
-    public void setSplicingTemplate(final String splicingTemplate) {
+    public void setSplicingTemplate(String splicingTemplate) {
         this.splicingTemplate = splicingTemplate;
     }
 
@@ -28,7 +28,7 @@ public class InputTemplate {
         return options;
     }
 
-    public void setOptions(final List<AssistantKeyValuePair> options) {
+    public void setOptions(List<AssistantKeyValuePair> options) {
         this.options = options;
     }
 }
