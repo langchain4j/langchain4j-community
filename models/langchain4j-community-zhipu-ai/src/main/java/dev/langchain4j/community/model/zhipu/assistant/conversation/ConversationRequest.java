@@ -9,44 +9,16 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.zhipu.assistant.AssistantKeyValuePair;
 import java.util.List;
 
-/**
- * 3.5 创建对话或创作请求 (只支持增量模式)
- * @author cuiwei
- * @since  2024/11/25
- */
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class ConversationRequest {
 
-    /**
-     * 智能体（应用）id
-     */
     private String appId;
-
-    /**
-     * 会话 ID
-     */
     private String conversationId;
-
-    /**
-     * 智能体 ID（目前无用）
-     */
     private String assistantId;
-
-    /**
-     * 输入模版中的变量列表
-     */
     private List<AssistantKeyValuePair> keyValuePairs;
-
-    /**
-     * 适用问答类智能体（应用）:  用于知识筛选, 不传默认使用智能体（应用）配置
-     */
     private List<String> documentIds;
-
-    /**
-     * 适用问答类智能体（应用）:  用于知识筛选, 不传默认使用智能体（应用）配置
-     */
     private List<String> knowledgeIds;
 
     public ConversationRequest() {}

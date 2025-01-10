@@ -12,13 +12,8 @@ import java.util.List;
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InputTemplate {
-    /**
-     * 输入模版
-     */
+
     private String splicingTemplate;
-    /**
-     * 输入模版中的变量列表
-     */
     private List<AssistantKeyValuePair> options;
 
     public String getSplicingTemplate() {

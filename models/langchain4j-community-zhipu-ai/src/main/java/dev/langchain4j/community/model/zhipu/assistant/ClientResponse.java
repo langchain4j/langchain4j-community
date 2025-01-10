@@ -2,10 +2,6 @@ package dev.langchain4j.community.model.zhipu.assistant;
 
 import java.util.Objects;
 
-/**
- * 封装返回结果
- * @param <T>
- */
 public interface ClientResponse<T> {
 
     T getData();

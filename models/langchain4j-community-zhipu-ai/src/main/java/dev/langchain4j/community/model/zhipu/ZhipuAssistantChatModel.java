@@ -14,12 +14,6 @@ import dev.langchain4j.model.StreamingResponseHandler;
 import java.time.Duration;
 import java.util.List;
 
-/**
- * 智谱清言-清流智能体模型
- *
- * @author cuiwei
- * @since 2024-11-25
- */
 public class ZhipuAssistantChatModel {
 
     private final String appId;
@@ -56,20 +50,10 @@ public class ZhipuAssistantChatModel {
         return new ZhipuAssistantChatModelBuilder();
     }
 
-    /**
-     * 获取智能体（智能体（应用））输入参数
-     *
-     * @return List<AssistantKeyValuePair>
-     */
     public List<AssistantKeyValuePair> variables() {
         return client.variables(appId);
     }
 
-    /**
-     * 创建新会话
-     *
-     * @return ConversationId
-     */
     public ConversationId conversation() {
         return client.conversation(appId);
     }

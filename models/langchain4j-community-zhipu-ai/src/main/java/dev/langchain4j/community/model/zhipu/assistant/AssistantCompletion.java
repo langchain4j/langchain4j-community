@@ -16,19 +16,8 @@ import dev.langchain4j.community.model.zhipu.shared.Usage;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssistantCompletion {
 
-    /**
-     * 模型响应消息
-     */
     private String msg;
-
-    /**
-     * 节点执行日志: 如 触发的agent工具动作, 节点跳转等
-     */
     private AssistantExtraInput extraInput;
-
-    /**
-     * token消耗, event为finish、errorhandler会有此值
-     */
     private Usage usage;
 
     public String getMsg() {

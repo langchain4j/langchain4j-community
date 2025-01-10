@@ -11,17 +11,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssistantOutPut {
-    /**
-     * function执行时间 单位秒 一位小数
-     */
     private String functionExecTime;
-    /**
-     * 模型执行时间 单位秒 一位小数
-     */
     private String modelExecTime;
-    /**
-     * 输出内容
-     */
     private String outContent;
 
     public String getFunctionExecTime() {

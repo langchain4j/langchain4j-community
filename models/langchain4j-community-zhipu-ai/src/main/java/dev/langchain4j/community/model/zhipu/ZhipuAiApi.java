@@ -39,48 +39,23 @@ interface ZhipuAiApi {
     @Headers({"Content-Type: application/json"})
     Call<ImageResponse> generations(@Body ImageRequest request);
 
-    /**
-     * 3.1 获取智能体（智能体（应用））输入参数
-     * @param appId 智能体（应用）id
-     * @return AssistantSupportResponse
-     */
     @GET("api/llm-application/open/v2/application/{app_id}/variables")
     @Headers({"Content-Type: application/json"})
     Call<AssistantSupportResponse> variables(@Path("app_id") String appId);
 
-    /**
-     * 3.4 创建新会话
-     * @param appId 智能体（应用）id
-     * @return ConversationResponse 使用data中的conversationId字段
-     */
     @POST("api/llm-application/open/v2/application/{app_id}/conversation")
     @Headers({"Content-Type: application/json"})
     Call<ConversationResponse> conversation(@Path("app_id") String appId);
-    /**
-     * 3.5 创建对话或创作请求
-     * @param request 接口请求
-     * @return ConversationResponse - 使用data中的id字段
-     */
+
     @POST("api/llm-application/open/v2/application/generate_request_id")
     @Headers({"Content-Type: application/json"})
     Call<ConversationResponse> generateRequestId(@Body ConversationRequest request);
 
-    /**
-     * 3.6 获取对话或创作结果 (sse对话)
-     * @param id 创建对话或创作请求 接口返回的id
-     * @return AssistantCompletionResponse
-     */
     @Streaming
     @POST("api/llm-application/open/v2/model-api/{id}/sse-invoke")
     @Headers({"Content-Type: application/json"})
     Call<AssistantCompletion> sseInvoke(@Path("id") String id);
 
-    /**
-     * 3.8 推荐问题
-     * @param appId 智能体（应用）id
-     * @param conversationId 会话编号
-     * @return ProblemsResponse
-     */
     @GET("api/llm-application/open/history_session_record/{app_id}/{conversation_id}")
     @Headers({"Content-Type: application/json"})
     Call<ProblemsResponse> sessionRecord(@Path("app_id") String appId, @Path("conversation_id") String conversationId);

@@ -11,25 +11,11 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssistantExtraInput {
-    /**
-     * 请求id
-     */
+
     private String requestId;
-    /**
-     * 节点id
-     */
     private String nodeId;
-    /**
-     * 推送日志类型 node:节点级日志, block:节点内块日志
-     */
     private String pushType;
-    /**
-     * 节点级日志数据: 节点开始、完成日志
-     */
     private AssistantNodeData nodeData;
-    /**
-     * 节点内块日志数据: 节点异常、执行动作、知识库查询等事件日志
-     */
     private AssistantBlockData blockData;
 
     public String getRequestId() {

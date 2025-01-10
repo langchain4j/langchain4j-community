@@ -11,32 +11,12 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssistantBlockData {
-    /**
-     * 当前节点输入数据
-     */
+
     private String input;
-    /**
-     * 块日志类型:
-     * input:节点输入日志
-     * action:调用的插件
-     * output: 节点输出日志
-     */
     private String blockType;
-    /**
-     * 节点名称
-     */
     private String blockName;
-    /**
-     * 异常信息: 当块日志类型为error的时候 有值
-     */
     private String errorMsg;
-    /**
-     * 块的总耗时,单位秒 一位小数
-     */
     private String blockDur;
-    /**
-     * 节点输出
-     */
     private AssistantOutPut outPut;
 
     public String getInput() {

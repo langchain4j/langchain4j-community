@@ -11,30 +11,11 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssistantNodeData {
-    /**
-     * 节点id
-     */
+
     private String nodeId;
-    /**
-     * 节点类型
-     */
     private String nodeType;
-    /**
-     * 节点名称
-     */
     private String nodeName;
-    /**
-     * 节点状态
-     * processing:处理中
-     * finished:已完成
-     * warning:发出告警并继续执行
-     * conversation:对话中
-     * error:异常
-     */
     private String nodeStatus;
-    /**
-     * 节点耗时 单位秒 一位小数
-     */
     private String nodeDur;
 
     public String getNodeId() {
