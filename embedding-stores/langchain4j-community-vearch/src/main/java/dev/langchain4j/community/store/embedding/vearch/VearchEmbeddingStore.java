@@ -71,7 +71,7 @@ public class VearchEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         // Step 2: check whether space exist, if not, create it
         if (!isSpaceExist(this.vearchConfig.getDatabaseName(), this.vearchConfig.getSpaceName())) {
-            createSpace(this.vearchConfig.getDatabaseName(), this.vearchConfig.getSpaceName());
+            createSpace();
         }
     }
 
@@ -202,13 +202,13 @@ public class VearchEmbeddingStore implements EmbeddingStore<TextSegment> {
         return spaces.stream().anyMatch(space -> spaceName.equals(space.getName()));
     }
 
-    private void createSpace(String databaseName, String space) {
+    private void createSpace() {
         vearchClient.createSpace(
-                databaseName,
+                vearchConfig.getDatabaseName(),
                 CreateSpaceRequest.builder()
-                        .name(space)
-                        .replicaNum(1)
-                        .partitionNum(1)
+                        .name(vearchConfig.getSpaceName())
+                        .replicaNum(vearchConfig.getReplicaNum())
+                        .partitionNum(vearchConfig.getPartitionNum())
                         .fields(vearchConfig.getFields())
                         .build());
     }
