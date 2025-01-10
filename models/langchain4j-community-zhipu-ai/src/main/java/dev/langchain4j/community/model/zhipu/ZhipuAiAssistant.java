@@ -43,11 +43,11 @@ public class ZhipuAiAssistant {
                 .build();
     }
 
-    public static ZhipuAssistantChatModelBuilder builder() {
+    public static ZhipuAiAssistantBuilder builder() {
         for (ZhipuAssistantBuilderFactory factories : loadFactories(ZhipuAssistantBuilderFactory.class)) {
             return factories.get();
         }
-        return new ZhipuAssistantChatModelBuilder();
+        return new ZhipuAiAssistantBuilder();
     }
 
     public List<AssistantKeyValuePair> variables() {
@@ -76,9 +76,9 @@ public class ZhipuAiAssistant {
     }
 
     /**
-     * 推荐问题
+     * Recommended questions
      *
-     * @param conversationId 会话ID
+     * @param conversationId Conversation ID
      * @return Problems
      */
     public Problems sessionRecord(String conversationId) {
@@ -94,7 +94,7 @@ public class ZhipuAiAssistant {
         return keyValuePair;
     }
 
-    public static class ZhipuAssistantChatModelBuilder {
+    public static class ZhipuAiAssistantBuilder {
 
         private String baseUrl;
         private String apiKey;
@@ -106,47 +106,47 @@ public class ZhipuAiAssistant {
         private Duration readTimeout;
         private Duration writeTimeout;
 
-        public ZhipuAssistantChatModelBuilder baseUrl(String baseUrl) {
+        public ZhipuAiAssistantBuilder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
             return this;
         }
 
-        public ZhipuAssistantChatModelBuilder apiKey(String apiKey) {
+        public ZhipuAiAssistantBuilder apiKey(String apiKey) {
             this.apiKey = apiKey;
             return this;
         }
 
-        public ZhipuAssistantChatModelBuilder appId(String appId) {
+        public ZhipuAiAssistantBuilder appId(String appId) {
             this.appId = appId;
             return this;
         }
 
-        public ZhipuAssistantChatModelBuilder logRequests(Boolean logRequests) {
+        public ZhipuAiAssistantBuilder logRequests(Boolean logRequests) {
             this.logRequests = logRequests;
             return this;
         }
 
-        public ZhipuAssistantChatModelBuilder logResponses(Boolean logResponses) {
+        public ZhipuAiAssistantBuilder logResponses(Boolean logResponses) {
             this.logResponses = logResponses;
             return this;
         }
 
-        public ZhipuAssistantChatModelBuilder callTimeout(Duration callTimeout) {
+        public ZhipuAiAssistantBuilder callTimeout(Duration callTimeout) {
             this.callTimeout = callTimeout;
             return this;
         }
 
-        public ZhipuAssistantChatModelBuilder connectTimeout(Duration connectTimeout) {
+        public ZhipuAiAssistantBuilder connectTimeout(Duration connectTimeout) {
             this.connectTimeout = connectTimeout;
             return this;
         }
 
-        public ZhipuAssistantChatModelBuilder readTimeout(Duration readTimeout) {
+        public ZhipuAiAssistantBuilder readTimeout(Duration readTimeout) {
             this.readTimeout = readTimeout;
             return this;
         }
 
-        public ZhipuAssistantChatModelBuilder writeTimeout(Duration writeTimeout) {
+        public ZhipuAiAssistantBuilder writeTimeout(Duration writeTimeout) {
             this.writeTimeout = writeTimeout;
             return this;
         }
