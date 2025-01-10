@@ -33,7 +33,7 @@ public class ZhipuAiAssistant {
         this.client = ZhipuAssistantClient.builder()
                 .baseUrl(getOrDefault(baseUrl, "https://open.bigmodel.cn/"))
                 .apiKey(apiKey)
-                .callTimeout(callTimeout)
+                .callTimeout(getOrDefault(callTimeout, ofSeconds(60)))
                 .connectTimeout(connectTimeout)
                 .writeTimeout(writeTimeout)
                 .readTimeout(readTimeout)
