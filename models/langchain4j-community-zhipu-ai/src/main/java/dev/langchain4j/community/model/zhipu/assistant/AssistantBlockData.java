@@ -39,7 +39,7 @@ public class AssistantBlockData {
         return blockName;
     }
 
-    public void setBlockName(final String blockName) {
+    public void setBlockName(String blockName) {
         this.blockName = blockName;
     }
 
