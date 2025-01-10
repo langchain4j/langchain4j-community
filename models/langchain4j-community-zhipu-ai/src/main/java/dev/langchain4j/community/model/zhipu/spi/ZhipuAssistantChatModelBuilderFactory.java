@@ -6,5 +6,5 @@ import java.util.function.Supplier;
 /**
  * A factory for building {@link ZhipuAssistantChatModel.ZhipuAssistantChatModelBuilder} instances.
  */
-public interface ZhipuAssistantChatModelBuilderFactory
+public interface ZhipuAssistantBuilderFactory
         extends Supplier<ZhipuAssistantChatModel.ZhipuAssistantChatModelBuilder> {}
