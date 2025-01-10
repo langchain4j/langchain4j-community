@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
-class ZhipuAssistantChatModelIT {
+class ZhipuAiAssistantIT {
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
     // Your own appId
     private static final String appId = "";
