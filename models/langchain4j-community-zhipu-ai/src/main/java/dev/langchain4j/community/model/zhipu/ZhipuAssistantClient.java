@@ -166,19 +166,20 @@ public class ZhipuAssistantClient {
                 } else if ("errorhandler".equalsIgnoreCase(type)) {
                     try {
                         completion = OBJECT_MAPPER.readValue(data, AssistantCompletion.class);
-                        String chunk = completion.getMsg();
-                        if (chunk != null) {
-                            contentBuilder.append(chunk);
-                            handler.onNext(chunk);
+                        Usage usageInfo = completion.getUsage();
+                        if (usageInfo != null) {
+                            this.tokenUsage = tokenUsageFrom(usageInfo);
                         }
                         AssistantExtraInput extraInput = completion.getExtraInput();
                         if (extraInput.getBlockData() != null
                                 && extraInput.getBlockData().getErrorMsg() != null) {
-                            handler.onError(new ZhipuAiException(
-                                    "-1", extraInput.getBlockData().getErrorMsg()));
-                        } else {
-                            handler.onError(new ZhipuAiException("-1", contentBuilder.toString()));
+                            log.error(
+                                    "onEvent(): errorhandler | blackData-ErrorMsg: {}",
+                                    extraInput.getBlockData().getErrorMsg());
                         }
+                        AiMessage aiMessage = AiMessage.from(completion.getMsg());
+                        Response<AiMessage> response = Response.from(aiMessage, this.tokenUsage, FinishReason.OTHER);
+                        handler.onComplete(response);
                     } catch (Exception exception) {
                         handleResponseException(exception, handler);
                     }
