@@ -14,7 +14,7 @@ public interface ClientResponse<T> {
 
     void setMessage(String message);
 
-    default boolean isSuccess() {
+    default boolean isSuccessful() {
         return Objects.equals(getCode(), 200);
     }
 }
