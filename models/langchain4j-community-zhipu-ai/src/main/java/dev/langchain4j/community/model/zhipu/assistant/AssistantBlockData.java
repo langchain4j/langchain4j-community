@@ -23,7 +23,7 @@ public class AssistantBlockData {
         return input;
     }
 
-    public void setInput(final String input) {
+    public void setInput(String input) {
         this.input = input;
     }
 
