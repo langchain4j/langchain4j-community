@@ -6,18 +6,21 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.clickhouse.data.ClickHouseDataType;
-import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * ClickHouse common settings to construct, add and search in {@link ClickHouseEmbeddingStore}.
+ * Users must specify {@link ClickHouseSettings#dimension}.
+ * If users want to store metadata in {@link ClickHouseEmbeddingStore}, {@link ClickHouseSettings#metadataTypeMap} must be specified.
+ *
+ * <p><b>Optional:</b> Users can specify {@link ClickHouseSettings#columnMap} to project column name onto langchain4j semantics. The map must have keys: `text`, `id` and `embedding`.</p>
+ */
 public class ClickHouseSettings {
 
-    private static final Map<String, String> DEFAULT_COLUMN_MAP = new HashMap<>();
-
-    static {
-        DEFAULT_COLUMN_MAP.put("text", "text");
-        DEFAULT_COLUMN_MAP.put("id", "id");
-        DEFAULT_COLUMN_MAP.put("embedding", "embedding");
-    }
+    private static final Map<String, String> DEFAULT_COLUMN_MAP = Map.of(
+            "text", "text",
+            "id", "id",
+            "embedding", "embedding");
 
     private String url;
     private String username;
@@ -30,7 +33,11 @@ public class ClickHouseSettings {
      */
     private Map<String, String> columnMap;
     /**
+     * Metadata type map to project metadata key onto ClickHouse data type.
      *
+     * <p>e.g.</p> ("age", Int32), ("country", String), ("city", String)
+     *
+     * @see ClickHouseDataType
      */
     private Map<String, ClickHouseDataType> metadataTypeMap;
 
@@ -155,10 +162,6 @@ public class ClickHouseSettings {
     }
 
     public String getColumnMapping(String key) {
-        if (!containsMetadata()) {
-            return null;
-        }
-
         return columnMap.get(key);
     }
 

@@ -23,21 +23,25 @@
                 <artifactId>langchain4j-community-chatglm</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-dashscope</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-qianfan</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-xinference</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-zhipu-ai</artifactId>
@@ -71,6 +75,12 @@
             </dependency>
 
             <!-- Spring Boot starters -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-dashscope-spring-boot-starter</artifactId>
