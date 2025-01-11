@@ -86,6 +86,7 @@ public class ZhipuAssistantClient {
                 if (Objects.nonNull(body)) {
                     if (!body.isSuccess()) {
                         log.error("获取智能体输入参数失败，原因为：【{}】", body.getMessage());
+                        throw new ZhipuAiException(body.getCode() + "", body.getMessage());
                     }
                     return body.getData();
                 }
@@ -107,6 +108,7 @@ public class ZhipuAssistantClient {
                 if (Objects.nonNull(body)) {
                     if (!body.isSuccess()) {
                         log.error("创建新会话失败，原因为：【{}】", body.getMessage());
+                        throw new ZhipuAiException(body.getCode() + "", body.getMessage());
                     }
                     return body.getData();
                 }
@@ -128,6 +130,7 @@ public class ZhipuAssistantClient {
                 if (Objects.nonNull(body)) {
                     if (!body.isSuccess()) {
                         log.error("创建对话或创作请求失败，原因为：【{}】", body.getMessage());
+                        throw new ZhipuAiException(body.getCode() + "", body.getMessage());
                     }
                     return body.getData();
                 }
@@ -140,7 +143,7 @@ public class ZhipuAssistantClient {
         }
     }
 
-    void sseInvoke(ConversationId request, StreamingResponseHandler<AiMessage> handler) {
+    void sseInvoke(String requestId, StreamingResponseHandler<AiMessage> handler) {
         EventSourceListener eventSourceListener = new EventSourceListener() {
             final StringBuffer contentBuilder = new StringBuffer();
             TokenUsage tokenUsage;
@@ -229,7 +232,7 @@ public class ZhipuAssistantClient {
             }
         };
         EventSources.createFactory(this.okHttpClient)
-                .newEventSource(zhipuAiApi.sseInvoke(request.getId()).request(), eventSourceListener);
+                .newEventSource(zhipuAiApi.sseInvoke(requestId).request(), eventSourceListener);
     }
 
     public Problems sessionRecord(String appId, String conversationId) {
@@ -241,6 +244,7 @@ public class ZhipuAssistantClient {
                 if (Objects.nonNull(body)) {
                     if (!body.isSuccess()) {
                         log.error("获取推荐问题失败，原因为：【{}】", body.getMessage());
+                        throw new ZhipuAiException(body.getCode() + "", body.getMessage());
                     }
                     return body.getData();
                 }

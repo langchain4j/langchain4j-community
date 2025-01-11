@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import dev.langchain4j.community.model.zhipu.assistant.AssistantKeyValuePair;
-import dev.langchain4j.community.model.zhipu.assistant.conversation.ConversationId;
 import dev.langchain4j.community.model.zhipu.assistant.problem.Problems;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.internal.Utils;
@@ -85,7 +84,6 @@ class ZhipuAiAssistantIT {
      * @return conversationId
      */
     public String getConversationId() {
-        ConversationId conversationId = chatModel.conversation();
-        return conversationId.getConversationId();
+        return chatModel.getConversationId();
     }
 }

@@ -15,6 +15,9 @@ import dev.langchain4j.model.StreamingResponseHandler;
 import java.time.Duration;
 import java.util.List;
 
+/**
+ * <a href="https://open.bigmodel.cn/dev/api/Agent_Platform/agent">QingLiu Agent</a>
+ */
 public class ZhipuAiAssistant {
 
     private final String appId;
@@ -50,36 +53,51 @@ public class ZhipuAiAssistant {
         return new ZhipuAiAssistantBuilder();
     }
 
+    /**
+     * Obtain the input parameters of the intelligent agent (application).
+     */
     public List<AssistantKeyValuePair> variables() {
         return client.variables(appId);
     }
 
-    public ConversationId conversation() {
-        return client.conversation(appId);
+    /**
+     * Create a new session
+     */
+    public String getConversationId() {
+        ConversationId conversation = client.conversation(appId);
+        return conversation.getConversationId();
+    }
+
+    /**
+     * Create session request.
+     * @param conversationId Conversation ID
+     * @param keyValuePairs input parameters
+     */
+    public String getRequestId(String conversationId, List<AssistantKeyValuePair> keyValuePairs) {
+        ConversationRequest request = ConversationRequest.builder()
+                .appId(appId)
+                .conversationId(conversationId)
+                .keyValuePairs(keyValuePairs)
+                .build();
+        return client.generate(request).getId();
     }
 
     public void generate(
             String conversationId,
             List<AssistantKeyValuePair> keyValuePairs,
             StreamingResponseHandler<AiMessage> handler) {
-        final ConversationRequest request = ConversationRequest.builder()
-                .appId(appId)
-                .conversationId(conversationId)
-                .keyValuePairs(keyValuePairs)
-                .build();
-        final ConversationId reqId = client.generate(request);
-        this.generate(reqId, handler);
+        String requestId = getRequestId(conversationId, keyValuePairs);
+        this.generate(requestId, handler);
     }
 
-    public void generate(ConversationId request, StreamingResponseHandler<AiMessage> handler) {
-        client.sseInvoke(request, handler);
+    public void generate(String requestId, StreamingResponseHandler<AiMessage> handler) {
+        client.sseInvoke(requestId, handler);
     }
 
     /**
      * Recommended questions
      *
      * @param conversationId Conversation ID
-     * @return Problems
      */
     public Problems sessionRecord(String conversationId) {
         return client.sessionRecord(appId, conversationId);
