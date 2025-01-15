@@ -13,12 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.*;
 
 public class WanxHelper {
 
@@ -30,7 +25,7 @@ public class WanxHelper {
                 .stream()
                 .map(resultMap -> resultMap.get("url"))
                 .map(url -> Image.builder().url(url).build())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     static String imageUrl(Image image, String model, String apiKey) {
@@ -43,7 +38,7 @@ public class WanxHelper {
             try {
                 imageUrl = OSSUtils.upload(model, filePath, apiKey);
             } catch (NoApiKeyException e) {
-                throw new RuntimeException(e);
+                throw new IllegalArgumentException(e);
             }
         } else {
             throw new IllegalArgumentException("Failed to get image url from " + image);
@@ -69,7 +64,7 @@ public class WanxHelper {
         try {
             Files.copy(new ByteArrayInputStream(data), tmpFilePath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
         return tmpFilePath.toAbsolutePath().toString();
     }

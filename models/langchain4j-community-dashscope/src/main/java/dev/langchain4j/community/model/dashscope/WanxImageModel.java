@@ -172,7 +172,7 @@ public class WanxImageModel implements ImageModel {
         private WanxImageStyle style;
 
         public WanxImageModelBuilder() {
-            // This is public so it can be extended
+            // This is public, so it can be extended
             // By default with Lombok it becomes package private
         }
 
