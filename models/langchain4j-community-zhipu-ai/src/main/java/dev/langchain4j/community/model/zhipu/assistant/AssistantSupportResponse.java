@@ -12,16 +12,16 @@ import java.util.List;
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssistantSupportResponse implements ClientResponse<List<AssistantKeyValuePair>> {
-    private int code;
+    private Integer code;
     private String message;
     private List<AssistantKeyValuePair> data;
 
-    public int getCode() {
+    public Integer getCode() {
         return code;
     }
 
     @Override
-    public void setCode(int code) {
+    public void setCode(Integer code) {
         this.code = code;
     }
 

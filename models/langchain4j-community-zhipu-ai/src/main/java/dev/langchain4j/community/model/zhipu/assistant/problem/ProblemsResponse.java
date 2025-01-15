@@ -9,16 +9,16 @@ import dev.langchain4j.community.model.zhipu.assistant.ClientResponse;
 @JsonInclude(NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ProblemsResponse implements ClientResponse<Problems> {
-    private int code;
+    private Integer code;
     private String message;
     private Problems data;
 
-    public int getCode() {
+    public Integer getCode() {
         return code;
     }
 
     @Override
-    public void setCode(int code) {
+    public void setCode(Integer code) {
         this.code = code;
     }
 

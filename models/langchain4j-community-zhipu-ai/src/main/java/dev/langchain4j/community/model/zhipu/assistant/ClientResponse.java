@@ -8,9 +8,9 @@ public interface ClientResponse<T> {
 
     void setData(T data);
 
-    void setCode(int code);
+    void setCode(Integer code);
 
-    int getCode();
+    Integer getCode();
 
     void setMessage(String message);
 

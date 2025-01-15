@@ -12,16 +12,16 @@ import dev.langchain4j.community.model.zhipu.assistant.ClientResponse;
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConversationResponse implements ClientResponse<ConversationId> {
-    private int code;
+    private Integer code;
     private String message;
     private ConversationId data;
 
-    public int getCode() {
+    public Integer getCode() {
         return code;
     }
 
     @Override
-    public void setCode(int code) {
+    public void setCode(Integer code) {
         this.code = code;
     }
 
