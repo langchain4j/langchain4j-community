@@ -12,9 +12,11 @@ import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import static dev.langchain4j.community.model.dashscope.WanxHelper.imageUrl;
 import static dev.langchain4j.community.model.dashscope.WanxHelper.imagesFrom;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
@@ -39,6 +41,7 @@ public class WanxImageModel implements ImageModel {
     private final WanxImageSize size;
     private final WanxImageStyle style;
     private final ImageSynthesis imageSynthesis;
+    private Consumer<ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?>> imageSynthesisParamCustomizer = p -> {};
 
     public WanxImageModel(String baseUrl,
                           String apiKey,
@@ -63,25 +66,27 @@ public class WanxImageModel implements ImageModel {
 
     @Override
     public Response<Image> generate(String prompt) {
-        ImageSynthesisParam param = requestBuilder(prompt).n(1).build();
+        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder = requestBuilder(prompt).n(1);
 
         try {
-            ImageSynthesisResult result = imageSynthesis.call(param);
+            imageSynthesisParamCustomizer.accept(builder);
+            ImageSynthesisResult result = imageSynthesis.call(builder.build());
             return Response.from(imagesFrom(result).get(0));
         } catch (NoApiKeyException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
     @Override
     public Response<List<Image>> generate(String prompt, int n) {
-        ImageSynthesisParam param = requestBuilder(prompt).n(n).build();
+        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder = requestBuilder(prompt).n(n);
 
         try {
-            ImageSynthesisResult result = imageSynthesis.call(param);
+            imageSynthesisParamCustomizer.accept(builder);
+            ImageSynthesisResult result = imageSynthesis.call(builder.build());
             return Response.from(imagesFrom(result));
         } catch (NoApiKeyException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -98,6 +103,7 @@ public class WanxImageModel implements ImageModel {
         }
 
         try {
+            imageSynthesisParamCustomizer.accept(builder);
             ImageSynthesisResult result = imageSynthesis.call(builder.build());
             List<Image> images = imagesFrom(result);
             if (images.isEmpty()) {
@@ -108,8 +114,14 @@ public class WanxImageModel implements ImageModel {
             }
             return Response.from(images.get(0));
         } catch (NoApiKeyException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
+    }
+
+    public void setImageSynthesisParamCustomizer(
+            Consumer<ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?>> imageSynthesisParamCustomizer) {
+        ensureNotNull(imageSynthesisParamCustomizer, "imageSynthesisParamCustomizer");
+        this.imageSynthesisParamCustomizer = imageSynthesisParamCustomizer;
     }
 
     private ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> requestBuilder(String prompt) {

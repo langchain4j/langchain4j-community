@@ -36,6 +36,26 @@ class WanxImageModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.WanxTestHelper#imageModelNameProvider")
+    void simple_image_generation_works_by_customize_request(String modelName) {
+        WanxImageModel model = WanxImageModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        model.setImageSynthesisParamCustomizer(builder -> {
+            builder.extraInput("lora_index", "wanx1.4.6_textlora_jianzhi1_20240816");
+            builder.extraInput("trigger_word", "papercut");
+        });
+
+        Response<Image> response = model.generate("Beautiful house on country side");
+
+        URI remoteImage = response.content().url();
+        log.info("Your remote image is here: {}", remoteImage);
+        assertThat(remoteImage).isNotNull();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.WanxTestHelper#imageModelNameProvider")
     void simple_image_edition_works_by_url(String modelName) {
         WanxImageModel model = WanxImageModel.builder()
                 .apiKey(apiKey())
