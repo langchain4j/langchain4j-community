@@ -6,14 +6,18 @@ import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.utils.OSSUtils;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.internal.Utils;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.*;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class WanxHelper {
 
@@ -25,7 +29,7 @@ public class WanxHelper {
                 .stream()
                 .map(resultMap -> resultMap.get("url"))
                 .map(url -> Image.builder().url(url).build())
-                .toList();
+                .collect(Collectors.toList());
     }
 
     static String imageUrl(Image image, String model, String apiKey) {

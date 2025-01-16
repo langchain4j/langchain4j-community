@@ -43,16 +43,18 @@ public class WanxImageModel implements ImageModel {
     private final ImageSynthesis imageSynthesis;
     private Consumer<ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?>> imageSynthesisParamCustomizer = p -> {};
 
-    public WanxImageModel(String baseUrl,
-                          String apiKey,
-                          String modelName,
-                          WanxImageRefMode refMode,
-                          Float refStrength,
-                          Integer seed,
-                          WanxImageSize size,
-                          WanxImageStyle style) {
+    public WanxImageModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            WanxImageRefMode refMode,
+            Float refStrength,
+            Integer seed,
+            WanxImageSize size,
+            WanxImageStyle style) {
         if (Utils.isNullOrBlank(apiKey)) {
-            throw new IllegalArgumentException("DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+            throw new IllegalArgumentException(
+                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
         }
         this.modelName = Utils.isNullOrBlank(modelName) ? WanxModelName.WANX_V1 : modelName;
         this.apiKey = apiKey;
@@ -61,12 +63,14 @@ public class WanxImageModel implements ImageModel {
         this.seed = seed;
         this.size = size;
         this.style = style;
-        this.imageSynthesis = Utils.isNullOrBlank(baseUrl) ? new ImageSynthesis() : new ImageSynthesis("text2image", baseUrl);
+        this.imageSynthesis =
+                Utils.isNullOrBlank(baseUrl) ? new ImageSynthesis() : new ImageSynthesis("text2image", baseUrl);
     }
 
     @Override
     public Response<Image> generate(String prompt) {
-        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder = requestBuilder(prompt).n(1);
+        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder =
+                requestBuilder(prompt).n(1);
 
         try {
             imageSynthesisParamCustomizer.accept(builder);
@@ -79,7 +83,8 @@ public class WanxImageModel implements ImageModel {
 
     @Override
     public Response<List<Image>> generate(String prompt, int n) {
-        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder = requestBuilder(prompt).n(n);
+        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder =
+                requestBuilder(prompt).n(n);
 
         try {
             imageSynthesisParamCustomizer.accept(builder);
@@ -94,9 +99,8 @@ public class WanxImageModel implements ImageModel {
     public Response<Image> edit(Image image, String prompt) {
         String imageUrl = imageUrl(image, modelName, apiKey);
 
-        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder = requestBuilder(prompt)
-                .refImage(imageUrl)
-                .n(1);
+        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder =
+                requestBuilder(prompt).refImage(imageUrl).n(1);
 
         if (imageUrl.startsWith("oss://")) {
             builder.header("X-DashScope-OssResourceResolve", "enable");
@@ -108,8 +112,8 @@ public class WanxImageModel implements ImageModel {
             List<Image> images = imagesFrom(result);
             if (images.isEmpty()) {
                 ImageSynthesisOutput output = result.getOutput();
-                String errorMessage = String.format("[%s] %s: %s",
-                        output.getTaskStatus(), output.getCode(), output.getMessage());
+                String errorMessage =
+                        String.format("[%s] %s: %s", output.getTaskStatus(), output.getCode(), output.getMessage());
                 throw new IllegalStateException(errorMessage);
             }
             return Response.from(images.get(0));
@@ -120,15 +124,13 @@ public class WanxImageModel implements ImageModel {
 
     public void setImageSynthesisParamCustomizer(
             Consumer<ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?>> imageSynthesisParamCustomizer) {
-        ensureNotNull(imageSynthesisParamCustomizer, "imageSynthesisParamCustomizer");
-        this.imageSynthesisParamCustomizer = imageSynthesisParamCustomizer;
+        this.imageSynthesisParamCustomizer =
+                ensureNotNull(imageSynthesisParamCustomizer, "imageSynthesisParamCustomizer");
     }
 
     private ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> requestBuilder(String prompt) {
-        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder = ImageSynthesisParam.builder()
-                .apiKey(apiKey)
-                .model(modelName)
-                .prompt(prompt);
+        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder =
+                ImageSynthesisParam.builder().apiKey(apiKey).model(modelName).prompt(prompt);
 
         if (seed != null) {
             builder.seed(seed);
@@ -217,16 +219,7 @@ public class WanxImageModel implements ImageModel {
         }
 
         public WanxImageModel build() {
-            return new WanxImageModel(
-                    baseUrl,
-                    apiKey,
-                    modelName,
-                    refMode,
-                    refStrength,
-                    seed,
-                    size,
-                    style
-            );
+            return new WanxImageModel(baseUrl, apiKey, modelName, refMode, refStrength, seed, size, style);
         }
     }
 }

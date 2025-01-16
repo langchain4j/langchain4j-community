@@ -3,7 +3,6 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 
 public enum WanxImageStyle {
-
     PHOTOGRAPHY("<photography>"),
     PORTRAIT("<portrait>"),
     CARTOON_3D("<3d cartoon>"),
