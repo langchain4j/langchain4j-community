@@ -6,7 +6,6 @@ import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.utils.OSSUtils;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.internal.Utils;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,7 +42,7 @@ public class WanxHelper {
             try {
                 imageUrl = OSSUtils.upload(model, filePath, apiKey);
             } catch (NoApiKeyException e) {
-                throw new RuntimeException(e);
+                throw new IllegalArgumentException(e);
             }
         } else {
             throw new IllegalArgumentException("Failed to get image url from " + image);
@@ -69,7 +68,7 @@ public class WanxHelper {
         try {
             Files.copy(new ByteArrayInputStream(data), tmpFilePath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
         return tmpFilePath.toAbsolutePath().toString();
     }

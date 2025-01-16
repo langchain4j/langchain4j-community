@@ -1,7 +1,8 @@
 package dev.langchain4j.community.model.dashscope;
 
-public enum WanxImageStyle {
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
 
+public enum WanxImageStyle {
     PHOTOGRAPHY("<photography>"),
     PORTRAIT("<portrait>"),
     CARTOON_3D("<3d cartoon>"),
@@ -22,5 +23,23 @@ public enum WanxImageStyle {
     @Override
     public String toString() {
         return style;
+    }
+
+    public String getStyle() {
+        return style;
+    }
+
+    public static WanxImageStyle of(String style) {
+        if (isNullOrBlank(style)) {
+            return null;
+        }
+
+        for (WanxImageStyle imageStyle : values()) {
+            if (imageStyle.toString().equalsIgnoreCase(style)) {
+                return imageStyle;
+            }
+        }
+
+        return null;
     }
 }
