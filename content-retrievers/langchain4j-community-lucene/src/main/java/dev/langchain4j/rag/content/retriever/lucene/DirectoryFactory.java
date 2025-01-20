@@ -20,12 +20,12 @@ public class DirectoryFactory {
      *
      * @return Lucene directory
      */
-    public static Directory fsDirectory(final Path directoryPath) {
+    public static Directory fsDirectory(Path directoryPath) {
         ensureNotNull(directoryPath, "directoryPath");
         try {
-            final Directory directory = new MMapDirectory(directoryPath);
+            Directory directory = new MMapDirectory(directoryPath);
             return directory;
-        } catch (final Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
         }
     }
@@ -37,10 +37,10 @@ public class DirectoryFactory {
      */
     public static Directory tempDirectory() {
         try {
-            final Path directoryPath = Files.createTempDirectory(Directory.class.getCanonicalName());
-            final Path newSubDirectory = Paths.get(directoryPath.toString(), Directory.class.getCanonicalName());
+            Path directoryPath = Files.createTempDirectory(Directory.class.getCanonicalName());
+            Path newSubDirectory = Paths.get(directoryPath.toString(), Directory.class.getCanonicalName());
             return fsDirectory(newSubDirectory);
-        } catch (final Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
         }
     }

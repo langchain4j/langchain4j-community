@@ -44,9 +44,9 @@ public final class LuceneIndexer {
      *
      * @param directory Lucene directory
      */
-    public LuceneIndexer(final Directory directory) {
+    public LuceneIndexer(Directory directory) {
         this.directory = ensureNotNull(directory, "directory");
-        final EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
+        EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
         encoding = registry.getEncoding(EncodingType.CL100K_BASE);
     }
 
@@ -56,43 +56,43 @@ public final class LuceneIndexer {
      *
      * @param content Text segment including metadata
      */
-    public void addContent(final TextSegment content) {
+    public void addContent(TextSegment content) {
         if (content == null) {
             return;
         }
 
-        final IndexWriterConfig config = new IndexWriterConfig(new StandardAnalyzer());
-        try (final IndexWriter writer = new IndexWriter(directory, config); ) {
-            final String text = content.text();
-            final int tokens = encoding.countTokens(text);
-            final Document doc = new Document();
+        IndexWriterConfig config = new IndexWriterConfig(new StandardAnalyzer());
+        try (IndexWriter writer = new IndexWriter(directory, config); ) {
+            String text = content.text();
+            int tokens = encoding.countTokens(text);
+            Document doc = new Document();
             doc.add(new TextField(CONTENT_FIELD_NAME, text, Field.Store.YES));
             doc.add(new IntField(TOKEN_COUNT_FIELD_NAME, tokens, Field.Store.YES));
-            final Map<String, Object> metadataMap = content.metadata().toMap();
+            Map<String, Object> metadataMap = content.metadata().toMap();
             if (metadataMap != null) {
-                for (final Entry<String, Object> entry : metadataMap.entrySet()) {
+                for (Entry<String, Object> entry : metadataMap.entrySet()) {
                     doc.add(toField(entry));
                 }
             }
             writer.addDocument(doc);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             log.info(String.format("Could not write content%n%s", content), e);
         }
     }
 
-    private Field toField(final Entry<String, Object> entry) {
-        final String fieldName = entry.getKey();
-        final var fieldValue = entry.getValue();
-        final Field field;
-        if (fieldValue instanceof final String string) {
+    private Field toField(Entry<String, Object> entry) {
+        String fieldName = entry.getKey();
+        var fieldValue = entry.getValue();
+        Field field;
+        if (fieldValue instanceof String string) {
             field = new StringField(fieldName, string, Store.YES);
-        } else if (fieldValue instanceof final Integer number) {
+        } else if (fieldValue instanceof Integer number) {
             field = new IntField(fieldName, number, Store.YES);
-        } else if (fieldValue instanceof final Long number) {
+        } else if (fieldValue instanceof Long number) {
             field = new LongField(fieldName, number, Store.YES);
-        } else if (fieldValue instanceof final Float number) {
+        } else if (fieldValue instanceof Float number) {
             field = new FloatField(fieldName, number, Store.YES);
-        } else if (fieldValue instanceof final Double number) {
+        } else if (fieldValue instanceof Double number) {
             field = new DoubleField(fieldName, number, Store.YES);
         } else {
             field = new StringField(fieldName, String.valueOf(fieldValue), Store.YES);
