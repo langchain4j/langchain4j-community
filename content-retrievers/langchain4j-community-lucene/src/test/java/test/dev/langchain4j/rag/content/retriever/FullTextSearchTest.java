@@ -1,9 +1,6 @@
 package test.dev.langchain4j.rag.content.retriever;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
@@ -59,8 +56,8 @@ public class FullTextSearchTest {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
         Collections.sort(actualTextSegments);
 
-        assertThat(results, hasSize(1));
-        assertThat(actualTextSegments, is(expectedTextSegments));
+        assertThat(results).hasSize(1);
+        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
     }
 
     @Test
@@ -86,8 +83,8 @@ public class FullTextSearchTest {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
         Collections.sort(actualTextSegments);
 
-        assertThat(results, hasSize(hitTextSegments.length + missTextSegments.length));
-        assertThat(actualTextSegments, is(expectedTextSegments));
+        assertThat(results).hasSize(hitTextSegments.length + missTextSegments.length);
+        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
     }
 
     @Test
@@ -109,8 +106,8 @@ public class FullTextSearchTest {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
         Collections.sort(actualTextSegments);
 
-        assertThat(results, hasSize(hitTextSegments.length));
-        assertThat(actualTextSegments, is(expectedTextSegments));
+        assertThat(results).hasSize(hitTextSegments.length);
+        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
     }
 
     @Test
@@ -129,8 +126,8 @@ public class FullTextSearchTest {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
         Collections.sort(actualTextSegments);
 
-        assertThat(results, hasSize(1));
-        assertThat(actualTextSegments, is(expectedTextSegments));
+        assertThat(results).hasSize(1);
+        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
     }
 
     @Test
@@ -145,7 +142,7 @@ public class FullTextSearchTest {
         final List<Content> results = contentRetriever.retrieve(query);
 
         // No limiting by token count, since wrong field is used
-        assertThat(results, hasSize(hitTextSegments.length));
+        assertThat(results).hasSize(hitTextSegments.length);
     }
 
     @Test
@@ -158,7 +155,7 @@ public class FullTextSearchTest {
 
         final List<Content> results = contentRetriever.retrieve(query);
 
-        assertThat(results, is(empty()));
+        assertThat(results).isEmpty();
     }
 
     @BeforeEach
