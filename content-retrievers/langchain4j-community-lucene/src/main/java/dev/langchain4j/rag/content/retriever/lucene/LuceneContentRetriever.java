@@ -13,8 +13,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.StoredValue;
@@ -34,6 +32,8 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Full-text content retrieval using Apache Lucene for LangChain4J RAG.
@@ -163,7 +163,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(LuceneContentRetriever.class.getCanonicalName());
+    private static final Logger log = LoggerFactory.getLogger(LuceneContentRetriever.class);
 
     /**
      * Instantiate a builder for `LuceneContentRetriever`.
@@ -259,7 +259,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             return hits;
         } catch (final Throwable e) {
             // Catch Throwable, since Lucene can throw AssertionError
-            LOGGER.log(Level.INFO, String.format("Could not query <%s>", query), e);
+            log.info(String.format("Could not query <%s>", query), e);
             return Collections.emptyList();
         }
     }
@@ -281,7 +281,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             final QueryParser parser = new QueryParser(contentFieldName, new StandardAnalyzer());
             fullTextQuery = parser.parse(query);
         } catch (final ParseException e) {
-            LOGGER.log(Level.INFO, String.format("Could not create query <%s>", query), e);
+            log.info(String.format("Could not create query <%s>", query), e);
             return new MatchAllDocsQuery();
         }
 

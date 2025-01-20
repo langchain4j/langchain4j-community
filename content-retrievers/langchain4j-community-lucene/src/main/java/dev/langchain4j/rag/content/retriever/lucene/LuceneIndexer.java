@@ -10,8 +10,6 @@ import dev.langchain4j.data.segment.TextSegment;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleField;
@@ -25,6 +23,8 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Lucene indexer for LangChain4J content (in the form of `TextSegment`).
@@ -34,7 +34,7 @@ public final class LuceneIndexer {
     static final String CONTENT_FIELD_NAME = "content";
     static final String TOKEN_COUNT_FIELD_NAME = "token-count";
 
-    private static final Logger LOGGER = Logger.getLogger(LuceneIndexer.class.getCanonicalName());
+    private static final Logger log = LoggerFactory.getLogger(LuceneIndexer.class);
 
     private final Directory directory;
     private final Encoding encoding;
@@ -76,7 +76,7 @@ public final class LuceneIndexer {
             }
             writer.addDocument(doc);
         } catch (final IOException e) {
-            LOGGER.log(Level.INFO, String.format("Could not write content%n%s", content), e);
+            log.info(String.format("Could not write content%n%s", content), e);
         }
     }
 
