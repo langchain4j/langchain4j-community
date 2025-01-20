@@ -73,6 +73,12 @@ public final class LuceneContentRetriever implements ContentRetriever {
                     directory, onlyMatches, topNMatches, maxTokenCount, contentFieldName, tokenCountFieldName);
         }
 
+        /**
+         * Sets the name of the content field.
+         *
+         * @param contentFieldName Content field name
+         * @return Builder
+         */
         public LuceneContentRetrieverBuilder contentFieldName(final String contentFieldName) {
             if (contentFieldName == null || contentFieldName.isBlank()) {
                 this.contentFieldName = LuceneIndexer.CONTENT_FIELD_NAME;
@@ -127,6 +133,12 @@ public final class LuceneContentRetriever implements ContentRetriever {
             return this;
         }
 
+        /**
+         * Sets the name of the token count field.
+         *
+         * @param tokenCountFieldName Token count field name
+         * @return Builder
+         */
         public LuceneContentRetrieverBuilder tokenCountFieldName(final String tokenCountFieldName) {
             if (tokenCountFieldName == null || tokenCountFieldName.isBlank()) {
                 this.tokenCountFieldName = LuceneIndexer.TOKEN_COUNT_FIELD_NAME;
