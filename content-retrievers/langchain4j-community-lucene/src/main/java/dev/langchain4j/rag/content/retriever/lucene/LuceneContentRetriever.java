@@ -1,6 +1,7 @@
 package dev.langchain4j.rag.content.retriever.lucene;
 
-import static java.util.Objects.requireNonNull;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
@@ -198,18 +199,12 @@ public final class LuceneContentRetriever implements ContentRetriever {
             final int maxTokenCount,
             final String contentFieldName,
             final String tokenCountFieldName) {
-        this.directory = requireNonNull(directory, "No directory provided");
+        this.directory = ensureNotNull(directory, "directory");
         this.onlyMatches = onlyMatches;
         this.topNMatches = Math.max(0, topNMatches);
         this.maxTokenCount = Math.max(0, maxTokenCount);
-        this.contentFieldName = requireNonNull(contentFieldName, "No content field name provided");
-        if (this.contentFieldName.isBlank()) {
-            throw new IllegalArgumentException("Content field name cannot be blank");
-        }
-        this.tokenCountFieldName = requireNonNull(tokenCountFieldName, "No token count field name provided");
-        if (this.tokenCountFieldName.isBlank()) {
-            throw new IllegalArgumentException("Token count field name cannot be blank");
-        }
+        this.contentFieldName = ensureNotBlank(contentFieldName, "contentFieldName");
+        this.tokenCountFieldName = ensureNotBlank(tokenCountFieldName, "tokenCountFieldName");
     }
 
     /** {@inheritDoc} */

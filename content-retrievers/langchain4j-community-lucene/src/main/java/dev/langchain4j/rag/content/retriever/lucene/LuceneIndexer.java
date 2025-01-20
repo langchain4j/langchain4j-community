@@ -1,6 +1,6 @@
 package dev.langchain4j.rag.content.retriever.lucene;
 
-import static java.util.Objects.requireNonNull;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
@@ -45,7 +45,7 @@ public final class LuceneIndexer {
      * @param directory Lucene directory
      */
     public LuceneIndexer(final Directory directory) {
-        this.directory = requireNonNull(directory, "No directory provided");
+        this.directory = ensureNotNull(directory, "directory");
         final EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
         encoding = registry.getEncoding(EncodingType.CL100K_BASE);
     }

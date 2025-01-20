@@ -1,6 +1,6 @@
 package dev.langchain4j.rag.content.retriever.lucene;
 
-import static java.util.Objects.requireNonNull;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +21,7 @@ public class DirectoryFactory {
      * @return Lucene directory
      */
     public static Directory fsDirectory(final Path directoryPath) {
-        requireNonNull(directoryPath, "No file system directory path provided");
+        ensureNotNull(directoryPath, "directoryPath");
         try {
             final Directory directory = new MMapDirectory(directoryPath);
             return directory;
