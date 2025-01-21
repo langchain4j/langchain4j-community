@@ -259,7 +259,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             return hits;
         } catch (Throwable e) {
             // Catch Throwable, since Lucene can throw AssertionError
-            log.info(String.format("Could not query <%s>", query), e);
+            log.error(String.format("Could not query <%s>", query), e);
             return Collections.emptyList();
         }
     }
@@ -281,7 +281,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             QueryParser parser = new QueryParser(contentFieldName, new StandardAnalyzer());
             fullTextQuery = parser.parse(query);
         } catch (ParseException e) {
-            log.info(String.format("Could not create query <%s>", query), e);
+            log.warn(String.format("Could not create query <%s>", query), e);
             return new MatchAllDocsQuery();
         }
 
