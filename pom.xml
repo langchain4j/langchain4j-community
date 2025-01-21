@@ -60,6 +60,9 @@
         <module>embedding-stores/langchain4j-community-duckdb</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
 
+        <!-- Integration of content retrievers -->
+        <module>content-retrievers/langchain4j-community-lucene</module>
+
         <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
 
