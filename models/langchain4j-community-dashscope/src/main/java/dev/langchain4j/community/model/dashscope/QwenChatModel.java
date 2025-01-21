@@ -1,5 +1,23 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.aiMessageFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.createModelListenerRequest;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.onListenError;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.onListenRequest;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.onListenResponse;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toQwenMessages;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toQwenMultiModalMessages;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toToolFunction;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toToolFunctions;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.tokenUsageFrom;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Collections.emptyList;
+
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -19,40 +37,18 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequest;
 import dev.langchain4j.model.output.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.aiMessageFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.createModelListenerRequest;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.onListenError;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.onListenRequest;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.onListenResponse;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toQwenMessages;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toQwenMultiModalMessages;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toToolFunction;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toToolFunctions;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.tokenUsageFrom;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.emptyList;
+import java.util.function.Consumer;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
  * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details">here</a>.
  */
 public class QwenChatModel implements ChatLanguageModel {
-
-    private static final Logger log = LoggerFactory.getLogger(QwenChatModel.class);
-
     private final String apiKey;
     private final String modelName;
     private final Double topP;
@@ -67,21 +63,26 @@ public class QwenChatModel implements ChatLanguageModel {
     private final MultiModalConversation conv;
     private final boolean isMultimodalModel;
     private final List<ChatModelListener> listeners;
+    private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
+    private Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>>
+            multimodalConversationParamCustomizer = p -> {};
 
-    protected QwenChatModel(String baseUrl,
-                            String apiKey,
-                            String modelName,
-                            Double topP,
-                            Integer topK,
-                            Boolean enableSearch,
-                            Integer seed,
-                            Float repetitionPenalty,
-                            Float temperature,
-                            List<String> stops,
-                            Integer maxTokens,
-                            List<ChatModelListener> listeners) {
+    protected QwenChatModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            Double topP,
+            Integer topK,
+            Boolean enableSearch,
+            Integer seed,
+            Float repetitionPenalty,
+            Float temperature,
+            List<String> stops,
+            Integer maxTokens,
+            List<ChatModelListener> listeners) {
         if (Utils.isNullOrBlank(apiKey)) {
-            throw new IllegalArgumentException("DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+            throw new IllegalArgumentException(
+                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
         }
         this.modelName = Utils.isNullOrBlank(modelName) ? QwenModelName.QWEN_PLUS : modelName;
         this.enableSearch = enableSearch != null && enableSearch;
@@ -110,28 +111,29 @@ public class QwenChatModel implements ChatLanguageModel {
 
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages) {
-        return isMultimodalModel ?
-                generateByMultimodalModel(messages, null, null) :
-                generateByNonMultimodalModel(messages, null, null);
+        return isMultimodalModel
+                ? generateByMultimodalModel(messages, null, null)
+                : generateByNonMultimodalModel(messages, null, null);
     }
 
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
-        return isMultimodalModel ?
-                generateByMultimodalModel(messages, toolSpecifications, null) :
-                generateByNonMultimodalModel(messages, toolSpecifications, null);
+        return isMultimodalModel
+                ? generateByMultimodalModel(messages, toolSpecifications, null)
+                : generateByNonMultimodalModel(messages, toolSpecifications, null);
     }
 
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
-        return isMultimodalModel ?
-                generateByMultimodalModel(messages, null, toolSpecification) :
-                generateByNonMultimodalModel(messages, null, toolSpecification);
+        return isMultimodalModel
+                ? generateByMultimodalModel(messages, null, toolSpecification)
+                : generateByNonMultimodalModel(messages, null, toolSpecification);
     }
 
-    private Response<AiMessage> generateByNonMultimodalModel(List<ChatMessage> messages,
-                                                             List<ToolSpecification> toolSpecifications,
-                                                             ToolSpecification toolThatMustBeExecuted) {
+    private Response<AiMessage> generateByNonMultimodalModel(
+            List<ChatMessage> messages,
+            List<ToolSpecification> toolSpecifications,
+            ToolSpecification toolThatMustBeExecuted) {
 
         GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
                 .apiKey(apiKey)
@@ -157,6 +159,7 @@ public class QwenChatModel implements ChatLanguageModel {
             builder.toolChoice(toToolFunction(toolThatMustBeExecuted));
         }
 
+        generationParamCustomizer.accept(builder);
         GenerationParam param = builder.build();
 
         ChatModelRequest modelListenerRequest = createModelListenerRequest(param, messages, toolSpecifications);
@@ -165,39 +168,42 @@ public class QwenChatModel implements ChatLanguageModel {
 
         try {
             GenerationResult result = generation.call(param);
-            Response<AiMessage> response = Response.from(
-                    aiMessageFrom(result),
-                    tokenUsageFrom(result),
-                    finishReasonFrom(result)
-            );
+            Response<AiMessage> response =
+                    Response.from(aiMessageFrom(result), tokenUsageFrom(result), finishReasonFrom(result));
 
             onListenResponse(listeners, result.getRequestId(), response, modelListenerRequest, attributes);
             return response;
-        } catch (NoApiKeyException | InputRequiredException | RuntimeException e) {
+        } catch (NoApiKeyException | InputRequiredException e) {
             onListenError(listeners, null, e, modelListenerRequest, null, attributes);
-            throw e instanceof RuntimeException ?
-                    (RuntimeException) e : new RuntimeException(e);
+            throw new IllegalArgumentException(e);
+        } catch (RuntimeException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw e;
         }
     }
 
-    private Response<AiMessage> generateByMultimodalModel(List<ChatMessage> messages,
-                                                          List<ToolSpecification> toolSpecifications,
-                                                          ToolSpecification toolThatMustBeExecuted) {
+    private Response<AiMessage> generateByMultimodalModel(
+            List<ChatMessage> messages,
+            List<ToolSpecification> toolSpecifications,
+            ToolSpecification toolThatMustBeExecuted) {
         if (toolThatMustBeExecuted != null || !isNullOrEmpty(toolSpecifications)) {
             throw new IllegalArgumentException("Tools are currently not supported by this model");
         }
 
-        MultiModalConversationParam param = MultiModalConversationParam.builder()
-                .apiKey(apiKey)
-                .model(modelName)
-                .topP(topP)
-                .topK(topK)
-                .enableSearch(enableSearch)
-                .seed(seed)
-                .temperature(temperature)
-                .maxLength(maxTokens)
-                .messages(toQwenMultiModalMessages(messages))
-                .build();
+        MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
+                MultiModalConversationParam.builder()
+                        .apiKey(apiKey)
+                        .model(modelName)
+                        .topP(topP)
+                        .topK(topK)
+                        .enableSearch(enableSearch)
+                        .seed(seed)
+                        .temperature(temperature)
+                        .maxLength(maxTokens)
+                        .messages(toQwenMultiModalMessages(messages));
+
+        multimodalConversationParamCustomizer.accept(builder);
+        MultiModalConversationParam param = builder.build();
 
         ChatModelRequest modelListenerRequest = createModelListenerRequest(param, messages, toolSpecifications);
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
@@ -207,16 +213,33 @@ public class QwenChatModel implements ChatLanguageModel {
             MultiModalConversationResult result = conv.call(param);
             String answer = answerFrom(result);
 
-            Response<AiMessage> response = Response.from(AiMessage.from(answer),
-                    tokenUsageFrom(result), finishReasonFrom(result));
+            Response<AiMessage> response =
+                    Response.from(AiMessage.from(answer), tokenUsageFrom(result), finishReasonFrom(result));
 
             onListenResponse(listeners, result.getRequestId(), response, modelListenerRequest, attributes);
             return response;
-        } catch (NoApiKeyException | UploadFileException | RuntimeException e) {
+        } catch (NoApiKeyException e) {
             onListenError(listeners, null, e, modelListenerRequest, null, attributes);
-            throw e instanceof RuntimeException ?
-                    (RuntimeException) e : new RuntimeException(e);
+            throw new IllegalArgumentException(e);
+        } catch (UploadFileException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw new IllegalStateException(e);
+        } catch (RuntimeException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw e;
         }
+    }
+
+    public void setGenerationParamCustomizer(
+            Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer) {
+        this.generationParamCustomizer = ensureNotNull(generationParamCustomizer, "generationParamConsumer");
+    }
+
+    public void setMultimodalConversationParamCustomizer(
+            Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>>
+                    multimodalConversationParamCustomizer) {
+        this.multimodalConversationParamCustomizer =
+                ensureNotNull(multimodalConversationParamCustomizer, "multimodalConversationParamCustomizer");
     }
 
     public static QwenChatModelBuilder builder() {
@@ -319,8 +342,7 @@ public class QwenChatModel implements ChatLanguageModel {
                     temperature,
                     stops,
                     maxTokens,
-                    listeners
-            );
+                    listeners);
         }
     }
 }

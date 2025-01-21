@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenEmbeddingModelIT {
 
-    private EmbeddingModel getModel(String modelName) {
+    private QwenEmbeddingModel getModel(String modelName) {
         return QwenEmbeddingModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
@@ -40,12 +40,29 @@ class QwenEmbeddingModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#embeddingModelNameProvider")
+    void should_embed_one_text_by_customized_request(String modelName) {
+        QwenEmbeddingModel model = getModel(modelName);
+
+        Embedding sensitiveWordEmbedding =
+                model.embed("(this is a sensitive word)").content();
+
+        model.setTextEmbeddingParamCustomizer(textEmbeddingParamBuilder -> {
+            textEmbeddingParamBuilder.clearTexts();
+            textEmbeddingParamBuilder.text("(this is a desensitized word)");
+        });
+
+        Embedding desensitizedWordEmbedding =
+                model.embed("(this is a sensitive word)").content();
+
+        assertThat(desensitizedWordEmbedding).isNotEqualTo(sensitiveWordEmbedding);
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#embeddingModelNameProvider")
     void should_embed_documents(String modelName) {
         EmbeddingModel model = getModel(modelName);
-        List<Embedding> embeddings = model.embedAll(asList(
-                textSegment("hello"),
-                textSegment("how are you?")
-        )).content();
+        List<Embedding> embeddings = model.embedAll(asList(textSegment("hello"), textSegment("how are you?")))
+                .content();
 
         assertThat(embeddings).hasSize(2);
         assertThat(embeddings.get(0).vector()).isNotEmpty();
@@ -57,9 +74,9 @@ class QwenEmbeddingModelIT {
     void should_embed_queries(String modelName) {
         EmbeddingModel model = getModel(modelName);
         List<Embedding> embeddings = model.embedAll(asList(
-                textSegment("hello", Metadata.from(TYPE_KEY, TYPE_QUERY)),
-                textSegment("how are you?", Metadata.from(TYPE_KEY, TYPE_QUERY))
-        )).content();
+                        textSegment("hello", Metadata.from(TYPE_KEY, TYPE_QUERY)),
+                        textSegment("how are you?", Metadata.from(TYPE_KEY, TYPE_QUERY))))
+                .content();
 
         assertThat(embeddings).hasSize(2);
         assertThat(embeddings.get(0).vector()).isNotEmpty();
@@ -70,10 +87,9 @@ class QwenEmbeddingModelIT {
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#embeddingModelNameProvider")
     void should_embed_mix_segments(String modelName) {
         EmbeddingModel model = getModel(modelName);
-        List<Embedding> embeddings = model.embedAll(asList(
-                textSegment("hello", Metadata.from(TYPE_KEY, TYPE_QUERY)),
-                textSegment("how are you?")
-        )).content();
+        List<Embedding> embeddings = model.embedAll(
+                        asList(textSegment("hello", Metadata.from(TYPE_KEY, TYPE_QUERY)), textSegment("how are you?")))
+                .content();
 
         assertThat(embeddings).hasSize(2);
         assertThat(embeddings.get(0).vector()).isNotEmpty();
@@ -84,8 +100,8 @@ class QwenEmbeddingModelIT {
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#embeddingModelNameProvider")
     void should_embed_large_amounts_of_documents(String modelName) {
         EmbeddingModel model = getModel(modelName);
-        List<Embedding> embeddings = model.embedAll(
-                Collections.nCopies(50, textSegment("hello"))).content();
+        List<Embedding> embeddings =
+                model.embedAll(Collections.nCopies(50, textSegment("hello"))).content();
 
         assertThat(embeddings).hasSize(50);
     }
@@ -95,8 +111,8 @@ class QwenEmbeddingModelIT {
     void should_embed_large_amounts_of_queries(String modelName) {
         EmbeddingModel model = getModel(modelName);
         List<Embedding> embeddings = model.embedAll(
-                Collections.nCopies(50, textSegment("hello", Metadata.from(TYPE_KEY, TYPE_QUERY)))
-        ).content();
+                        Collections.nCopies(50, textSegment("hello", Metadata.from(TYPE_KEY, TYPE_QUERY))))
+                .content();
 
         assertThat(embeddings).hasSize(50);
     }
@@ -105,12 +121,12 @@ class QwenEmbeddingModelIT {
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#embeddingModelNameProvider")
     void should_embed_large_amounts_of_mix_segments(String modelName) {
         EmbeddingModel model = getModel(modelName);
-        List<Embedding> embeddings = model.embedAll(
-                Stream.concat(
-                        Collections.nCopies(50, textSegment("hello", Metadata.from(TYPE_KEY, TYPE_QUERY))).stream(),
-                        Collections.nCopies(50, textSegment("how are you?")).stream()
-                ).collect(Collectors.toList())
-        ).content();
+        List<Embedding> embeddings = model.embedAll(Stream.concat(
+                                Collections.nCopies(50, textSegment("hello", Metadata.from(TYPE_KEY, TYPE_QUERY)))
+                                        .stream(),
+                                Collections.nCopies(50, textSegment("how are you?")).stream())
+                        .collect(Collectors.toList()))
+                .content();
 
         assertThat(embeddings).hasSize(100);
     }

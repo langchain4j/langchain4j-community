@@ -12,12 +12,15 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.Tokenizer;
 
 import java.util.Collections;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toQwenMessages;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 public class QwenTokenizer implements Tokenizer {
@@ -25,10 +28,12 @@ public class QwenTokenizer implements Tokenizer {
     private final String apiKey;
     private final String modelName;
     private final Tokenization tokenizer;
+    private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
 
     public QwenTokenizer(String apiKey, String modelName) {
         if (isNullOrBlank(apiKey)) {
-            throw new IllegalArgumentException("DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+            throw new IllegalArgumentException(
+                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
         }
         this.apiKey = apiKey;
         this.modelName = getOrDefault(modelName, QWEN_PLUS);
@@ -39,17 +44,15 @@ public class QwenTokenizer implements Tokenizer {
     public int estimateTokenCountInText(String text) {
         String prompt = isBlank(text) ? text + "_" : text;
         try {
-            GenerationParam param = GenerationParam.builder()
-                    .apiKey(apiKey)
-                    .model(modelName)
-                    .prompt(prompt)
-                    .build();
+            GenerationParam.GenerationParamBuilder<?, ?> builder =
+                    GenerationParam.builder().apiKey(apiKey).model(modelName).prompt(prompt);
 
-            TokenizationResult result = tokenizer.call(param);
+            generationParamCustomizer.accept(builder);
+            TokenizationResult result = tokenizer.call(builder.build());
             int tokenCount = result.getUsage().getInputTokens();
-            return prompt == text ? tokenCount : tokenCount - 1;
+            return Objects.equals(prompt, text) ? tokenCount : tokenCount - 1;
         } catch (NoApiKeyException | InputRequiredException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -64,17 +67,15 @@ public class QwenTokenizer implements Tokenizer {
             return 0;
         }
 
-        try {
-            GenerationParam param = GenerationParam.builder()
-                    .apiKey(apiKey)
-                    .model(modelName)
-                    .messages(toQwenMessages(messages))
-                    .build();
+        GenerationParam.GenerationParamBuilder<?, ?> builder =
+                GenerationParam.builder().apiKey(apiKey).model(modelName).messages(toQwenMessages(messages));
 
-            TokenizationResult result = tokenizer.call(param);
+        try {
+            generationParamCustomizer.accept(builder);
+            TokenizationResult result = tokenizer.call(builder.build());
             return result.getUsage().getInputTokens();
         } catch (NoApiKeyException | InputRequiredException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -96,6 +97,11 @@ public class QwenTokenizer implements Tokenizer {
             }
         }
         return true;
+    }
+
+    public void setGenerationParamCustomizer(
+            Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer) {
+        this.generationParamCustomizer = ensureNotNull(generationParamCustomizer, "generationParamConsumer");
     }
 
     public static QwenTokenizerBuilder builder() {

@@ -1,17 +1,18 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalImageData;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.model.output.Response;
-import java.net.URI;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalImageData;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class WanxImageModelIT {
@@ -33,7 +34,7 @@ class WanxImageModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.WanxTestHelper#imageModelNameProvider")
-    void simple_image_generation_works_by_customize_request(String modelName) {
+    void simple_image_generation_works_by_customized_request(String modelName) {
         WanxImageModel model =
                 WanxImageModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
