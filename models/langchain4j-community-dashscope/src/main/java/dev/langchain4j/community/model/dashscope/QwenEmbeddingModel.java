@@ -19,12 +19,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
 import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 
 /**
  * An implementation of an {@link dev.langchain4j.model.embedding.EmbeddingModel} that uses
@@ -90,7 +90,7 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .textType(textType)
                 .texts(textSegments.stream()
                         .map(TextSegment::text)
-                        .collect(Collectors.toList()))
+                        .collect(toList()))
                 .build();
         try {
             TextEmbeddingResult generationResult = embedding.call(param);
@@ -103,12 +103,12 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
                     .stream()
                     .sorted(Comparator.comparing(TextEmbeddingResultItem::getTextIndex))
                     .map(TextEmbeddingResultItem::getEmbedding)
-                    .map(doubleList -> doubleList.stream().map(Double::floatValue).collect(Collectors.toList()))
+                    .map(doubleList -> doubleList.stream().map(Double::floatValue).collect(toList()))
                     .map(Embedding::from)
-                    .collect(Collectors.toList());
+                    .collect(toList());
             return Response.from(embeddings, usage);
         } catch (NoApiKeyException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 

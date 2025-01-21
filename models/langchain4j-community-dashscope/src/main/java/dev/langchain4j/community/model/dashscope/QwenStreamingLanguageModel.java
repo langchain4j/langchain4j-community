@@ -123,7 +123,7 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
                 }
             });
         } catch (NoApiKeyException | InputRequiredException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 

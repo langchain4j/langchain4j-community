@@ -19,8 +19,6 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequest;
 import dev.langchain4j.model.output.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,9 +48,6 @@ import static java.util.Collections.emptyList;
  * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details">here</a>.
  */
 public class QwenChatModel implements ChatLanguageModel {
-
-    private static final Logger log = LoggerFactory.getLogger(QwenChatModel.class);
-
     private final String apiKey;
     private final String modelName;
     private final Double topP;
@@ -173,10 +168,12 @@ public class QwenChatModel implements ChatLanguageModel {
 
             onListenResponse(listeners, result.getRequestId(), response, modelListenerRequest, attributes);
             return response;
-        } catch (NoApiKeyException | InputRequiredException | RuntimeException e) {
+        } catch (NoApiKeyException | InputRequiredException e) {
             onListenError(listeners, null, e, modelListenerRequest, null, attributes);
-            throw e instanceof RuntimeException ?
-                    (RuntimeException) e : new RuntimeException(e);
+            throw new IllegalArgumentException(e);
+        } catch (RuntimeException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw e;
         }
     }
 
@@ -212,10 +209,15 @@ public class QwenChatModel implements ChatLanguageModel {
 
             onListenResponse(listeners, result.getRequestId(), response, modelListenerRequest, attributes);
             return response;
-        } catch (NoApiKeyException | UploadFileException | RuntimeException e) {
+        } catch (NoApiKeyException e) {
             onListenError(listeners, null, e, modelListenerRequest, null, attributes);
-            throw e instanceof RuntimeException ?
-                    (RuntimeException) e : new RuntimeException(e);
+            throw new IllegalArgumentException(e);
+        } catch (UploadFileException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw new IllegalStateException(e);
+        } catch (RuntimeException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw e;
         }
     }
 

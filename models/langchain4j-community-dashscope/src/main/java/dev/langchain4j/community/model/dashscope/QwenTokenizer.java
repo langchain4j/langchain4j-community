@@ -12,6 +12,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.Tokenizer;
 
 import java.util.Collections;
+import java.util.Objects;
 
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toQwenMessages;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
@@ -47,9 +48,9 @@ public class QwenTokenizer implements Tokenizer {
 
             TokenizationResult result = tokenizer.call(param);
             int tokenCount = result.getUsage().getInputTokens();
-            return prompt == text ? tokenCount : tokenCount - 1;
+            return Objects.equals(prompt, text) ? tokenCount : tokenCount - 1;
         } catch (NoApiKeyException | InputRequiredException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -74,7 +75,7 @@ public class QwenTokenizer implements Tokenizer {
             TokenizationResult result = tokenizer.call(param);
             return result.getUsage().getInputTokens();
         } catch (NoApiKeyException | InputRequiredException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 

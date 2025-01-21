@@ -46,9 +46,9 @@ public class QwenStreamingResponseBuilder {
             outputTokenCount = usage.getOutputTokens();
         }
 
-        FinishReason finishReason = finishReasonFrom(partialResponse);
-        if (finishReason != null) {
-            this.finishReason = finishReason;
+        FinishReason latestFinishReason = finishReasonFrom(partialResponse);
+        if (latestFinishReason != null) {
+            finishReason = latestFinishReason;
         }
 
         if (hasAnswer(partialResponse)) {
@@ -94,9 +94,9 @@ public class QwenStreamingResponseBuilder {
             outputTokenCount = usage.getOutputTokens();
         }
 
-        FinishReason finishReason = finishReasonFrom(partialResponse);
-        if (finishReason != null) {
-            this.finishReason = finishReason;
+        FinishReason latestFinishReason = finishReasonFrom(partialResponse);
+        if (latestFinishReason != null) {
+            finishReason = latestFinishReason;
         }
 
         if (hasAnswer(partialResponse)) {
@@ -144,8 +144,8 @@ public class QwenStreamingResponseBuilder {
 
     private static class ToolExecutionRequestBuilder {
 
-        private final StringBuffer idBuilder = new StringBuffer();
-        private final StringBuffer nameBuilder = new StringBuffer();
-        private final StringBuffer argumentsBuilder = new StringBuffer();
+        private final StringBuilder idBuilder = new StringBuilder();
+        private final StringBuilder nameBuilder = new StringBuilder();
+        private final StringBuilder argumentsBuilder = new StringBuilder();
     }
 }

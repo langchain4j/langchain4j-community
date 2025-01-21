@@ -99,7 +99,7 @@ public class QwenLanguageModel implements LanguageModel {
             return Response.from(answerFrom(generationResult),
                     tokenUsageFrom(generationResult), finishReasonFrom(generationResult));
         } catch (NoApiKeyException | InputRequiredException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 

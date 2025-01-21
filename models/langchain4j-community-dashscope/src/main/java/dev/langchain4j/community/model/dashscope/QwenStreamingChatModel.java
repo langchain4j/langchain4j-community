@@ -206,10 +206,12 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
                     handler.onError(e);
                 }
             });
-        } catch (NoApiKeyException | InputRequiredException | RuntimeException e) {
+        } catch (NoApiKeyException | InputRequiredException e) {
             onListenError(listeners, null, e, modelListenerRequest, null, attributes);
-            throw e instanceof RuntimeException ?
-                    (RuntimeException) e : new RuntimeException(e);
+            throw new IllegalArgumentException(e);
+        } catch (RuntimeException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw e;
         }
     }
 
@@ -261,10 +263,15 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
                     handler.onError(e);
                 }
             });
-        } catch (NoApiKeyException | UploadFileException | InputRequiredException | RuntimeException e) {
+        } catch (NoApiKeyException | InputRequiredException e) {
             onListenError(listeners, null, e, modelListenerRequest, null, attributes);
-            throw e instanceof RuntimeException ?
-                    (RuntimeException) e : new RuntimeException(e);
+            throw new IllegalArgumentException(e);
+        } catch (UploadFileException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw new IllegalStateException(e);
+        } catch (RuntimeException e) {
+            onListenError(listeners, null, e, modelListenerRequest, null, attributes);
+            throw e;
         }
     }
 

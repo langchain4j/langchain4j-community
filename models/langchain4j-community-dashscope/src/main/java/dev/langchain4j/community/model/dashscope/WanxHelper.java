@@ -17,7 +17,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 public class WanxHelper {
 
@@ -29,7 +30,7 @@ public class WanxHelper {
                 .stream()
                 .map(resultMap -> resultMap.get("url"))
                 .map(url -> Image.builder().url(url).build())
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     static String imageUrl(Image image, String model, String apiKey) {
