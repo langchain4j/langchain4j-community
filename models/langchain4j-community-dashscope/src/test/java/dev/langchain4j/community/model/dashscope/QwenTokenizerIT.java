@@ -1,7 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.Tokenizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -24,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenTokenizerIT {
 
-    private Tokenizer tokenizer;
+    private QwenTokenizer tokenizer;
 
     @BeforeEach
     void setUp() {
@@ -66,6 +65,15 @@ class QwenTokenizerIT {
     }
 
     @Test
+    void should_count_tokens_in_short_texts_by_customized_request() {
+        tokenizer.setGenerationParamCustomizer(generationParamBuilder -> {
+            generationParamBuilder.prompt("{placeholder}");
+        });
+
+        assertThat(tokenizer.estimateTokenCountInText("")).isPositive();
+    }
+
+    @Test
     void should_count_tokens_in_average_text() {
         String text1 = "Hello, how are you doing? What do you want to talk about?";
         assertThat(tokenizer.estimateTokenCountInText(text1)).isEqualTo(15);
@@ -91,8 +99,8 @@ class QwenTokenizerIT {
 
     @Test
     void should_count_empty_messages_and_return_0() {
-        assertThat(tokenizer.estimateTokenCountInMessages(null)).isEqualTo(0);
-        assertThat(tokenizer.estimateTokenCountInMessages(emptyList())).isEqualTo(0);
+        assertThat(tokenizer.estimateTokenCountInMessages(null)).isZero();
+        assertThat(tokenizer.estimateTokenCountInMessages(emptyList())).isZero();
     }
 
     public static List<String> repeat(String s, int n) {

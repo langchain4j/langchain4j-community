@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenEmbeddingModelIT {
 
-    private EmbeddingModel getModel(String modelName) {
+    private QwenEmbeddingModel getModel(String modelName) {
         return QwenEmbeddingModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
@@ -36,6 +36,23 @@ class QwenEmbeddingModelIT {
         Embedding embedding = model.embed("hello").content();
 
         assertThat(embedding.vector()).isNotEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#embeddingModelNameProvider")
+    void should_embed_one_text_by_customized_request(String modelName) {
+        QwenEmbeddingModel model = getModel(modelName);
+
+        Embedding sensitiveWordEmbedding = model.embed("(this is a sensitive word)").content();
+
+        model.setTextEmbeddingParamCustomizer(textEmbeddingParamBuilder -> {
+            textEmbeddingParamBuilder.clearTexts();
+            textEmbeddingParamBuilder.text("(this is a desensitized word)");
+        });
+
+        Embedding desensitizedWordEmbedding = model.embed("(this is a sensitive word)").content();
+
+        assertThat(desensitizedWordEmbedding).isNotEqualTo(sensitiveWordEmbedding);
     }
 
     @ParameterizedTest

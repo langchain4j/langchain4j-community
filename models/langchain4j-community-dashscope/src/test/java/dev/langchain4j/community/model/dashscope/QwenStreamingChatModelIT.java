@@ -50,6 +50,25 @@ class QwenStreamingChatModelIT {
     }
 
     @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
+    void should_send_non_multimodal_messages_and_receive_response_by_customized_request(String modelName) {
+        QwenStreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        model.setGenerationParamCustomizer(generationParamBuilder ->
+                generationParamBuilder.stopString("rain"));
+
+        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        model.generate(chatMessages(), handler);
+        Response<AiMessage> response = handler.get();
+
+        // it should generate "rain" but is stopped
+        assertThat(response.content().text()).doesNotContain("rain");
+    }
+
+    @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_function_with_no_argument_then_answer(String modelName) {
         StreamingChatLanguageModel model = QwenStreamingChatModel.builder()

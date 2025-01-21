@@ -43,13 +43,13 @@ public class QwenTokenizer implements Tokenizer {
     public int estimateTokenCountInText(String text) {
         String prompt = isBlank(text) ? text + "_" : text;
         try {
-            GenerationParam param = GenerationParam.builder()
+            GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
                     .apiKey(apiKey)
                     .model(modelName)
-                    .prompt(prompt)
-                    .build();
+                    .prompt(prompt);
 
-            TokenizationResult result = tokenizer.call(param);
+            generationParamCustomizer.accept(builder);
+            TokenizationResult result = tokenizer.call(builder.build());
             int tokenCount = result.getUsage().getInputTokens();
             return Objects.equals(prompt, text) ? tokenCount : tokenCount - 1;
         } catch (NoApiKeyException | InputRequiredException e) {

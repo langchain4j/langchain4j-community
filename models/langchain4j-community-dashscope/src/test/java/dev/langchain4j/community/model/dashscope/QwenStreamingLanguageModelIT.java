@@ -26,4 +26,23 @@ class QwenStreamingLanguageModelIT {
 
         assertThat(response.content()).containsIgnoringCase("hello");
     }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#languageModelNameProvider")
+    void should_send_messages_and_receive_response_by_customized_request(String modelName) {
+        QwenStreamingLanguageModel model = QwenStreamingLanguageModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        model.setGenerationParamCustomizer(generationParamBuilder ->
+                generationParamBuilder.stopString("hello"));
+
+        TestStreamingResponseHandler<String> handler = new TestStreamingResponseHandler<>();
+        model.generate("Please say 'hello' to me", handler);
+        Response<String> response = handler.get();
+
+        // it should generate "hello" but is stopped
+        assertThat(response.content()).doesNotContain("hello");
+    }
 }
