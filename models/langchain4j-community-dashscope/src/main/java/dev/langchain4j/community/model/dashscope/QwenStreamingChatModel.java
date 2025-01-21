@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.createModelListenerRequest;
@@ -42,6 +43,7 @@ import static dev.langchain4j.community.model.dashscope.QwenHelper.toToolFunctio
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toToolFunctions;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Collections.emptyList;
 
@@ -69,6 +71,8 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
     private final MultiModalConversation conv;
     private final boolean isMultimodalModel;
     private final List<ChatModelListener> listeners;
+    private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
+    private Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>> multimodalConversationParamCustomizer = p -> {};
 
     public QwenStreamingChatModel(String baseUrl,
                                   String apiKey,
@@ -170,6 +174,7 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
             builder.toolChoice(toToolFunction(toolThatMustBeExecuted));
         }
 
+        generationParamCustomizer.accept(builder);
         GenerationParam param = builder.build();
 
         ChatModelRequest modelListenerRequest = createModelListenerRequest(param, messages, toolSpecifications);
@@ -216,7 +221,7 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
     }
 
     private void generateByMultimodalModel(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
-        MultiModalConversationParam param = MultiModalConversationParam.builder()
+        MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder = MultiModalConversationParam.builder()
                 .apiKey(apiKey)
                 .model(modelName)
                 .topP(topP)
@@ -226,8 +231,10 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
                 .temperature(temperature)
                 .maxLength(maxTokens)
                 .incrementalOutput(true)
-                .messages(toQwenMultiModalMessages(messages))
-                .build();
+                .messages(toQwenMultiModalMessages(messages));
+
+        multimodalConversationParamCustomizer.accept(builder);
+        MultiModalConversationParam param = builder.build();
 
         ChatModelRequest modelListenerRequest = createModelListenerRequest(param, messages, null);
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
@@ -273,6 +280,18 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
             onListenError(listeners, null, e, modelListenerRequest, null, attributes);
             throw e;
         }
+    }
+
+    public void setGenerationParamCustomizer(
+            Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer) {
+        this.generationParamCustomizer =
+                ensureNotNull(generationParamCustomizer, "generationParamConsumer");
+    }
+
+    public void setMultimodalConversationParamCustomizer(
+            Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>> multimodalConversationParamCustomizer) {
+        this.multimodalConversationParamCustomizer =
+                ensureNotNull(multimodalConversationParamCustomizer, "multimodalConversationParamCustomizer");
     }
 
     public static QwenStreamingChatModelBuilder builder() {

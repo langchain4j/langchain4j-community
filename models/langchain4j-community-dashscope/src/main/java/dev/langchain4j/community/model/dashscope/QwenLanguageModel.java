@@ -12,6 +12,7 @@ import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.output.Response;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
@@ -19,6 +20,7 @@ import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonF
 import static dev.langchain4j.community.model.dashscope.QwenHelper.tokenUsageFrom;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
@@ -37,6 +39,7 @@ public class QwenLanguageModel implements LanguageModel {
     private final List<String> stops;
     private final Integer maxTokens;
     private final Generation generation;
+    private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
 
     public QwenLanguageModel(String baseUrl,
                              String apiKey,
@@ -92,6 +95,7 @@ public class QwenLanguageModel implements LanguageModel {
                 builder.stopStrings(stops);
             }
 
+            generationParamCustomizer.accept(builder);
             GenerationResult generationResult = generation.call(builder.build());
 
             return Response.from(answerFrom(generationResult),
@@ -99,6 +103,12 @@ public class QwenLanguageModel implements LanguageModel {
         } catch (NoApiKeyException | InputRequiredException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    public void setGenerationParamCustomizer(
+            Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer) {
+        this.generationParamCustomizer =
+                ensureNotNull(generationParamCustomizer, "generationParamConsumer");
     }
 
     public static QwenLanguageModelBuilder builder() {

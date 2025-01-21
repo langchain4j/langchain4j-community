@@ -19,9 +19,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
 import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -40,6 +42,7 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
     private final String apiKey;
     private final String modelName;
     private final TextEmbedding embedding;
+    private Consumer<TextEmbeddingParam.TextEmbeddingParamBuilder<?, ?>> textEmbeddingParamCustomizer = p -> {};
 
     public QwenEmbeddingModel(String baseUrl, String apiKey, String modelName) {
         if (Utils.isNullOrBlank(apiKey)) {
@@ -84,16 +87,17 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
     }
 
     private Response<List<Embedding>> batchEmbedTexts(List<TextSegment> textSegments, TextEmbeddingParam.TextType textType) {
-        TextEmbeddingParam param = TextEmbeddingParam.builder()
+        TextEmbeddingParam.TextEmbeddingParamBuilder<?, ?> builder = TextEmbeddingParam.builder()
                 .apiKey(apiKey)
                 .model(modelName)
                 .textType(textType)
                 .texts(textSegments.stream()
                         .map(TextSegment::text)
-                        .collect(toList()))
-                .build();
+                        .collect(toList()));
+
         try {
-            TextEmbeddingResult generationResult = embedding.call(param);
+            textEmbeddingParamCustomizer.accept(builder);
+            TextEmbeddingResult generationResult = embedding.call(builder.build());
             // total_tokens are the same as input_tokens in the embedding model
             TokenUsage usage = new TokenUsage(generationResult.getUsage().getTotalTokens());
             List<Embedding> embeddings = Optional.of(generationResult)
@@ -147,6 +151,12 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
                 return Response.from(embeddings, new TokenUsage(tokens));
             }
         }
+    }
+
+    public void setTextEmbeddingParamCustomizer(
+            Consumer<TextEmbeddingParam.TextEmbeddingParamBuilder<?, ?>> textEmbeddingParamCustomizer) {
+        this.textEmbeddingParamCustomizer =
+                ensureNotNull(textEmbeddingParamCustomizer, "textEmbeddingParamCustomizer");
     }
 
     public static QwenEmbeddingModelBuilder builder() {

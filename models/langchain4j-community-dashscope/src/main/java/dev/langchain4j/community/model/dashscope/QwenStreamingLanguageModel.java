@@ -15,10 +15,12 @@ import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
@@ -40,6 +42,7 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
     private final List<String> stops;
     private final Integer maxTokens;
     private final Generation generation;
+    private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
 
     public QwenStreamingLanguageModel(String baseUrl,
                                       String apiKey,
@@ -96,9 +99,10 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
                 builder.stopStrings(stops);
             }
 
-            QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder();
+            generationParamCustomizer.accept(builder);
 
-            generation.streamCall(builder.build(), new ResultCallback<GenerationResult>() {
+            QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder();
+            generation.streamCall(builder.build(), new ResultCallback<>() {
                 @Override
                 public void onEvent(GenerationResult result) {
                     String delta = responseBuilder.append(result);
@@ -125,6 +129,12 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
         } catch (NoApiKeyException | InputRequiredException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    public void setGenerationParamCustomizer(
+            Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer) {
+        this.generationParamCustomizer =
+                ensureNotNull(generationParamCustomizer, "generationParamConsumer");
     }
 
     public static QwenStreamingLanguageModelBuilder builder() {
