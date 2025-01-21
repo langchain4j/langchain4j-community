@@ -53,8 +53,7 @@ class QwenChatModelIT {
         QwenChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
-        model.setGenerationParamCustomizer(generationParamBuilder ->
-                generationParamBuilder.stopString("rain"));
+        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rain"));
 
         Response<AiMessage> response = model.generate(QwenTestHelper.chatMessages());
 

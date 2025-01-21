@@ -1,22 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.model.chat.TestStreamingResponseHandler;
-import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
-import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.List;
-
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.chatMessages;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
@@ -30,6 +13,22 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.TestStreamingResponseHandler;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.output.TokenUsage;
+import java.util.List;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenStreamingChatModelIT {
@@ -57,8 +56,7 @@ class QwenStreamingChatModelIT {
                 .modelName(modelName)
                 .build();
 
-        model.setGenerationParamCustomizer(generationParamBuilder ->
-                generationParamBuilder.stopString("rain"));
+        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rain"));
 
         TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
         model.generate(chatMessages(), handler);
@@ -90,7 +88,8 @@ class QwenStreamingChatModelIT {
 
         assertThat(response.content().text()).isNull();
         assertThat(response.content().toolExecutionRequests()).hasSize(1);
-        ToolExecutionRequest toolExecutionRequest = response.content().toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                response.content().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).isEqualTo("{}");
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
@@ -126,9 +125,8 @@ class QwenStreamingChatModelIT {
         ToolSpecification hasArgToolSpec = ToolSpecification.builder()
                 .name(toolName)
                 .description("Query the weather of a specified city")
-                .parameters(JsonObjectSchema.builder()
-                        .addStringProperty("cityName")
-                        .build())
+                .parameters(
+                        JsonObjectSchema.builder().addStringProperty("cityName").build())
                 .build();
 
         UserMessage userMessage = UserMessage.from("Weather in Beijing?");
@@ -139,7 +137,8 @@ class QwenStreamingChatModelIT {
 
         assertThat(response.content().text()).isNull();
         assertThat(response.content().toolExecutionRequests()).hasSize(1);
-        ToolExecutionRequest toolExecutionRequest = response.content().toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                response.content().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).contains("Beijing");
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
@@ -175,9 +174,8 @@ class QwenStreamingChatModelIT {
         ToolSpecification mustBeExecutedTool = ToolSpecification.builder()
                 .name(toolName)
                 .description("Query the weather of a specified city")
-                .parameters(JsonObjectSchema.builder()
-                        .addStringProperty("cityName")
-                        .build())
+                .parameters(
+                        JsonObjectSchema.builder().addStringProperty("cityName").build())
                 .build();
 
         // not related to tools
@@ -189,7 +187,8 @@ class QwenStreamingChatModelIT {
 
         assertThat(response.content().text()).isNull();
         assertThat(response.content().toolExecutionRequests()).hasSize(1);
-        ToolExecutionRequest toolExecutionRequest = response.content().toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                response.content().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).hasSizeGreaterThan(0);
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
@@ -223,7 +222,8 @@ class QwenStreamingChatModelIT {
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.id()).isNotNull();
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).isEqualToIgnoringWhitespace("{\"first\": 2, \"second\": 2}");

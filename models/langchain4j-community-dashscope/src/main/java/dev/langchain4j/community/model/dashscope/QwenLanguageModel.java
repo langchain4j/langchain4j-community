@@ -1,5 +1,14 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.tokenUsageFrom;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -10,18 +19,8 @@ import dev.langchain4j.community.model.dashscope.spi.QwenLanguageModelBuilderFac
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.util.List;
 import java.util.function.Consumer;
-
-import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.tokenUsageFrom;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * Represents a Qwen language model with a text interface.
@@ -41,19 +40,21 @@ public class QwenLanguageModel implements LanguageModel {
     private final Generation generation;
     private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
 
-    public QwenLanguageModel(String baseUrl,
-                             String apiKey,
-                             String modelName,
-                             Double topP,
-                             Integer topK,
-                             Boolean enableSearch,
-                             Integer seed,
-                             Float repetitionPenalty,
-                             Float temperature,
-                             List<String> stops,
-                             Integer maxTokens) {
+    public QwenLanguageModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            Double topP,
+            Integer topK,
+            Boolean enableSearch,
+            Integer seed,
+            Float repetitionPenalty,
+            Float temperature,
+            List<String> stops,
+            Integer maxTokens) {
         if (isNullOrBlank(apiKey)) {
-            throw new IllegalArgumentException("DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+            throw new IllegalArgumentException(
+                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
         }
         this.modelName = isNullOrBlank(modelName) ? QWEN_PLUS : modelName;
         this.enableSearch = enableSearch != null && enableSearch;
@@ -98,8 +99,8 @@ public class QwenLanguageModel implements LanguageModel {
             generationParamCustomizer.accept(builder);
             GenerationResult generationResult = generation.call(builder.build());
 
-            return Response.from(answerFrom(generationResult),
-                    tokenUsageFrom(generationResult), finishReasonFrom(generationResult));
+            return Response.from(
+                    answerFrom(generationResult), tokenUsageFrom(generationResult), finishReasonFrom(generationResult));
         } catch (NoApiKeyException | InputRequiredException e) {
             throw new IllegalArgumentException(e);
         }
@@ -107,8 +108,7 @@ public class QwenLanguageModel implements LanguageModel {
 
     public void setGenerationParamCustomizer(
             Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer) {
-        this.generationParamCustomizer =
-                ensureNotNull(generationParamCustomizer, "generationParamConsumer");
+        this.generationParamCustomizer = ensureNotNull(generationParamCustomizer, "generationParamConsumer");
     }
 
     public static QwenLanguageModelBuilder builder() {
@@ -203,8 +203,7 @@ public class QwenLanguageModel implements LanguageModel {
                     repetitionPenalty,
                     temperature,
                     stops,
-                    maxTokens
-            );
+                    maxTokens);
         }
     }
 }

@@ -1,5 +1,13 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.isFunctionToolCalls;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toolCallsFrom;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static java.util.stream.Collectors.toList;
+
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.generation.GenerationUsage;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
@@ -11,29 +19,20 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.isFunctionToolCalls;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toolCallsFrom;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static java.util.stream.Collectors.toList;
-
 public class QwenStreamingResponseBuilder {
 
     private final StringBuilder generatedContent = new StringBuilder();
-    private final Map<Integer, ToolExecutionRequestBuilder> indexToToolExecutionRequestBuilder = new ConcurrentHashMap<>();
+    private final Map<Integer, ToolExecutionRequestBuilder> indexToToolExecutionRequestBuilder =
+            new ConcurrentHashMap<>();
     private Integer inputTokenCount;
     private Integer outputTokenCount;
     private FinishReason finishReason;
 
-    public QwenStreamingResponseBuilder() {
-    }
+    public QwenStreamingResponseBuilder() {}
 
     public String append(GenerationResult partialResponse) {
         if (partialResponse == null) {
@@ -61,8 +60,9 @@ public class QwenStreamingResponseBuilder {
                 // It looks like the index of the list matches the 'index' property in the response,
                 // which can't be directly accessed by java sdk.
                 if (toolCalls.get(index) instanceof ToolCallFunction toolCall) {
-                    ToolExecutionRequestBuilder toolExecutionRequestBuilder
-                            = indexToToolExecutionRequestBuilder.computeIfAbsent(index, idx -> new ToolExecutionRequestBuilder());
+                    ToolExecutionRequestBuilder toolExecutionRequestBuilder =
+                            indexToToolExecutionRequestBuilder.computeIfAbsent(
+                                    index, idx -> new ToolExecutionRequestBuilder());
                     if (toolCall.getId() != null) {
                         toolExecutionRequestBuilder.idBuilder.append(toolCall.getId());
                     }
@@ -120,23 +120,15 @@ public class QwenStreamingResponseBuilder {
                             .build())
                     .collect(toList());
 
-            AiMessage aiMessage = isNullOrBlank(text) ?
-                    AiMessage.from(toolExecutionRequests) :
-                    AiMessage.from(text, toolExecutionRequests);
+            AiMessage aiMessage = isNullOrBlank(text)
+                    ? AiMessage.from(toolExecutionRequests)
+                    : AiMessage.from(text, toolExecutionRequests);
 
-            return Response.from(
-                    aiMessage,
-                    new TokenUsage(inputTokenCount, outputTokenCount),
-                    finishReason
-            );
+            return Response.from(aiMessage, new TokenUsage(inputTokenCount, outputTokenCount), finishReason);
         }
 
         if (!isNullOrBlank(text)) {
-            return Response.from(
-                    AiMessage.from(text),
-                    new TokenUsage(inputTokenCount, outputTokenCount),
-                    finishReason
-            );
+            return Response.from(AiMessage.from(text), new TokenUsage(inputTokenCount, outputTokenCount), finishReason);
         }
 
         return null;

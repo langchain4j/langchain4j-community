@@ -1,5 +1,12 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
+import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+
 import com.alibaba.dashscope.embeddings.TextEmbedding;
 import com.alibaba.dashscope.embeddings.TextEmbeddingOutput;
 import com.alibaba.dashscope.embeddings.TextEmbeddingParam;
@@ -13,20 +20,12 @@ import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.embedding.DimensionAwareEmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-
-import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
-import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 
 /**
  * An implementation of an {@link dev.langchain4j.model.embedding.EmbeddingModel} that uses
@@ -46,7 +45,8 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
 
     public QwenEmbeddingModel(String baseUrl, String apiKey, String modelName) {
         if (Utils.isNullOrBlank(apiKey)) {
-            throw new IllegalArgumentException("DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+            throw new IllegalArgumentException(
+                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
         }
         this.modelName = Utils.isNullOrBlank(modelName) ? QwenModelName.TEXT_EMBEDDING_V2 : modelName;
         this.apiKey = apiKey;
@@ -67,8 +67,7 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .anyMatch(TYPE_QUERY::equalsIgnoreCase);
     }
 
-    private Response<List<Embedding>> embedTexts(List<TextSegment> textSegments,
-                                                 TextEmbeddingParam.TextType textType) {
+    private Response<List<Embedding>> embedTexts(List<TextSegment> textSegments, TextEmbeddingParam.TextType textType) {
         int size = textSegments.size();
         if (size < BATCH_SIZE) {
             return batchEmbedTexts(textSegments, textType);
@@ -86,14 +85,13 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
         return Response.from(allEmbeddings, allUsage);
     }
 
-    private Response<List<Embedding>> batchEmbedTexts(List<TextSegment> textSegments, TextEmbeddingParam.TextType textType) {
+    private Response<List<Embedding>> batchEmbedTexts(
+            List<TextSegment> textSegments, TextEmbeddingParam.TextType textType) {
         TextEmbeddingParam.TextEmbeddingParamBuilder<?, ?> builder = TextEmbeddingParam.builder()
                 .apiKey(apiKey)
                 .model(modelName)
                 .textType(textType)
-                .texts(textSegments.stream()
-                        .map(TextSegment::text)
-                        .collect(toList()));
+                .texts(textSegments.stream().map(TextSegment::text).collect(toList()));
 
         try {
             textEmbeddingParamCustomizer.accept(builder);
@@ -107,7 +105,8 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
                     .stream()
                     .sorted(Comparator.comparing(TextEmbeddingResultItem::getTextIndex))
                     .map(TextEmbeddingResultItem::getEmbedding)
-                    .map(doubleList -> doubleList.stream().map(Double::floatValue).collect(toList()))
+                    .map(doubleList ->
+                            doubleList.stream().map(Double::floatValue).collect(toList()))
                     .map(Embedding::from)
                     .collect(toList());
             return Response.from(embeddings, usage);
@@ -155,8 +154,7 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
 
     public void setTextEmbeddingParamCustomizer(
             Consumer<TextEmbeddingParam.TextEmbeddingParamBuilder<?, ?>> textEmbeddingParamCustomizer) {
-        this.textEmbeddingParamCustomizer =
-                ensureNotNull(textEmbeddingParamCustomizer, "textEmbeddingParamCustomizer");
+        this.textEmbeddingParamCustomizer = ensureNotNull(textEmbeddingParamCustomizer, "textEmbeddingParamCustomizer");
     }
 
     public static QwenEmbeddingModelBuilder builder() {

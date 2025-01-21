@@ -32,7 +32,8 @@ public class QwenTokenizer implements Tokenizer {
 
     public QwenTokenizer(String apiKey, String modelName) {
         if (isNullOrBlank(apiKey)) {
-            throw new IllegalArgumentException("DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+            throw new IllegalArgumentException(
+                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
         }
         this.apiKey = apiKey;
         this.modelName = getOrDefault(modelName, QWEN_PLUS);
@@ -43,10 +44,8 @@ public class QwenTokenizer implements Tokenizer {
     public int estimateTokenCountInText(String text) {
         String prompt = isBlank(text) ? text + "_" : text;
         try {
-            GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
-                    .apiKey(apiKey)
-                    .model(modelName)
-                    .prompt(prompt);
+            GenerationParam.GenerationParamBuilder<?, ?> builder =
+                    GenerationParam.builder().apiKey(apiKey).model(modelName).prompt(prompt);
 
             generationParamCustomizer.accept(builder);
             TokenizationResult result = tokenizer.call(builder.build());
@@ -68,10 +67,8 @@ public class QwenTokenizer implements Tokenizer {
             return 0;
         }
 
-        GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
-                .apiKey(apiKey)
-                .model(modelName)
-                .messages(toQwenMessages(messages));
+        GenerationParam.GenerationParamBuilder<?, ?> builder =
+                GenerationParam.builder().apiKey(apiKey).model(modelName).messages(toQwenMessages(messages));
 
         try {
             generationParamCustomizer.accept(builder);
@@ -104,8 +101,7 @@ public class QwenTokenizer implements Tokenizer {
 
     public void setGenerationParamCustomizer(
             Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer) {
-        this.generationParamCustomizer =
-                ensureNotNull(generationParamCustomizer, "generationParamConsumer");
+        this.generationParamCustomizer = ensureNotNull(generationParamCustomizer, "generationParamConsumer");
     }
 
     public static QwenTokenizerBuilder builder() {

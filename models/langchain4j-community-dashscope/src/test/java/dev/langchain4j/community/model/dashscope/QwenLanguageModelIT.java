@@ -33,8 +33,7 @@ class QwenLanguageModelIT {
                 .build();
         Response<String> response = model.generate("Please say 'hello' to me");
 
-        model.setGenerationParamCustomizer(generationParamBuilder ->
-                generationParamBuilder.stopString("hello"));
+        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("hello"));
 
         // it should generate "hello" but is stopped
         assertThat(response.content()).doesNotContain("hello");

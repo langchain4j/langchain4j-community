@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static java.util.stream.Collectors.toList;
+
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisOutput;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisResult;
 import com.alibaba.dashscope.exception.NoApiKeyException;
@@ -17,8 +19,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import static java.util.stream.Collectors.toList;
 
 public class WanxHelper {
 

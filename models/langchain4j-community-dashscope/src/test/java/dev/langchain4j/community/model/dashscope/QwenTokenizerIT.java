@@ -44,12 +44,7 @@ class QwenTokenizerIT {
         return Stream.of(
                 Arguments.of(singletonList(userMessage("hello")), 1),
                 Arguments.of(singletonList(userMessage("Klaus", "hello")), 1),
-                Arguments.of(asList(
-                        userMessage("hello"),
-                        aiMessage("hi there"),
-                        userMessage("bye")
-                ), 4)
-        );
+                Arguments.of(asList(userMessage("hello"), aiMessage("hi there"), userMessage("bye")), 4));
     }
 
     @Test
