@@ -10,7 +10,6 @@ import dev.langchain4j.community.model.dashscope.spi.QwenLanguageModelBuilderFac
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.output.Response;
-import lombok.Builder;
 
 import java.util.List;
 
@@ -39,7 +38,6 @@ public class QwenLanguageModel implements LanguageModel {
     private final Integer maxTokens;
     private final Generation generation;
 
-    @Builder
     public QwenLanguageModel(String baseUrl,
                              String apiKey,
                              String modelName,
@@ -111,9 +109,92 @@ public class QwenLanguageModel implements LanguageModel {
     }
 
     public static class QwenLanguageModelBuilder {
+        private String baseUrl;
+        private String apiKey;
+        private String modelName;
+        private Double topP;
+        private Integer topK;
+        private Boolean enableSearch;
+        private Integer seed;
+        private Float repetitionPenalty;
+        private Float temperature;
+        private List<String> stops;
+        private Integer maxTokens;
+
         public QwenLanguageModelBuilder() {
             // This is public so it can be extended
             // By default with Lombok it becomes package private
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder baseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder apiKey(String apiKey) {
+            this.apiKey = apiKey;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder modelName(String modelName) {
+            this.modelName = modelName;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder topP(Double topP) {
+            this.topP = topP;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder topK(Integer topK) {
+            this.topK = topK;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder enableSearch(Boolean enableSearch) {
+            this.enableSearch = enableSearch;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder seed(Integer seed) {
+            this.seed = seed;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder repetitionPenalty(Float repetitionPenalty) {
+            this.repetitionPenalty = repetitionPenalty;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder temperature(Float temperature) {
+            this.temperature = temperature;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder stops(List<String> stops) {
+            this.stops = stops;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder maxTokens(Integer maxTokens) {
+            this.maxTokens = maxTokens;
+            return this;
+        }
+
+        public QwenLanguageModel build() {
+            return new QwenLanguageModel(
+                    baseUrl,
+                    apiKey,
+                    modelName,
+                    topP,
+                    topK,
+                    enableSearch,
+                    seed,
+                    repetitionPenalty,
+                    temperature,
+                    stops,
+                    maxTokens
+            );
         }
     }
 }
