@@ -83,8 +83,9 @@ public final class LuceneContentRetriever implements ContentRetriever {
         public LuceneContentRetrieverBuilder contentFieldName(String contentFieldName) {
             if (contentFieldName == null || contentFieldName.isBlank()) {
                 this.contentFieldName = LuceneIndexer.CONTENT_FIELD_NAME;
+            } else {
+                this.contentFieldName = contentFieldName;
             }
-            this.contentFieldName = contentFieldName;
 
             return this;
         }
@@ -143,8 +144,9 @@ public final class LuceneContentRetriever implements ContentRetriever {
         public LuceneContentRetrieverBuilder tokenCountFieldName(String tokenCountFieldName) {
             if (tokenCountFieldName == null || tokenCountFieldName.isBlank()) {
                 this.tokenCountFieldName = LuceneIndexer.TOKEN_COUNT_FIELD_NAME;
+            } else {
+                this.tokenCountFieldName = tokenCountFieldName;
             }
-            this.tokenCountFieldName = tokenCountFieldName;
 
             return this;
         }
