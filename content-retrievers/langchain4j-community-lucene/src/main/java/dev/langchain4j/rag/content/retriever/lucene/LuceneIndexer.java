@@ -76,7 +76,7 @@ public final class LuceneIndexer {
             }
             writer.addDocument(doc);
         } catch (IOException e) {
-            log.info(String.format("Could not write content%n%s", content), e);
+            log.error(String.format("Could not write content%n%s", content), e);
         }
     }
 
