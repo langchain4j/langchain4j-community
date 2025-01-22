@@ -244,7 +244,7 @@ public class ZhipuAssistantClient {
                 if (Objects.nonNull(body)) {
                     if (!body.isSuccess()) {
                         log.error("获取推荐问题失败，原因为：【{}】", body.getMessage());
-                        throw new ZhipuAiException(body.getCode() + "", body.getMessage());
+                        throw new ZhipuAiException("1200", body.getMessage());
                     }
                     return body.getData();
                 }
