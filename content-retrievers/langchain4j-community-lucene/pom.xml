@@ -53,4 +53,22 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <acceptableLicenses combine.children="append">
+                        <license>
+                            <name>Apache 2</name>
+                            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+                        </license>
+                    </acceptableLicenses>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
