@@ -33,7 +33,7 @@ class WanxImageModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.WanxTestHelper#imageModelNameProvider")
-    void simple_image_generation_works_by_customize_request(String modelName) {
+    void simple_image_generation_works_by_customized_request(String modelName) {
         WanxImageModel model =
                 WanxImageModel.builder().apiKey(apiKey()).modelName(modelName).build();
 

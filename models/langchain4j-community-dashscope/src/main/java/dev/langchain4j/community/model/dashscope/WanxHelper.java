@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static java.util.stream.Collectors.toList;
+
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisOutput;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisResult;
 import com.alibaba.dashscope.exception.NoApiKeyException;
@@ -17,7 +19,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class WanxHelper {
 
@@ -29,7 +30,7 @@ public class WanxHelper {
                 .stream()
                 .map(resultMap -> resultMap.get("url"))
                 .map(url -> Image.builder().url(url).build())
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     static String imageUrl(Image image, String model, String apiKey) {
