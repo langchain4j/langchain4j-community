@@ -44,7 +44,7 @@ public class FullTextSearchTest {
     public void query1() {
 
         contentRetriever = LuceneContentRetriever.builder()
-                .topNMatches(1)
+                .maxResults(1)
                 .directory(directory)
                 .build();
 
@@ -114,7 +114,7 @@ public class FullTextSearchTest {
     public void queryWithMaxTokens() {
 
         contentRetriever = LuceneContentRetriever.builder()
-                .maxTokenCount(8)
+                .maxTokens(8)
                 .directory(directory)
                 .build();
 
@@ -134,7 +134,7 @@ public class FullTextSearchTest {
     public void retrieverWithBadTokenCountField() {
 
         contentRetriever = LuceneContentRetriever.builder()
-                .maxTokenCount(8)
+                .maxTokens(8)
                 .tokenCountFieldName("BAD_TOKEN_COUNT_FIELD_NAME")
                 .directory(directory)
                 .build();
