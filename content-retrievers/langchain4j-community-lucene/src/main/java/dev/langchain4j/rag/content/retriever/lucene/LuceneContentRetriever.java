@@ -44,6 +44,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
         private boolean onlyMatches;
         private int maxResults;
         private int maxTokens;
+        private double minScore;
         private String contentFieldName;
         private String tokenCountFieldName;
 
@@ -52,6 +53,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             onlyMatches = true;
             maxResults = 10;
             maxTokens = Integer.MAX_VALUE;
+            minScore = 0;
             contentFieldName = LuceneEmbeddingStore.CONTENT_FIELD_NAME;
             tokenCountFieldName = LuceneEmbeddingStore.TOKEN_COUNT_FIELD_NAME;
         }
@@ -66,13 +68,14 @@ public final class LuceneContentRetriever implements ContentRetriever {
                 directory = DirectoryFactory.tempDirectory();
             }
             return new LuceneContentRetriever(
-                    directory, onlyMatches, maxResults, maxTokens, contentFieldName, tokenCountFieldName);
+                    directory, onlyMatches, maxResults, maxTokens, minScore, contentFieldName, tokenCountFieldName);
         }
 
         /**
          * Sets the name of the content field.
          *
          * @param contentFieldName Content field name
+         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder contentFieldName(String contentFieldName) {
@@ -89,6 +92,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Sets the Lucene directory. If null, a temporary file-based directory is used.
          *
          * @param directory Lucene directory
+         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder directory(Directory directory) {
@@ -111,6 +115,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Returns only a certain number of documents.
          *
          * @param maxResults Number of documents to return
+         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder maxResults(int maxResults) {
@@ -124,11 +129,26 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Returns documents until the maximum token limit is reached.
          *
          * @param maxTokens Maximum number of tokens
+         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder maxTokens(int maxTokens) {
             if (maxTokens >= 0) {
                 this.maxTokens = maxTokens;
+            }
+            return this;
+        }
+
+        /**
+         * Returns values above a certain score.
+         *
+         * @param minScore Threshold score
+         *
+         * @return Builder
+         */
+        public LuceneContentRetrieverBuilder minScore(double minScore) {
+            if (minScore >= 0) {
+                this.minScore = minScore;
             }
             return this;
         }
@@ -147,6 +167,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Sets the name of the token count field.
          *
          * @param tokenCountFieldName Token count field name
+         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder tokenCountFieldName(String tokenCountFieldName) {
@@ -175,6 +196,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
     private final boolean onlyMatches;
     private final int maxResults;
     private final int maxTokens;
+    private final double minScore;
     private final String contentFieldName;
     private final String tokenCountFieldName;
 
@@ -194,12 +216,14 @@ public final class LuceneContentRetriever implements ContentRetriever {
             boolean onlyMatches,
             int maxResults,
             int maxTokens,
+            double minScore,
             String contentFieldName,
             String tokenCountFieldName) {
         this.directory = ensureNotNull(directory, "directory");
         this.onlyMatches = onlyMatches;
         this.maxResults = Math.max(0, maxResults);
         this.maxTokens = Math.max(0, maxTokens);
+        this.minScore = Math.max(0, minScore);
         this.contentFieldName = ensureNotBlank(contentFieldName, "contentFieldName");
         this.tokenCountFieldName = ensureNotBlank(tokenCountFieldName, "tokenCountFieldName");
     }
@@ -222,6 +246,9 @@ public final class LuceneContentRetriever implements ContentRetriever {
             List<Content> hits = new ArrayList<>();
             StoredFields storedFields = reader.storedFields();
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                if (scoreDoc.score < minScore) {
+                    continue;
+                }
                 // Retrieve document contents
                 Document document = storedFields.document(scoreDoc.doc);
                 String content = document.get(contentFieldName);

@@ -131,6 +131,27 @@ public class FullTextSearchTest {
     }
 
     @Test
+    public void queryWithMinScore() {
+
+        contentRetriever = LuceneContentRetriever.builder()
+                .minScore(0.3)
+                .directory(directory)
+                .build();
+
+        List<String> expectedTextSegments = new ArrayList<>();
+        expectedTextSegments.add(hitTextSegments[2].text());
+        expectedTextSegments.add(hitTextSegments[0].text());
+
+        List<Content> results = contentRetriever.retrieve(query);
+        List<String> actualTextSegments =
+                results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
+        Collections.sort(actualTextSegments);
+
+        assertThat(results).hasSize(2);
+        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+    }
+
+    @Test
     public void retrieverWithBadTokenCountField() {
 
         contentRetriever = LuceneContentRetriever.builder()
