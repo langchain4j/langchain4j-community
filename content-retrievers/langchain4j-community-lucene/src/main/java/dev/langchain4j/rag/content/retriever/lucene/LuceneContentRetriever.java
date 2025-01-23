@@ -24,13 +24,12 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,7 +218,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             Query luceneQuery = buildQuery(query.text());
 
             IndexSearcher searcher = new IndexSearcher(reader);
-            TopDocs topDocs = searcher.search(luceneQuery, maxResults, Sort.RELEVANCE);
+            TopFieldDocs topDocs = searcher.search(luceneQuery, maxResults, Sort.RELEVANCE, true);
             List<Content> hits = new ArrayList<>();
             StoredFields storedFields = reader.storedFields();
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
@@ -332,26 +331,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
     }
 
     /**
-     * Obtaining the hit score is poorly defined in Lucene, so protect it with a try block.
-     *
-     * @param scoreDoc Lucene score doc
-     *
-     * @return Hit score
-     */
-    private double scoreFrom(ScoreDoc scoreDoc) {
-        if (scoreDoc == null) {
-            return Double.MAX_VALUE;
-        }
-        try {
-            final double score = (double) ((FieldDoc) scoreDoc).fields[0] - 1f;
-            return score;
-        } catch (Exception e) {
-            // Ignore = No score will be added to content metadata
-            return Double.MAX_VALUE;
-        }
-    }
-
-    /**
      * Create content metadata with hit score.
      *
      * @param scoreDoc Lucene score doc
@@ -360,7 +339,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
      */
     private Map<ContentMetadata, Object> withScore(ScoreDoc scoreDoc) {
         Map<ContentMetadata, Object> contentMetadata = new HashMap<>();
-        contentMetadata.put(ContentMetadata.SCORE, scoreFrom(scoreDoc));
+        contentMetadata.put(ContentMetadata.SCORE, scoreDoc.score);
         return contentMetadata;
     }
 }
