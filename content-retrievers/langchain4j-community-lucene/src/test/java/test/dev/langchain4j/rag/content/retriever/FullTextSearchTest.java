@@ -7,7 +7,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.lucene.DirectoryFactory;
 import dev.langchain4j.rag.content.retriever.lucene.LuceneContentRetriever;
-import dev.langchain4j.rag.content.retriever.lucene.LuceneIndexer;
+import dev.langchain4j.rag.content.retriever.lucene.LuceneEmbeddingStore;
 import dev.langchain4j.rag.query.Query;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,7 +37,7 @@ public class FullTextSearchTest {
     }
 
     private Directory directory;
-    private LuceneIndexer indexer;
+    private LuceneEmbeddingStore indexer;
     private LuceneContentRetriever contentRetriever;
 
     @Test
@@ -73,7 +73,7 @@ public class FullTextSearchTest {
             expectedTextSegments.add(textSegment.text());
         }
         for (TextSegment textSegment : missTextSegments) {
-            indexer.addContent(textSegment);
+            indexer.add(textSegment);
             expectedTextSegments.add(textSegment.text());
         }
         Collections.sort(expectedTextSegments);
@@ -97,7 +97,7 @@ public class FullTextSearchTest {
             expectedTextSegments.add(textSegment.text());
         }
         for (TextSegment textSegment : missTextSegments) {
-            indexer.addContent(textSegment);
+            indexer.add(textSegment);
         }
         Collections.sort(expectedTextSegments);
 
@@ -161,9 +161,9 @@ public class FullTextSearchTest {
     @BeforeEach
     public void setUp() {
         directory = DirectoryFactory.tempDirectory();
-        indexer = new LuceneIndexer(directory);
+        indexer = LuceneEmbeddingStore.builder().directory(directory).build();
         for (TextSegment textSegment : hitTextSegments) {
-            indexer.addContent(textSegment);
+            indexer.add(textSegment);
         }
     }
 

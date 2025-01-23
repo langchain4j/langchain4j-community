@@ -35,14 +35,10 @@ import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Full-text content retrieval using Apache Lucene for LangChain4J RAG.
- */
+/** Full-text content retrieval using Apache Lucene for LangChain4J RAG. */
 public final class LuceneContentRetriever implements ContentRetriever {
 
-    /**
-     * Builder for `LuceneContentRetriever`.
-     */
+    /** Builder for `LuceneContentRetriever`. */
     public static class LuceneContentRetrieverBuilder {
 
         private Directory directory;
@@ -57,8 +53,8 @@ public final class LuceneContentRetriever implements ContentRetriever {
             onlyMatches = true;
             topNMatches = 10;
             maxTokenCount = Integer.MAX_VALUE;
-            contentFieldName = LuceneIndexer.CONTENT_FIELD_NAME;
-            tokenCountFieldName = LuceneIndexer.TOKEN_COUNT_FIELD_NAME;
+            contentFieldName = LuceneEmbeddingStore.CONTENT_FIELD_NAME;
+            tokenCountFieldName = LuceneEmbeddingStore.TOKEN_COUNT_FIELD_NAME;
         }
 
         /**
@@ -82,7 +78,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
          */
         public LuceneContentRetrieverBuilder contentFieldName(String contentFieldName) {
             if (contentFieldName == null || contentFieldName.isBlank()) {
-                this.contentFieldName = LuceneIndexer.CONTENT_FIELD_NAME;
+                this.contentFieldName = LuceneEmbeddingStore.CONTENT_FIELD_NAME;
             } else {
                 this.contentFieldName = contentFieldName;
             }
@@ -143,7 +139,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
          */
         public LuceneContentRetrieverBuilder tokenCountFieldName(String tokenCountFieldName) {
             if (tokenCountFieldName == null || tokenCountFieldName.isBlank()) {
-                this.tokenCountFieldName = LuceneIndexer.TOKEN_COUNT_FIELD_NAME;
+                this.tokenCountFieldName = LuceneEmbeddingStore.TOKEN_COUNT_FIELD_NAME;
             } else {
                 this.tokenCountFieldName = tokenCountFieldName;
             }
@@ -267,14 +263,12 @@ public final class LuceneContentRetriever implements ContentRetriever {
     }
 
     /**
-     * Build a Lucene query. <br />
-     * TODO: This may be extended in the future to allow for hybrid full text
-     * and embedding vector search.
+     * Build a Lucene query. <br>
+     * TODO: This may be extended in the future to allow for hybrid full text and embedding vector
+     * search.
      *
      * @param query User prompt
-     *
      * @return Lucene query
-     *
      * @throws ParseException When the query cannot be parsed into terms
      */
     private Query buildQuery(String query) {
@@ -302,7 +296,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
      * Map Lucene document fields as metadata, preserving types as much as possible.
      *
      * @param document Lucene document
-     *
      * @return Text segment metadata
      */
     private Metadata createTextSegmentMetadata(Document document) {
@@ -342,7 +335,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
      * Obtaining the hit score is poorly defined in Lucene, so protect it with a try block.
      *
      * @param scoreDoc Lucene score doc
-     *
      * @return Metadata map with score
      */
     private Map<ContentMetadata, Object> withScore(ScoreDoc scoreDoc) {
