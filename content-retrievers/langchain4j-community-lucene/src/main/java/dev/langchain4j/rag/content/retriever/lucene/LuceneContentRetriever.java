@@ -109,6 +109,19 @@ public final class LuceneContentRetriever implements ContentRetriever {
         }
 
         /**
+         * Returns only a certain number of documents.
+         *
+         * @param maxResults Number of documents to return
+         * @return Builder
+         */
+        public LuceneContentRetrieverBuilder maxResults(int maxResults) {
+            if (maxResults >= 0) {
+                this.maxResults = maxResults;
+            }
+            return this;
+        }
+
+        /**
          * Returns documents until the maximum token limit is reached.
          *
          * @param maxTokens Maximum number of tokens
@@ -144,19 +157,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
                 this.tokenCountFieldName = tokenCountFieldName;
             }
 
-            return this;
-        }
-
-        /**
-         * Returns only a certain number of documents.
-         *
-         * @param maxResults Number of documents to return
-         * @return Builder
-         */
-        public LuceneContentRetrieverBuilder maxResults(int maxResults) {
-            if (maxResults >= 0) {
-                this.maxResults = maxResults;
-            }
             return this;
         }
     }
@@ -335,15 +335,32 @@ public final class LuceneContentRetriever implements ContentRetriever {
      * Obtaining the hit score is poorly defined in Lucene, so protect it with a try block.
      *
      * @param scoreDoc Lucene score doc
+     *
+     * @return Hit score
+     */
+    private double scoreFrom(ScoreDoc scoreDoc) {
+        if (scoreDoc == null) {
+            return Double.MAX_VALUE;
+        }
+        try {
+            final double score = (double) ((FieldDoc) scoreDoc).fields[0] - 1f;
+            return score;
+        } catch (Exception e) {
+            // Ignore = No score will be added to content metadata
+            return Double.MAX_VALUE;
+        }
+    }
+
+    /**
+     * Create content metadata with hit score.
+     *
+     * @param scoreDoc Lucene score doc
+     *
      * @return Metadata map with score
      */
     private Map<ContentMetadata, Object> withScore(ScoreDoc scoreDoc) {
         Map<ContentMetadata, Object> contentMetadata = new HashMap<>();
-        try {
-            contentMetadata.put(ContentMetadata.SCORE, (float) ((FieldDoc) scoreDoc).fields[0] - 1f);
-        } catch (Exception e) {
-            // Ignore = No score will be added to content metadata
-        }
+        contentMetadata.put(ContentMetadata.SCORE, scoreFrom(scoreDoc));
         return contentMetadata;
     }
 }
