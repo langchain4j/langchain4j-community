@@ -3,6 +3,7 @@ package test.dev.langchain4j.rag.content.retriever;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.lucene.DirectoryFactory;
@@ -32,6 +33,20 @@ public class IndexerTest {
     private LuceneContentRetriever contentRetriever;
 
     @Test
+    public void addStringEmbeddingTextSegment() {
+
+        indexer = LuceneEmbeddingStore.builder().directory(directory).build();
+
+        indexer.add("id", null, textSegment);
+
+        List<Content> results = contentRetriever.retrieve(query);
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).textSegment().metadata().getString("id")).isEqualTo("id");
+        assertThat(results.get(0).textSegment().text()).isEqualTo(textSegment.text());
+    }
+
+    @Test
     public void addEmbeddingTextSegment() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
@@ -41,7 +56,32 @@ public class IndexerTest {
         List<Content> results = contentRetriever.retrieve(query);
 
         assertThat(results).hasSize(1);
+        assertThat(results.get(0).textSegment().metadata().getString("id")).isNotBlank();
         assertThat(results.get(0).textSegment().text()).isEqualTo(textSegment.text());
+    }
+
+    @Test
+    public void addStringEmbedding() {
+
+        indexer = LuceneEmbeddingStore.builder().directory(directory).build();
+
+        indexer.add("id", null);
+
+        List<Content> results = contentRetriever.retrieve(query);
+
+        assertThat(results).hasSize(0);
+    }
+
+    @Test
+    public void addEmbedding() {
+
+        indexer = LuceneEmbeddingStore.builder().directory(directory).build();
+
+        indexer.add((Embedding) null);
+
+        List<Content> results = contentRetriever.retrieve(query);
+
+        assertThat(results).isEmpty();
     }
 
     @BeforeEach

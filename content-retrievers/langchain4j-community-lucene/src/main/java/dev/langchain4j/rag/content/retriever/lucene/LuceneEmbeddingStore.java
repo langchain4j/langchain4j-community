@@ -136,7 +136,12 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         final IndexWriterConfig config = new IndexWriterConfig(new StandardAnalyzer());
         try (final IndexWriter writer = new IndexWriter(directory, config); ) {
-            final String text = content.text();
+            final String text;
+            if (content == null) {
+                text = "";
+            } else {
+                text = content.text();
+            }
             final int tokens = encoding.countTokens(text);
 
             final Document doc = new Document();
@@ -150,10 +155,12 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
             doc.add(new IntField(TOKEN_COUNT_FIELD_NAME, tokens, Store.YES));
 
-            final Map<String, Object> metadataMap = content.metadata().toMap();
-            if (metadataMap != null) {
-                for (final Entry<String, Object> entry : metadataMap.entrySet()) {
-                    doc.add(toField(entry));
+            if (content != null) {
+                final Map<String, Object> metadataMap = content.metadata().toMap();
+                if (metadataMap != null) {
+                    for (final Entry<String, Object> entry : metadataMap.entrySet()) {
+                        doc.add(toField(entry));
+                    }
                 }
             }
 
