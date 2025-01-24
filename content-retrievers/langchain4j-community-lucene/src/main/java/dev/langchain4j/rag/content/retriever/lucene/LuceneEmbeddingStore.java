@@ -65,7 +65,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
          * @param directory Lucene directory
          * @return Builder
          */
-        public LuceneEmbeddingStoreBuilder directory(final Directory directory) {
+        public LuceneEmbeddingStoreBuilder directory(Directory directory) {
             // Can be null
             this.directory = directory;
             return this;
@@ -95,31 +95,31 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      *
      * @param directory Lucene directory
      */
-    private LuceneEmbeddingStore(final Directory directory) {
+    private LuceneEmbeddingStore(Directory directory) {
         this.directory = ensureNotNull(directory, "directory");
-        final EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
+        EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
         encoding = registry.getEncoding(EncodingType.CL100K_BASE);
     }
 
     /** {@inheritDoc} */
     @Override
-    public String add(final Embedding embedding) {
-        final String id = randomUUID();
+    public String add(Embedding embedding) {
+        String id = randomUUID();
         add(id, embedding, null);
         return id;
     }
 
     /** {@inheritDoc} */
     @Override
-    public String add(final Embedding embedding, final TextSegment textSegment) {
-        final String id = randomUUID();
+    public String add(Embedding embedding, TextSegment textSegment) {
+        String id = randomUUID();
         add(id, embedding, textSegment);
         return id;
     }
 
     /** {@inheritDoc} */
     @Override
-    public void add(final String id, final Embedding embedding) {
+    public void add(String id, Embedding embedding) {
         add(id, embedding, null);
     }
 
@@ -132,19 +132,19 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param embedding Content embedding, can be null
      * @param content Content, can be null
      */
-    public void add(final String id, final Embedding embedding, final TextSegment content) {
+    public void add(String id, Embedding embedding, TextSegment content) {
 
-        final IndexWriterConfig config = new IndexWriterConfig(new StandardAnalyzer());
-        try (final IndexWriter writer = new IndexWriter(directory, config); ) {
-            final String text;
+        IndexWriterConfig config = new IndexWriterConfig(new StandardAnalyzer());
+        try (IndexWriter writer = new IndexWriter(directory, config); ) {
+            String text;
             if (content == null) {
                 text = "";
             } else {
                 text = content.text();
             }
-            final int tokens = encoding.countTokens(text);
+            int tokens = encoding.countTokens(text);
 
-            final Document doc = new Document();
+            Document doc = new Document();
             if (isBlank(id)) {
                 doc.add(new TextField(ID_FIELD_NAME, randomUUID(), Store.YES));
             } else {
@@ -156,16 +156,16 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
             doc.add(new IntField(TOKEN_COUNT_FIELD_NAME, tokens, Store.YES));
 
             if (content != null) {
-                final Map<String, Object> metadataMap = content.metadata().toMap();
+                Map<String, Object> metadataMap = content.metadata().toMap();
                 if (metadataMap != null) {
-                    for (final Entry<String, Object> entry : metadataMap.entrySet()) {
+                    for (Entry<String, Object> entry : metadataMap.entrySet()) {
                         doc.add(toField(entry));
                     }
                 }
             }
 
             writer.addDocument(doc);
-        } catch (final IOException e) {
+        } catch (IOException e) {
             log.error(String.format("Could not write content%n%s", content), e);
         }
     }
@@ -176,38 +176,37 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param textSegment Content to index
      * @return Generated id
      */
-    public String add(final TextSegment textSegment) {
-        final String id = randomUUID();
+    public String add(TextSegment textSegment) {
+        String id = randomUUID();
         add(id, null, textSegment);
         return id;
     }
 
     /** {@inheritDoc} */
     @Override
-    public List<String> addAll(final List<Embedding> embeddings) {
+    public List<String> addAll(List<Embedding> embeddings) {
         if (embeddings == null || embeddings.isEmpty()) {
             return Collections.emptyList();
         }
-        final List<String> ids = generateIds(embeddings.size());
+        List<String> ids = generateIds(embeddings.size());
         addAll(ids, embeddings, null);
         return ids;
     }
 
     /** {@inheritDoc} */
     @Override
-    public void addAll(
-            final List<String> idsArg, final List<Embedding> embeddingsArg, final List<TextSegment> embeddedArg) {
+    public void addAll(List<String> idsArg, List<Embedding> embeddingsArg, List<TextSegment> embeddedArg) {
 
-        final int maxSize = maxSize(idsArg, embeddingsArg, embeddedArg);
+        int maxSize = maxSize(idsArg, embeddingsArg, embeddedArg);
 
-        final List<String> ids = ensureSize(idsArg, maxSize);
-        final List<Embedding> embeddings = ensureSize(embeddingsArg, maxSize);
-        final List<TextSegment> embedded = ensureSize(embeddedArg, maxSize);
+        List<String> ids = ensureSize(idsArg, maxSize);
+        List<Embedding> embeddings = ensureSize(embeddingsArg, maxSize);
+        List<TextSegment> embedded = ensureSize(embeddedArg, maxSize);
 
         for (int i = 0; i < maxSize; i++) {
             try {
                 add(ids.get(i), embeddings.get(i), embedded.get(i));
-            } catch (final Exception e) {
+            } catch (Exception e) {
                 log.error("Unable to add embeddings in Lucene", e);
             }
         }
@@ -215,8 +214,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     /** {@inheritDoc} */
     @Override
-    public EmbeddingSearchResult<TextSegment> search(final EmbeddingSearchRequest request) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+        throw new UnsupportedOperationException(
+                "Not supported yet. " + "Will be supported when hybrid full text and vector search is supported.");
     }
 
     /**
@@ -229,14 +229,14 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param maxSize Size to pad the list to
      * @return New list padded with null values
      */
-    private <P> List<P> ensureSize(final List<P> provided, final int maxSize) {
-        final List<P> sizedList;
+    private <P> List<P> ensureSize(List<P> provided, int maxSize) {
+        List<P> sizedList;
         if (isNullOrEmpty(provided)) {
             sizedList = new ArrayList<>(Collections.nCopies(maxSize, null));
         } else {
             sizedList = new ArrayList<>(provided);
         }
-        final int size = sizedList.size();
+        int size = sizedList.size();
         if (size < maxSize) {
             sizedList.addAll(Collections.nCopies(maxSize - size, null));
         }
@@ -249,7 +249,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param text Text to check
      * @return True if text is is null or blank
      */
-    private boolean isBlank(final String text) {
+    private boolean isBlank(String text) {
         return text == null || text.isBlank();
     }
 
@@ -261,22 +261,22 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param embedded List of content
      * @return Maximum size of any of the lists
      */
-    private int maxSize(final List<String> ids, final List<Embedding> embeddings, final List<TextSegment> embedded) {
+    private int maxSize(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
         int maxLen = 0;
         if (!isNullOrEmpty(ids)) {
-            final int size = ids.size();
+            int size = ids.size();
             if (maxLen < size) {
                 maxLen = size;
             }
         }
         if (!isNullOrEmpty(embeddings)) {
-            final int size = embeddings.size();
+            int size = embeddings.size();
             if (maxLen < size) {
                 maxLen = size;
             }
         }
         if (!isNullOrEmpty(embedded)) {
-            final int size = embedded.size();
+            int size = embedded.size();
             if (maxLen < size) {
                 maxLen = size;
             }
@@ -291,19 +291,19 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param entry LangChain4J metadata entry
      * @return Lucene field
      */
-    private Field toField(final Entry<String, Object> entry) {
-        final String fieldName = entry.getKey();
-        final var fieldValue = entry.getValue();
+    private Field toField(Entry<String, Object> entry) {
+        String fieldName = entry.getKey();
+        var fieldValue = entry.getValue();
         Field field;
-        if (fieldValue instanceof final String string) {
+        if (fieldValue instanceof String string) {
             field = new StringField(fieldName, string, Store.YES);
-        } else if (fieldValue instanceof final Integer number) {
+        } else if (fieldValue instanceof Integer number) {
             field = new IntField(fieldName, number, Store.YES);
-        } else if (fieldValue instanceof final Long number) {
+        } else if (fieldValue instanceof Long number) {
             field = new LongField(fieldName, number, Store.YES);
-        } else if (fieldValue instanceof final Float number) {
+        } else if (fieldValue instanceof Float number) {
             field = new FloatField(fieldName, number, Store.YES);
-        } else if (fieldValue instanceof final Double number) {
+        } else if (fieldValue instanceof Double number) {
             field = new DoubleField(fieldName, number, Store.YES);
         } else {
             field = new StringField(fieldName, String.valueOf(fieldValue), Store.YES);
