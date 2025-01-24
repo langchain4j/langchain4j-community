@@ -10,6 +10,7 @@ import dev.langchain4j.rag.content.retriever.lucene.DirectoryFactory;
 import dev.langchain4j.rag.content.retriever.lucene.LuceneContentRetriever;
 import dev.langchain4j.rag.content.retriever.lucene.LuceneEmbeddingStore;
 import dev.langchain4j.rag.query.Query;
+import java.util.Collections;
 import java.util.List;
 import org.apache.lucene.store.Directory;
 import org.junit.jupiter.api.AfterEach;
@@ -33,17 +34,41 @@ public class IndexerTest {
     private LuceneContentRetriever contentRetriever;
 
     @Test
-    public void addStringEmbeddingTextSegment() {
+    public void addAll() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
 
-        indexer.add("id", null, textSegment);
+        indexer.addAll(null, null, Collections.singletonList(textSegment));
 
         List<Content> results = contentRetriever.retrieve(query);
 
         assertThat(results).hasSize(1);
-        assertThat(results.get(0).textSegment().metadata().getString("id")).isEqualTo("id");
+        assertThat(results.get(0).textSegment().metadata().getString("id")).isNotBlank();
         assertThat(results.get(0).textSegment().text()).isEqualTo(textSegment.text());
+    }
+
+    @Test
+    public void addAllEmbeddings() {
+
+        indexer = LuceneEmbeddingStore.builder().directory(directory).build();
+
+        indexer.addAll((List<Embedding>) null);
+
+        List<Content> results = contentRetriever.retrieve(query);
+
+        assertThat(results).hasSize(0);
+    }
+
+    @Test
+    public void addEmbedding() {
+
+        indexer = LuceneEmbeddingStore.builder().directory(directory).build();
+
+        indexer.add((Embedding) null);
+
+        List<Content> results = contentRetriever.retrieve(query);
+
+        assertThat(results).isEmpty();
     }
 
     @Test
@@ -73,15 +98,17 @@ public class IndexerTest {
     }
 
     @Test
-    public void addEmbedding() {
+    public void addStringEmbeddingTextSegment() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
 
-        indexer.add((Embedding) null);
+        indexer.add("id", null, textSegment);
 
         List<Content> results = contentRetriever.retrieve(query);
 
-        assertThat(results).isEmpty();
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).textSegment().metadata().getString("id")).isEqualTo("id");
+        assertThat(results.get(0).textSegment().text()).isEqualTo(textSegment.text());
     }
 
     @BeforeEach

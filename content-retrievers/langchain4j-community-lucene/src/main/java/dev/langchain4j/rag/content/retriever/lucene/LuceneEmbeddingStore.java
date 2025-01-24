@@ -185,7 +185,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     /** {@inheritDoc} */
     @Override
     public List<String> addAll(final List<Embedding> embeddings) {
-        if (embeddings == null) {
+        if (embeddings == null || embeddings.isEmpty()) {
             return Collections.emptyList();
         }
         final List<String> ids = generateIds(embeddings.size());
