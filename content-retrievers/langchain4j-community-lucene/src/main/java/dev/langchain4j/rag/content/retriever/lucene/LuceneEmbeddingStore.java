@@ -104,6 +104,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     /** {@inheritDoc} */
     @Override
     public String add(Embedding embedding) {
+        if (embedding == null) {
+            return null;
+        }
         String id = randomUUID();
         add(id, embedding, null);
         return id;
@@ -120,6 +123,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     /** {@inheritDoc} */
     @Override
     public void add(String id, Embedding embedding) {
+        if (embedding == null) {
+            return;
+        }
         add(id, embedding, null);
     }
 
@@ -177,6 +183,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @return Generated id
      */
     public String add(TextSegment textSegment) {
+        if (textSegment == null) {
+            return null;
+        }
         String id = randomUUID();
         add(id, null, textSegment);
         return id;
@@ -216,7 +225,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
         throw new UnsupportedOperationException(
-                "Not supported yet. " + "Will be supported when hybrid full text and vector search is supported.");
+                "Not supported yet. Will be supported when hybrid full text and vector search is supported.");
     }
 
     /**
