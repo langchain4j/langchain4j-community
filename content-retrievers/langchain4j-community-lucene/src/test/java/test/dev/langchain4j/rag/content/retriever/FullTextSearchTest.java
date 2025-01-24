@@ -131,6 +131,37 @@ public class FullTextSearchTest {
     }
 
     @Test
+    public void queryWithMetadataFields() {
+
+        Metadata metadata = metadataName("doc1");
+        metadata.put("float", -1F);
+        metadata.put("double", -1D);
+        metadata.put("int", -1);
+        metadata.put("long", -1L);
+        TextSegment textSegment = TextSegment.from("Eye of the tiger", metadata);
+
+        indexer.add(textSegment);
+
+        contentRetriever = LuceneContentRetriever.builder()
+                .directory(directory)
+                .onlyMatches()
+                .build();
+
+        List<Content> results = contentRetriever.retrieve(Query.from("Tiger"));
+
+        assertThat(results).hasSize(1);
+        TextSegment actualTextSegment = results.get(0).textSegment();
+        assertThat(actualTextSegment.text()).isEqualTo(textSegment.text());
+
+        Metadata actualMetadata = actualTextSegment.metadata();
+        assertThat(actualMetadata.getString("name")).isEqualTo(metadata.getString("name"));
+        assertThat(actualMetadata.getFloat("float")).isEqualTo(-1);
+        assertThat(actualMetadata.getDouble("double")).isEqualTo(-1);
+        assertThat(actualMetadata.getInteger("int")).isEqualTo(-1);
+        assertThat(actualMetadata.getLong("long")).isEqualTo(-1);
+    }
+
+    @Test
     public void queryWithMinScore() {
 
         contentRetriever = LuceneContentRetriever.builder()
@@ -164,6 +195,16 @@ public class FullTextSearchTest {
 
         // No limiting by token count, since wrong field is used
         assertThat(results).hasSize(hitTextSegments.length);
+    }
+
+    @Test
+    public void retrieverWithNullQuery() {
+
+        contentRetriever = LuceneContentRetriever.builder().directory(directory).build();
+
+        List<Content> results = contentRetriever.retrieve(null);
+
+        assertThat(results).isEmpty();
     }
 
     @Test
