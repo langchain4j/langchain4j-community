@@ -66,6 +66,9 @@
         <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
 
+        <!-- Integration of document parsers -->
+        <module>document-parsers/langchain4j-document-parser-llamaparse</module>
+
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
 
