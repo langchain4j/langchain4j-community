@@ -159,6 +159,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
             if (!isBlank(text)) {
                 doc.add(new TextField(CONTENT_FIELD_NAME, text, Store.YES));
             }
+            if (embedding != null) {
+                log.warn(LuceneEmbeddingStore.class.getCanonicalName() + " does not support add embedding for now.");
+            }
             doc.add(new IntField(TOKEN_COUNT_FIELD_NAME, tokens, Store.YES));
 
             if (content != null) {
