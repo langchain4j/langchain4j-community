@@ -130,7 +130,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     /**
-     * Add content to a Lucene index, including segment including metadata and token count. Ids are
+     * Add content to a Lucene index, including segment, metadata and token count. Ids are
      * generated if they are null. <br>
      * IMPORTANT: Token counts are approximate, and do not include metadata.
      *
