@@ -8,16 +8,13 @@ import java.nio.file.Paths;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 
-/**
- * Static factory for create Lucene directories.
- */
+/** Static factory for create Lucene directories. */
 public class DirectoryFactory {
 
     /**
      * Create a memory mapped file-system based directory.
      *
      * @param directoryPath Path for the directory.
-     *
      * @return Lucene directory
      */
     public static Directory fsDirectory(Path directoryPath) {

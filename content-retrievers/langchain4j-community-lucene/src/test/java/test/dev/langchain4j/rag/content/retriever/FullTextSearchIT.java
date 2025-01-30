@@ -7,7 +7,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.lucene.DirectoryFactory;
 import dev.langchain4j.rag.content.retriever.lucene.LuceneContentRetriever;
-import dev.langchain4j.rag.content.retriever.lucene.LuceneIndexer;
+import dev.langchain4j.rag.content.retriever.lucene.LuceneEmbeddingStore;
 import dev.langchain4j.rag.query.Query;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,9 +16,10 @@ import java.util.stream.Collectors;
 import org.apache.lucene.store.Directory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class FullTextSearchTest {
+public class FullTextSearchIT {
 
     private static final TextSegment[] hitTextSegments = {
         TextSegment.from("Lucene is a powerful search library.", metadataName("doc1")),
@@ -37,14 +38,15 @@ public class FullTextSearchTest {
     }
 
     private Directory directory;
-    private LuceneIndexer indexer;
+    private LuceneEmbeddingStore indexer;
     private LuceneContentRetriever contentRetriever;
 
     @Test
+    @DisplayName("Test retriever returning just 1 max result")
     public void query1() {
 
         contentRetriever = LuceneContentRetriever.builder()
-                .topNMatches(1)
+                .maxResults(1)
                 .directory(directory)
                 .build();
 
@@ -61,6 +63,7 @@ public class FullTextSearchTest {
     }
 
     @Test
+    @DisplayName("Test retriever returning all resuts, not just matchine ones")
     public void queryAll() {
 
         contentRetriever = LuceneContentRetriever.builder()
@@ -73,7 +76,7 @@ public class FullTextSearchTest {
             expectedTextSegments.add(textSegment.text());
         }
         for (TextSegment textSegment : missTextSegments) {
-            indexer.addContent(textSegment);
+            indexer.add(textSegment);
             expectedTextSegments.add(textSegment.text());
         }
         Collections.sort(expectedTextSegments);
@@ -88,6 +91,7 @@ public class FullTextSearchTest {
     }
 
     @Test
+    @DisplayName("Test retriever using default settings (except directory)")
     public void queryContent() {
 
         contentRetriever = LuceneContentRetriever.builder().directory(directory).build();
@@ -97,7 +101,7 @@ public class FullTextSearchTest {
             expectedTextSegments.add(textSegment.text());
         }
         for (TextSegment textSegment : missTextSegments) {
-            indexer.addContent(textSegment);
+            indexer.add(textSegment);
         }
         Collections.sort(expectedTextSegments);
 
@@ -111,10 +115,11 @@ public class FullTextSearchTest {
     }
 
     @Test
+    @DisplayName("Test retriever returning up to max tokens")
     public void queryWithMaxTokens() {
 
         contentRetriever = LuceneContentRetriever.builder()
-                .maxTokenCount(8)
+                .maxTokens(8)
                 .directory(directory)
                 .build();
 
@@ -131,10 +136,64 @@ public class FullTextSearchTest {
     }
 
     @Test
+    @DisplayName("Test retriever return only matching documents")
+    public void queryWithMetadataFields() {
+
+        Metadata metadata = metadataName("doc1");
+        metadata.put("float", -1F);
+        metadata.put("double", -1D);
+        metadata.put("int", -1);
+        metadata.put("long", -1L);
+        TextSegment textSegment = TextSegment.from("Eye of the tiger", metadata);
+
+        indexer.add(textSegment);
+
+        contentRetriever = LuceneContentRetriever.builder()
+                .directory(directory)
+                .onlyMatches()
+                .build();
+
+        List<Content> results = contentRetriever.retrieve(Query.from("Tiger"));
+
+        assertThat(results).hasSize(1);
+        TextSegment actualTextSegment = results.get(0).textSegment();
+        assertThat(actualTextSegment.text()).isEqualTo(textSegment.text());
+
+        Metadata actualMetadata = actualTextSegment.metadata();
+        assertThat(actualMetadata.getString("name")).isEqualTo(metadata.getString("name"));
+        assertThat(actualMetadata.getFloat("float")).isEqualTo(-1);
+        assertThat(actualMetadata.getDouble("double")).isEqualTo(-1);
+        assertThat(actualMetadata.getInteger("int")).isEqualTo(-1);
+        assertThat(actualMetadata.getLong("long")).isEqualTo(-1);
+    }
+
+    @Test
+    @DisplayName("Test retriever returning documents greater than a minimum score")
+    public void queryWithMinScore() {
+
+        contentRetriever = LuceneContentRetriever.builder()
+                .minScore(0.3)
+                .directory(directory)
+                .build();
+
+        List<String> expectedTextSegments = new ArrayList<>();
+        expectedTextSegments.add(hitTextSegments[2].text());
+        expectedTextSegments.add(hitTextSegments[0].text());
+
+        List<Content> results = contentRetriever.retrieve(query);
+        List<String> actualTextSegments =
+                results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
+        Collections.sort(actualTextSegments);
+
+        assertThat(results).hasSize(2);
+        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+    }
+
+    @Test
+    @DisplayName("Test retriever where a token counts are not found due to an incorrect field name")
     public void retrieverWithBadTokenCountField() {
 
         contentRetriever = LuceneContentRetriever.builder()
-                .maxTokenCount(8)
                 .tokenCountFieldName("BAD_TOKEN_COUNT_FIELD_NAME")
                 .directory(directory)
                 .build();
@@ -146,6 +205,18 @@ public class FullTextSearchTest {
     }
 
     @Test
+    @DisplayName("Test retriever using a null query")
+    public void retrieverWithNullQuery() {
+
+        contentRetriever = LuceneContentRetriever.builder().directory(directory).build();
+
+        List<Content> results = contentRetriever.retrieve(null);
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Test retriever where documents are not found due to an incorrect field name")
     public void retrieverWithWrongContentField() {
 
         contentRetriever = LuceneContentRetriever.builder()
@@ -161,9 +232,9 @@ public class FullTextSearchTest {
     @BeforeEach
     public void setUp() {
         directory = DirectoryFactory.tempDirectory();
-        indexer = new LuceneIndexer(directory);
+        indexer = LuceneEmbeddingStore.builder().directory(directory).build();
         for (TextSegment textSegment : hitTextSegments) {
-            indexer.addContent(textSegment);
+            indexer.add(textSegment);
         }
     }
 
