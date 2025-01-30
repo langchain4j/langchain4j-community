@@ -47,6 +47,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
         private double minScore;
         private String contentFieldName;
         private String tokenCountFieldName;
+        private String embeddingFieldName;
 
         private LuceneContentRetrieverBuilder() {
             // Set defaults
@@ -56,6 +57,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             minScore = 0;
             contentFieldName = LuceneFields.CONTENT_FIELD_NAME.fieldName();
             tokenCountFieldName = LuceneFields.TOKEN_COUNT_FIELD_NAME.fieldName();
+            embeddingFieldName = LuceneFields.EMBEDDING_FIELD_NAME.fieldName();
         }
 
         /**
@@ -68,7 +70,14 @@ public final class LuceneContentRetriever implements ContentRetriever {
                 directory = DirectoryFactory.tempDirectory();
             }
             return new LuceneContentRetriever(
-                    directory, onlyMatches, maxResults, maxTokens, minScore, contentFieldName, tokenCountFieldName);
+                    directory,
+                    onlyMatches,
+                    maxResults,
+                    maxTokens,
+                    minScore,
+                    contentFieldName,
+                    tokenCountFieldName,
+                    embeddingFieldName);
         }
 
         /**
@@ -98,6 +107,23 @@ public final class LuceneContentRetriever implements ContentRetriever {
         public LuceneContentRetrieverBuilder directory(Directory directory) {
             // Can be null
             this.directory = directory;
+            return this;
+        }
+
+        /**
+         * Sets the name of the embedding vector field.
+         *
+         * @param embeddingFieldName Embedding vector field name
+         *
+         * @return Builder
+         */
+        public LuceneContentRetrieverBuilder embeddingFieldName(String embeddingFieldName) {
+            if (embeddingFieldName == null || embeddingFieldName.isBlank()) {
+                this.embeddingFieldName = LuceneFields.EMBEDDING_FIELD_NAME.fieldName();
+            } else {
+                this.embeddingFieldName = embeddingFieldName;
+            }
+
             return this;
         }
 
@@ -199,6 +225,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
     private final double minScore;
     private final String contentFieldName;
     private final String tokenCountFieldName;
+    private final String embeddingFieldName;
 
     /**
      * Initialize all fields, and do one more round of validation (even though the builder has
@@ -218,7 +245,8 @@ public final class LuceneContentRetriever implements ContentRetriever {
             int maxTokens,
             double minScore,
             String contentFieldName,
-            String tokenCountFieldName) {
+            String tokenCountFieldName,
+            String embeddingFieldName) {
         this.directory = ensureNotNull(directory, "directory");
         this.onlyMatches = onlyMatches;
         this.maxResults = Math.max(0, maxResults);
@@ -226,6 +254,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
         this.minScore = Math.max(0, minScore);
         this.contentFieldName = ensureNotBlank(contentFieldName, "contentFieldName");
         this.tokenCountFieldName = ensureNotBlank(tokenCountFieldName, "tokenCountFieldName");
+        this.embeddingFieldName = ensureNotBlank(embeddingFieldName, "embeddingFieldName");
     }
 
     /** {@inheritDoc} */
