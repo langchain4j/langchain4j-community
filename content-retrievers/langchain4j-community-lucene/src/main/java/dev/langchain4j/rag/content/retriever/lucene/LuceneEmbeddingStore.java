@@ -73,10 +73,10 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    static final String ID_FIELD_NAME = "id";
-    static final String CONTENT_FIELD_NAME = "content";
-    static final String TOKEN_COUNT_FIELD_NAME = "estimated-token-count";
-    static final String EMBEDDING_FIELD_NAME = "embedding";
+    private static final String ID_FIELD_NAME = LuceneFields.ID_FIELD_NAME.fieldName();
+    private static final String CONTENT_FIELD_NAME = LuceneFields.CONTENT_FIELD_NAME.fieldName();
+    private static final String TOKEN_COUNT_FIELD_NAME = LuceneFields.TOKEN_COUNT_FIELD_NAME.fieldName();
+    private static final String EMBEDDING_FIELD_NAME = LuceneFields.EMBEDDING_FIELD_NAME.fieldName();
 
     private static final Logger log = LoggerFactory.getLogger(LuceneEmbeddingStore.class);
 
