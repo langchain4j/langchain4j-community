@@ -4,13 +4,10 @@ import static dev.langchain4j.data.message.ChatMessageType.AI;
 import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
 import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
 import static dev.langchain4j.data.message.ChatMessageType.USER;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.Utils.*;
 import static dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper.toMap;
-import static dev.langchain4j.model.output.FinishReason.LENGTH;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static dev.langchain4j.model.output.FinishReason.*;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 import com.alibaba.dashscope.aigc.generation.GenerationOutput;
@@ -71,7 +68,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,7 +104,7 @@ class QwenHelper {
                             .filter(TextContent.class::isInstance)
                             .map(TextContent.class::cast)
                             .map(TextContent::text)
-                            .collect(Collectors.joining("\n"));
+                            .collect(joining("\n"));
             case AI -> ((AiMessage) message).text();
             case SYSTEM -> ((SystemMessage) message).text();
             case TOOL_EXECUTION_RESULT -> ((ToolExecutionResultMessage) message).text();
@@ -125,7 +121,7 @@ class QwenHelper {
     }
 
     static String toolCallIdFrom(ChatMessage message) {
-        if (message.type() == ChatMessageType.TOOL_EXECUTION_RESULT) {
+        if (message.type() == TOOL_EXECUTION_RESULT) {
             return ((ToolExecutionResultMessage) message).id();
         }
         return null;
@@ -152,7 +148,7 @@ class QwenHelper {
     static List<Map<String, Object>> toMultiModalContents(ChatMessage message) {
         return switch (message.type()) {
             case USER -> ((UserMessage) message)
-                    .contents().stream().map(QwenHelper::toMultiModalContent).collect(Collectors.toList());
+                    .contents().stream().map(QwenHelper::toMultiModalContent).collect(toList());
             case AI -> Collections.singletonList(Collections.singletonMap("text", ((AiMessage) message).text()));
             case SYSTEM -> Collections.singletonList(
                     Collections.singletonMap("text", ((SystemMessage) message).text()));
@@ -228,7 +224,7 @@ class QwenHelper {
         try {
             Files.copy(new ByteArrayInputStream(data), tmpFilePath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
         return tmpFilePath.toAbsolutePath().toUri().toString();
     }
@@ -238,7 +234,7 @@ class QwenHelper {
             return Role.ASSISTANT.getValue();
         } else if (message.type() == SYSTEM) {
             return Role.SYSTEM.getValue();
-        } else if (message.type() == ChatMessageType.TOOL_EXECUTION_RESULT) {
+        } else if (message.type() == TOOL_EXECUTION_RESULT) {
             return Role.TOOL.getValue();
         } else {
             return Role.USER.getValue();
@@ -321,12 +317,14 @@ class QwenHelper {
         String finishReason =
                 isNullOrEmpty(choice.getMessage().getToolCalls()) ? choice.getFinishReason() : "tool_calls";
 
-        return switch (finishReason) {
-            case "stop" -> STOP;
-            case "length" -> LENGTH;
-            case "tool_calls" -> TOOL_EXECUTION;
-            default -> null;
-        };
+        return finishReason == null
+                ? null
+                : switch (finishReason) {
+                    case "stop" -> STOP;
+                    case "length" -> LENGTH;
+                    case "tool_calls" -> TOOL_EXECUTION;
+                    default -> null;
+                };
     }
 
     static FinishReason finishReasonFrom(MultiModalConversationResult result) {
@@ -354,7 +352,7 @@ class QwenHelper {
             return Collections.emptyList();
         }
 
-        return toolSpecifications.stream().map(QwenHelper::toToolFunction).collect(Collectors.toList());
+        return toolSpecifications.stream().map(QwenHelper::toToolFunction).collect(toList());
     }
 
     static ToolBase toToolFunction(ToolSpecification toolSpecification) {
@@ -397,7 +395,7 @@ class QwenHelper {
                         .name(toolCall.getFunction().getName())
                         .arguments(toolCall.getFunction().getArguments())
                         .build())
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     static List<ToolCallBase> toolCallsFrom(GenerationResult result) {

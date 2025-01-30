@@ -1,18 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.Tokenizer;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
-
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.data.message.AiMessage.aiMessage;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
@@ -21,10 +8,21 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.data.message.ChatMessage;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenTokenizerIT {
 
-    private Tokenizer tokenizer;
+    private QwenTokenizer tokenizer;
 
     @BeforeEach
     void setUp() {
@@ -45,12 +43,7 @@ class QwenTokenizerIT {
         return Stream.of(
                 Arguments.of(singletonList(userMessage("hello")), 1),
                 Arguments.of(singletonList(userMessage("Klaus", "hello")), 1),
-                Arguments.of(asList(
-                        userMessage("hello"),
-                        aiMessage("hi there"),
-                        userMessage("bye")
-                ), 4)
-        );
+                Arguments.of(asList(userMessage("hello"), aiMessage("hi there"), userMessage("bye")), 4));
     }
 
     @Test
@@ -63,6 +56,15 @@ class QwenTokenizerIT {
         assertThat(tokenizer.estimateTokenCountInText("\n")).isEqualTo(1);
         assertThat(tokenizer.estimateTokenCountInText("\n\n")).isEqualTo(1);
         assertThat(tokenizer.estimateTokenCountInText("\n \n\n")).isEqualTo(2);
+    }
+
+    @Test
+    void should_count_tokens_in_short_texts_by_customized_request() {
+        tokenizer.setGenerationParamCustomizer(generationParamBuilder -> {
+            generationParamBuilder.prompt("{placeholder}");
+        });
+
+        assertThat(tokenizer.estimateTokenCountInText("")).isPositive();
     }
 
     @Test
@@ -91,8 +93,8 @@ class QwenTokenizerIT {
 
     @Test
     void should_count_empty_messages_and_return_0() {
-        assertThat(tokenizer.estimateTokenCountInMessages(null)).isEqualTo(0);
-        assertThat(tokenizer.estimateTokenCountInMessages(emptyList())).isEqualTo(0);
+        assertThat(tokenizer.estimateTokenCountInMessages(null)).isZero();
+        assertThat(tokenizer.estimateTokenCountInMessages(emptyList())).isZero();
     }
 
     public static List<String> repeat(String s, int n) {

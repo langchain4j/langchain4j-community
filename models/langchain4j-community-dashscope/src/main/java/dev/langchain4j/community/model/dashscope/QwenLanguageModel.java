@@ -1,5 +1,14 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.tokenUsageFrom;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -10,17 +19,8 @@ import dev.langchain4j.community.model.dashscope.spi.QwenLanguageModelBuilderFac
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.output.Response;
-import lombok.Builder;
-
 import java.util.List;
-
-import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.tokenUsageFrom;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import java.util.function.Consumer;
 
 /**
  * Represents a Qwen language model with a text interface.
@@ -38,21 +38,23 @@ public class QwenLanguageModel implements LanguageModel {
     private final List<String> stops;
     private final Integer maxTokens;
     private final Generation generation;
+    private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
 
-    @Builder
-    public QwenLanguageModel(String baseUrl,
-                             String apiKey,
-                             String modelName,
-                             Double topP,
-                             Integer topK,
-                             Boolean enableSearch,
-                             Integer seed,
-                             Float repetitionPenalty,
-                             Float temperature,
-                             List<String> stops,
-                             Integer maxTokens) {
+    public QwenLanguageModel(
+            String baseUrl,
+            String apiKey,
+            String modelName,
+            Double topP,
+            Integer topK,
+            Boolean enableSearch,
+            Integer seed,
+            Float repetitionPenalty,
+            Float temperature,
+            List<String> stops,
+            Integer maxTokens) {
         if (isNullOrBlank(apiKey)) {
-            throw new IllegalArgumentException("DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+            throw new IllegalArgumentException(
+                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
         }
         this.modelName = isNullOrBlank(modelName) ? QWEN_PLUS : modelName;
         this.enableSearch = enableSearch != null && enableSearch;
@@ -94,13 +96,19 @@ public class QwenLanguageModel implements LanguageModel {
                 builder.stopStrings(stops);
             }
 
+            generationParamCustomizer.accept(builder);
             GenerationResult generationResult = generation.call(builder.build());
 
-            return Response.from(answerFrom(generationResult),
-                    tokenUsageFrom(generationResult), finishReasonFrom(generationResult));
+            return Response.from(
+                    answerFrom(generationResult), tokenUsageFrom(generationResult), finishReasonFrom(generationResult));
         } catch (NoApiKeyException | InputRequiredException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
+    }
+
+    public void setGenerationParamCustomizer(
+            Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer) {
+        this.generationParamCustomizer = ensureNotNull(generationParamCustomizer, "generationParamConsumer");
     }
 
     public static QwenLanguageModelBuilder builder() {
@@ -111,9 +119,91 @@ public class QwenLanguageModel implements LanguageModel {
     }
 
     public static class QwenLanguageModelBuilder {
+        private String baseUrl;
+        private String apiKey;
+        private String modelName;
+        private Double topP;
+        private Integer topK;
+        private Boolean enableSearch;
+        private Integer seed;
+        private Float repetitionPenalty;
+        private Float temperature;
+        private List<String> stops;
+        private Integer maxTokens;
+
         public QwenLanguageModelBuilder() {
             // This is public so it can be extended
             // By default with Lombok it becomes package private
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder baseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder apiKey(String apiKey) {
+            this.apiKey = apiKey;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder modelName(String modelName) {
+            this.modelName = modelName;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder topP(Double topP) {
+            this.topP = topP;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder topK(Integer topK) {
+            this.topK = topK;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder enableSearch(Boolean enableSearch) {
+            this.enableSearch = enableSearch;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder seed(Integer seed) {
+            this.seed = seed;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder repetitionPenalty(Float repetitionPenalty) {
+            this.repetitionPenalty = repetitionPenalty;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder temperature(Float temperature) {
+            this.temperature = temperature;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder stops(List<String> stops) {
+            this.stops = stops;
+            return this;
+        }
+
+        public QwenLanguageModel.QwenLanguageModelBuilder maxTokens(Integer maxTokens) {
+            this.maxTokens = maxTokens;
+            return this;
+        }
+
+        public QwenLanguageModel build() {
+            return new QwenLanguageModel(
+                    baseUrl,
+                    apiKey,
+                    modelName,
+                    topP,
+                    topK,
+                    enableSearch,
+                    seed,
+                    repetitionPenalty,
+                    temperature,
+                    stops,
+                    maxTokens);
         }
     }
 }

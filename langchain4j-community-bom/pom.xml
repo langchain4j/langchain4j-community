@@ -11,7 +11,8 @@
     <packaging>pom</packaging>
 
     <name>LangChain4j :: Community :: BOM</name>
-    <description>Bill of Materials POM for getting full, complete set of compatible versions of LangChain4j Community modules</description>
+    <description>Bill of Materials POM for getting full, complete set of compatible versions of LangChain4j Community
+        modules</description>
 
     <dependencyManagement>
         <dependencies>
@@ -22,21 +23,25 @@
                 <artifactId>langchain4j-community-chatglm</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-dashscope</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-qianfan</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-xinference</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-zhipu-ai</artifactId>
@@ -58,7 +63,20 @@
 
             <dependency>
                 <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-redis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-vearch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- content retrievers -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-lucene</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -72,6 +90,12 @@
             <!-- Spring Boot starters -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-dashscope-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -79,6 +103,18 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-qianfan-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-xinference-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

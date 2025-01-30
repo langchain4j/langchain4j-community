@@ -1,5 +1,8 @@
 package dev.langchain4j.community.store.embedding.vearch;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import dev.langchain4j.community.store.embedding.vearch.field.Field;
 import dev.langchain4j.community.store.embedding.vearch.field.FieldType;
 import dev.langchain4j.community.store.embedding.vearch.field.StringField;
@@ -8,11 +11,7 @@ import dev.langchain4j.community.store.embedding.vearch.index.HNSWParam;
 import dev.langchain4j.community.store.embedding.vearch.index.Index;
 import dev.langchain4j.community.store.embedding.vearch.index.IndexType;
 import dev.langchain4j.community.store.embedding.vearch.index.search.SearchIndexParam;
-
 import java.util.List;
-
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 public class VearchConfig {
 
@@ -32,15 +31,23 @@ public class VearchConfig {
                                     .metricType(MetricType.INNER_PRODUCT)
                                     .efSearch(64)
                                     .build())
-                            .build()).build(),
+                            .build())
+                    .build(),
             StringField.builder()
                     .fieldType(FieldType.STRING)
                     .name(DEFAULT_TEXT_FIELD_NAME)
-                    .build()
-    );
+                    .build());
 
     private String databaseName;
     private String spaceName;
+
+    /* Attributes for creating space */
+
+    private int replicaNum;
+    private int partitionNum;
+
+    /* Attributes for searching */
+
     /**
      * Index param when searching, if not set, will use {@link Index}.
      *
@@ -52,6 +59,7 @@ public class VearchConfig {
      * {@link VearchConfig#embeddingFieldName}, {@link VearchConfig#textFieldName} and {@link VearchConfig#metadataFieldNames}
      */
     private List<Field> fields;
+
     private String embeddingFieldName;
     private String textFieldName;
     /**
@@ -62,6 +70,8 @@ public class VearchConfig {
     public VearchConfig(Builder builder) {
         this.databaseName = ensureNotNull(builder.databaseName, "databaseName");
         this.spaceName = ensureNotNull(builder.spaceName, "spaceName");
+        this.replicaNum = getOrDefault(builder.replicaNum, 1);
+        this.partitionNum = getOrDefault(builder.partitionNum, 1);
         this.searchIndexParam = builder.searchIndexParam;
         this.fields = getOrDefault(builder.fields, DEFAULT_FIELDS);
         this.embeddingFieldName = getOrDefault(builder.embeddingFieldName, DEFAULT_EMBEDDING_FIELD_NAME);
@@ -83,6 +93,22 @@ public class VearchConfig {
 
     public void setSpaceName(String spaceName) {
         this.spaceName = spaceName;
+    }
+
+    public int getReplicaNum() {
+        return replicaNum;
+    }
+
+    public void setReplicaNum(int replicaNum) {
+        this.replicaNum = replicaNum;
+    }
+
+    public int getPartitionNum() {
+        return partitionNum;
+    }
+
+    public void setPartitionNum(int partitionNum) {
+        this.partitionNum = partitionNum;
     }
 
     public SearchIndexParam getSearchIndexParam() {
@@ -133,6 +159,8 @@ public class VearchConfig {
 
         private String databaseName;
         private String spaceName;
+        private Integer replicaNum;
+        private Integer partitionNum;
         private SearchIndexParam searchIndexParam;
         private List<Field> fields;
         private String embeddingFieldName;
@@ -146,6 +174,16 @@ public class VearchConfig {
 
         public Builder spaceName(String spaceName) {
             this.spaceName = spaceName;
+            return this;
+        }
+
+        public Builder replicaNum(int replicaNum) {
+            this.replicaNum = replicaNum;
+            return this;
+        }
+
+        public Builder partitionNum(int partitionNum) {
+            this.partitionNum = partitionNum;
             return this;
         }
 
