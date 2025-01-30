@@ -128,11 +128,11 @@ public final class LuceneContentRetriever implements ContentRetriever {
         }
 
         /**
-         * Provides documents until the top N, even if there is no good match.
+         * Provides documents until the number of max results, even if there is no good match.
          *
          * @return Builder
          */
-        public LuceneContentRetrieverBuilder matchUntilTopN() {
+        public LuceneContentRetrieverBuilder matchUntilMaxResults() {
             onlyMatches = false;
             return this;
         }

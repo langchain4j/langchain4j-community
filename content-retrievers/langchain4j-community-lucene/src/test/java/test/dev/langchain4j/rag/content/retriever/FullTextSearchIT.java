@@ -69,7 +69,7 @@ public class FullTextSearchIT {
     public void queryAll() {
 
         contentRetriever = LuceneContentRetriever.builder()
-                .matchUntilTopN()
+                .matchUntilMaxResults()
                 .directory(directory)
                 .build();
 
