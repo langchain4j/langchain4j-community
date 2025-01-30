@@ -18,18 +18,20 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import test.dev.langchain4j.rag.content.retriever.utility.TextEmbedding;
 
 public class FullTextSearchIT {
 
-    private static final TextSegment[] hitTextSegments = {
-        TextSegment.from("Lucene is a powerful search library.", metadataName("doc1")),
-        TextSegment.from("Is Lucinity is not a library?", metadataName("doc2")),
-        TextSegment.from("BM25Similarity is the default search term similarity algorithm.", metadataName("doc3")),
+    private static final TextEmbedding[] hits = {
+        TextEmbedding.fromResource("hitDoc1.txt"),
+        TextEmbedding.fromResource("hitDoc2.txt"),
+        TextEmbedding.fromResource("hitDoc3.txt"),
     };
-    private static final TextSegment[] missTextSegments = {
-        TextSegment.from("Aaaaah - some random text here.", metadataName("miss1"))
+    private static final TextEmbedding[] misses = {
+        TextEmbedding.fromResource("missDoc1.txt"),
     };
-    private static final Query query = Query.from("Give me information on the lucine search library");
+    private static final Query query =
+            Query.from(TextEmbedding.fromResource("query1.txt").text().text());
 
     private static Metadata metadataName(String name) {
         Metadata metadata = new Metadata();
@@ -51,7 +53,7 @@ public class FullTextSearchIT {
                 .build();
 
         List<String> expectedTextSegments = new ArrayList<>();
-        expectedTextSegments.add(hitTextSegments[2].text());
+        expectedTextSegments.add(hits[1].text().text());
 
         List<Content> results = contentRetriever.retrieve(query);
         List<String> actualTextSegments =
@@ -72,12 +74,12 @@ public class FullTextSearchIT {
                 .build();
 
         List<String> expectedTextSegments = new ArrayList<>();
-        for (TextSegment textSegment : hitTextSegments) {
-            expectedTextSegments.add(textSegment.text());
+        for (TextEmbedding textEmbedding : hits) {
+            expectedTextSegments.add(textEmbedding.text().text());
         }
-        for (TextSegment textSegment : missTextSegments) {
-            indexer.add(textSegment);
-            expectedTextSegments.add(textSegment.text());
+        for (TextEmbedding textEmbedding : misses) {
+            indexer.add(textEmbedding.text());
+            expectedTextSegments.add(textEmbedding.text().text());
         }
         Collections.sort(expectedTextSegments);
 
@@ -86,7 +88,7 @@ public class FullTextSearchIT {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
         Collections.sort(actualTextSegments);
 
-        assertThat(results).hasSize(hitTextSegments.length + missTextSegments.length);
+        assertThat(results).hasSize(hits.length + misses.length);
         assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
     }
 
@@ -97,11 +99,11 @@ public class FullTextSearchIT {
         contentRetriever = LuceneContentRetriever.builder().directory(directory).build();
 
         List<String> expectedTextSegments = new ArrayList<>();
-        for (TextSegment textSegment : hitTextSegments) {
-            expectedTextSegments.add(textSegment.text());
+        for (TextEmbedding textEmbedding : hits) {
+            expectedTextSegments.add(textEmbedding.text().text());
         }
-        for (TextSegment textSegment : missTextSegments) {
-            indexer.add(textSegment);
+        for (TextEmbedding textEmbedding : misses) {
+            indexer.add(textEmbedding.text());
         }
         Collections.sort(expectedTextSegments);
 
@@ -110,7 +112,7 @@ public class FullTextSearchIT {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
         Collections.sort(actualTextSegments);
 
-        assertThat(results).hasSize(hitTextSegments.length);
+        assertThat(results).hasSize(hits.length);
         assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
     }
 
@@ -124,7 +126,7 @@ public class FullTextSearchIT {
                 .build();
 
         List<String> expectedTextSegments = new ArrayList<>();
-        expectedTextSegments.add(hitTextSegments[0].text());
+        expectedTextSegments.add(hits[0].text().text());
 
         List<Content> results = contentRetriever.retrieve(query);
         List<String> actualTextSegments =
@@ -177,8 +179,8 @@ public class FullTextSearchIT {
                 .build();
 
         List<String> expectedTextSegments = new ArrayList<>();
-        expectedTextSegments.add(hitTextSegments[2].text());
-        expectedTextSegments.add(hitTextSegments[0].text());
+        expectedTextSegments.add(hits[1].text().text());
+        expectedTextSegments.add(hits[0].text().text());
 
         List<Content> results = contentRetriever.retrieve(query);
         List<String> actualTextSegments =
@@ -201,7 +203,7 @@ public class FullTextSearchIT {
         List<Content> results = contentRetriever.retrieve(query);
 
         // No limiting by token count, since wrong field is used
-        assertThat(results).hasSize(hitTextSegments.length);
+        assertThat(results).hasSize(hits.length);
     }
 
     @Test
@@ -233,8 +235,8 @@ public class FullTextSearchIT {
     public void setUp() {
         directory = DirectoryFactory.tempDirectory();
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
-        for (TextSegment textSegment : hitTextSegments) {
-            indexer.add(textSegment);
+        for (TextEmbedding textEmbedding : hits) {
+            indexer.add(textEmbedding.text());
         }
     }
 
