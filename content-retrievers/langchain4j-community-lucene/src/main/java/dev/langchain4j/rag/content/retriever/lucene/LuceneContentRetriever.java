@@ -361,9 +361,8 @@ public final class LuceneContentRetriever implements ContentRetriever {
             QueryParser parser = new QueryParser(contentFieldName, new StandardAnalyzer());
             Query fullTextQuery = parser.parse(query);
             builder.add(fullTextQuery, Occur.SHOULD);
-        } catch (ParseException e) {
+        } catch (NullPointerException | ParseException e) {
             log.warn(String.format("Could not create query <%s>", query), e);
-            builder.add(new MatchAllDocsQuery(), Occur.SHOULD);
         }
 
         if (embedding != null && embedding.vector().length > 0) {
