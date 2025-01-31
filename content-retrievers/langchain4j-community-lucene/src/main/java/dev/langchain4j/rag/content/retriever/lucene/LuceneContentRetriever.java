@@ -135,6 +135,20 @@ public final class LuceneContentRetriever implements ContentRetriever {
         }
 
         /**
+         * Sets the EmbeddingModel. If null, only full-text search is available, since the
+         * query is not embedded.
+         *
+         * @param embeddingModel EmbeddingModel to embed the query
+         *
+         * @return Builder
+         */
+        public LuceneContentRetrieverBuilder embeddingModel(EmbeddingModel embeddingModel) {
+            // Can be null
+            this.embeddingModel = embeddingModel;
+            return this;
+        }
+
+        /**
          * Provides documents until the number of max results, even if there is no good match.
          *
          * @return Builder
