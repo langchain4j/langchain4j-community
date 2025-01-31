@@ -38,9 +38,9 @@ public class EmbeddingSearchIT {
         TextEmbedding query = TextEmbedding.fromResource("query1.txt");
 
         List<String> expectedTextSegments = new ArrayList<>();
-        expectedTextSegments.add(hits[1].text().text());
-        expectedTextSegments.add(hits[0].text().text());
         expectedTextSegments.add(hits[2].text().text());
+        expectedTextSegments.add(hits[0].text().text());
+        expectedTextSegments.add(hits[1].text().text());
 
         EmbeddingSearchRequest embeddingSearchRequest = new EmbeddingSearchRequest(query.embedding(), 10, 0.4, null);
         List<EmbeddingMatch<TextSegment>> results =

@@ -286,15 +286,17 @@ public final class LuceneContentRetriever implements ContentRetriever {
     /** {@inheritDoc} */
     @Override
     public List<Content> retrieve(dev.langchain4j.rag.query.Query query) {
+        String queryText;
         if (query == null) {
-            return Collections.emptyList();
+            queryText = null;
+        } else {
+            queryText = query.text();
         }
 
         int docCount = 0;
         int tokenCount = 0;
         try (DirectoryReader reader = DirectoryReader.open(directory)) {
 
-            String queryText = query.text();
             Embedding embedding = embedQuery(queryText);
             Query luceneQuery = buildQuery(queryText, embedding);
 
@@ -357,21 +359,28 @@ public final class LuceneContentRetriever implements ContentRetriever {
     private Query buildQuery(String query, Embedding embedding) {
         Builder builder = new BooleanQuery.Builder();
 
-        try {
-            QueryParser parser = new QueryParser(contentFieldName, new StandardAnalyzer());
-            Query fullTextQuery = parser.parse(query);
-            builder.add(fullTextQuery, Occur.SHOULD);
-        } catch (NullPointerException | ParseException e) {
-            log.warn(String.format("Could not create query <%s>", query), e);
+        if (query != null && !query.isBlank()) {
+            try {
+                QueryParser parser = new QueryParser(contentFieldName, new StandardAnalyzer());
+                Query fullTextQuery = parser.parse(query);
+                builder.add(fullTextQuery, Occur.SHOULD);
+            } catch (ParseException e) {
+                log.warn(String.format("Could not create query <%s>", query), e);
+            }
+        } else {
+            log.debug("Query text not provided");
         }
 
         if (embedding != null && embedding.vector().length > 0) {
             final Query vectorQuery = new KnnFloatVectorQuery(embeddingFieldName, embedding.vector(), maxResults);
             builder.add(vectorQuery, Occur.SHOULD);
+        } else {
+            log.debug("Query embedding vector not provided", query);
         }
 
         if (!onlyMatches) {
             builder.add(new MatchAllDocsQuery(), Occur.SHOULD);
+            log.debug("Returning all documents, not just matches", query);
         }
 
         BooleanQuery combinedQuery = builder.build();
@@ -437,7 +446,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
      */
     private Map<ContentMetadata, Object> withScore(ScoreDoc scoreDoc) {
         Map<ContentMetadata, Object> contentMetadata = new HashMap<>();
-        contentMetadata.put(ContentMetadata.SCORE, scoreDoc.score);
+        contentMetadata.put(ContentMetadata.SCORE, (double) scoreDoc.score);
         return contentMetadata;
     }
 }
