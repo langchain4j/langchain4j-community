@@ -230,14 +230,16 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
                     score = Double.NaN;
                 }
                 // Note: Lucene does not store embeddings (KnnFloatVectorField)
+                Embedding embedding = null;
                 TextSegment textSegment = content.textSegment();
                 String id;
                 if (textSegment != null && textSegment.metadata() != null) {
                     id = textSegment.metadata().getString(LuceneFields.ID_FIELD_NAME.fieldName());
                 } else {
-                    id = "UNKNOWN";
+                    log.debug("Generating new random id");
+                    id = randomUUID();
                 }
-                EmbeddingMatch<TextSegment> result = new EmbeddingMatch<>(score, id, (Embedding) null, textSegment);
+                EmbeddingMatch<TextSegment> result = new EmbeddingMatch<>(score, id, embedding, textSegment);
                 results.add(result);
             } catch (Exception e) {
                 log.error("Could not convert content to results", e);

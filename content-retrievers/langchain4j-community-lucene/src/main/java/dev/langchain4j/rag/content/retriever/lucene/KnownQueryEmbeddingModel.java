@@ -9,7 +9,7 @@ import dev.langchain4j.model.output.Response;
 import java.util.List;
 
 /** Adapter to support LuceneEmbeddingStore searches. **/
-public class KnownQueryEmbeddingModel implements EmbeddingModel {
+class KnownQueryEmbeddingModel implements EmbeddingModel {
 
     private final Embedding embedding;
 
