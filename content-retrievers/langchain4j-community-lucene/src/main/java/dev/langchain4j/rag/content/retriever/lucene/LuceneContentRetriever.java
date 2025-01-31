@@ -4,7 +4,10 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.output.Response;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.ContentMetadata;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -24,7 +27,9 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BooleanQuery.Builder;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.KnnFloatVectorQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -41,6 +46,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
     public static class LuceneContentRetrieverBuilder {
 
         private Directory directory;
+        private EmbeddingModel embeddingModel;
         private boolean onlyMatches;
         private int maxResults;
         private int maxTokens;
@@ -71,6 +77,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             }
             return new LuceneContentRetriever(
                     directory,
+                    embeddingModel,
                     onlyMatches,
                     maxResults,
                     maxTokens,
@@ -219,6 +226,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
     }
 
     private final Directory directory;
+    private EmbeddingModel embeddingModel;
     private final boolean onlyMatches;
     private final int maxResults;
     private final int maxTokens;
@@ -232,14 +240,17 @@ public final class LuceneContentRetriever implements ContentRetriever {
      * validated the fields).
      *
      * @param directory Lucene directory
+     * @param embeddingModel Embedding model - can be null
      * @param onlyMatches Whether to only consider matching documents
      * @param maxResults Return only the first n matches
      * @param maxTokens Return until a maximum token count
      * @param contentFieldName Name of the Lucene field with the text
      * @param tokenCountFieldName Name of the Lucene field with token counts
+     * @param embeddingFieldName Name of the Lucene field with embedding vector
      */
     private LuceneContentRetriever(
             Directory directory,
+            EmbeddingModel embeddingModel,
             boolean onlyMatches,
             int maxResults,
             int maxTokens,
@@ -248,6 +259,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
             String tokenCountFieldName,
             String embeddingFieldName) {
         this.directory = ensureNotNull(directory, "directory");
+        this.embeddingModel = embeddingModel; // Can be null
         this.onlyMatches = onlyMatches;
         this.maxResults = Math.max(0, maxResults);
         this.maxTokens = Math.max(0, maxTokens);
@@ -268,7 +280,9 @@ public final class LuceneContentRetriever implements ContentRetriever {
         int tokenCount = 0;
         try (DirectoryReader reader = DirectoryReader.open(directory)) {
 
-            Query luceneQuery = buildQuery(query.text());
+            String queryText = query.text();
+            Embedding embedding = embedQuery(queryText);
+            Query luceneQuery = buildQuery(queryText, embedding);
 
             IndexSearcher searcher = new IndexSearcher(reader);
             TopFieldDocs topDocs = searcher.search(luceneQuery, maxResults, Sort.RELEVANCE, true);
@@ -318,32 +332,36 @@ public final class LuceneContentRetriever implements ContentRetriever {
     }
 
     /**
-     * Build a Lucene query. <br>
-     * TODO: This may be extended in the future to allow for hybrid full text and embedding vector
-     * search.
+     * Build a Lucene hybrid full-text and embedding vector query.
      *
      * @param query User prompt
+     * @param embedding User prompt embedding vector, or null if not available
+     *
      * @return Lucene query
      * @throws ParseException When the query cannot be parsed into terms
      */
-    private Query buildQuery(String query) {
-        Query fullTextQuery;
+    private Query buildQuery(String query, Embedding embedding) {
+        Builder builder = new BooleanQuery.Builder();
+
         try {
             QueryParser parser = new QueryParser(contentFieldName, new StandardAnalyzer());
-            fullTextQuery = parser.parse(query);
+            Query fullTextQuery = parser.parse(query);
+            builder.add(fullTextQuery, Occur.SHOULD);
         } catch (ParseException e) {
             log.warn(String.format("Could not create query <%s>", query), e);
-            return new MatchAllDocsQuery();
+            builder.add(new MatchAllDocsQuery(), Occur.SHOULD);
         }
 
-        if (onlyMatches) {
-            return fullTextQuery;
+        if (embedding != null && embedding.vector().length > 0) {
+            final Query vectorQuery = new KnnFloatVectorQuery(embeddingFieldName, embedding.vector(), maxResults);
+            builder.add(vectorQuery, Occur.SHOULD);
         }
 
-        BooleanQuery combinedQuery = new BooleanQuery.Builder()
-                .add(fullTextQuery, Occur.SHOULD)
-                .add(new MatchAllDocsQuery(), Occur.SHOULD)
-                .build();
+        if (!onlyMatches) {
+            builder.add(new MatchAllDocsQuery(), Occur.SHOULD);
+        }
+
+        BooleanQuery combinedQuery = builder.build();
         return combinedQuery;
     }
 
@@ -384,6 +402,17 @@ public final class LuceneContentRetriever implements ContentRetriever {
             }
         }
         return metadata;
+    }
+
+    private Embedding embedQuery(String queryText) {
+        Embedding embedding = null;
+        if (embeddingModel != null) {
+            Response<Embedding> embeddingResponse = embeddingModel.embed(queryText);
+            if (embeddingResponse != null) {
+                embedding = embeddingResponse.content();
+            }
+        }
+        return embedding;
     }
 
     /**
