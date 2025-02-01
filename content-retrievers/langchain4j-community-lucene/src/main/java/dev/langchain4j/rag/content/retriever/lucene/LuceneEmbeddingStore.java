@@ -333,9 +333,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         Document document = new Document();
         if (isBlank(id)) {
-            document.add(new TextField(ID_FIELD_NAME, randomUUID(), Store.YES));
+            document.add(new StringField(ID_FIELD_NAME, randomUUID(), Store.YES));
         } else {
-            document.add(new TextField(ID_FIELD_NAME, id, Store.YES));
+            document.add(new StringField(ID_FIELD_NAME, id, Store.YES));
         }
         if (!isBlank(text)) {
             document.add(new TextField(CONTENT_FIELD_NAME, text, Store.YES));
