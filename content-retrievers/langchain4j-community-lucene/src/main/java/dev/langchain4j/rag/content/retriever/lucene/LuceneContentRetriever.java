@@ -61,9 +61,9 @@ public final class LuceneContentRetriever implements ContentRetriever {
             maxResults = 10;
             maxTokens = Integer.MAX_VALUE;
             minScore = 0;
-            contentFieldName = LuceneFields.CONTENT_FIELD_NAME.fieldName();
-            tokenCountFieldName = LuceneFields.TOKEN_COUNT_FIELD_NAME.fieldName();
-            embeddingFieldName = LuceneFields.EMBEDDING_FIELD_NAME.fieldName();
+            contentFieldName = LuceneDocumentFields.CONTENT_FIELD_NAME.fieldName();
+            tokenCountFieldName = LuceneDocumentFields.TOKEN_COUNT_FIELD_NAME.fieldName();
+            embeddingFieldName = LuceneDocumentFields.EMBEDDING_FIELD_NAME.fieldName();
         }
 
         /**
@@ -91,12 +91,11 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Sets the name of the content field.
          *
          * @param contentFieldName Content field name
-         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder contentFieldName(String contentFieldName) {
             if (contentFieldName == null || contentFieldName.isBlank()) {
-                this.contentFieldName = LuceneFields.CONTENT_FIELD_NAME.fieldName();
+                this.contentFieldName = LuceneDocumentFields.CONTENT_FIELD_NAME.fieldName();
             } else {
                 this.contentFieldName = contentFieldName;
             }
@@ -108,7 +107,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Sets the Lucene directory. If null, a temporary file-based directory is used.
          *
          * @param directory Lucene directory
-         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder directory(Directory directory) {
@@ -121,12 +119,11 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Sets the name of the embedding vector field.
          *
          * @param embeddingFieldName Embedding vector field name
-         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder embeddingFieldName(String embeddingFieldName) {
             if (embeddingFieldName == null || embeddingFieldName.isBlank()) {
-                this.embeddingFieldName = LuceneFields.EMBEDDING_FIELD_NAME.fieldName();
+                this.embeddingFieldName = LuceneDocumentFields.EMBEDDING_FIELD_NAME.fieldName();
             } else {
                 this.embeddingFieldName = embeddingFieldName;
             }
@@ -135,11 +132,10 @@ public final class LuceneContentRetriever implements ContentRetriever {
         }
 
         /**
-         * Sets the EmbeddingModel. If null, only full-text search is available, since the
-         * query is not embedded.
+         * Sets the EmbeddingModel. If null, only full-text search is available, since the query is not
+         * embedded.
          *
          * @param embeddingModel EmbeddingModel to embed the query
-         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder embeddingModel(EmbeddingModel embeddingModel) {
@@ -162,7 +158,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Returns only a certain number of documents.
          *
          * @param maxResults Number of documents to return
-         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder maxResults(int maxResults) {
@@ -176,7 +171,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Returns documents until the maximum token limit is reached.
          *
          * @param maxTokens Maximum number of tokens
-         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder maxTokens(int maxTokens) {
@@ -190,7 +184,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Returns values above a certain score.
          *
          * @param minScore Threshold score
-         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder minScore(double minScore) {
@@ -214,12 +207,11 @@ public final class LuceneContentRetriever implements ContentRetriever {
          * Sets the name of the token count field.
          *
          * @param tokenCountFieldName Token count field name
-         *
          * @return Builder
          */
         public LuceneContentRetrieverBuilder tokenCountFieldName(String tokenCountFieldName) {
             if (tokenCountFieldName == null || tokenCountFieldName.isBlank()) {
-                this.tokenCountFieldName = LuceneFields.TOKEN_COUNT_FIELD_NAME.fieldName();
+                this.tokenCountFieldName = LuceneDocumentFields.TOKEN_COUNT_FIELD_NAME.fieldName();
             } else {
                 this.tokenCountFieldName = tokenCountFieldName;
             }
@@ -352,7 +344,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
      *
      * @param query User prompt
      * @param embedding User prompt embedding vector, or null if not available
-     *
      * @return Lucene query
      * @throws ParseException When the query cannot be parsed into terms
      */
@@ -441,7 +432,6 @@ public final class LuceneContentRetriever implements ContentRetriever {
      * Create content metadata with hit score.
      *
      * @param scoreDoc Lucene score doc
-     *
      * @return Metadata map with score
      */
     private Map<ContentMetadata, Object> withScore(ScoreDoc scoreDoc) {

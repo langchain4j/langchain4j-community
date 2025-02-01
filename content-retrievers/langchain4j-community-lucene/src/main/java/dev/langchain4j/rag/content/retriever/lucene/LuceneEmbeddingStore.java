@@ -77,10 +77,10 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    private static final String ID_FIELD_NAME = LuceneFields.ID_FIELD_NAME.fieldName();
-    private static final String CONTENT_FIELD_NAME = LuceneFields.CONTENT_FIELD_NAME.fieldName();
-    private static final String TOKEN_COUNT_FIELD_NAME = LuceneFields.TOKEN_COUNT_FIELD_NAME.fieldName();
-    private static final String EMBEDDING_FIELD_NAME = LuceneFields.EMBEDDING_FIELD_NAME.fieldName();
+    private static final String ID_FIELD_NAME = LuceneDocumentFields.ID_FIELD_NAME.fieldName();
+    private static final String CONTENT_FIELD_NAME = LuceneDocumentFields.CONTENT_FIELD_NAME.fieldName();
+    private static final String TOKEN_COUNT_FIELD_NAME = LuceneDocumentFields.TOKEN_COUNT_FIELD_NAME.fieldName();
+    private static final String EMBEDDING_FIELD_NAME = LuceneDocumentFields.EMBEDDING_FIELD_NAME.fieldName();
 
     private static final Logger log = LoggerFactory.getLogger(LuceneEmbeddingStore.class);
 
@@ -136,8 +136,8 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     /**
-     * Add content to a Lucene index, including segment, metadata and token count. Ids are
-     * generated if they are null. <br>
+     * Add content to a Lucene index, including segment, metadata and token count. Ids are generated
+     * if they are null. <br>
      * IMPORTANT: Token counts are approximate, and do not include metadata.
      *
      * @param id Content id, can be null
@@ -234,7 +234,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
                 TextSegment textSegment = content.textSegment();
                 String id;
                 if (textSegment != null && textSegment.metadata() != null) {
-                    id = textSegment.metadata().getString(LuceneFields.ID_FIELD_NAME.fieldName());
+                    id = textSegment.metadata().getString(LuceneDocumentFields.ID_FIELD_NAME.fieldName());
                 } else {
                     log.debug("Generating new random id");
                     id = randomUUID();
@@ -320,7 +320,6 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param id Document id, can be null
      * @param embedding Embedding, can be null
      * @param content Text content, can be null
-     *
      * @return Lucene document
      */
     private Document toDocument(String id, Embedding embedding, TextSegment content) {

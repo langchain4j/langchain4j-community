@@ -1,19 +1,19 @@
 package dev.langchain4j.rag.content.retriever.lucene;
 
-/** Default field names used when storing data in Lucene. Used for both storage and retrieval. **/
-public enum LuceneFields {
-    /** Id of the Lucene document **/
+/** Default field names used when storing a document in Lucene. Used for both storage and retrieval. * */
+public enum LuceneDocumentFields {
+    /** Id of the Lucene document * */
     ID_FIELD_NAME("id"),
-    /** Text content of the content **/
+    /** Text content of the content * */
     CONTENT_FIELD_NAME("content"),
-    /** Estimated token count of the content **/
+    /** Estimated token count of the content * */
     TOKEN_COUNT_FIELD_NAME("estimated-token-count"),
-    /** Embedding vector of the content **/
+    /** Embedding vector of the content * */
     EMBEDDING_FIELD_NAME("embedding");
 
     private final String fieldName;
 
-    private LuceneFields(String fieldName) {
+    private LuceneDocumentFields(String fieldName) {
         this.fieldName = fieldName;
     }
 

@@ -8,7 +8,7 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import java.util.List;
 
-/** Adapter to support LuceneEmbeddingStore searches. **/
+/** Adapter to support LuceneEmbeddingStore searches. * */
 class KnownQueryEmbeddingModel implements EmbeddingModel {
 
     private final Embedding embedding;
@@ -17,9 +17,7 @@ class KnownQueryEmbeddingModel implements EmbeddingModel {
         this.embedding = ensureNotNull(embedding, "embedding");
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public Response<Embedding> embed(String text) {
         if (text != null) {
@@ -28,25 +26,19 @@ class KnownQueryEmbeddingModel implements EmbeddingModel {
         return Response.from(embedding);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public Response<Embedding> embed(TextSegment textSegment) {
         throw new UnsupportedOperationException("Not supported for the LuceneEmbeddingStore adapter use case");
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public Response<List<Embedding>> embedAll(List<TextSegment> textSegments) {
         throw new UnsupportedOperationException("Not supported for the LuceneEmbeddingStore adapter use case");
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override
     public int dimension() {
         return embedding.dimension();
