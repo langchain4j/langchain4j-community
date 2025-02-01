@@ -343,7 +343,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
         if (embedding != null) {
             float[] vector = embedding.vector();
-            if (vector != null) {
+            if (vector != null && vector.length > 0) {
                 document.add(new KnnFloatVectorField(EMBEDDING_FIELD_NAME, vector));
             }
         }
