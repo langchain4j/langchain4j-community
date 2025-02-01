@@ -22,7 +22,7 @@
 
     <properties>
         <jedis.version>5.1.5</jedis.version>
-        <redis-containers.version>2.2.2</redis-containers.version>
+        <redis-containers.version>2.2.3</redis-containers.version>
     </properties>
 
     <dependencies>
