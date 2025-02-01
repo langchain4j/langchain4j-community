@@ -22,6 +22,9 @@ class KnownQueryEmbeddingModel implements EmbeddingModel {
      */
     @Override
     public Response<Embedding> embed(String text) {
+        if (text != null) {
+            throw new IllegalArgumentException("Expecting no text");
+        }
         return Response.from(embedding);
     }
 
