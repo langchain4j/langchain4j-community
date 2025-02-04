@@ -1,10 +1,8 @@
 package dev.langchain4j.community.store.embedding.clickhouse;
 
-import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.ID_MAPPING_KEY;
-import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.TEXT_MAPPING_KEY;
-
 import com.clickhouse.data.ClickHouseDataType;
 import dev.langchain4j.store.embedding.filter.Filter;
+import dev.langchain4j.store.embedding.filter.comparison.ContainsString;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThanOrEqualTo;
@@ -16,9 +14,13 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.ID_MAPPING_KEY;
+import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.TEXT_MAPPING_KEY;
 
 class ClickHouseMetadataFilterMapper {
 
@@ -47,6 +49,8 @@ class ClickHouseMetadataFilterMapper {
             return mapIn(isIn);
         } else if (filter instanceof IsNotIn isNotIn) {
             return mapNotIn(isNotIn);
+        } else if (filter instanceof ContainsString containsString) {
+            return mapContains(containsString);
         } else if (filter instanceof And and) {
             return mapAnd(and);
         } else if (filter instanceof Not not) {
@@ -108,6 +112,12 @@ class ClickHouseMetadataFilterMapper {
                         isNotIn.key(), "NOT IN", handleMultiValue(isNotIn.key(), isNotIn.comparisonValues())),
                 "OR",
                 mapIsNull(isNotIn.key()));
+    }
+
+    public String mapContains(ContainsString containsString) {
+        return mapBinaryOperation(
+                containsString.key(), "LIKE", handleSingleValue(containsString.key(), "%" + containsString.comparisonValue() + "%")
+        );
     }
 
     private String mapAnd(And and) {
