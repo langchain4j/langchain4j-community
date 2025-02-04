@@ -99,6 +99,11 @@ class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         embeddingStore.removeAll();
     }
 
+    @Override
+    protected boolean supportsContains() {
+        return true;
+    }
+
     private Map<String, ClickHouseDataType> toMetadataTypeMap() {
         Map<String, Object> map = createMetadata().toMap();
         Map<String, ClickHouseDataType> metadataTypeMap = new HashMap<>();
