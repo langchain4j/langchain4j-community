@@ -20,7 +20,7 @@
     </licenses>
 
     <properties>
-        <clickhouse-jdbc.version>0.7.1</clickhouse-jdbc.version>
+        <clickhouse-jdbc.version>0.8.0</clickhouse-jdbc.version>
         <lz4.version>1.8.0</lz4.version>
     </properties>
 
