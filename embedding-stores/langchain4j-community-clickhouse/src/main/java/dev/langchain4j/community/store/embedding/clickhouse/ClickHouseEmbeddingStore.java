@@ -15,6 +15,7 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
 import com.clickhouse.client.api.Client;
+import com.clickhouse.client.api.data_formats.internal.BinaryStreamReader;
 import com.clickhouse.client.api.insert.InsertResponse;
 import com.clickhouse.client.api.metrics.ServerMetrics;
 import com.clickhouse.client.api.query.GenericRecord;
@@ -330,11 +331,11 @@ public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, Au
     private EmbeddingMatch<TextSegment> toEmbeddingMatch(GenericRecord r) {
         String id = r.getString(settings.getColumnMapping(ID_MAPPING_KEY));
         String text = r.getString(settings.getColumnMapping(TEXT_MAPPING_KEY));
-        double[] doubleEmbedding = r.getDoubleArray(settings.getColumnMapping(EMBEDDING_MAPPING_KEY));
-        float[] embedding = new float[doubleEmbedding.length];
+        List<Double> doubleEmbedding = ((BinaryStreamReader.ArrayValue) r.getObject("embedding")).asList();
+        float[] embedding = new float[doubleEmbedding.size()];
 
-        for (int i = 0; i < doubleEmbedding.length; i++) {
-            embedding[i] = (float) doubleEmbedding[i];
+        for (int i = 0; i < doubleEmbedding.size(); i++) {
+            embedding[i] = doubleEmbedding.get(i).floatValue();
         }
 
         TextSegment textSegment = null;
