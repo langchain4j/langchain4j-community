@@ -10,6 +10,10 @@ import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.content.ContentMetadata;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -26,6 +30,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.KnnFloatVectorField;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
@@ -72,9 +77,10 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    static final String ID_FIELD_NAME = "id";
-    static final String CONTENT_FIELD_NAME = "content";
-    static final String TOKEN_COUNT_FIELD_NAME = "estimated-token-count";
+    private static final String ID_FIELD_NAME = LuceneDocumentFields.ID_FIELD_NAME.fieldName();
+    private static final String CONTENT_FIELD_NAME = LuceneDocumentFields.CONTENT_FIELD_NAME.fieldName();
+    private static final String TOKEN_COUNT_FIELD_NAME = LuceneDocumentFields.TOKEN_COUNT_FIELD_NAME.fieldName();
+    private static final String EMBEDDING_FIELD_NAME = LuceneDocumentFields.EMBEDDING_FIELD_NAME.fieldName();
 
     private static final Logger log = LoggerFactory.getLogger(LuceneEmbeddingStore.class);
 
@@ -130,8 +136,8 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     /**
-     * Add content to a Lucene index, including segment, metadata and token count. Ids are
-     * generated if they are null. <br>
+     * Add content to a Lucene index, including segment, metadata and token count. Ids are generated
+     * if they are null. <br>
      * IMPORTANT: Token counts are approximate, and do not include metadata.
      *
      * @param id Content id, can be null
@@ -199,8 +205,48 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     /** {@inheritDoc} */
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
-        throw new UnsupportedOperationException(
-                "Not supported yet. Will be supported when hybrid full text and vector search is supported.");
+        if (request == null) {
+            return new EmbeddingSearchResult<>(Collections.emptyList());
+        }
+
+        ContentRetriever contentRetriever = LuceneContentRetriever.builder()
+                .directory(directory)
+                .embeddingModel(new KnownQueryEmbeddingModel(request.queryEmbedding()))
+                .maxResults(request.maxResults())
+                .minScore(request.minScore())
+                .directory(directory)
+                .build();
+        log.debug("Ignoring request filter", request.filter());
+
+        List<EmbeddingMatch<TextSegment>> results = new ArrayList<>();
+        List<Content> contents = contentRetriever.retrieve(null);
+        for (Content content : contents) {
+            try {
+                Map<ContentMetadata, Object> metadata = content.metadata();
+                Double score;
+                if (metadata != null && metadata.containsKey(ContentMetadata.SCORE)) {
+                    score = (Double) metadata.get(ContentMetadata.SCORE);
+                } else {
+                    score = Double.NaN;
+                }
+                // Note: Lucene does not store embeddings (KnnFloatVectorField)
+                Embedding embedding = null;
+                TextSegment textSegment = content.textSegment();
+                String id;
+                if (textSegment != null && textSegment.metadata() != null) {
+                    id = textSegment.metadata().getString(LuceneDocumentFields.ID_FIELD_NAME.fieldName());
+                } else {
+                    log.debug("Generating new random id");
+                    id = randomUUID();
+                }
+                EmbeddingMatch<TextSegment> result = new EmbeddingMatch<>(score, id, embedding, textSegment);
+                results.add(result);
+            } catch (Exception e) {
+                log.error("Could not convert content to results", e);
+            }
+        }
+
+        return new EmbeddingSearchResult<>(results);
     }
 
     /**
@@ -274,7 +320,6 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param id Document id, can be null
      * @param embedding Embedding, can be null
      * @param content Text content, can be null
-     *
      * @return Lucene document
      */
     private Document toDocument(String id, Embedding embedding, TextSegment content) {
@@ -288,15 +333,18 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         Document document = new Document();
         if (isBlank(id)) {
-            document.add(new TextField(ID_FIELD_NAME, randomUUID(), Store.YES));
+            document.add(new StringField(ID_FIELD_NAME, randomUUID(), Store.YES));
         } else {
-            document.add(new TextField(ID_FIELD_NAME, id, Store.YES));
+            document.add(new StringField(ID_FIELD_NAME, id, Store.YES));
         }
         if (!isBlank(text)) {
             document.add(new TextField(CONTENT_FIELD_NAME, text, Store.YES));
         }
         if (embedding != null) {
-            log.warn(LuceneEmbeddingStore.class.getCanonicalName() + " does not support add embedding for now.");
+            float[] vector = embedding.vector();
+            if (vector != null && vector.length > 0) {
+                document.add(new KnnFloatVectorField(EMBEDDING_FIELD_NAME, vector));
+            }
         }
         document.add(new IntField(TOKEN_COUNT_FIELD_NAME, tokens, Store.YES));
 
