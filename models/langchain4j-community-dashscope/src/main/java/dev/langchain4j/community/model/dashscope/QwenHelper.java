@@ -1,15 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.data.message.ChatMessageType.AI;
-import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
-import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
-import static dev.langchain4j.data.message.ChatMessageType.USER;
-import static dev.langchain4j.internal.Utils.*;
-import static dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper.toMap;
-import static dev.langchain4j.model.output.FinishReason.*;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-
 import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationOutput.Choice;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
@@ -41,16 +31,19 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.internal.Utils;
-import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequest;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponse;
-import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
+import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -68,8 +61,23 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.function.Consumer;
+
+import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.data.message.ChatMessageType.AI;
+import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
+import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
+import static dev.langchain4j.data.message.ChatMessageType.USER;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
+import static dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper.toMap;
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 class QwenHelper {
 
@@ -533,100 +541,263 @@ class QwenHelper {
         return message.type() == AI && ((AiMessage) message).hasToolExecutionRequests();
     }
 
-    static ChatModelRequest createModelListenerRequest(
-            GenerationParam request, List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
-        Double temperature =
-                request.getTemperature() != null ? request.getTemperature().doubleValue() : null;
-        return ChatModelRequest.builder()
-                .model(request.getModel())
-                .temperature(temperature)
-                .topP(request.getTopP())
-                .maxTokens(request.getMaxTokens())
-                .messages(messages)
-                .toolSpecifications(toolSpecifications)
-                .build();
+    public static Response<AiMessage> convertResponse(ChatResponse chatResponse) {
+        return Response.from(
+                chatResponse.aiMessage(),
+                chatResponse.metadata().tokenUsage(),
+                chatResponse.metadata().finishReason());
     }
 
-    static ChatModelRequest createModelListenerRequest(
-            MultiModalConversationParam request,
-            List<ChatMessage> messages,
-            List<ToolSpecification> toolSpecifications) {
-        Double temperature =
-                request.getTemperature() != null ? request.getTemperature().doubleValue() : null;
-        return ChatModelRequest.builder()
-                .model(request.getModel())
-                .temperature(temperature)
-                .topP(request.getTopP())
-                .maxTokens(request.getMaxLength())
-                .messages(messages)
-                .toolSpecifications(toolSpecifications)
-                .build();
+    static StreamingChatResponseHandler convertHandler(StreamingResponseHandler<AiMessage> handler) {
+        return new StreamingChatResponseHandler() {
+            @Override
+            public void onPartialResponse(String partialResponse) {
+                handler.onNext(partialResponse);
+            }
+
+            @Override
+            public void onCompleteResponse(ChatResponse completeResponse) {
+                handler.onComplete(convertResponse(completeResponse));
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                handler.onError(error);
+            }
+        };
     }
 
-    static ChatModelResponse createModelListenerResponse(
-            String responseId, String responseModel, Response<AiMessage> response) {
-        if (response == null) {
+    static void validateGenerationParameters(QwenChatRequestParameters parameters) {
+        if (parameters.vlHighResolutionImages() != null) {
+            throw new UnsupportedFeatureException("'vlHighResolutionImages' parameter is not supported by " + parameters.modelName());
+        }
+    }
+
+    static void validateMultimodalConversationParameters(QwenChatRequestParameters parameters) {
+        if (parameters.searchOptions() != null) {
+            throw new UnsupportedFeatureException("'searchOptions' parameter is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.frequencyPenalty() != null) {
+            throw new UnsupportedFeatureException("'frequencyPenalty' parameter is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.stopSequences() != null) {
+            throw new UnsupportedFeatureException("'stopSequences' parameter is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.toolChoice() != null) {
+            throw new UnsupportedFeatureException("'toolChoice' parameter is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.toolSpecifications() != null) {
+            throw new UnsupportedFeatureException("'toolSpecifications' parameter is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.translationOptions() != null) {
+            throw new UnsupportedFeatureException("'translationOptions' parameter is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.responseFormat() != null) {
+            throw new UnsupportedFeatureException("'responseFormat' parameter is not supported by " + parameters.modelName());
+        }
+    }
+
+    static GenerationParam toGenerationParam(
+            String apiKey,
+            ChatRequest chatRequest,
+            Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer,
+            boolean incrementalOutput) {
+        QwenChatRequestParameters parameters = (QwenChatRequestParameters) chatRequest.parameters();
+        validateGenerationParameters(parameters);
+
+        GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
+                .apiKey(apiKey)
+                .model(parameters.modelName())
+                .topP(parameters.topP())
+                .topK(parameters.topK())
+                .enableSearch(getOrDefault(parameters.enableSearch(), false))
+                .searchOptions(toQwenSearchOptions(parameters.searchOptions()))
+                .seed(parameters.seed())
+                .repetitionPenalty(frequencyPenaltyToRepetitionPenalty(parameters.frequencyPenalty()))
+                .maxTokens(parameters.maxOutputTokens())
+                .messages(toQwenMessages(chatRequest.messages()))
+                .responseFormat(toQwenResponseFormat(parameters.responseFormat()))
+                .resultFormat(MESSAGE)
+                .incrementalOutput(incrementalOutput);
+
+        if (parameters.temperature() != null) {
+            builder.temperature(parameters.temperature().floatValue());
+        }
+
+        if (parameters.stopSequences() != null) {
+            builder.stopStrings(parameters.stopSequences());
+        }
+
+        if (!isNullOrEmpty(parameters.toolSpecifications())) {
+            builder.tools(toToolFunctions(parameters.toolSpecifications()));
+            if (parameters.toolChoice() != null && parameters.toolChoice() == REQUIRED) {
+                builder.toolChoice(toToolFunction((parameters.toolSpecifications().get(0))));
+            }
+        }
+
+        if (parameters.translationOptions() != null) {
+            // no java field has been provided yet
+            builder.parameter("translation_options",
+                    toQwenTranslationOptions(parameters.translationOptions()));
+        }
+
+        if (parameters.custom() != null) {
+            // no java field has been provided yet
+            builder.parameter("custom", parameters.custom());
+        }
+
+        if (generationParamCustomizer != null) {
+            generationParamCustomizer.accept(builder);
+        }
+
+        return builder.build();
+    }
+
+    static MultiModalConversationParam toMultiModalConversationParam(
+            String apiKey,
+            ChatRequest chatRequest,
+            Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>> multimodalConversationParamCustomizer,
+            boolean incrementalOutput) {
+        QwenChatRequestParameters parameters = (QwenChatRequestParameters) chatRequest.parameters();
+        validateMultimodalConversationParameters(parameters);
+
+        MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?> builder =
+                MultiModalConversationParam.builder()
+                        .apiKey(apiKey)
+                        .model(parameters.modelName())
+                        .topP(parameters.topP())
+                        .topK(parameters.topK())
+                        .enableSearch(getOrDefault(parameters.enableSearch(), false))
+                        .seed(parameters.seed())
+                        .maxLength(parameters.maxOutputTokens())
+                        .messages(toQwenMultiModalMessages(chatRequest.messages()))
+                        .incrementalOutput(incrementalOutput);
+
+        if (parameters.temperature() != null) {
+            builder.temperature(parameters.temperature().floatValue());
+        }
+
+        if (parameters.vlHighResolutionImages() != null) {
+            // no java field has been provided yet
+            builder.parameter("vl_high_resolution_images", parameters.vlHighResolutionImages());
+        }
+
+        if (parameters.custom() != null) {
+            // no java field has been provided yet
+            builder.parameter("custom", parameters.custom());
+        }
+
+        if (multimodalConversationParamCustomizer != null) {
+            multimodalConversationParamCustomizer.accept(builder);
+        }
+
+        return builder.build();
+    }
+
+    static com.alibaba.dashscope.common.ResponseFormat toQwenResponseFormat(ResponseFormat responseFormat) {
+        if (responseFormat == null) {
             return null;
         }
 
-        return ChatModelResponse.builder()
-                .id(responseId)
-                .model(responseModel)
-                .tokenUsage(response.tokenUsage())
-                .finishReason(response.finishReason())
-                .aiMessage(response.content())
+        return switch (responseFormat.type()) {
+            case JSON -> com.alibaba.dashscope.common.ResponseFormat.from(
+                    com.alibaba.dashscope.common.ResponseFormat.JSON_OBJECT);
+            case TEXT -> com.alibaba.dashscope.common.ResponseFormat.from(
+                    com.alibaba.dashscope.common.ResponseFormat.TEXT);
+        };
+    }
+
+    static com.alibaba.dashscope.aigc.generation.SearchOptions toQwenSearchOptions(
+            QwenChatRequestParameters.SearchOptions searchOptions) {
+        if (searchOptions == null) {
+            return null;
+        }
+
+        return com.alibaba.dashscope.aigc.generation.SearchOptions.builder()
+                .citationFormat(searchOptions.citationFormat())
+                .enableCitation(searchOptions.enableCitation())
+                .enableSource(searchOptions.enableSource())
+                .forcedSearch(searchOptions.forcedSearch())
+                .searchStrategy(searchOptions.searchStrategy())
                 .build();
     }
 
-    static void onListenRequest(
-            List<ChatModelListener> listeners, ChatModelRequest modelListenerRequest, Map<Object, Object> attributes) {
-        ChatModelRequestContext context = new ChatModelRequestContext(modelListenerRequest, attributes);
-        listeners.forEach(listener -> {
-            try {
-                listener.onRequest(context);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        });
+    static Map<String, Object> toQwenTranslationOptions(
+            QwenChatRequestParameters.TranslationOptions translationOptions) {
+        if (translationOptions == null) {
+            return null;
+        }
+
+        // no java class is provided yet
+        return Map.of("source_lang", translationOptions.sourceLang(),
+                "target_lang", translationOptions.targetLang(),
+                "terms", toTermList(translationOptions.terms()),
+                "tm_list", toTermList(translationOptions.tmLists()),
+                "domains", translationOptions.domains());
     }
 
-    static void onListenResponse(
-            List<ChatModelListener> listeners,
-            String responseId,
-            Response<AiMessage> response,
-            ChatModelRequest modelListenerRequest,
-            Map<Object, Object> attributes) {
-        ChatModelResponse modelListenerResponse =
-                createModelListenerResponse(responseId, modelListenerRequest.model(), response);
-
-        ChatModelResponseContext context =
-                new ChatModelResponseContext(modelListenerResponse, modelListenerRequest, attributes);
-        listeners.forEach(listener -> {
-            try {
-                listener.onResponse(context);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        });
+    static List<Map<String, String>> toTermList(List<QwenChatRequestParameters.TranslationOptionTerm> list) {
+        if (list == null) {
+            return null;
+        }
+        return list.stream().map(pair -> Map.of("source", pair.source(), "target", pair.target())).collect(toList());
     }
 
-    static void onListenError(
-            List<ChatModelListener> listeners,
-            String responseId,
-            Throwable error,
-            ChatModelRequest modelListenerRequest,
-            Response<AiMessage> partialResponse,
-            Map<Object, Object> attributes) {
-        ChatModelResponse partialModelListenerResponse =
-                createModelListenerResponse(responseId, modelListenerRequest.model(), partialResponse);
-        ChatModelErrorContext context =
-                new ChatModelErrorContext(error, modelListenerRequest, partialModelListenerResponse, attributes);
-        listeners.forEach(listener -> {
-            try {
-                listener.onError(context);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        });
+    static Float frequencyPenaltyToRepetitionPenalty(Double frequencyPenalty) {
+        // repetitionPenalty: https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api#2ed5ee7377fum
+        // frequencyPenalty: https://platform.openai.com/docs/api-reference/chat/create#chat-create-frequency_penalty
+        // map: [-2, 2] -> (0, ∞), and 0 -> 1
+        // use logit function (https://en.wikipedia.org/wiki/Logit)
+
+        if (frequencyPenalty == null) {
+            return null;
+        } else if (frequencyPenalty >= 2) {
+                return Float.POSITIVE_INFINITY;
+        } else if (frequencyPenalty < -2) {
+            throw new IllegalArgumentException("Value of frequencyPenalty must be within [-2.0, 2.0]");
+        }
+
+
+        // limit the input to 0.5 to 1 (as the repetition penalty is a positive value)
+        double x = (frequencyPenalty + 6) / 8;
+        // make sure repetition penalty is 1 when frequency penalty is 0
+        double denominator = logit(0.75d);
+
+        return (float) (logit(x) / denominator);
+    }
+
+    static Double repetitionPenaltyToFrequencyPenalty(Float repetitionPenalty) {
+        // repetitionPenalty: https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api#2ed5ee7377fum
+        // frequencyPenalty: https://platform.openai.com/docs/api-reference/chat/create#chat-create-frequency_penalty
+        // map: (0, ∞) -> [-2, 2], and 1 -> 0
+        // use sigmoid function (https://en.wikipedia.org/wiki/Sigmoid_function)
+
+        if (repetitionPenalty == null) {
+            return null;
+        } else if (repetitionPenalty <= 0) {
+            throw new IllegalArgumentException("Value of repetitionPenalty must be positive number");
+        }
+
+        // make sure frequency penalty is 0 when repetition penalty is 1
+        // see frequencyPenaltyToRepetitionPenalty()
+        double factor = logit(0.75d);
+        double y = sigmoid(repetitionPenalty.doubleValue() * factor);
+
+        // make sure frequency penalty is between -2 and 2
+        return y * 8 - 6;
+    }
+
+    private static double logit(double x) {
+        return Math.log(x / (1 - x));
+    }
+
+    private static double sigmoid(double x) {
+        return 1.0 / (1.0 + Math.exp(-x));
     }
 }

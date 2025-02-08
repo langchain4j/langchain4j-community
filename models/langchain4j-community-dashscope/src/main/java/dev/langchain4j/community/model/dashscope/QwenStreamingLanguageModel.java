@@ -1,11 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -14,13 +8,20 @@ import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.protocol.Protocol;
 import dev.langchain4j.community.model.dashscope.spi.QwenStreamingLanguageModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
+
 import java.util.List;
 import java.util.function.Consumer;
+
+import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * Represents a Qwen language model with a text interface.
@@ -102,7 +103,7 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
 
             generationParamCustomizer.accept(builder);
 
-            QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder();
+            QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder(modelName);
             generation.streamCall(builder.build(), new ResultCallback<>() {
                 @Override
                 public void onEvent(GenerationResult result) {
@@ -114,9 +115,9 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
 
                 @Override
                 public void onComplete() {
-                    Response<AiMessage> response = responseBuilder.build();
+                    ChatResponse response = responseBuilder.build();
                     handler.onComplete(
-                            Response.from(response.content().text(), response.tokenUsage(), response.finishReason()));
+                            Response.from(response.aiMessage().text(), response.tokenUsage(), response.finishReason()));
                 }
 
                 @Override
