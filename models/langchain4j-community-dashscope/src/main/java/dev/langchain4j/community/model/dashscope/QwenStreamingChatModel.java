@@ -1,5 +1,21 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
+import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.quoted;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Collections.emptyList;
+import static java.util.Objects.isNull;
+
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -23,26 +39,9 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
-import static dev.langchain4j.internal.Utils.copyIfNotNull;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.quoted;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.emptyList;
-import static java.util.Objects.isNull;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
@@ -371,20 +370,19 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
 
         @Override
         public String toString() {
-            return "QwenStreamingChatModelBuilder{" +
-                    "baseUrl=" + quoted(baseUrl) +
-                    ", modelName='" + quoted(modelName) +
-                    ", topP=" + topP +
-                    ", topK=" + topK +
-                    ", enableSearch=" + enableSearch +
-                    ", seed=" + seed +
-                    ", repetitionPenalty=" + repetitionPenalty +
-                    ", temperature=" + temperature +
-                    ", stops=" + stops +
-                    ", maxTokens=" + maxTokens +
-                    ", listeners=" + listeners +
-                    ", defaultRequestParameters=" + defaultRequestParameters +
-                    '}';
+            return "QwenStreamingChatModelBuilder{" + "baseUrl="
+                    + quoted(baseUrl) + ", modelName='"
+                    + quoted(modelName) + ", topP="
+                    + topP + ", topK="
+                    + topK + ", enableSearch="
+                    + enableSearch + ", seed="
+                    + seed + ", repetitionPenalty="
+                    + repetitionPenalty + ", temperature="
+                    + temperature + ", stops="
+                    + stops + ", maxTokens="
+                    + maxTokens + ", listeners="
+                    + listeners + ", defaultRequestParameters="
+                    + defaultRequestParameters + '}';
         }
     }
 }
