@@ -74,12 +74,24 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         if (this == o) return true;
         if (!(o instanceof QwenChatRequestParameters that)) return false;
         if (!super.equals(o)) return false;
-        return Objects.equals(seed, that.seed) && Objects.equals(enableSearch, that.enableSearch) && Objects.equals(searchOptions, that.searchOptions) && Objects.equals(translationOptions, that.translationOptions) && Objects.equals(vlHighResolutionImages, that.vlHighResolutionImages) && Objects.equals(custom, that.custom);
+        return Objects.equals(seed, that.seed)
+                && Objects.equals(enableSearch, that.enableSearch)
+                && Objects.equals(searchOptions, that.searchOptions)
+                && Objects.equals(translationOptions, that.translationOptions)
+                && Objects.equals(vlHighResolutionImages, that.vlHighResolutionImages)
+                && Objects.equals(custom, that.custom);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), seed, enableSearch, searchOptions, translationOptions, vlHighResolutionImages, custom);
+        return Objects.hash(
+                super.hashCode(),
+                seed,
+                enableSearch,
+                searchOptions,
+                translationOptions,
+                vlHighResolutionImages,
+                custom);
     }
 
     @Override
@@ -163,11 +175,12 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         }
     }
 
-    public record SearchOptions(Boolean enableSource,
-                                Boolean enableCitation,
-                                String citationFormat,
-                                Boolean forcedSearch,
-                                String searchStrategy) {
+    public record SearchOptions(
+            Boolean enableSource,
+            Boolean enableCitation,
+            String citationFormat,
+            Boolean forcedSearch,
+            String searchStrategy) {
         public static Builder builder() {
             return new Builder();
         }
@@ -210,11 +223,12 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         }
     }
 
-    public record TranslationOptions(String sourceLang,
-                                     String targetLang,
-                                     List<TranslationOptionTerm> terms,
-                                     List<TranslationOptionTerm> tmLists,
-                                     String domains) {
+    public record TranslationOptions(
+            String sourceLang,
+            String targetLang,
+            List<TranslationOptionTerm> terms,
+            List<TranslationOptionTerm> tmLists,
+            String domains) {
         public static Builder builder() {
             return new Builder();
         }

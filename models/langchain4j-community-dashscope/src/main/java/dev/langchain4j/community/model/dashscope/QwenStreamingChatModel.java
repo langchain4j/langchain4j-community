@@ -137,16 +137,15 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
 
     @Override
     public void generate(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
-        ChatRequest chatRequest = ChatRequest.builder()
-                .messages(messages)
-                .build();
+        ChatRequest chatRequest = ChatRequest.builder().messages(messages).build();
         chat(chatRequest, convertHandler(handler));
     }
 
     @Override
-    public void generate(List<ChatMessage> messages,
-                         List<ToolSpecification> toolSpecifications,
-                         StreamingResponseHandler<AiMessage> handler) {
+    public void generate(
+            List<ChatMessage> messages,
+            List<ToolSpecification> toolSpecifications,
+            StreamingResponseHandler<AiMessage> handler) {
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(messages)
                 .parameters(ChatRequestParameters.builder()
@@ -157,9 +156,10 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
     }
 
     @Override
-    public void generate(List<ChatMessage> messages,
-                         ToolSpecification toolSpecification,
-                         StreamingResponseHandler<AiMessage> handler) {
+    public void generate(
+            List<ChatMessage> messages,
+            ToolSpecification toolSpecification,
+            StreamingResponseHandler<AiMessage> handler) {
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(messages)
                 .parameters(ChatRequestParameters.builder()
@@ -199,8 +199,8 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
     }
 
     private void generateByMultimodalModel(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        MultiModalConversationParam param = toMultiModalConversationParam(
-                apiKey, chatRequest, multimodalConversationParamCustomizer, true);
+        MultiModalConversationParam param =
+                toMultiModalConversationParam(apiKey, chatRequest, multimodalConversationParamCustomizer, true);
         QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder(param.getModel());
         try {
             conv.streamCall(param, new ResultCallback<>() {
@@ -346,7 +346,6 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
             this.listeners = listeners;
             return this;
         }
-
 
         public QwenStreamingChatModelBuilder defaultRequestParameters(ChatRequestParameters defaultRequestParameters) {
             this.defaultRequestParameters = defaultRequestParameters;

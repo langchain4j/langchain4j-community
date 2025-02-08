@@ -1,10 +1,10 @@
 package dev.langchain4j.community.model.dashscope;
 
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import org.junit.jupiter.api.Test;
-
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static org.assertj.core.api.Assertions.assertThat;
+
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import org.junit.jupiter.api.Test;
 
 public class QwenChatRequestParametersTest {
     @Test

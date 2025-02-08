@@ -137,9 +137,7 @@ public class QwenChatModel implements ChatLanguageModel {
 
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages) {
-        ChatRequest chatRequest = ChatRequest.builder()
-                .messages(messages)
-                .build();
+        ChatRequest chatRequest = ChatRequest.builder().messages(messages).build();
         ChatResponse chatResponse = chat(chatRequest);
         return convertResponse(chatResponse);
     }
@@ -158,7 +156,7 @@ public class QwenChatModel implements ChatLanguageModel {
 
     @Override
     public Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
-       ChatRequest chatRequest = ChatRequest.builder()
+        ChatRequest chatRequest = ChatRequest.builder()
                 .messages(messages)
                 .parameters(ChatRequestParameters.builder()
                         .toolSpecifications(toolSpecification)
@@ -188,8 +186,8 @@ public class QwenChatModel implements ChatLanguageModel {
     }
 
     private ChatResponse generateByMultimodalModel(ChatRequest chatRequest) {
-        MultiModalConversationParam param = toMultiModalConversationParam(
-                apiKey, chatRequest, multimodalConversationParamCustomizer, false);
+        MultiModalConversationParam param =
+                toMultiModalConversationParam(apiKey, chatRequest, multimodalConversationParamCustomizer, false);
         try {
             MultiModalConversationResult result = conv.call(param);
             return ChatResponse.builder()
@@ -210,9 +208,7 @@ public class QwenChatModel implements ChatLanguageModel {
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
-        return isMultimodalModel
-                ? generateByMultimodalModel(chatRequest)
-                : generateByNonMultimodalModel(chatRequest);
+        return isMultimodalModel ? generateByMultimodalModel(chatRequest) : generateByNonMultimodalModel(chatRequest);
     }
 
     @Override
@@ -348,7 +344,7 @@ public class QwenChatModel implements ChatLanguageModel {
 
         @Override
         public String toString() {
-            return "QwenChatModelBuilder{" +
+            return "QwenStreamingChatModelBuilder{" +
                     "baseUrl=" + quoted(baseUrl) +
                     ", modelName='" + quoted(modelName) +
                     ", topP=" + topP +

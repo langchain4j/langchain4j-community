@@ -569,37 +569,45 @@ class QwenHelper {
 
     static void validateGenerationParameters(QwenChatRequestParameters parameters) {
         if (parameters.vlHighResolutionImages() != null) {
-            throw new UnsupportedFeatureException("'vlHighResolutionImages' parameter is not supported by " + parameters.modelName());
+            throw new UnsupportedFeatureException(
+                    "'vlHighResolutionImages' parameter is not supported by " + parameters.modelName());
         }
     }
 
     static void validateMultimodalConversationParameters(QwenChatRequestParameters parameters) {
         if (parameters.searchOptions() != null) {
-            throw new UnsupportedFeatureException("'searchOptions' parameter is not supported by " + parameters.modelName());
+            throw new UnsupportedFeatureException(
+                    "'searchOptions' parameter is not supported by " + parameters.modelName());
         }
 
         if (parameters.frequencyPenalty() != null) {
-            throw new UnsupportedFeatureException("'frequencyPenalty' parameter is not supported by " + parameters.modelName());
+            throw new UnsupportedFeatureException(
+                    "'frequencyPenalty' parameter is not supported by " + parameters.modelName());
         }
 
         if (parameters.stopSequences() != null) {
-            throw new UnsupportedFeatureException("'stopSequences' parameter is not supported by " + parameters.modelName());
+            throw new UnsupportedFeatureException(
+                    "'stopSequences' parameter is not supported by " + parameters.modelName());
         }
 
         if (parameters.toolChoice() != null) {
-            throw new UnsupportedFeatureException("'toolChoice' parameter is not supported by " + parameters.modelName());
+            throw new UnsupportedFeatureException(
+                    "'toolChoice' parameter is not supported by " + parameters.modelName());
         }
 
         if (parameters.toolSpecifications() != null) {
-            throw new UnsupportedFeatureException("'toolSpecifications' parameter is not supported by " + parameters.modelName());
+            throw new UnsupportedFeatureException(
+                    "'toolSpecifications' parameter is not supported by " + parameters.modelName());
         }
 
         if (parameters.translationOptions() != null) {
-            throw new UnsupportedFeatureException("'translationOptions' parameter is not supported by " + parameters.modelName());
+            throw new UnsupportedFeatureException(
+                    "'translationOptions' parameter is not supported by " + parameters.modelName());
         }
 
         if (parameters.responseFormat() != null) {
-            throw new UnsupportedFeatureException("'responseFormat' parameter is not supported by " + parameters.modelName());
+            throw new UnsupportedFeatureException(
+                    "'responseFormat' parameter is not supported by " + parameters.modelName());
         }
     }
 
@@ -637,14 +645,14 @@ class QwenHelper {
         if (!isNullOrEmpty(parameters.toolSpecifications())) {
             builder.tools(toToolFunctions(parameters.toolSpecifications()));
             if (parameters.toolChoice() != null && parameters.toolChoice() == REQUIRED) {
-                builder.toolChoice(toToolFunction((parameters.toolSpecifications().get(0))));
+                builder.toolChoice(
+                        toToolFunction((parameters.toolSpecifications().get(0))));
             }
         }
 
         if (parameters.translationOptions() != null) {
             // no java field has been provided yet
-            builder.parameter("translation_options",
-                    toQwenTranslationOptions(parameters.translationOptions()));
+            builder.parameter("translation_options", toQwenTranslationOptions(parameters.translationOptions()));
         }
 
         if (parameters.custom() != null) {
@@ -662,7 +670,8 @@ class QwenHelper {
     static MultiModalConversationParam toMultiModalConversationParam(
             String apiKey,
             ChatRequest chatRequest,
-            Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>> multimodalConversationParamCustomizer,
+            Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>>
+                    multimodalConversationParamCustomizer,
             boolean incrementalOutput) {
         QwenChatRequestParameters parameters = (QwenChatRequestParameters) chatRequest.parameters();
         validateMultimodalConversationParameters(parameters);
@@ -735,18 +744,22 @@ class QwenHelper {
         }
 
         // no java class is provided yet
-        return Map.of("source_lang", translationOptions.sourceLang(),
-                "target_lang", translationOptions.targetLang(),
-                "terms", toTermList(translationOptions.terms()),
-                "tm_list", toTermList(translationOptions.tmLists()),
-                "domains", translationOptions.domains());
+        Map<String, Object> translationOptionsMap = new HashMap<>(5);
+        translationOptionsMap.put("source_lang", translationOptions.sourceLang());
+        translationOptionsMap.put("target_lang", translationOptions.sourceLang());
+        translationOptionsMap.put("terms", toTermList(translationOptions.terms()));
+        translationOptionsMap.put("tm_list", toTermList(translationOptions.tmLists()));
+        translationOptionsMap.put("domains", translationOptions.domains());
+        return translationOptionsMap;
     }
 
     static List<Map<String, String>> toTermList(List<QwenChatRequestParameters.TranslationOptionTerm> list) {
         if (list == null) {
             return null;
         }
-        return list.stream().map(pair -> Map.of("source", pair.source(), "target", pair.target())).collect(toList());
+        return list.stream()
+                .map(term -> Map.of("source", term.source(), "target", term.target()))
+                .collect(toList());
     }
 
     static Float frequencyPenaltyToRepetitionPenalty(Double frequencyPenalty) {
@@ -758,11 +771,10 @@ class QwenHelper {
         if (frequencyPenalty == null) {
             return null;
         } else if (frequencyPenalty >= 2) {
-                return Float.POSITIVE_INFINITY;
+            return Float.POSITIVE_INFINITY;
         } else if (frequencyPenalty < -2) {
             throw new IllegalArgumentException("Value of frequencyPenalty must be within [-2.0, 2.0]");
         }
-
 
         // limit the input to 0.5 to 1 (as the repetition penalty is a positive value)
         double x = (frequencyPenalty + 6) / 8;
