@@ -651,12 +651,12 @@ class QwenHelper {
         }
 
         if (parameters.translationOptions() != null) {
-            // no java field has been provided yet
+            // no java field is provided yet
             builder.parameter("translation_options", toQwenTranslationOptions(parameters.translationOptions()));
         }
 
         if (parameters.custom() != null) {
-            // no java field has been provided yet
+            // no java field is provided yet
             builder.parameter("custom", parameters.custom());
         }
 
@@ -693,12 +693,12 @@ class QwenHelper {
         }
 
         if (parameters.vlHighResolutionImages() != null) {
-            // no java field has been provided yet
+            // no java field is provided yet
             builder.parameter("vl_high_resolution_images", parameters.vlHighResolutionImages());
         }
 
         if (parameters.custom() != null) {
-            // no java field has been provided yet
+            // no java field is provided yet
             builder.parameter("custom", parameters.custom());
         }
 
