@@ -1,5 +1,22 @@
 package dev.langchain4j.community.model.dashscope;
 
+import com.alibaba.dashscope.aigc.generation.GenerationResult;
+import com.alibaba.dashscope.aigc.generation.GenerationUsage;
+import com.alibaba.dashscope.aigc.generation.SearchInfo;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationUsage;
+import com.alibaba.dashscope.tools.ToolCallBase;
+import com.alibaba.dashscope.tools.ToolCallFunction;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.FinishReason;
+import dev.langchain4j.model.output.TokenUsage;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
@@ -8,22 +25,6 @@ import static dev.langchain4j.community.model.dashscope.QwenHelper.toolCallsFrom
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static java.util.stream.Collectors.toList;
-
-import com.alibaba.dashscope.aigc.generation.GenerationResult;
-import com.alibaba.dashscope.aigc.generation.GenerationUsage;
-import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
-import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationUsage;
-import com.alibaba.dashscope.tools.ToolCallBase;
-import com.alibaba.dashscope.tools.ToolCallFunction;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class QwenStreamingResponseBuilder {
     private final StringBuilder generatedContent = new StringBuilder();
@@ -34,6 +35,7 @@ public class QwenStreamingResponseBuilder {
     private Integer inputTokenCount;
     private Integer outputTokenCount;
     private FinishReason finishReason;
+    private SearchInfo searchInfo;
 
     public QwenStreamingResponseBuilder(String modelName) {
         this.modelName = ensureNotBlank(modelName, "modelName");
@@ -46,6 +48,10 @@ public class QwenStreamingResponseBuilder {
 
         if (!isNullOrBlank(partialResponse.getRequestId())) {
             id = partialResponse.getRequestId();
+        }
+
+        if (partialResponse.getOutput().getSearchInfo() != null) {
+            searchInfo = partialResponse.getOutput().getSearchInfo();
         }
 
         GenerationUsage usage = partialResponse.getUsage();
@@ -97,6 +103,10 @@ public class QwenStreamingResponseBuilder {
             return null;
         }
 
+        if (!isNullOrBlank(partialResponse.getRequestId())) {
+            id = partialResponse.getRequestId();
+        }
+
         MultiModalConversationUsage usage = partialResponse.getUsage();
         if (usage != null) {
             inputTokenCount = usage.getInputTokens();
@@ -135,11 +145,12 @@ public class QwenStreamingResponseBuilder {
 
             return ChatResponse.builder()
                     .aiMessage(aiMessage)
-                    .metadata(ChatResponseMetadata.builder()
+                    .metadata(QwenChatResponseMetadata.builder()
                             .id(id)
                             .modelName(modelName)
                             .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
                             .finishReason(finishReason)
+                            .searchInfo(searchInfo)
                             .build())
                     .build();
         }
@@ -147,11 +158,12 @@ public class QwenStreamingResponseBuilder {
         if (!isNullOrBlank(text)) {
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(text))
-                    .metadata(ChatResponseMetadata.builder()
+                    .metadata(QwenChatResponseMetadata.builder()
                             .id(id)
                             .modelName(modelName)
                             .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
                             .finishReason(finishReason)
+                            .searchInfo(searchInfo)
                             .build())
                     .build();
         }
