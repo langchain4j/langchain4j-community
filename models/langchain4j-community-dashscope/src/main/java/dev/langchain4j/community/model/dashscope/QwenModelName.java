@@ -32,6 +32,8 @@ public class QwenModelName {
     public static final String QWEN_VL_MAX = "qwen-vl-max";  // Qwen multi-modal model, offers optimal performance on a wider range of complex tasks.
     public static final String QWEN_AUDIO_CHAT = "qwen-audio-chat";  // Qwen open sourced speech model, sft for chatting.
     public static final String QWEN2_AUDIO_INSTRUCT = "qwen2-audio-instruct";  // Qwen open sourced speech model (v2)
+    public static final String QWEN_MT_TURBO = "qwen-mt-turbo";  // Qwen turbo model for translation.
+    public static final String QWEN_MT_PLUS = "qwen-mt-plus";  // Qwen plus model for translation.
 
     // Use with QwenEmbeddingModel
     public static final String TEXT_EMBEDDING_V1 = "text-embedding-v1";  // Support: en, zh, es, fr, pt, id
