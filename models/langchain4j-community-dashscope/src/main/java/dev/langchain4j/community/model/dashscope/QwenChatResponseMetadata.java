@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.internal.Utils.quoted;
+
 import com.alibaba.dashscope.aigc.generation.SearchInfo;
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
-import static dev.langchain4j.internal.Utils.quoted;
 
 @Experimental
 public class QwenChatResponseMetadata extends ChatResponseMetadata {
@@ -58,13 +57,12 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
 
     @Override
     public String toString() {
-        return "QwenChatResponseMetadata{" +
-                "id=" + quoted(id()) +
-                ", modelName=" + quoted(modelName()) +
-                ", tokenUsage=" + tokenUsage() +
-                ", finishReason=" + finishReason() +
-                ", searchInfo=" + searchInfo +
-                '}';
+        return "QwenChatResponseMetadata{" + "id="
+                + quoted(id()) + ", modelName="
+                + quoted(modelName()) + ", tokenUsage="
+                + tokenUsage() + ", finishReason="
+                + finishReason() + ", searchInfo="
+                + searchInfo + '}';
     }
 
     public static Builder builder() {
@@ -74,7 +72,7 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
     public static class Builder extends ChatResponseMetadata.Builder<Builder> {
         private SearchInfo searchInfo;
 
-        public  Builder searchInfo(SearchInfo searchInfo) {
+        public Builder searchInfo(SearchInfo searchInfo) {
             this.searchInfo = searchInfo;
             return this;
         }

@@ -1,5 +1,22 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
+import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.quoted;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Collections.emptyList;
+import static java.util.Objects.isNull;
+
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -23,27 +40,9 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
-import static dev.langchain4j.internal.Utils.copyIfNotNull;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.quoted;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.emptyList;
-import static java.util.Objects.isNull;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
@@ -172,9 +171,11 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
     }
 
     private void generateByNonMultimodalModel(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        boolean incrementalOutput = supportIncrementalOutput(chatRequest.parameters().modelName());
+        boolean incrementalOutput =
+                supportIncrementalOutput(chatRequest.parameters().modelName());
         GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, incrementalOutput);
-        QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder(param.getModel(), incrementalOutput);
+        QwenStreamingResponseBuilder responseBuilder =
+                new QwenStreamingResponseBuilder(param.getModel(), incrementalOutput);
         try {
             generation.streamCall(param, new ResultCallback<>() {
                 @Override
@@ -201,10 +202,12 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
     }
 
     private void generateByMultimodalModel(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        boolean incrementalOutput = supportIncrementalOutput(chatRequest.parameters().modelName());
-        MultiModalConversationParam param =
-                toMultiModalConversationParam(apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
-        QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder(param.getModel(), incrementalOutput);
+        boolean incrementalOutput =
+                supportIncrementalOutput(chatRequest.parameters().modelName());
+        MultiModalConversationParam param = toMultiModalConversationParam(
+                apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
+        QwenStreamingResponseBuilder responseBuilder =
+                new QwenStreamingResponseBuilder(param.getModel(), incrementalOutput);
         try {
             conv.streamCall(param, new ResultCallback<>() {
                 @Override

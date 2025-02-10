@@ -1,5 +1,14 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.isFunctionToolCalls;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toolCallsFrom;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static java.util.stream.Collectors.toList;
+
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.generation.GenerationUsage;
 import com.alibaba.dashscope.aigc.generation.SearchInfo;
@@ -12,19 +21,9 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.isFunctionToolCalls;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toolCallsFrom;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static java.util.stream.Collectors.toList;
 
 public class QwenStreamingResponseBuilder {
     private final StringBuilder generatedContent = new StringBuilder();

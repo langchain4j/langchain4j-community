@@ -1,28 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import com.alibaba.dashscope.aigc.generation.SearchInfo;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.model.chat.TestStreamingResponseHandler;
-import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
-import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
 import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
@@ -41,6 +18,28 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+
+import com.alibaba.dashscope.aigc.generation.SearchInfo;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.TestStreamingResponseHandler;
+import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.output.TokenUsage;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
@@ -322,13 +321,14 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.content().text()).containsIgnoringCase("阿里云");
     }
 
-
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_send_messages_and_receive_response_by_searching(String modelName) {
         // given
-        QwenStreamingChatModel model =
-                QwenStreamingChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+        QwenStreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
 
         QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
                 .enableSearch(true)
@@ -366,8 +366,10 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#mtChatModelNameProvider")
     void should_translate_messages_and_receive_response(String modelName) {
         // given
-        QwenStreamingChatModel model =
-                QwenStreamingChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+        QwenStreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
 
         QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
                 .translationOptions(QwenChatRequestParameters.TranslationOptions.builder()
@@ -377,7 +379,8 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                                 .source("memory")
                                 .target("内存")
                                 .build()))
-                        .domains("The sentence is from Ali Cloud IT domain. It mainly involves computer-related software development and usage methods, including many terms related to computer software and hardware. Pay attention to professional troubleshooting terminologies and sentence patterns when translating. Translate into this IT domain style.")
+                        .domains(
+                                "The sentence is from Ali Cloud IT domain. It mainly involves computer-related software development and usage methods, including many terms related to computer software and hardware. Pay attention to professional troubleshooting terminologies and sentence patterns when translating. Translate into this IT domain style.")
                         .build())
                 .build();
 
@@ -409,7 +412,6 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                         .build())
                 .collect(Collectors.toList());
     }
-
 
     @Override
     protected List<StreamingChatLanguageModel> modelsSupportingTools() {
@@ -444,9 +446,8 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected QwenStreamingChatModel createModelWith(ChatRequestParameters parameters) {
-        QwenStreamingChatModel.QwenStreamingChatModelBuilder qwenChatModelBuilder = QwenStreamingChatModel.builder()
-                .apiKey(apiKey())
-                .defaultRequestParameters(parameters);
+        QwenStreamingChatModel.QwenStreamingChatModelBuilder qwenChatModelBuilder =
+                QwenStreamingChatModel.builder().apiKey(apiKey()).defaultRequestParameters(parameters);
         if (parameters.modelName() == null) {
             qwenChatModelBuilder.modelName(QWEN_MAX);
         }
