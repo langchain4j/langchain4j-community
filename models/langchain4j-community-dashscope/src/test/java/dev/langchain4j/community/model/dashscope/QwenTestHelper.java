@@ -1,8 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-
 import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.AiMessage;
@@ -12,6 +9,8 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
+import org.junit.jupiter.params.provider.Arguments;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +19,9 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 class QwenTestHelper {
 
@@ -75,7 +76,11 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> vlChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_PLUS), Arguments.of(QwenModelName.QWEN_VL_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX));
+    }
+
+    public static Stream<Arguments> mtChatModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN_MT_TURBO), Arguments.of(QwenModelName.QWEN_MT_PLUS));
     }
 
     public static Stream<Arguments> audioChatModelNameProvider() {
