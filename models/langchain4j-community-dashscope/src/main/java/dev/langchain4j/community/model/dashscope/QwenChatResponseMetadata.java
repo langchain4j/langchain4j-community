@@ -4,6 +4,8 @@ import com.alibaba.dashscope.aigc.generation.SearchInfo;
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static dev.langchain4j.internal.Utils.quoted;
@@ -15,6 +17,30 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
     protected QwenChatResponseMetadata(Builder builder) {
         super(builder);
         this.searchInfo = builder.searchInfo;
+    }
+
+    public SearchInfo searchInfo() {
+        return searchInfo;
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>(5);
+        if (id() != null) {
+            map.put("id", id());
+        }
+        if (modelName() != null) {
+            map.put("modelName", modelName());
+        }
+        if (tokenUsage() != null) {
+            map.put("tokenUsage", tokenUsage());
+        }
+        if (finishReason() != null) {
+            map.put("finishReason", finishReason());
+        }
+        if (searchInfo != null) {
+            map.put("searchInfo", searchInfo);
+        }
+        return map;
     }
 
     @Override

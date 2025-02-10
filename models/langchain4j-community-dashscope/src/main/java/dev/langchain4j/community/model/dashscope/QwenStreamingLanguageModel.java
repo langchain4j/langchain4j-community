@@ -1,11 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -19,8 +13,16 @@ import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
+
 import java.util.List;
 import java.util.function.Consumer;
+
+import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * Represents a Qwen language model with a text interface.
@@ -81,6 +83,7 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
 
     @Override
     public void generate(String prompt, StreamingResponseHandler<String> handler) {
+        boolean incrementalOutput = supportIncrementalOutput(modelName);
         try {
             GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
                     .apiKey(apiKey)
@@ -92,7 +95,7 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
                     .repetitionPenalty(repetitionPenalty)
                     .temperature(temperature)
                     .maxTokens(maxTokens)
-                    .incrementalOutput(true)
+                    .incrementalOutput(incrementalOutput)
                     .prompt(prompt)
                     .resultFormat(MESSAGE);
 
@@ -102,7 +105,7 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
 
             generationParamCustomizer.accept(builder);
 
-            QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder(modelName);
+            QwenStreamingResponseBuilder responseBuilder = new QwenStreamingResponseBuilder(modelName, incrementalOutput);
             generation.streamCall(builder.build(), new ResultCallback<>() {
                 @Override
                 public void onEvent(GenerationResult result) {

@@ -36,9 +36,11 @@ public class QwenStreamingResponseBuilder {
     private Integer outputTokenCount;
     private FinishReason finishReason;
     private SearchInfo searchInfo;
+    private boolean incrementalOutput;
 
-    public QwenStreamingResponseBuilder(String modelName) {
+    public QwenStreamingResponseBuilder(String modelName, boolean incrementalOutput) {
         this.modelName = ensureNotBlank(modelName, "modelName");
+        this.incrementalOutput = incrementalOutput;
     }
 
     public String append(GenerationResult partialResponse) {
@@ -67,6 +69,9 @@ public class QwenStreamingResponseBuilder {
 
         if (hasAnswer(partialResponse)) {
             String partialContent = answerFrom(partialResponse);
+            if (!incrementalOutput) {
+                partialContent = partialContent.substring(generatedContent.length());
+            }
             generatedContent.append(partialContent);
             return partialContent;
         } else if (isFunctionToolCalls(partialResponse)) {
@@ -120,6 +125,9 @@ public class QwenStreamingResponseBuilder {
 
         if (hasAnswer(partialResponse)) {
             String partialContent = answerFrom(partialResponse);
+            if (!incrementalOutput) {
+                partialContent = partialContent.substring(generatedContent.length());
+            }
             generatedContent.append(partialContent);
             return partialContent;
         }

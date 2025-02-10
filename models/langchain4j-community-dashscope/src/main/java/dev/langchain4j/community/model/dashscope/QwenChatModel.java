@@ -79,10 +79,6 @@ public class QwenChatModel implements ChatLanguageModel {
                     "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
         }
 
-        this.apiKey = apiKey;
-        this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
-        this.isMultimodalModel = isMultimodalModel(modelName);
-
         ChatRequestParameters commonParameters;
         if (defaultRequestParameters != null) {
             commonParameters = defaultRequestParameters;
@@ -99,10 +95,14 @@ public class QwenChatModel implements ChatLanguageModel {
 
         Double temperatureParameter = isNull(temperature) ? null : temperature.doubleValue();
         Double frequencyPenaltyParameter = repetitionPenaltyToFrequencyPenalty(repetitionPenalty);
+        String modelNameParameter = getOrDefault(modelName, commonParameters.modelName());
 
+        this.apiKey = apiKey;
+        this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
+        this.isMultimodalModel = isMultimodalModel(modelNameParameter);
         this.defaultRequestParameters = QwenChatRequestParameters.builder()
                 // common parameters
-                .modelName(getOrDefault(modelName, commonParameters.modelName()))
+                .modelName(modelNameParameter)
                 .temperature(getOrDefault(temperatureParameter, commonParameters.temperature()))
                 .topP(getOrDefault(topP, commonParameters.topP()))
                 .topK(getOrDefault(topK, commonParameters.topK()))
