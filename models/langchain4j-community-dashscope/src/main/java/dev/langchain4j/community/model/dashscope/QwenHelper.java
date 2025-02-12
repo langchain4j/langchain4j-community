@@ -20,6 +20,7 @@ import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationOutput.Choice;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
+import com.alibaba.dashscope.aigc.generation.SearchInfo;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
@@ -569,6 +570,29 @@ class QwenHelper {
                 handler.onError(error);
             }
         };
+    }
+
+    static QwenChatResponseMetadata.SearchInfo convertSearchInfo(
+            com.alibaba.dashscope.aigc.generation.SearchInfo searchInfo) {
+        List<QwenChatResponseMetadata.SearchResult> searchResults = isNullOrEmpty(searchInfo.getSearchResults())
+                ? Collections.emptyList()
+                : searchInfo.getSearchResults().stream()
+                        .map(QwenHelper::convertSearchResult)
+                        .collect(toList());
+
+        return QwenChatResponseMetadata.SearchInfo.builder()
+                .searchResults(searchResults)
+                .build();
+    }
+
+    static QwenChatResponseMetadata.SearchResult convertSearchResult(SearchInfo.SearchResult searchResult) {
+        return QwenChatResponseMetadata.SearchResult.builder()
+                .siteName(searchResult.getSiteName())
+                .icon(searchResult.getIcon())
+                .index(searchResult.getIndex())
+                .title(searchResult.getTitle())
+                .url(searchResult.getUrl())
+                .build();
     }
 
     static void validateGenerationParameters(QwenChatRequestParameters parameters) {

@@ -1,6 +1,7 @@
 package dev.langchain4j.community.model.dashscope;
 
 import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.convertSearchInfo;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.isFunctionToolCalls;
@@ -157,7 +158,7 @@ public class QwenStreamingResponseBuilder {
                             .modelName(modelName)
                             .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
                             .finishReason(finishReason)
-                            .searchInfo(searchInfo)
+                            .searchInfo(convertSearchInfo(searchInfo))
                             .build())
                     .build();
         }
@@ -170,7 +171,7 @@ public class QwenStreamingResponseBuilder {
                             .modelName(modelName)
                             .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
                             .finishReason(finishReason)
-                            .searchInfo(searchInfo)
+                            .searchInfo(convertSearchInfo(searchInfo))
                             .build())
                     .build();
         }

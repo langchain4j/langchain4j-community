@@ -3,6 +3,7 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.aiMessageFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.convertResponse;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.convertSearchInfo;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
@@ -176,7 +177,7 @@ public class QwenChatModel implements ChatLanguageModel {
                             .modelName(param.getModel())
                             .tokenUsage(tokenUsageFrom(result))
                             .finishReason(finishReasonFrom(result))
-                            .searchInfo(result.getOutput().getSearchInfo())
+                            .searchInfo(convertSearchInfo(result.getOutput().getSearchInfo()))
                             .build())
                     .build();
         } catch (NoApiKeyException | InputRequiredException e) {

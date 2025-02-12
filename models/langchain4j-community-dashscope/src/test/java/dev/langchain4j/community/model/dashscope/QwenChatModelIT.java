@@ -386,7 +386,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
         QwenChatResponseMetadata metadata = (QwenChatResponseMetadata) chatResponse.metadata();
         assertThat(metadata.searchInfo()).isNotNull();
-        assertThat(metadata.searchInfo().getSearchResults()).isNotEmpty();
+        assertThat(metadata.searchInfo().searchResults()).isNotEmpty();
     }
 
     @ParameterizedTest
