@@ -1,11 +1,11 @@
 package dev.langchain4j.community.store.embedding.vearch;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
@@ -13,15 +13,13 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 public class ListSpaceResponse {
 
     private Integer id;
-    private String name;
+    private String spaceName;
 
-    ListSpaceResponse() {
+    ListSpaceResponse() {}
 
-    }
-
-    ListSpaceResponse(Integer id, String name) {
+    ListSpaceResponse(Integer id, String spaceName) {
         this.id = id;
-        this.name = name;
+        this.spaceName = spaceName;
     }
 
     public Integer getId() {
@@ -32,11 +30,11 @@ public class ListSpaceResponse {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public String getSpaceName() {
+        return spaceName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setSpaceName(String spaceName) {
+        this.spaceName = spaceName;
     }
 }
