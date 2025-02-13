@@ -166,19 +166,12 @@ public class ZhipuAssistantClient {
                     AiMessage aiMessage = AiMessage.from(contentBuilder.toString());
                     Response<AiMessage> response = Response.from(aiMessage, tokenUsage, finishReason);
                     handler.onComplete(response);
-                } else if ("errorhandler".equalsIgnoreCase(type)) {
+                } else if ("errorhandle".equalsIgnoreCase(type) || "errorhandler".equalsIgnoreCase(type)) {
                     try {
                         completion = OBJECT_MAPPER.readValue(data, AssistantCompletion.class);
                         Usage usageInfo = completion.getUsage();
                         if (usageInfo != null) {
                             this.tokenUsage = tokenUsageFrom(usageInfo);
-                        }
-                        AssistantExtraInput extraInput = completion.getExtraInput();
-                        if (extraInput.getBlockData() != null
-                                && extraInput.getBlockData().getErrorMsg() != null) {
-                            log.error(
-                                    "onEvent(): errorhandler | blackData-ErrorMsg: {}",
-                                    extraInput.getBlockData().getErrorMsg());
                         }
                         AiMessage aiMessage = AiMessage.from(completion.getMsg());
                         Response<AiMessage> response = Response.from(aiMessage, this.tokenUsage, FinishReason.OTHER);
@@ -199,7 +192,7 @@ public class ZhipuAssistantClient {
                             final AssistantNodeData nodeData = extraInput.getNodeData();
                             if (nodeData != null) {
                                 if ("finished".equals(nodeData.getNodeStatus())) {
-                                    this.finishReason = FinishReason.LENGTH;
+                                    this.finishReason = FinishReason.STOP;
                                 } else if ("sensitive".equals(nodeData.getNodeStatus())) {
                                     this.finishReason = FinishReason.CONTENT_FILTER;
                                 }
