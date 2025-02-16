@@ -778,7 +778,7 @@ class QwenHelper {
         translationOptionsMap.put("source_lang", translationOptions.sourceLang());
         translationOptionsMap.put("target_lang", translationOptions.targetLang());
         translationOptionsMap.put("terms", toTermList(translationOptions.terms()));
-        translationOptionsMap.put("tm_list", toTermList(translationOptions.tmLists()));
+        translationOptionsMap.put("tm_list", toTermList(translationOptions.tmList()));
         translationOptionsMap.put("domains", translationOptions.domains());
         return translationOptionsMap;
     }

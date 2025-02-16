@@ -1,14 +1,15 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.quoted;
-
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.quoted;
 
 /**
  * Parameter details are available <a href="https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api#2ed5ee7377fum">here</a>.
@@ -225,7 +226,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
             String sourceLang,
             String targetLang,
             List<TranslationOptionTerm> terms,
-            List<TranslationOptionTerm> tmLists,
+            List<TranslationOptionTerm> tmList,
             String domains) {
         public static Builder builder() {
             return new Builder();
