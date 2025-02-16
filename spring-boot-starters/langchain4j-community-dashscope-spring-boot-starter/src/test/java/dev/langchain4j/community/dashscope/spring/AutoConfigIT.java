@@ -1,5 +1,8 @@
 package dev.langchain4j.community.dashscope.spring;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenChatRequestParameters;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
@@ -17,15 +20,11 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
-import java.util.concurrent.CompletableFuture;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 public class AutoConfigIT {
@@ -161,7 +160,7 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.chat-model.parameters.max-output-tokens=120",
                         "langchain4j.community.dashscope.chat-model.parameters.model-name=" + CHAT_MODEL,
                         "langchain4j.community.dashscope.chat-model.parameters.tool-choice=AUTO",
-                        "langchain4j.community.dashscope.chat-model.parameters.response-format=TEXT" ,
+                        "langchain4j.community.dashscope.chat-model.parameters.response-format=TEXT",
                         "langchain4j.community.dashscope.chat-model.parameters.seed=42",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.enable-source=true",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.enable-citation=true",
@@ -175,15 +174,16 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.terms[0].target=内存",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.tm-list[0].source=memory",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.tm-list[0].target=内存",
-                        "langchain4j.community.dashscope.chat-model.parameters.vl-high-resolution-images=false"
-                )
+                        "langchain4j.community.dashscope.chat-model.parameters.vl-high-resolution-images=false")
                 .run(context -> {
                     ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
                     assertThat(chatLanguageModel).isInstanceOf(QwenChatModel.class);
                     assertThat(chatLanguageModel.defaultRequestParameters()).isNotNull();
-                    assertThat(chatLanguageModel.defaultRequestParameters()).isInstanceOf(QwenChatRequestParameters.class);
+                    assertThat(chatLanguageModel.defaultRequestParameters())
+                            .isInstanceOf(QwenChatRequestParameters.class);
 
-                    QwenChatRequestParameters defaultParameters = (QwenChatRequestParameters) chatLanguageModel.defaultRequestParameters();
+                    QwenChatRequestParameters defaultParameters =
+                            (QwenChatRequestParameters) chatLanguageModel.defaultRequestParameters();
                     assertThat(defaultParameters.enableSearch()).isTrue();
                     assertThat(defaultParameters.topK()).isEqualTo(50);
                     assertThat(defaultParameters.temperature()).isEqualTo(0.7);
@@ -194,17 +194,43 @@ public class AutoConfigIT {
                     assertThat(defaultParameters.responseFormat()).isEqualTo(ResponseFormat.TEXT);
                     assertThat(defaultParameters.seed()).isEqualTo(42);
                     assertThat(defaultParameters.searchOptions().enableSource()).isTrue();
-                    assertThat(defaultParameters.searchOptions().enableCitation()).isTrue();
-                    assertThat(defaultParameters.searchOptions().citationFormat()).isEqualTo("[<number>]");
+                    assertThat(defaultParameters.searchOptions().enableCitation())
+                            .isTrue();
+                    assertThat(defaultParameters.searchOptions().citationFormat())
+                            .isEqualTo("[<number>]");
                     assertThat(defaultParameters.searchOptions().forcedSearch()).isFalse();
-                    assertThat(defaultParameters.searchOptions().searchStrategy()).isEqualTo("standard");
-                    assertThat(defaultParameters.translationOptions().sourceLang()).isEqualTo("English");
-                    assertThat(defaultParameters.translationOptions().targetLang()).isEqualTo("Chinese");
-                    assertThat(defaultParameters.translationOptions().domains()).isEqualTo("The sentence is from Ali Cloud IT domain.");
-                    assertThat(defaultParameters.translationOptions().terms().get(0).source()).isEqualTo("memory");
-                    assertThat(defaultParameters.translationOptions().terms().get(0).target()).isEqualTo("内存");
-                    assertThat(defaultParameters.translationOptions().tmList().get(0).source()).isEqualTo("memory");
-                    assertThat(defaultParameters.translationOptions().tmList().get(0).target()).isEqualTo("内存");
+                    assertThat(defaultParameters.searchOptions().searchStrategy())
+                            .isEqualTo("standard");
+                    assertThat(defaultParameters.translationOptions().sourceLang())
+                            .isEqualTo("English");
+                    assertThat(defaultParameters.translationOptions().targetLang())
+                            .isEqualTo("Chinese");
+                    assertThat(defaultParameters.translationOptions().domains())
+                            .isEqualTo("The sentence is from Ali Cloud IT domain.");
+                    assertThat(defaultParameters
+                                    .translationOptions()
+                                    .terms()
+                                    .get(0)
+                                    .source())
+                            .isEqualTo("memory");
+                    assertThat(defaultParameters
+                                    .translationOptions()
+                                    .terms()
+                                    .get(0)
+                                    .target())
+                            .isEqualTo("内存");
+                    assertThat(defaultParameters
+                                    .translationOptions()
+                                    .tmList()
+                                    .get(0)
+                                    .source())
+                            .isEqualTo("memory");
+                    assertThat(defaultParameters
+                                    .translationOptions()
+                                    .tmList()
+                                    .get(0)
+                                    .target())
+                            .isEqualTo("内存");
                     assertThat(defaultParameters.vlHighResolutionImages()).isFalse();
 
                     assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatLanguageModel);
@@ -224,7 +250,7 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.max-output-tokens=120",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.model-name=" + CHAT_MODEL,
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.tool-choice=AUTO",
-                        "langchain4j.community.dashscope.streaming-chat-model.parameters.response-format=TEXT" ,
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.response-format=TEXT",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.seed=42",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.enable-source=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.enable-citation=true",
@@ -238,15 +264,18 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.terms[0].target=内存",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.tm-list[0].source=memory",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.tm-list[0].target=内存",
-                        "langchain4j.community.dashscope.streaming-chat-model.parameters.vl-high-resolution-images=false"
-                )
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.vl-high-resolution-images=false")
                 .run(context -> {
-                    StreamingChatLanguageModel streamingChatLanguageModel = context.getBean(StreamingChatLanguageModel.class);
+                    StreamingChatLanguageModel streamingChatLanguageModel =
+                            context.getBean(StreamingChatLanguageModel.class);
                     assertThat(streamingChatLanguageModel).isInstanceOf(QwenStreamingChatModel.class);
-                    assertThat(streamingChatLanguageModel.defaultRequestParameters()).isNotNull();
-                    assertThat(streamingChatLanguageModel.defaultRequestParameters()).isInstanceOf(QwenChatRequestParameters.class);
+                    assertThat(streamingChatLanguageModel.defaultRequestParameters())
+                            .isNotNull();
+                    assertThat(streamingChatLanguageModel.defaultRequestParameters())
+                            .isInstanceOf(QwenChatRequestParameters.class);
 
-                    QwenChatRequestParameters defaultParameters = (QwenChatRequestParameters) streamingChatLanguageModel.defaultRequestParameters();
+                    QwenChatRequestParameters defaultParameters =
+                            (QwenChatRequestParameters) streamingChatLanguageModel.defaultRequestParameters();
                     assertThat(defaultParameters.enableSearch()).isTrue();
                     assertThat(defaultParameters.topK()).isEqualTo(50);
                     assertThat(defaultParameters.temperature()).isEqualTo(0.7);
@@ -257,17 +286,43 @@ public class AutoConfigIT {
                     assertThat(defaultParameters.responseFormat()).isEqualTo(ResponseFormat.TEXT);
                     assertThat(defaultParameters.seed()).isEqualTo(42);
                     assertThat(defaultParameters.searchOptions().enableSource()).isTrue();
-                    assertThat(defaultParameters.searchOptions().enableCitation()).isTrue();
-                    assertThat(defaultParameters.searchOptions().citationFormat()).isEqualTo("[<number>]");
+                    assertThat(defaultParameters.searchOptions().enableCitation())
+                            .isTrue();
+                    assertThat(defaultParameters.searchOptions().citationFormat())
+                            .isEqualTo("[<number>]");
                     assertThat(defaultParameters.searchOptions().forcedSearch()).isFalse();
-                    assertThat(defaultParameters.searchOptions().searchStrategy()).isEqualTo("standard");
-                    assertThat(defaultParameters.translationOptions().sourceLang()).isEqualTo("English");
-                    assertThat(defaultParameters.translationOptions().targetLang()).isEqualTo("Chinese");
-                    assertThat(defaultParameters.translationOptions().domains()).isEqualTo("The sentence is from Ali Cloud IT domain.");
-                    assertThat(defaultParameters.translationOptions().terms().get(0).source()).isEqualTo("memory");
-                    assertThat(defaultParameters.translationOptions().terms().get(0).target()).isEqualTo("内存");
-                    assertThat(defaultParameters.translationOptions().tmList().get(0).source()).isEqualTo("memory");
-                    assertThat(defaultParameters.translationOptions().tmList().get(0).target()).isEqualTo("内存");
+                    assertThat(defaultParameters.searchOptions().searchStrategy())
+                            .isEqualTo("standard");
+                    assertThat(defaultParameters.translationOptions().sourceLang())
+                            .isEqualTo("English");
+                    assertThat(defaultParameters.translationOptions().targetLang())
+                            .isEqualTo("Chinese");
+                    assertThat(defaultParameters.translationOptions().domains())
+                            .isEqualTo("The sentence is from Ali Cloud IT domain.");
+                    assertThat(defaultParameters
+                                    .translationOptions()
+                                    .terms()
+                                    .get(0)
+                                    .source())
+                            .isEqualTo("memory");
+                    assertThat(defaultParameters
+                                    .translationOptions()
+                                    .terms()
+                                    .get(0)
+                                    .target())
+                            .isEqualTo("内存");
+                    assertThat(defaultParameters
+                                    .translationOptions()
+                                    .tmList()
+                                    .get(0)
+                                    .source())
+                            .isEqualTo("memory");
+                    assertThat(defaultParameters
+                                    .translationOptions()
+                                    .tmList()
+                                    .get(0)
+                                    .target())
+                            .isEqualTo("内存");
                     assertThat(defaultParameters.vlHighResolutionImages()).isFalse();
 
                     assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatLanguageModel);
