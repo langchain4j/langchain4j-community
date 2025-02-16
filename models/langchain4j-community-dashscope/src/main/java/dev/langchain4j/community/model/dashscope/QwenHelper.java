@@ -602,6 +602,11 @@ class QwenHelper {
             throw new UnsupportedFeatureException(
                     "'vlHighResolutionImages' parameter is not supported by " + parameters.modelName());
         }
+
+        if (parameters.responseFormat() != null && parameters.responseFormat().jsonSchema() != null) {
+            throw new UnsupportedFeatureException(
+                    "JSON response format is not supported by " + parameters.modelName());
+        }
     }
 
     static void validateMultimodalConversationParameters(QwenChatRequestParameters parameters) {
