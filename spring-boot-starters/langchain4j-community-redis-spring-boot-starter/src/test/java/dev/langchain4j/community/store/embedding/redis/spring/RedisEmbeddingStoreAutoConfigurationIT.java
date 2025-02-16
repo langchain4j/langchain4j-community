@@ -47,15 +47,15 @@ class RedisEmbeddingStoreAutoConfigurationIT extends EmbeddingStoreAutoConfigura
     @Override
     protected String[] properties() {
         return new String[] {
-            "langchain4j.redis.host=" + redis.getHost(),
-            "langchain4j.redis.port=" + redis.getFirstMappedPort(),
-            "langchain4j.redis.prefix=" + indexName + ":",
-            "langchain4j.redis.index-name=" + indexName
+            "langchain4j.community.redis.host=" + redis.getHost(),
+            "langchain4j.community.redis.port=" + redis.getFirstMappedPort(),
+            "langchain4j.community.redis.prefix=" + indexName + ":",
+            "langchain4j.community.redis.index-name=" + indexName
         };
     }
 
     @Override
     protected String dimensionPropertyKey() {
-        return "langchain4j.redis.dimension";
+        return "langchain4j.community.redis.dimension";
     }
 }
