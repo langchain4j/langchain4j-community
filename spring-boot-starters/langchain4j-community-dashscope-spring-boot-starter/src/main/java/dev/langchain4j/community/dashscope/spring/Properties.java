@@ -26,51 +26,51 @@ public class Properties {
     @NestedConfigurationProperty
     TokenizerProperties tokenizer;
 
-    public ChatModelProperties getChatModel() {
+    ChatModelProperties getChatModel() {
         return chatModel;
     }
 
-    public void setChatModel(ChatModelProperties chatModel) {
+    void setChatModel(ChatModelProperties chatModel) {
         this.chatModel = chatModel;
     }
 
-    public ChatModelProperties getStreamingChatModel() {
+    ChatModelProperties getStreamingChatModel() {
         return streamingChatModel;
     }
 
-    public void setStreamingChatModel(ChatModelProperties streamingChatModel) {
+    void setStreamingChatModel(ChatModelProperties streamingChatModel) {
         this.streamingChatModel = streamingChatModel;
     }
 
-    public LanguageModelProperties getLanguageModel() {
+    LanguageModelProperties getLanguageModel() {
         return languageModel;
     }
 
-    public void setLanguageModel(LanguageModelProperties languageModel) {
+    void setLanguageModel(LanguageModelProperties languageModel) {
         this.languageModel = languageModel;
     }
 
-    public LanguageModelProperties getStreamingLanguageModel() {
+    LanguageModelProperties getStreamingLanguageModel() {
         return streamingLanguageModel;
     }
 
-    public void setStreamingLanguageModel(LanguageModelProperties streamingLanguageModel) {
+    void setStreamingLanguageModel(LanguageModelProperties streamingLanguageModel) {
         this.streamingLanguageModel = streamingLanguageModel;
     }
 
-    public EmbeddingModelProperties getEmbeddingModel() {
+    EmbeddingModelProperties getEmbeddingModel() {
         return embeddingModel;
     }
 
-    public void setEmbeddingModel(EmbeddingModelProperties embeddingModel) {
+    void setEmbeddingModel(EmbeddingModelProperties embeddingModel) {
         this.embeddingModel = embeddingModel;
     }
 
-    public TokenizerProperties getTokenizer() {
+    TokenizerProperties getTokenizer() {
         return tokenizer;
     }
 
-    public void setTokenizer(TokenizerProperties tokenizer) {
+    void setTokenizer(TokenizerProperties tokenizer) {
         this.tokenizer = tokenizer;
     }
 }
