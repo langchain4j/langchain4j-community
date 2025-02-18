@@ -1,4 +1,4 @@
-package dev.langchain4j.community.store.ememory.chat.redis;
+package dev.langchain4j.community.store.memory.chat.redis;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
