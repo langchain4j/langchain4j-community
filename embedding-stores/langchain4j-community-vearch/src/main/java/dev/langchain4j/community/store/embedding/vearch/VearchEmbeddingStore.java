@@ -199,7 +199,7 @@ public class VearchEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private boolean isSpaceExist(String databaseName, String spaceName) {
         List<ListSpaceResponse> spaces = vearchClient.listSpaceOfDatabase(databaseName);
-        return spaces.stream().anyMatch(space -> spaceName.equals(space.getName()));
+        return spaces.stream().anyMatch(space -> spaceName.equals(space.getSpaceName()));
     }
 
     private void createSpace() {

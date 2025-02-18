@@ -427,9 +427,13 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
          * @see #metadataConfig(Map)
          */
         public Builder metadataKeys(Collection<String> metadataKeys) {
-            metadataKeys.forEach(metadataKey -> metadataConfig.put(
-                    metadataKey,
-                    TextField.of(JSON_PATH_PREFIX + metadataKey).as(metadataKey).weight(1.0)));
+            if (!isNullOrEmpty(metadataKeys)) {
+                metadataKeys.forEach(metadataKey -> metadataConfig.put(
+                        metadataKey,
+                        TextField.of(JSON_PATH_PREFIX + metadataKey)
+                                .as(metadataKey)
+                                .weight(1.0)));
+            }
             return this;
         }
 
