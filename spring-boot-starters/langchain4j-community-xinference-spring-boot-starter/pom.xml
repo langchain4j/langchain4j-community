@@ -20,6 +20,10 @@
         </license>
     </licenses>
 
+    <properties>
+        <skipXinferenceITs>false</skipXinferenceITs>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.langchain4j</groupId>
