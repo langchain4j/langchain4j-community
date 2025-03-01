@@ -13,6 +13,7 @@ import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultim
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
+import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
@@ -26,11 +27,13 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
 import dev.langchain4j.model.chat.TestStreamingResponseHandler;
 import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
@@ -50,12 +53,12 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(chatMessages(), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(ChatRequest.builder().messages(chatMessages()).build(), handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).containsIgnoringCase("rain");
-        assertThat(response.content().text()).endsWith("That's all!");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("rain");
+        assertThat(response.aiMessage().text()).endsWith("That's all!");
     }
 
     @ParameterizedTest
@@ -68,12 +71,12 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rain"));
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(chatMessages(), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(ChatRequest.builder().messages(chatMessages()).build(), handler);
+        ChatResponse response = handler.get();
 
-        // it should generate "rain" but is stopped
-        assertThat(response.content().text()).doesNotContain("rain");
+        // it should chat "rain" but is stopped
+        assertThat(response.aiMessage().text()).doesNotContain("rain");
     }
 
     @ParameterizedTest
@@ -92,26 +95,36 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         UserMessage userMessage = UserMessage.from("What time is it?");
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(singletonList(userMessage), singletonList(noArgToolSpec), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(userMessage)
+                        .toolSpecifications(noArgToolSpec)
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).isNull();
-        assertThat(response.content().toolExecutionRequests()).hasSize(1);
+        assertThat(response.aiMessage().text()).isNull();
+        assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
-                response.content().toolExecutionRequests().get(0);
+                response.aiMessage().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).isEqualTo("{}");
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
 
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "10 o'clock");
-        List<ChatMessage> messages = asList(userMessage, response.content(), toolExecutionResultMessage);
+        List<ChatMessage> messages = asList(userMessage, response.aiMessage(), toolExecutionResultMessage);
 
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
-        model.generate(messages, singletonList(noArgToolSpec), secondHandler);
-        Response<AiMessage> secondResponse = secondHandler.get();
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(messages)
+                        .toolSpecifications(noArgToolSpec)
+                        .build(),
+                secondHandler);
+        ChatResponse secondResponse = secondHandler.get();
 
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("10");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -141,26 +154,36 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         UserMessage userMessage = UserMessage.from("Weather in Beijing?");
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(singletonList(userMessage), singletonList(hasArgToolSpec), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(userMessage)
+                        .toolSpecifications(hasArgToolSpec)
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).isNull();
-        assertThat(response.content().toolExecutionRequests()).hasSize(1);
+        assertThat(response.aiMessage().text()).isNull();
+        assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
-                response.content().toolExecutionRequests().get(0);
+                response.aiMessage().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).contains("Beijing");
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
 
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "rainy");
-        List<ChatMessage> messages = asList(userMessage, response.content(), toolExecutionResultMessage);
+        List<ChatMessage> messages = asList(userMessage, response.aiMessage(), toolExecutionResultMessage);
 
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
-        model.generate(messages, singletonList(hasArgToolSpec), secondHandler);
-        Response<AiMessage> secondResponse = secondHandler.get();
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(messages)
+                        .toolSpecifications(hasArgToolSpec)
+                        .build(),
+                secondHandler);
+        ChatResponse secondResponse = secondHandler.get();
 
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("rain");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -191,14 +214,22 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         // not related to tools
         UserMessage userMessage = UserMessage.from("How many students in the classroom?");
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(singletonList(userMessage), mustBeExecutedTool, handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(userMessage)
+                        .parameters(QwenChatRequestParameters.builder()
+                                .toolSpecifications(mustBeExecutedTool)
+                                .toolChoice(REQUIRED)
+                                .build())
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).isNull();
-        assertThat(response.content().toolExecutionRequests()).hasSize(1);
+        assertThat(response.aiMessage().text()).isNull();
+        assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
-                response.content().toolExecutionRequests().get(0);
+                response.aiMessage().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).hasSizeGreaterThan(0);
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
@@ -224,11 +255,16 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         UserMessage userMessage = userMessage("2+2=?");
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(singletonList(userMessage), calculator, handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(userMessage)
+                        .toolSpecifications(calculator)
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
 
-        AiMessage aiMessage = response.content();
+        AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
@@ -248,11 +284,16 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "4");
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
-        model.generate(messages, singletonList(calculator), secondHandler);
-        Response<AiMessage> secondResponse = secondHandler.get();
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(messages)
+                        .toolSpecifications(calculator)
+                        .build(),
+                secondHandler);
+        ChatResponse secondResponse = secondHandler.get();
 
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("4");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -271,11 +312,15 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(multimodalChatMessagesWithImageUrl(), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(multimodalChatMessagesWithImageUrl())
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).containsIgnoringCase("dog");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("dog");
     }
 
     @ParameterizedTest
@@ -285,11 +330,15 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(multimodalChatMessagesWithImageData(), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(multimodalChatMessagesWithImageData())
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).containsIgnoringCase("parrot");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
     @ParameterizedTest
@@ -299,11 +348,15 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(multimodalChatMessagesWithAudioUrl(), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(multimodalChatMessagesWithAudioUrl())
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).containsIgnoringCase("阿里云");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
     @ParameterizedTest
@@ -313,11 +366,15 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(multimodalChatMessagesWithAudioData(), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(multimodalChatMessagesWithAudioData())
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).containsIgnoringCase("阿里云");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
     @ParameterizedTest

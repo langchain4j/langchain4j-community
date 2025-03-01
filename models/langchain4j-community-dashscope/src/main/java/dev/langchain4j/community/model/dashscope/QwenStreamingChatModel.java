@@ -1,6 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
@@ -12,7 +11,6 @@ import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.quoted;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
@@ -28,10 +26,7 @@ import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.exception.UploadFileException;
 import com.alibaba.dashscope.protocol.Protocol;
-import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.dashscope.spi.QwenStreamingChatModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
@@ -133,41 +128,6 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
             this.conv = isMultimodalModel ? new MultiModalConversation(Protocol.HTTP.getValue(), baseUrl) : null;
             this.generation = isMultimodalModel ? null : new Generation(Protocol.HTTP.getValue(), baseUrl);
         }
-    }
-
-    @Override
-    public void generate(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
-        ChatRequest chatRequest = ChatRequest.builder().messages(messages).build();
-        chat(chatRequest, convertHandler(handler));
-    }
-
-    @Override
-    public void generate(
-            List<ChatMessage> messages,
-            List<ToolSpecification> toolSpecifications,
-            StreamingResponseHandler<AiMessage> handler) {
-        ChatRequest chatRequest = ChatRequest.builder()
-                .messages(messages)
-                .parameters(ChatRequestParameters.builder()
-                        .toolSpecifications(toolSpecifications)
-                        .build())
-                .build();
-        chat(chatRequest, convertHandler(handler));
-    }
-
-    @Override
-    public void generate(
-            List<ChatMessage> messages,
-            ToolSpecification toolSpecification,
-            StreamingResponseHandler<AiMessage> handler) {
-        ChatRequest chatRequest = ChatRequest.builder()
-                .messages(messages)
-                .parameters(ChatRequestParameters.builder()
-                        .toolSpecifications(toolSpecification)
-                        .toolChoice(REQUIRED)
-                        .build())
-                .build();
-        chat(chatRequest, convertHandler(handler));
     }
 
     private void generateByNonMultimodalModel(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
