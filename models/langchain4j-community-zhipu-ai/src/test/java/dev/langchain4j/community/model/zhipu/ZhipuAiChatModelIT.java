@@ -1,5 +1,15 @@
 package dev.langchain4j.community.model.zhipu;
 
+import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
+import static dev.langchain4j.data.message.UserMessage.userMessage;
+import static dev.langchain4j.model.output.FinishReason.OTHER;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
@@ -13,16 +23,12 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequest;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponse;
 import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,16 +37,8 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
-import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static dev.langchain4j.model.output.FinishReason.OTHER;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
 class ZhipuAiChatModelIT {
@@ -67,16 +65,16 @@ class ZhipuAiChatModelIT {
             .build();
 
     @Test
-    void should_generate_answer_and_return_token_usage_and_finish_reason_stop() {
+    void should_chat_answer_and_return_token_usage_and_finish_reason_stop() {
 
         // given
         UserMessage userMessage = userMessage("中国首都在哪里");
 
         // when
-        Response<AiMessage> response = chatModel.generate(userMessage);
+        ChatResponse response = chatModel.chat(userMessage);
 
         // then
-        assertThat(response.content().text()).contains("北京");
+        assertThat(response.aiMessage().text()).contains("北京");
 
         assertThat(response.finishReason()).isEqualTo(STOP);
     }
@@ -97,9 +95,9 @@ class ZhipuAiChatModelIT {
         UserMessage userMessage = userMessage("this message will fail");
 
         // when
-        Response<AiMessage> response = model.generate(userMessage);
+        ChatResponse response = model.chat(userMessage);
 
-        assertThat(response.content().text()).isEqualTo("Authorization Token非法，请确认Authorization Token正确传递。");
+        assertThat(response.aiMessage().text()).isEqualTo("Authorization Token非法，请确认Authorization Token正确传递。");
 
         assertThat(response.finishReason()).isEqualTo(OTHER);
     }
@@ -112,14 +110,18 @@ class ZhipuAiChatModelIT {
         List<ToolSpecification> toolSpecifications = singletonList(calculator);
 
         // when
-        Response<AiMessage> response = chatModel.generate(singletonList(userMessage), toolSpecifications);
+        ChatResponse response = chatModel.chat(ChatRequest.builder()
+                .messages(singletonList(userMessage))
+                .toolSpecifications(toolSpecifications)
+                .build());
 
         // then
-        AiMessage aiMessage = response.content();
+        AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo("calculator");
         assertThat(toolExecutionRequest.arguments()).isEqualToIgnoringWhitespace("{\"first\": 2, \"second\": 2}");
 
@@ -134,10 +136,10 @@ class ZhipuAiChatModelIT {
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
-        Response<AiMessage> secondResponse = chatModel.generate(messages);
+        ChatResponse secondResponse = chatModel.chat(messages);
 
         // then
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("4");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -147,7 +149,6 @@ class ZhipuAiChatModelIT {
 
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
-
 
     ToolSpecification currentTime = ToolSpecification.builder()
             .name("currentTime")
@@ -161,14 +162,18 @@ class ZhipuAiChatModelIT {
         List<ToolSpecification> toolSpecifications = singletonList(currentTime);
 
         // when
-        Response<AiMessage> response = chatModel.generate(singletonList(userMessage), toolSpecifications);
+        ChatResponse response = chatModel.chat(ChatRequest.builder()
+                .messages(singletonList(userMessage))
+                .toolSpecifications(toolSpecifications)
+                .build());
 
         // then
-        AiMessage aiMessage = response.content();
+        AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo("currentTime");
 
         TokenUsage tokenUsage = response.tokenUsage();
@@ -182,10 +187,10 @@ class ZhipuAiChatModelIT {
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
-        Response<AiMessage> secondResponse = chatModel.generate(messages);
+        ChatResponse secondResponse = chatModel.chat(messages);
 
         // then
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).containsAnyOf("12:00:20", "2024");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -196,26 +201,25 @@ class ZhipuAiChatModelIT {
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
 
-
     @Test
     void should_listen_request_and_response() {
 
         // given
-        AtomicReference<ChatModelRequest> requestReference = new AtomicReference<>();
-        AtomicReference<ChatModelResponse> responseReference = new AtomicReference<>();
+        AtomicReference<ChatRequest> requestReference = new AtomicReference<>();
+        AtomicReference<ChatResponse> responseReference = new AtomicReference<>();
 
         ChatModelListener listener = new ChatModelListener() {
 
             @Override
             public void onRequest(ChatModelRequestContext requestContext) {
-                requestReference.set(requestContext.request());
+                requestReference.set(requestContext.chatRequest());
                 requestContext.attributes().put("id", "12345");
             }
 
             @Override
             public void onResponse(ChatModelResponseContext responseContext) {
-                responseReference.set(responseContext.response());
-                assertThat(responseContext.request()).isSameAs(requestReference.get());
+                responseReference.set(responseContext.chatResponse());
+                assertThat(responseContext.chatRequest()).isSameAs(requestReference.get());
                 assertThat(responseContext.attributes()).containsEntry("id", "12345");
             }
 
@@ -255,22 +259,24 @@ class ZhipuAiChatModelIT {
                 .build();
 
         // when
-        AiMessage aiMessage = model.generate(singletonList(userMessage), singletonList(toolSpecification)).content();
+        AiMessage aiMessage = model.chat(ChatRequest.builder()
+                        .messages(singletonList(userMessage))
+                        .toolSpecifications(toolSpecification)
+                        .build())
+                .aiMessage();
 
         // then
-        ChatModelRequest request = requestReference.get();
-        assertThat(request.temperature()).isEqualTo(temperature);
-        assertThat(request.topP()).isEqualTo(topP);
-        assertThat(request.maxTokens()).isEqualTo(maxTokens);
+        ChatRequest request = requestReference.get();
+        assertThat(request.parameters().temperature()).isEqualTo(temperature);
+        assertThat(request.parameters().topP()).isEqualTo(topP);
+        assertThat(request.parameters().maxOutputTokens()).isEqualTo(maxTokens);
         assertThat(request.messages()).containsExactly(userMessage);
         assertThat(request.toolSpecifications()).containsExactly(toolSpecification);
 
-        ChatModelResponse response = responseReference.get();
-        assertThat(response.id()).isNotBlank();
-        assertThat(response.model()).isNotBlank();
-        assertThat(response.tokenUsage().inputTokenCount()).isGreaterThan(0);
-        assertThat(response.tokenUsage().outputTokenCount()).isGreaterThan(0);
-        assertThat(response.tokenUsage().totalTokenCount()).isGreaterThan(0);
+        ChatResponse response = responseReference.get();
+        assertThat(response.tokenUsage().inputTokenCount()).isPositive();
+        assertThat(response.tokenUsage().outputTokenCount()).isPositive();
+        assertThat(response.tokenUsage().totalTokenCount()).isPositive();
         assertThat(response.finishReason()).isNotNull();
         assertThat(response.aiMessage()).isEqualTo(aiMessage);
     }
@@ -278,14 +284,14 @@ class ZhipuAiChatModelIT {
     @Test
     void should_listen_error() {
 
-        AtomicReference<ChatModelRequest> requestReference = new AtomicReference<>();
+        AtomicReference<ChatRequest> requestReference = new AtomicReference<>();
         AtomicReference<Throwable> errorReference = new AtomicReference<>();
 
         ChatModelListener listener = new ChatModelListener() {
 
             @Override
             public void onRequest(ChatModelRequestContext requestContext) {
-                requestReference.set(requestContext.request());
+                requestReference.set(requestContext.chatRequest());
                 requestContext.attributes().put("id", "12345");
             }
 
@@ -297,8 +303,7 @@ class ZhipuAiChatModelIT {
             @Override
             public void onError(ChatModelErrorContext errorContext) {
                 errorReference.set(errorContext.error());
-                assertThat(errorContext.request()).isSameAs(requestReference.get());
-                assertThat(errorContext.partialResponse()).isNull();
+                assertThat(errorContext.chatRequest()).isSameAs(requestReference.get());
                 assertThat(errorContext.attributes()).containsEntry("id", "12345");
             }
         };
@@ -316,7 +321,7 @@ class ZhipuAiChatModelIT {
                 .build();
 
         String userMessage = "this message will fail";
-        model.generate(userMessage);
+        model.chat(userMessage);
 
         // then
         Throwable throwable = errorReference.get();
@@ -335,18 +340,17 @@ class ZhipuAiChatModelIT {
                 .readTimeout(Duration.ofSeconds(60))
                 .build();
 
-        Response<AiMessage> response = model.generate(multimodalChatMessagesWithImageData());
+        ChatResponse response = model.chat(multimodalChatMessagesWithImageData());
 
-        assertThat(response.content().text()).containsIgnoringCase("parrot");
-        assertThat(response.content().text()).endsWith("That's all!");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
+        assertThat(response.aiMessage().text()).endsWith("That's all!");
     }
 
     public static List<ChatMessage> multimodalChatMessagesWithImageData() {
-        Image image = Image.builder()
-                .base64Data(multimodalImageData())
-                .build();
+        Image image = Image.builder().base64Data(multimodalImageData()).build();
         ImageContent imageContent = ImageContent.from(image);
-        TextContent textContent = TextContent.from("What animal is in the picture? When you're done, end with \"That's all!\".");
+        TextContent textContent =
+                TextContent.from("What animal is in the picture? When you're done, end with \"That's all!\".");
         return Collections.singletonList(UserMessage.from(imageContent, textContent));
     }
 
