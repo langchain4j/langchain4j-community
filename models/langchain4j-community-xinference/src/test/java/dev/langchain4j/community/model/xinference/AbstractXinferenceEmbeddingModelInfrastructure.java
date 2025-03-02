@@ -1,6 +1,10 @@
 package dev.langchain4j.community.model.xinference;
 
-import static dev.langchain4j.community.model.xinference.XinferenceUtils.*;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.EMBEDDING_MODEL_NAME;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_API_KEY;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_BASE_URL;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_IMAGE;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.resolve;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 class AbstractXinferenceEmbeddingModelInfrastructure {

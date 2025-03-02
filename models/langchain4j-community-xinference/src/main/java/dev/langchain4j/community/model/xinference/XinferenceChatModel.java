@@ -2,13 +2,11 @@ package dev.langchain4j.community.model.xinference;
 
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.aiMessageFrom;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toToolChoice;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toTools;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toXinferenceMessages;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
@@ -19,18 +17,15 @@ import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionChoi
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.xinference.spi.XinferenceChatModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequest;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponse;
 import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.output.Response;
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
@@ -40,7 +35,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class XinferenceChatModel implements ChatLanguageModel {
+
     private static final Logger log = LoggerFactory.getLogger(XinferenceChatModel.class);
+
     private final XinferenceClient client;
     private final String modelName;
     private final Double temperature;
@@ -108,34 +105,10 @@ public class XinferenceChatModel implements ChatLanguageModel {
     }
 
     @Override
-    public Response<AiMessage> generate(List<ChatMessage> list) {
-        return generate(list, null, null);
-    }
-
-    @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
-        return generate(messages, toolSpecifications, null);
-    }
-
-    @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
-        return generate(messages, null, toolSpecification);
-    }
-
-    @Override
-    public ChatResponse chat(ChatRequest request) {
-        Response<AiMessage> response = generate(request.messages(), request.toolSpecifications(), null);
-        return ChatResponse.builder()
-                .aiMessage(response.content())
-                .tokenUsage(response.tokenUsage())
-                .finishReason(response.finishReason())
-                .build();
-    }
-
-    private Response<AiMessage> generate(
-            List<ChatMessage> messages,
-            List<ToolSpecification> toolSpecifications,
-            ToolSpecification toolThatMustBeExecuted) {
+    public ChatResponse doChat(ChatRequest request) {
+        List<ChatMessage> messages = request.messages();
+        ChatRequestParameters parameters = request.parameters();
+        List<ToolSpecification> toolSpecifications = parameters.toolSpecifications();
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
                 .model(modelName)
                 .messages(toXinferenceMessages(messages))
@@ -152,28 +125,15 @@ public class XinferenceChatModel implements ChatLanguageModel {
 
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.tools(toTools(toolSpecifications));
-        }
-
-        if (toolThatMustBeExecuted != null) {
-            if (isNullOrEmpty(toolSpecifications)) {
-                builder.tools(toTools(List.of(toolThatMustBeExecuted)));
+            if (parameters.toolChoice() != null) {
+                builder.toolChoice(parameters.toolChoice());
             }
-
-            builder.toolChoice(toToolChoice(toolThatMustBeExecuted));
         }
 
-        ChatCompletionRequest request = builder.build();
+        ChatCompletionRequest xinferenceRequest = builder.build();
 
-        ChatModelRequest modelListenerRequest = ChatModelRequest.builder()
-                .model(request.getModel())
-                .temperature(request.getTemperature())
-                .topP(request.getTopP())
-                .maxTokens(request.getMaxTokens())
-                .messages(messages)
-                .toolSpecifications(toolSpecifications)
-                .build();
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(modelListenerRequest, attributes);
+        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, attributes);
         listeners.forEach(listener -> {
             try {
                 listener.onRequest(requestContext);
@@ -184,25 +144,17 @@ public class XinferenceChatModel implements ChatLanguageModel {
 
         try {
             ChatCompletionResponse chatCompletionResponse =
-                    withRetry(() -> client.chatCompletions(request).execute(), maxRetries);
+                    withRetry(() -> client.chatCompletions(xinferenceRequest).execute(), maxRetries);
 
             ChatCompletionChoice completionChoice =
                     chatCompletionResponse.getChoices().get(0);
-            Response<AiMessage> response = Response.from(
-                    aiMessageFrom(completionChoice.getMessage()),
-                    tokenUsageFrom(chatCompletionResponse.getUsage()),
-                    finishReasonFrom(completionChoice.getFinishReason()));
-
-            ChatModelResponse modelListenerResponse = ChatModelResponse.builder()
-                    .id(chatCompletionResponse.getId())
-                    .model(chatCompletionResponse.getModel())
-                    .tokenUsage(response.tokenUsage())
-                    .finishReason(response.finishReason())
-                    .aiMessage(response.content())
+            ChatResponse response = ChatResponse.builder()
+                    .aiMessage(aiMessageFrom(completionChoice.getMessage()))
+                    .tokenUsage(tokenUsageFrom(chatCompletionResponse.getUsage()))
+                    .finishReason(finishReasonFrom(completionChoice.getFinishReason()))
                     .build();
 
-            ChatModelResponseContext responseContext =
-                    new ChatModelResponseContext(modelListenerResponse, modelListenerRequest, attributes);
+            ChatModelResponseContext responseContext = new ChatModelResponseContext(response, request, attributes);
             listeners.forEach(listener -> {
                 try {
                     listener.onResponse(responseContext);
@@ -219,8 +171,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
             } else {
                 error = e;
             }
-            ChatModelErrorContext errorContext =
-                    new ChatModelErrorContext(error, modelListenerRequest, null, attributes);
+            ChatModelErrorContext errorContext = new ChatModelErrorContext(error, request, attributes);
 
             listeners.forEach(listener -> {
                 try {
