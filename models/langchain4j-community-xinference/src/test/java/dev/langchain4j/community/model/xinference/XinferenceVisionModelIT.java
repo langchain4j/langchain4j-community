@@ -3,12 +3,11 @@ package dev.langchain4j.community.model.xinference;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import java.time.Duration;
 import java.util.Base64;
 import org.junit.jupiter.api.Disabled;
@@ -38,9 +37,9 @@ class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructur
         ImageContent imageContent = ImageContent.from(CAT_IMAGE_URL);
         UserMessage userMessage = UserMessage.from(imageContent);
         // when
-        Response<AiMessage> response = vlModel.generate(userMessage);
+        ChatResponse response = vlModel.chat(userMessage);
         // then
-        assertThat(response.content().text()).containsIgnoringCase("cat");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("cat");
     }
 
     @Test
@@ -50,9 +49,9 @@ class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructur
         ImageContent imageContent = ImageContent.from(base64Data, "image/png");
         UserMessage userMessage = UserMessage.from(imageContent);
         // when
-        Response<AiMessage> response = vlModel.generate(userMessage);
+        ChatResponse response = vlModel.chat(userMessage);
         // then
-        assertThat(response.content().text()).containsIgnoringCase("cat");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("cat");
     }
 
     @Test
@@ -61,9 +60,9 @@ class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructur
         UserMessage userMessage = UserMessage.from(
                 TextContent.from("What do you see? Reply in one word."), ImageContent.from(CAT_IMAGE_URL));
         // when
-        Response<AiMessage> response = vlModel.generate(userMessage);
+        ChatResponse response = vlModel.chat(userMessage);
         // then
-        assertThat(response.content().text()).containsIgnoringCase("cat");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("cat");
     }
 
     @Test
@@ -76,10 +75,10 @@ class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructur
                 ImageContent.from(DICE_IMAGE_URL));
 
         // when
-        Response<AiMessage> response = vlModel.generate(userMessage);
+        ChatResponse response = vlModel.chat(userMessage);
 
         // then
-        assertThat(response.content().text()).containsIgnoringCase("cat").containsIgnoringCase("dice");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("cat").containsIgnoringCase("dice");
     }
 
     @Test
@@ -91,9 +90,9 @@ class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructur
                 TextContent.from("What do you see?"));
 
         // when
-        Response<AiMessage> response = vlModel.generate(userMessage);
+        ChatResponse response = vlModel.chat(userMessage);
 
         // then
-        assertThat(response.content().text()).containsIgnoringCase("cat").containsIgnoringCase("dice");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("cat").containsIgnoringCase("dice");
     }
 }

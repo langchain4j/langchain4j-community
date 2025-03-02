@@ -10,12 +10,13 @@ import dev.langchain4j.community.model.dashscope.QwenLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenModelName;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ToolChoice;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
@@ -44,7 +45,7 @@ public class AutoConfigIT {
                 .run(context -> {
                     ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
                     assertThat(chatLanguageModel).isInstanceOf(QwenChatModel.class);
-                    assertThat(chatLanguageModel.generate("What is the capital of Germany?"))
+                    assertThat(chatLanguageModel.chat("What is the capital of Germany?"))
                             .contains("Berlin");
 
                     assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatLanguageModel);
@@ -62,23 +63,23 @@ public class AutoConfigIT {
                     StreamingChatLanguageModel streamingChatLanguageModel =
                             context.getBean(StreamingChatLanguageModel.class);
                     assertThat(streamingChatLanguageModel).isInstanceOf(QwenStreamingChatModel.class);
-                    CompletableFuture<Response<AiMessage>> future = new CompletableFuture<>();
-                    streamingChatLanguageModel.generate(
-                            "What is the capital of Germany?", new StreamingResponseHandler<>() {
+                    CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+                    streamingChatLanguageModel.chat(
+                            "What is the capital of Germany?", new StreamingChatResponseHandler() {
 
                                 @Override
-                                public void onNext(String token) {}
+                                public void onPartialResponse(String token) {}
 
                                 @Override
-                                public void onComplete(Response<AiMessage> response) {
+                                public void onCompleteResponse(ChatResponse response) {
                                     future.complete(response);
                                 }
 
                                 @Override
                                 public void onError(Throwable error) {}
                             });
-                    Response<AiMessage> response = future.get(60, SECONDS);
-                    assertThat(response.content().text()).contains("Berlin");
+                    ChatResponse response = future.get(60, SECONDS);
+                    assertThat(response.aiMessage().text()).contains("Berlin");
 
                     assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatLanguageModel);
                 });

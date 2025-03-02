@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ZhipuAiStreamingChatModel implements StreamingChatLanguageModel {
+
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiStreamingChatModel.class);
 
     private final Double temperature;
