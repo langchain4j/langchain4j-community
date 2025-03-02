@@ -1,5 +1,9 @@
 package dev.langchain4j.community.model.qianfan;
 
+import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.qianfan.client.QianfanClient;
 import dev.langchain4j.community.model.qianfan.client.QianfanStreamingResponseBuilder;
@@ -7,20 +11,15 @@ import dev.langchain4j.community.model.qianfan.client.SyncOrAsyncOrStreaming;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.qianfan.spi.QianfanStreamingChatModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.internal.Utils;
-import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.model.output.Response;
-
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.net.Proxy;
 import java.util.List;
 import java.util.Objects;
-
-import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
@@ -36,27 +35,29 @@ public class QianfanStreamingChatModel implements StreamingChatLanguageModel {
     private final Double penaltyScore;
     private final String responseFormat;
 
-    public QianfanStreamingChatModel(String baseUrl,
-                                     String apiKey,
-                                     String secretKey,
-                                     Double temperature,
-                                     Double topP,
-                                     String modelName,
-                                     String endpoint,
-                                     String responseFormat,
-                                     Double penaltyScore,
-                                     Boolean logRequests,
-                                     Boolean logResponses,
-                                     Proxy proxy
-    ) {
+    public QianfanStreamingChatModel(
+            String baseUrl,
+            String apiKey,
+            String secretKey,
+            Double temperature,
+            Double topP,
+            String modelName,
+            String endpoint,
+            String responseFormat,
+            Double penaltyScore,
+            Boolean logRequests,
+            Boolean logResponses,
+            Proxy proxy) {
         if (Utils.isNullOrBlank(apiKey) || Utils.isNullOrBlank(secretKey)) {
-            throw new IllegalArgumentException(" api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
+            throw new IllegalArgumentException(
+                    " api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
         }
         this.modelName = modelName;
         this.endpoint = Utils.isNullOrBlank(endpoint) ? QianfanChatModelNameEnum.fromModelName(modelName) : endpoint;
 
         if (Utils.isNullOrBlank(this.endpoint)) {
-            throw new IllegalArgumentException("Qianfan is no such model name(or there is no model definition in the QianfanChatModelNameEnum class). You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
+            throw new IllegalArgumentException(
+                    "Qianfan is no such model name(or there is no model definition in the QianfanChatModelNameEnum class). You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
         }
 
         this.baseUrl = getOrDefault(baseUrl, "https://aip.baidubce.com");
@@ -72,30 +73,17 @@ public class QianfanStreamingChatModel implements StreamingChatLanguageModel {
         this.topP = topP;
         this.penaltyScore = penaltyScore;
         this.responseFormat = responseFormat;
-
-    }
-
-
-    @Override
-    public void generate(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
-        generate(messages, null, null, handler);
     }
 
     @Override
-    public void generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications, StreamingResponseHandler<AiMessage> handler) {
-        generate(messages, toolSpecifications, null, handler);
+    public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
+        generate(chatRequest.messages(), chatRequest.toolSpecifications(), handler);
     }
 
-    @Override
-    public void generate(List<ChatMessage> messages, ToolSpecification toolSpecification, StreamingResponseHandler<AiMessage> handler) {
-        throw new RuntimeException("Not supported");
-    }
-
-    private void generate(List<ChatMessage> messages,
-                          List<ToolSpecification> toolSpecifications,
-                          ToolSpecification toolThatMustBeExecuted,
-                          StreamingResponseHandler<AiMessage> handler
-    ) {
+    private void generate(
+            List<ChatMessage> messages,
+            List<ToolSpecification> toolSpecifications,
+            StreamingChatResponseHandler handler) {
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
                 .messages(InternalQianfanHelper.toOpenAiMessages(messages))
                 .temperature(temperature)
@@ -104,11 +92,9 @@ public class QianfanStreamingChatModel implements StreamingChatLanguageModel {
                 .responseFormat(responseFormat)
                 .penaltyScore(penaltyScore);
 
-
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.functions(InternalQianfanHelper.toFunctions(toolSpecifications));
         }
-
 
         ChatCompletionRequest request = builder.build();
 
@@ -121,26 +107,24 @@ public class QianfanStreamingChatModel implements StreamingChatLanguageModel {
                     handle(partialResponse, handler);
                 })
                 .onComplete(() -> {
-                    Response<AiMessage> messageResponse = responseBuilder.build();
-                    handler.onComplete(messageResponse);
+                    ChatResponse chatResponse = responseBuilder.build();
+                    handler.onCompleteResponse(chatResponse);
                 })
-                .onError(handler::onError
-                )
+                .onError(handler::onError)
                 .execute();
-
     }
 
-    private static void handle(ChatCompletionResponse partialResponse,
-                               StreamingResponseHandler<AiMessage> handler) {
+    private static void handle(ChatCompletionResponse partialResponse, StreamingChatResponseHandler handler) {
         String result = partialResponse.getResult();
         if (Objects.isNull(result) || result.isEmpty()) {
             return;
         }
-        handler.onNext(result);
+        handler.onPartialResponse(result);
     }
 
     public static QianfanStreamingChatModelBuilder builder() {
-        for (QianfanStreamingChatModelBuilderFactory factory : loadFactories(QianfanStreamingChatModelBuilderFactory.class)) {
+        for (QianfanStreamingChatModelBuilderFactory factory :
+                loadFactories(QianfanStreamingChatModelBuilderFactory.class)) {
             return factory.get();
         }
         return new QianfanStreamingChatModelBuilder();
@@ -239,8 +223,7 @@ public class QianfanStreamingChatModel implements StreamingChatLanguageModel {
                     penaltyScore,
                     logRequests,
                     logResponses,
-                    proxy
-            );
+                    proxy);
         }
     }
 }

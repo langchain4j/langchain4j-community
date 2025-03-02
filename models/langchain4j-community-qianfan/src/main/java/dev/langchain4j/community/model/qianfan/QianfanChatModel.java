@@ -1,19 +1,5 @@
 package dev.langchain4j.community.model.qianfan;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.community.model.qianfan.client.QianfanClient;
-import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
-import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
-import dev.langchain4j.community.model.qianfan.spi.QianfanChatModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.internal.Utils;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
-
-import java.net.Proxy;
-import java.util.List;
-
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.aiMessageFrom;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
@@ -24,10 +10,24 @@ import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.community.model.qianfan.client.QianfanClient;
+import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
+import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
+import dev.langchain4j.community.model.qianfan.spi.QianfanChatModelBuilderFactory;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.internal.Utils;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.Response;
+import java.net.Proxy;
+import java.util.List;
+
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
  */
-
 public class QianfanChatModel implements ChatLanguageModel {
 
     private final QianfanClient client;
@@ -44,24 +44,24 @@ public class QianfanChatModel implements ChatLanguageModel {
     private final Integer maxOutputTokens;
     private final String system;
 
-    public QianfanChatModel(String baseUrl,
-                            String apiKey,
-                            String secretKey,
-                            Double temperature,
-                            Integer maxRetries,
-                            Double topP,
-                            String modelName,
-                            String endpoint,
-                            String responseFormat,
-                            Double penaltyScore,
-                            Boolean logRequests,
-                            Boolean logResponses,
-                            String userId,
-                            List<String> stop,
-                            Integer maxOutputTokens,
-                            String system,
-                            Proxy proxy
-    ) {
+    public QianfanChatModel(
+            String baseUrl,
+            String apiKey,
+            String secretKey,
+            Double temperature,
+            Integer maxRetries,
+            Double topP,
+            String modelName,
+            String endpoint,
+            String responseFormat,
+            Double penaltyScore,
+            Boolean logRequests,
+            Boolean logResponses,
+            String userId,
+            List<String> stop,
+            Integer maxOutputTokens,
+            String system,
+            Proxy proxy) {
         if (Utils.isNullOrBlank(apiKey) || Utils.isNullOrBlank(secretKey)) {
             throw new IllegalArgumentException(
                     " api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
@@ -71,7 +71,8 @@ public class QianfanChatModel implements ChatLanguageModel {
         this.endpoint = Utils.isNullOrBlank(endpoint) ? QianfanChatModelNameEnum.fromModelName(modelName) : endpoint;
 
         if (Utils.isNullOrBlank(this.endpoint)) {
-            throw new IllegalArgumentException("Qianfan is no such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
+            throw new IllegalArgumentException(
+                    "Qianfan is no such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
         }
 
         this.baseUrl = getOrDefault(baseUrl, "https://aip.baidubce.com");
@@ -95,28 +96,17 @@ public class QianfanChatModel implements ChatLanguageModel {
         this.system = system;
     }
 
-
     @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages) {
-
-        return generate(messages, null, null);
+    public ChatResponse doChat(ChatRequest chatRequest) {
+        Response<AiMessage> response = doChat(chatRequest.messages(), chatRequest.toolSpecifications());
+        return ChatResponse.builder()
+                .aiMessage(response.content())
+                .tokenUsage(response.tokenUsage())
+                .finishReason(response.finishReason())
+                .build();
     }
 
-    @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
-        return generate(messages, toolSpecifications, null);
-    }
-
-    @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
-        throw new RuntimeException("Not supported");
-    }
-
-
-    private Response<AiMessage> generate(List<ChatMessage> messages,
-                                         List<ToolSpecification> toolSpecifications,
-                                         ToolSpecification toolThatMustBeExecuted
-    ) {
+    private Response<AiMessage> doChat(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
 
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
                 .messages(toOpenAiMessages(messages))
@@ -138,12 +128,11 @@ public class QianfanChatModel implements ChatLanguageModel {
 
         ChatCompletionRequest param = builder.build();
 
-        ChatCompletionResponse response = withRetry(() -> client.chatCompletion(param, endpoint).execute(), maxRetries);
+        ChatCompletionResponse response =
+                withRetry(() -> client.chatCompletion(param, endpoint).execute(), maxRetries);
 
-        return Response.from(aiMessageFrom(response),
-                tokenUsageFrom(response), finishReasonFrom(response.getFinishReason()));
-
-
+        return Response.from(
+                aiMessageFrom(response), tokenUsageFrom(response), finishReasonFrom(response.getFinishReason()));
     }
 
     public static QianfanChatModelBuilder builder() {
@@ -281,8 +270,7 @@ public class QianfanChatModel implements ChatLanguageModel {
                     stop,
                     maxOutputTokens,
                     system,
-                    proxy
-            );
+                    proxy);
         }
     }
 }
