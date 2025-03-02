@@ -5,29 +5,29 @@
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
         <version>1.0.0-beta2-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>langchain4j-community-xinference-spring-boot-starter</artifactId>
-    <name>LangChain4j :: Community :: Spring Boot starter :: Xinference</name>
-
-    <licenses>
-        <license>
-            <name>Apache-2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-            <comments>A business-friendly OSS license</comments>
-        </license>
-    </licenses>
-
-    <properties>
-        <skipXinferenceITs>false</skipXinferenceITs>
-    </properties>
+    <artifactId>langchain4j-community-vearch-spring-boot-starter</artifactId>
+    <packaging>jar</packaging>
+    <name>LangChain4j :: Community :: Spring Boot starter :: Vearch</name>
 
     <dependencies>
+
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-community-xinference</artifactId>
+            <artifactId>langchain4j-community-vearch</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>dev.langchain4j</groupId>
+                    <artifactId>langchain4j-http-client-jdk</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-http-client-spring-restclient</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -67,16 +67,26 @@
         </dependency>
 
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-spring-boot-tests</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -100,4 +110,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

@@ -1,170 +1,185 @@
 package dev.langchain4j.community.store.embedding.vearch;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.internal.Utils;
-import okhttp3.OkHttpClient;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.jackson.JacksonConverterFactory;
+import static dev.langchain4j.community.store.embedding.vearch.VearchJsonUtils.fromJson;
+import static dev.langchain4j.community.store.embedding.vearch.VearchJsonUtils.toJson;
+import static dev.langchain4j.http.client.HttpMethod.DELETE;
+import static dev.langchain4j.http.client.HttpMethod.GET;
+import static dev.langchain4j.http.client.HttpMethod.POST;
+import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.ensureTrailingForwardSlash;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static java.time.Duration.ofSeconds;
 
-import java.io.IOException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import dev.langchain4j.http.client.HttpClient;
+import dev.langchain4j.http.client.HttpClientBuilder;
+import dev.langchain4j.http.client.HttpClientBuilderLoader;
+import dev.langchain4j.http.client.HttpRequest;
+import dev.langchain4j.http.client.SuccessfulHttpResponse;
+import dev.langchain4j.http.client.log.LoggingHttpClient;
 import java.time.Duration;
 import java.util.List;
-
-import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
-import static dev.langchain4j.community.store.embedding.vearch.VearchApi.OK;
+import java.util.Map;
 
 class VearchClient {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .enable(INDENT_OUTPUT);
+    private static final int HTTP_STATUS_OK = 0;
 
-    private final VearchApi vearchApi;
+    private final HttpClient httpClient;
+    private final String baseUrl;
+    private final Map<String, String> defaultHeaders;
 
-    public VearchClient(String baseUrl,
-                        Duration timeout,
-                        boolean logRequests,
-                        boolean logResponses) {
-        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout);
+    public VearchClient(Builder builder) {
+        HttpClientBuilder httpClientBuilder =
+                getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
 
-        if (logRequests) {
-            okHttpClientBuilder.addInterceptor(new VearchRequestLoggingInterceptor());
-        }
-        if (logResponses) {
-            okHttpClientBuilder.addInterceptor(new VearchResponseLoggingInterceptor());
-        }
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(Utils.ensureTrailingForwardSlash(baseUrl))
-                .client(okHttpClientBuilder.build())
-                .addConverterFactory(JacksonConverterFactory.create(OBJECT_MAPPER))
+        HttpClient httpClient = httpClientBuilder
+                .connectTimeout(
+                        getOrDefault(getOrDefault(builder.timeout, httpClientBuilder.connectTimeout()), ofSeconds(15)))
+                .readTimeout(
+                        getOrDefault(getOrDefault(builder.timeout, httpClientBuilder.readTimeout()), ofSeconds(60)))
                 .build();
 
-        vearchApi = retrofit.create(VearchApi.class);
+        if (builder.logRequests != null || builder.logResponses != null) {
+            this.httpClient = new LoggingHttpClient(httpClient, builder.logRequests, builder.logResponses);
+        } else {
+            this.httpClient = httpClient;
+        }
+
+        this.baseUrl = ensureTrailingForwardSlash(ensureNotBlank(builder.baseUrl, "baseUrl"));
+        this.defaultHeaders = copyIfNotNull(builder.customHeaders);
     }
 
     public List<ListDatabaseResponse> listDatabase() {
-        try {
-            Response<ResponseWrapper<List<ListDatabaseResponse>>> response = vearchApi.listDatabase().execute();
 
-            if (response.isSuccessful() && response.body() != null) {
-                ResponseWrapper<List<ListDatabaseResponse>> wrapper = response.body();
-                if (wrapper.getCode() != OK) {
-                    throw toException(wrapper);
-                }
-                return wrapper.getData();
-            } else {
-                throw toException(response);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        HttpRequest httpRequest = HttpRequest.builder()
+                .method(GET)
+                .url(baseUrl + "dbs")
+                .addHeader("Content-Type", "application/json")
+                .addHeaders(defaultHeaders)
+                .build();
+
+        SuccessfulHttpResponse successfulHttpResponse = httpClient.execute(httpRequest);
+
+        TypeReference<ResponseWrapper<List<ListDatabaseResponse>>> typeReference = new TypeReference<>() {};
+        ResponseWrapper<List<ListDatabaseResponse>> response = fromJson(successfulHttpResponse.body(), typeReference);
+        if (response.getCode() != HTTP_STATUS_OK) {
+            throw toException(response);
         }
+
+        return response.getData();
     }
 
     public CreateDatabaseResponse createDatabase(String databaseName) {
-        try {
-            Response<ResponseWrapper<CreateDatabaseResponse>> response = vearchApi.createDatabase(databaseName).execute();
 
-            if (response.isSuccessful() && response.body() != null) {
-                ResponseWrapper<CreateDatabaseResponse> wrapper = response.body();
-                if (wrapper.getCode() != OK) {
-                    throw toException(wrapper);
-                }
-                return wrapper.getData();
-            } else {
-                throw toException(response);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        HttpRequest httpRequest = HttpRequest.builder()
+                .method(POST)
+                .url(baseUrl + String.format("dbs/%s", databaseName))
+                .addHeader("Content-Type", "application/json")
+                .addHeaders(defaultHeaders)
+                .build();
+
+        SuccessfulHttpResponse successfulHttpResponse = httpClient.execute(httpRequest);
+
+        TypeReference<ResponseWrapper<CreateDatabaseResponse>> typeReference = new TypeReference<>() {};
+        ResponseWrapper<CreateDatabaseResponse> response = fromJson(successfulHttpResponse.body(), typeReference);
+        if (response.getCode() != HTTP_STATUS_OK) {
+            throw toException(response);
         }
+
+        return response.getData();
     }
 
     public List<ListSpaceResponse> listSpaceOfDatabase(String dbName) {
-        try {
-            Response<ResponseWrapper<List<ListSpaceResponse>>> response = vearchApi.listSpaceOfDatabase(dbName).execute();
 
-            if (response.isSuccessful() && response.body() != null) {
-                ResponseWrapper<List<ListSpaceResponse>> wrapper = response.body();
-                if (wrapper.getCode() != OK) {
-                    throw toException(wrapper);
-                }
-                return wrapper.getData();
-            } else {
-                throw toException(response);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        HttpRequest httpRequest = HttpRequest.builder()
+                .method(GET)
+                .url(baseUrl + String.format("dbs/%s/spaces", dbName))
+                .addHeader("Content-Type", "application/json")
+                .addHeaders(defaultHeaders)
+                .build();
+
+        SuccessfulHttpResponse successfulHttpResponse = httpClient.execute(httpRequest);
+
+        TypeReference<ResponseWrapper<List<ListSpaceResponse>>> typeReference = new TypeReference<>() {};
+        ResponseWrapper<List<ListSpaceResponse>> response = fromJson(successfulHttpResponse.body(), typeReference);
+        if (response.getCode() != HTTP_STATUS_OK) {
+            throw toException(response);
         }
+
+        return response.getData();
     }
 
     public CreateSpaceResponse createSpace(String dbName, CreateSpaceRequest request) {
-        try {
-            Response<ResponseWrapper<CreateSpaceResponse>> response = vearchApi.createSpace(dbName, request).execute();
 
-            if (response.isSuccessful() && response.body() != null) {
-                ResponseWrapper<CreateSpaceResponse> wrapper = response.body();
-                if (wrapper.getCode() != OK) {
-                    throw toException(wrapper);
-                }
-                return wrapper.getData();
-            } else {
-                throw toException(response);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        HttpRequest httpRequest = HttpRequest.builder()
+                .method(POST)
+                .url(baseUrl + String.format("dbs/%s/spaces", dbName))
+                .body(toJson(request))
+                .addHeader("Content-Type", "application/json")
+                .addHeaders(defaultHeaders)
+                .build();
+
+        SuccessfulHttpResponse successfulHttpResponse = httpClient.execute(httpRequest);
+
+        TypeReference<ResponseWrapper<CreateSpaceResponse>> typeReference = new TypeReference<>() {};
+        ResponseWrapper<CreateSpaceResponse> response = fromJson(successfulHttpResponse.body(), typeReference);
+        if (response.getCode() != HTTP_STATUS_OK) {
+            throw toException(response);
         }
+
+        return response.getData();
     }
 
     public void upsert(UpsertRequest request) {
-        try {
-            Response<ResponseWrapper<UpsertResponse>> response = vearchApi.upsert(request).execute();
 
-            if (response.isSuccessful() && response.body() != null) {
-                ResponseWrapper<UpsertResponse> wrapper = response.body();
-                if (wrapper.getCode() != OK) {
-                    throw toException(wrapper);
-                }
-            } else {
-                throw toException(response);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        HttpRequest httpRequest = HttpRequest.builder()
+                .method(POST)
+                .url(baseUrl + "document/upsert")
+                .body(toJson(request))
+                .addHeader("Content-Type", "application/json")
+                .addHeaders(defaultHeaders)
+                .build();
+
+        SuccessfulHttpResponse successfulHttpResponse = httpClient.execute(httpRequest);
+
+        TypeReference<ResponseWrapper<UpsertResponse>> typeReference = new TypeReference<>() {};
+        ResponseWrapper<UpsertResponse> response = fromJson(successfulHttpResponse.body(), typeReference);
+        if (response.getCode() != HTTP_STATUS_OK) {
+            throw toException(response);
         }
     }
 
     public SearchResponse search(SearchRequest request) {
-        try {
-            Response<ResponseWrapper<SearchResponse>> response = vearchApi.search(request).execute();
 
-            if (response.isSuccessful() && response.body() != null) {
-                ResponseWrapper<SearchResponse> wrapper = response.body();
-                if (wrapper.getCode() != OK) {
-                    throw toException(wrapper);
-                }
+        HttpRequest httpRequest = HttpRequest.builder()
+                .method(POST)
+                .url(baseUrl + "document/search")
+                .body(toJson(request))
+                .addHeader("Content-Type", "application/json")
+                .addHeaders(defaultHeaders)
+                .build();
 
-                return wrapper.getData();
-            } else {
-                throw toException(response);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        SuccessfulHttpResponse successfulHttpResponse = httpClient.execute(httpRequest);
+
+        TypeReference<ResponseWrapper<SearchResponse>> typeReference = new TypeReference<>() {};
+        ResponseWrapper<SearchResponse> response = fromJson(successfulHttpResponse.body(), typeReference);
+        if (response.getCode() != HTTP_STATUS_OK) {
+            throw toException(response);
         }
+
+        return response.getData();
     }
 
     public void deleteSpace(String databaseName, String spaceName) {
-        try {
-            Response<Void> response = vearchApi.deleteSpace(databaseName, spaceName).execute();
+        HttpRequest httpRequest = HttpRequest.builder()
+                .method(DELETE)
+                .url(baseUrl + String.format("dbs/%s/spaces/%s", databaseName, spaceName))
+                .addHeaders(defaultHeaders)
+                .build();
 
-            if (!response.isSuccessful()) {
-                throw toException(response);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        httpClient.execute(httpRequest);
     }
 
     static Builder builder() {
@@ -173,10 +188,17 @@ class VearchClient {
 
     static final class Builder {
 
+        private HttpClientBuilder httpClientBuilder;
         private String baseUrl;
         private Duration timeout;
-        private boolean logRequests;
-        private boolean logResponses;
+        private Boolean logRequests;
+        private Boolean logResponses;
+        private Map<String, String> customHeaders;
+
+        Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
+            this.httpClientBuilder = httpClientBuilder;
+            return this;
+        }
 
         Builder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
@@ -188,27 +210,24 @@ class VearchClient {
             return this;
         }
 
-        Builder logRequests(boolean logRequests) {
+        Builder logRequests(Boolean logRequests) {
             this.logRequests = logRequests;
             return this;
         }
 
-        Builder logResponses(boolean logResponses) {
+        Builder logResponses(Boolean logResponses) {
             this.logResponses = logResponses;
             return this;
         }
 
-        VearchClient build() {
-            return new VearchClient(baseUrl, timeout, logRequests, logResponses);
+        Builder customHeaders(Map<String, String> customHeaders) {
+            this.customHeaders = customHeaders;
+            return this;
         }
-    }
 
-    private RuntimeException toException(Response<?> response) throws IOException {
-        int code = response.code();
-        String body = response.errorBody().string();
-
-        String errorMessage = String.format("status code: %s; body: %s", code, body);
-        return new RuntimeException(errorMessage);
+        VearchClient build() {
+            return new VearchClient(this);
+        }
     }
 
     private RuntimeException toException(ResponseWrapper<?> responseWrapper) {

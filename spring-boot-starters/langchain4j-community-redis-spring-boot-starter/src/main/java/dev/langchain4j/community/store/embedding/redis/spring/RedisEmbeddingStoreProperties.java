@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = RedisEmbeddingStoreProperties.CONFIG_PREFIX)
 public class RedisEmbeddingStoreProperties {
 
-    static final String CONFIG_PREFIX = "langchain4j.redis";
+    static final String CONFIG_PREFIX = "langchain4j.community.redis";
 
     private String host;
     private Integer port;
