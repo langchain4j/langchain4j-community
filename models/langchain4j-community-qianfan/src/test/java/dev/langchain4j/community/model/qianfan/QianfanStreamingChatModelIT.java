@@ -1,20 +1,5 @@
 package dev.langchain4j.community.model.qianfan;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.TestStreamingResponseHandler;
-import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
-import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
-import java.util.List;
-
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
 import static dev.langchain4j.model.output.FinishReason.STOP;
@@ -23,14 +8,33 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+
 @EnabledIfEnvironmentVariable(named = "QIANFAN_API_KEY", matches = ".+")
 class QianfanStreamingChatModelIT {
 
-    //see your api key and secret key here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
+    // see your api key and secret key here:
+    // https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
     private final String apiKey = System.getenv("QIANFAN_API_KEY");
     private final String secretKey = System.getenv("QIANFAN_SECRET_KEY");
 
-    QianfanStreamingChatModel model = QianfanStreamingChatModel.builder().modelName("ERNIE-Bot 4.0").temperature(0.7).topP(1.0)
+    QianfanStreamingChatModel model = QianfanStreamingChatModel.builder()
+            .modelName("ERNIE-Bot 4.0")
+            .temperature(0.7)
+            .topP(1.0)
             .apiKey(apiKey)
             .secretKey(secretKey)
             .build();
@@ -43,18 +47,16 @@ class QianfanStreamingChatModelIT {
                     .build())
             .build();
 
-
     @Test
     void should_stream_answer() {
 
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        model.chat("Where is the capital of China? Please answer in English", handler);
 
-        model.generate("Where is the capital of China? Please answer in English", handler);
+        ChatResponse response = handler.get();
 
-        Response<AiMessage> response = handler.get();
-
-        assertThat(response.content().text()).containsIgnoringCase("Beijing");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("Beijing");
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.totalTokenCount())
                 .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
@@ -70,12 +72,17 @@ class QianfanStreamingChatModelIT {
         List<ToolSpecification> toolSpecifications = singletonList(calculator);
 
         // when
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
-        model.generate(singletonList(userMessage), toolSpecifications, handler);
+        model.chat(
+                ChatRequest.builder()
+                        .messages(singletonList(userMessage))
+                        .toolSpecifications(toolSpecifications)
+                        .build(),
+                handler);
 
-        Response<AiMessage> response = handler.get();
-        AiMessage aiMessage = response.content();
+        ChatResponse response = handler.get();
+        AiMessage aiMessage = response.aiMessage();
 
         // then
         assertThat(aiMessage.text()).isNull();
@@ -99,12 +106,12 @@ class QianfanStreamingChatModelIT {
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
 
-        model.generate(messages, secondHandler);
+        model.chat(messages, secondHandler);
 
-        Response<AiMessage> secondResponse = secondHandler.get();
-        AiMessage secondAiMessage = secondResponse.content();
+        ChatResponse secondResponse = secondHandler.get();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
 
         // then
         assertThat(secondAiMessage.text()).contains("4");
@@ -117,28 +124,30 @@ class QianfanStreamingChatModelIT {
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
 
-
     @Test
     void should_stream_valid_json() {
 
-        //given
+        // given
         String userMessage = "Return JSON with  fields: name of Klaus. ";
         // nudging it to say something additionally to json
-        QianfanStreamingChatModel model = QianfanStreamingChatModel.builder().modelName("ERNIE-Bot 4.0").temperature(0.7).topP(1.0)
+        QianfanStreamingChatModel model = QianfanStreamingChatModel.builder()
+                .modelName("ERNIE-Bot 4.0")
+                .temperature(0.7)
+                .topP(1.0)
                 .apiKey(apiKey)
                 .secretKey(secretKey)
                 .responseFormat("json_object")
                 .build();
 
         // when
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
-        model.generate(userMessage, handler);
+        model.chat(userMessage, handler);
 
-        Response<AiMessage> response = handler.get();
-        String json = response.content().text();
+        ChatResponse response = handler.get();
+        String json = response.aiMessage().text();
         // then
         assertThat(json).contains("\"name\": \"Klaus\"");
-        assertThat(response.content().text()).isEqualTo(json);
+        assertThat(response.aiMessage().text()).isEqualTo(json);
     }
 }

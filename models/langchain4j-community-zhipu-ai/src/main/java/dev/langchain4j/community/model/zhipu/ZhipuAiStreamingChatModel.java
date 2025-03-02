@@ -1,40 +1,35 @@
 package dev.langchain4j.community.model.zhipu;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
-import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
-import dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode;
-import dev.langchain4j.community.model.zhipu.spi.ZhipuAiStreamingChatModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.internal.ValidationUtils;
-import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequest;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.createModelListenerRequest;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toTools;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toZhipuAiMessages;
 import static dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel.GLM_4_FLASH;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
+import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
+import dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode;
+import dev.langchain4j.community.model.zhipu.spi.ZhipuAiStreamingChatModelBuilderFactory;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.internal.ValidationUtils;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZhipuAiStreamingChatModel implements StreamingChatLanguageModel {
+
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiStreamingChatModel.class);
 
     private final Double temperature;
@@ -59,8 +54,7 @@ public class ZhipuAiStreamingChatModel implements StreamingChatLanguageModel {
             Duration callTimeout,
             Duration connectTimeout,
             Duration readTimeout,
-            Duration writeTimeout
-    ) {
+            Duration writeTimeout) {
         this.temperature = getOrDefault(temperature, 0.7);
         this.topP = topP;
         this.stops = stops;
@@ -79,59 +73,43 @@ public class ZhipuAiStreamingChatModel implements StreamingChatLanguageModel {
                 .build();
     }
 
-    public static ZhipuAiStreamingChatModelBuilder builder() {
-        for (ZhipuAiStreamingChatModelBuilderFactory factories : loadFactories(ZhipuAiStreamingChatModelBuilderFactory.class)) {
-            return factories.get();
-        }
-        return new ZhipuAiStreamingChatModelBuilder();
-    }
-
     @Override
-    public void generate(String userMessage, StreamingResponseHandler<AiMessage> handler) {
-        this.generate(singletonList(UserMessage.from(userMessage)), handler);
-    }
+    public void doChat(ChatRequest request, StreamingChatResponseHandler handler) {
+        List<ChatMessage> messages = request.messages();
+        List<ToolSpecification> toolSpecifications = request.toolSpecifications();
 
-    @Override
-    public void generate(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
-        this.generate(messages, (ToolSpecification) null, handler);
-    }
-
-    @Override
-    public void generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications, StreamingResponseHandler<AiMessage> handler) {
-        ensureNotEmpty(messages, "messages");
-
-        ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
-                .model(this.model)
-                .maxTokens(this.maxToken)
-                .stream(true)
-                .stop(stops)
-                .topP(this.topP)
-                .temperature(this.temperature)
-                .toolChoice(ToolChoiceMode.AUTO)
-                .messages(toZhipuAiMessages(messages));
+        ChatCompletionRequest.Builder requestBuilder =
+                ChatCompletionRequest.builder().model(this.model).maxTokens(this.maxToken).stream(true)
+                        .stop(stops)
+                        .topP(this.topP)
+                        .temperature(this.temperature)
+                        .toolChoice(ToolChoiceMode.AUTO)
+                        .messages(toZhipuAiMessages(messages));
 
         if (!isNullOrEmpty(toolSpecifications)) {
-            builder.tools(toTools(toolSpecifications));
+            requestBuilder.tools(toTools(toolSpecifications));
         }
-        ChatCompletionRequest request = builder.build();
 
-        ChatModelRequest modelListenerRequest = createModelListenerRequest(request, messages, toolSpecifications);
+        ChatCompletionRequest completionRequest = requestBuilder.build();
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(modelListenerRequest, attributes);
-        for (ChatModelListener listener : listeners) {
+        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, attributes);
+        for (ChatModelListener chatModelListener : listeners) {
             try {
-                listener.onRequest(requestContext);
+                chatModelListener.onRequest(requestContext);
             } catch (Exception e) {
                 log.warn("Exception while calling model listener", e);
             }
         }
 
-        client.streamingChatCompletion(request, handler, listeners, requestContext);
+        client.streamingChatCompletion(completionRequest, handler, listeners, requestContext);
     }
 
-    @Override
-    public void generate(List<ChatMessage> messages, ToolSpecification toolSpecification, StreamingResponseHandler<AiMessage> handler) {
-        this.generate(messages, toolSpecification == null ? null : singletonList(toolSpecification), handler);
+    public static ZhipuAiStreamingChatModelBuilder builder() {
+        for (ZhipuAiStreamingChatModelBuilderFactory factories :
+                loadFactories(ZhipuAiStreamingChatModelBuilderFactory.class)) {
+            return factories.get();
+        }
+        return new ZhipuAiStreamingChatModelBuilder();
     }
 
     public static class ZhipuAiStreamingChatModelBuilder {
@@ -228,7 +206,21 @@ public class ZhipuAiStreamingChatModel implements StreamingChatLanguageModel {
         }
 
         public ZhipuAiStreamingChatModel build() {
-            return new ZhipuAiStreamingChatModel(this.baseUrl, this.apiKey, this.temperature, this.topP, this.stops, this.model, this.maxToken, this.logRequests, this.logResponses, this.listeners, this.callTimeout, this.connectTimeout, this.readTimeout, this.writeTimeout);
+            return new ZhipuAiStreamingChatModel(
+                    this.baseUrl,
+                    this.apiKey,
+                    this.temperature,
+                    this.topP,
+                    this.stops,
+                    this.model,
+                    this.maxToken,
+                    this.logRequests,
+                    this.logResponses,
+                    this.listeners,
+                    this.callTimeout,
+                    this.connectTimeout,
+                    this.readTimeout,
+                    this.writeTimeout);
         }
     }
 }

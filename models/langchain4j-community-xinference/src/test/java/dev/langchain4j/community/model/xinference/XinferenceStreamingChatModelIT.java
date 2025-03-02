@@ -9,10 +9,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.*;
-import dev.langchain4j.model.chat.TestStreamingResponseHandler;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
 import java.time.Duration;
 import java.util.List;
@@ -43,12 +47,12 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastru
     @Test
     void should_stream_answer() throws Exception {
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
-        model.generate("中国首都是哪里？", handler);
+        model.chat("中国首都是哪里？", handler);
 
-        Response<AiMessage> response = handler.get();
-        assertThat(response.content().text()).containsIgnoringCase("北京");
+        ChatResponse response = handler.get();
+        assertThat(response.aiMessage().text()).containsIgnoringCase("北京");
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.totalTokenCount())
                 .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
@@ -64,12 +68,17 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastru
         // given
         UserMessage userMessage = userMessage("2+2=?");
         List<ToolSpecification> toolSpecifications = singletonList(calculator);
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
         // when
-        model.generate(singletonList(userMessage), toolSpecifications, handler);
-        Response<AiMessage> response = handler.get();
-        AiMessage aiMessage = response.content();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(singletonList(userMessage))
+                        .toolSpecifications(toolSpecifications)
+                        .build(),
+                handler);
+        ChatResponse response = handler.get();
+        AiMessage aiMessage = response.aiMessage();
 
         // then
         assertThat(aiMessage.text()).isNull();
@@ -91,12 +100,12 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastru
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
 
-        model.generate(messages, secondHandler);
+        model.chat(messages, secondHandler);
 
-        Response<AiMessage> secondResponse = secondHandler.get();
-        AiMessage secondAiMessage = secondResponse.content();
+        ChatResponse secondResponse = secondHandler.get();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
 
         // then
         assertThat(secondAiMessage.text()).contains("4");
@@ -115,13 +124,18 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastru
         // given
         UserMessage userMessage = userMessage("2+2=?");
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         // when
 
-        model.generate(singletonList(userMessage), calculator, handler);
+        model.chat(
+                ChatRequest.builder()
+                        .messages(singletonList(userMessage))
+                        .toolSpecifications(calculator)
+                        .build(),
+                handler);
 
-        Response<AiMessage> response = handler.get();
-        AiMessage aiMessage = response.content();
+        ChatResponse response = handler.get();
+        AiMessage aiMessage = response.aiMessage();
 
         // then
         assertThat(aiMessage.text()).isNull();
@@ -141,13 +155,13 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastru
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "4");
 
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
 
         // when
-        model.generate(messages, secondHandler);
+        model.chat(messages, secondHandler);
 
-        Response<AiMessage> secondResponse = secondHandler.get();
-        AiMessage secondAiMessage = secondResponse.content();
+        ChatResponse secondResponse = secondHandler.get();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
 
         // then
         assertThat(secondAiMessage.text()).contains("4");
@@ -167,12 +181,17 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastru
         List<ToolSpecification> toolSpecifications = singletonList(calculator);
 
         // when
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
-        model.generate(singletonList(userMessage), toolSpecifications, handler);
+        model.chat(
+                ChatRequest.builder()
+                        .messages(singletonList(userMessage))
+                        .toolSpecifications(toolSpecifications)
+                        .build(),
+                handler);
 
-        Response<AiMessage> response = handler.get();
-        AiMessage aiMessage = response.content();
+        ChatResponse response = handler.get();
+        AiMessage aiMessage = response.aiMessage();
 
         // then
         assertThat(aiMessage.text()).isNull();
@@ -200,12 +219,12 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastru
                 asList(userMessage, aiMessage, toolExecutionResultMessage1, toolExecutionResultMessage2);
 
         // when
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
 
-        model.generate(messages, secondHandler);
+        model.chat(messages, secondHandler);
 
-        Response<AiMessage> secondResponse = secondHandler.get();
-        AiMessage secondAiMessage = secondResponse.content();
+        ChatResponse secondResponse = secondHandler.get();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
 
         // then
         assertThat(secondAiMessage.text()).contains("4", "6");
@@ -217,8 +236,8 @@ class XinferenceStreamingChatModelIT extends AbstractInferenceChatModelInfrastru
     }
 
     private static void assertTokenUsage(TokenUsage tokenUsage) {
-        assertThat(tokenUsage.inputTokenCount()).isGreaterThan(0);
-        assertThat(tokenUsage.outputTokenCount()).isGreaterThan(0);
+        assertThat(tokenUsage.inputTokenCount()).isPositive();
+        assertThat(tokenUsage.outputTokenCount()).isPositive();
         assertThat(tokenUsage.totalTokenCount())
                 .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
     }

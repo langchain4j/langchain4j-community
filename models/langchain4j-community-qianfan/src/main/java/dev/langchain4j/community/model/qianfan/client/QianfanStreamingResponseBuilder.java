@@ -1,22 +1,22 @@
 package dev.langchain4j.community.model.qianfan.client;
 
+import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.finishReasonFrom;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.community.model.qianfan.InternalQianfanHelper;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.qianfan.client.chat.FunctionCall;
 import dev.langchain4j.community.model.qianfan.client.completion.CompletionResponse;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.Tokenizer;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 
 /**
  * This class needs to be thread safe because it is called when a streaming result comes back
@@ -30,14 +30,14 @@ public class QianfanStreamingResponseBuilder {
     private final StringBuffer toolNameBuilder = new StringBuffer();
     private final StringBuffer toolArgumentsBuilder = new StringBuffer();
 
-    private final Map<Integer, ToolExecutionRequestBuilder> indexToToolExecutionRequestBuilder = new ConcurrentHashMap<>();
+    private final Map<Integer, ToolExecutionRequestBuilder> indexToToolExecutionRequestBuilder =
+            new ConcurrentHashMap<>();
 
     private volatile String finishReason;
 
     private Integer inputTokenCount;
 
     private Integer outputTokenCount;
-
 
     public QianfanStreamingResponseBuilder(Integer inputTokenCount) {
         this.inputTokenCount = inputTokenCount;
@@ -99,15 +99,15 @@ public class QianfanStreamingResponseBuilder {
         }
     }
 
-    public Response<AiMessage> build(Tokenizer tokenizer, boolean forcefulToolExecution) {
+    public ChatResponse build(Tokenizer tokenizer, boolean forcefulToolExecution) {
 
         String content = contentBuilder.toString();
         if (!content.isEmpty()) {
-            return Response.from(
-                    AiMessage.from(content),
-                    tokenUsage(content, tokenizer),
-                    InternalQianfanHelper.finishReasonFrom(finishReason)
-            );
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(content))
+                    .tokenUsage(tokenUsage(content, tokenizer))
+                    .finishReason(finishReasonFrom(finishReason))
+                    .build();
         }
 
         String toolName = toolNameBuilder.toString();
@@ -116,11 +116,11 @@ public class QianfanStreamingResponseBuilder {
                     .name(toolName)
                     .arguments(toolArgumentsBuilder.toString())
                     .build();
-            return Response.from(
-                    AiMessage.from(toolExecutionRequest),
-                    tokenUsage(singletonList(toolExecutionRequest), tokenizer, forcefulToolExecution),
-                    InternalQianfanHelper.finishReasonFrom(finishReason)
-            );
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(toolExecutionRequest))
+                    .tokenUsage(tokenUsage(singletonList(toolExecutionRequest), tokenizer, forcefulToolExecution))
+                    .finishReason(finishReasonFrom(finishReason))
+                    .build();
         }
 
         if (!indexToToolExecutionRequestBuilder.isEmpty()) {
@@ -131,11 +131,11 @@ public class QianfanStreamingResponseBuilder {
                             .arguments(it.argumentsBuilder.toString())
                             .build())
                     .collect(toList());
-            return Response.from(
-                    AiMessage.from(toolExecutionRequests),
-                    tokenUsage(toolExecutionRequests, tokenizer, forcefulToolExecution),
-                    InternalQianfanHelper.finishReasonFrom(finishReason)
-            );
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(toolExecutionRequests))
+                    .tokenUsage(tokenUsage(toolExecutionRequests, tokenizer, forcefulToolExecution))
+                    .finishReason(finishReasonFrom(finishReason))
+                    .build();
         }
 
         return null;
@@ -145,11 +145,7 @@ public class QianfanStreamingResponseBuilder {
 
         String content = contentBuilder.toString();
         if (!content.isEmpty()) {
-            return Response.from(
-                    content,
-                    tokenUsage(content, tokenizer),
-                    InternalQianfanHelper.finishReasonFrom(finishReason)
-            );
+            return Response.from(content, tokenUsage(content, tokenizer), finishReasonFrom(finishReason));
         }
         return null;
     }
@@ -162,7 +158,8 @@ public class QianfanStreamingResponseBuilder {
         return new TokenUsage(inputTokenCount, outputTokenCount);
     }
 
-    private TokenUsage tokenUsage(List<ToolExecutionRequest> toolExecutionRequests, Tokenizer tokenizer, boolean forcefulToolExecution) {
+    private TokenUsage tokenUsage(
+            List<ToolExecutionRequest> toolExecutionRequests, Tokenizer tokenizer, boolean forcefulToolExecution) {
         if (tokenizer == null) {
             return null;
         }
@@ -187,14 +184,14 @@ public class QianfanStreamingResponseBuilder {
         private final StringBuffer argumentsBuilder = new StringBuffer();
     }
 
-    public Response<AiMessage> build() {
+    public ChatResponse build() {
         String content = contentBuilder.toString();
         if (!content.isEmpty()) {
-            return Response.from(
-                    AiMessage.from(content),
-                    new TokenUsage(inputTokenCount, outputTokenCount),
-                    InternalQianfanHelper.finishReasonFrom(finishReason)
-            );
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(content))
+                    .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
+                    .finishReason(finishReasonFrom(finishReason))
+                    .build();
         }
 
         String toolName = toolNameBuilder.toString();
@@ -203,11 +200,11 @@ public class QianfanStreamingResponseBuilder {
                     .name(toolName)
                     .arguments(toolArgumentsBuilder.toString())
                     .build();
-            return Response.from(
-                    AiMessage.from(toolExecutionRequest),
-                    new TokenUsage(inputTokenCount, outputTokenCount),
-                    InternalQianfanHelper.finishReasonFrom(finishReason)
-            );
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(toolExecutionRequest))
+                    .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
+                    .finishReason(finishReasonFrom(finishReason))
+                    .build();
         }
 
         if (!indexToToolExecutionRequestBuilder.isEmpty()) {
@@ -218,11 +215,11 @@ public class QianfanStreamingResponseBuilder {
                             .arguments(it.argumentsBuilder.toString())
                             .build())
                     .collect(toList());
-            return Response.from(
-                    AiMessage.from(toolExecutionRequests),
-                    new TokenUsage(inputTokenCount, outputTokenCount),
-                    InternalQianfanHelper.finishReasonFrom(finishReason)
-            );
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(toolExecutionRequests))
+                    .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
+                    .finishReason(finishReasonFrom(finishReason))
+                    .build();
         }
 
         return null;

@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.redis.testcontainers.RedisContainer;
-import dev.langchain4j.community.store.ememory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;

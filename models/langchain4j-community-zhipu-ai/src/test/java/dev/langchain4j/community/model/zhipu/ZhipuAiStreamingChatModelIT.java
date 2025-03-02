@@ -1,32 +1,5 @@
 package dev.langchain4j.community.model.zhipu;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.model.chat.TestStreamingResponseHandler;
-import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequest;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponse;
-import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
-import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
-import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
-
 import static dev.langchain4j.community.model.zhipu.ZhipuAiChatModelIT.multimodalChatMessagesWithImageData;
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
@@ -39,8 +12,34 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
+import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
+import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import dev.langchain4j.model.output.TokenUsage;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
 public class ZhipuAiStreamingChatModelIT {
+
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
 
     private final ZhipuAiStreamingChatModel model = ZhipuAiStreamingChatModel.builder()
@@ -65,14 +64,13 @@ public class ZhipuAiStreamingChatModelIT {
     @Test
     void should_stream_answer() {
 
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        model.chat("Where is the capital of China? Please answer in English", handler);
 
-        model.generate("Where is the capital of China? Please answer in English", handler);
+        ChatResponse response = handler.get();
 
-        Response<AiMessage> response = handler.get();
-
-        assertThat(response.content().text()).containsIgnoringCase("Beijing");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("Beijing");
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.totalTokenCount())
                 .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
@@ -82,11 +80,11 @@ public class ZhipuAiStreamingChatModelIT {
 
     @Test
     void should_sensitive_words_stream_answer() throws Exception {
-        CompletableFuture<Response<AiMessage>> future = new CompletableFuture<>();
-        StreamingResponseHandler<AiMessage> handler = new StreamingResponseHandler<AiMessage>() {
+        CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+        StreamingChatResponseHandler handler = new StreamingChatResponseHandler() {
 
             @Override
-            public void onNext(String token) {
+            public void onPartialResponse(String token) {
                 fail("onNext() must not be called");
             }
 
@@ -96,7 +94,7 @@ public class ZhipuAiStreamingChatModelIT {
             }
 
             @Override
-            public void onComplete(Response<AiMessage> response) {
+            public void onCompleteResponse(ChatResponse response) {
                 future.complete(response);
             }
         };
@@ -110,11 +108,11 @@ public class ZhipuAiStreamingChatModelIT {
                 .writeTimeout(Duration.ofSeconds(60))
                 .readTimeout(Duration.ofSeconds(60))
                 .build();
-        model.generate("this message will fail", handler);
+        model.chat("this message will fail", handler);
 
-        Response<AiMessage> response = future.get(5, SECONDS);
+        ChatResponse response = future.get(5, SECONDS);
 
-        assertThat(response.content().text()).isEqualTo("Authorization Token非法，请确认Authorization Token正确传递。");
+        assertThat(response.aiMessage().text()).isEqualTo("Authorization Token非法，请确认Authorization Token正确传递。");
 
         assertThat(response.finishReason()).isEqualTo(OTHER);
     }
@@ -127,12 +125,17 @@ public class ZhipuAiStreamingChatModelIT {
         List<ToolSpecification> toolSpecifications = singletonList(calculator);
 
         // when
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
-        model.generate(singletonList(userMessage), toolSpecifications, handler);
+        model.chat(
+                ChatRequest.builder()
+                        .messages(singletonList(userMessage))
+                        .toolSpecifications(toolSpecifications)
+                        .build(),
+                handler);
 
-        Response<AiMessage> response = handler.get();
-        AiMessage aiMessage = response.content();
+        ChatResponse response = handler.get();
+        AiMessage aiMessage = response.aiMessage();
 
         // then
         assertThat(aiMessage.text()).isNull();
@@ -156,12 +159,12 @@ public class ZhipuAiStreamingChatModelIT {
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
 
-        model.generate(messages, secondHandler);
+        model.chat(messages, secondHandler);
 
-        Response<AiMessage> secondResponse = secondHandler.get();
-        AiMessage secondAiMessage = secondResponse.content();
+        ChatResponse secondResponse = secondHandler.get();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
 
         // then
         assertThat(secondAiMessage.text()).contains("4");
@@ -173,7 +176,6 @@ public class ZhipuAiStreamingChatModelIT {
 
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
-
 
     ToolSpecification currentTime = ToolSpecification.builder()
             .name("currentTime")
@@ -187,16 +189,22 @@ public class ZhipuAiStreamingChatModelIT {
         List<ToolSpecification> toolSpecifications = singletonList(currentTime);
 
         // when
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(singletonList(userMessage), toolSpecifications, handler);
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(singletonList(userMessage))
+                        .toolSpecifications(toolSpecifications)
+                        .build(),
+                handler);
 
         // then
-        Response<AiMessage> response = handler.get();
-        AiMessage aiMessage = response.content();
+        ChatResponse response = handler.get();
+        AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo("currentTime");
 
         TokenUsage tokenUsage = response.tokenUsage();
@@ -210,12 +218,12 @@ public class ZhipuAiStreamingChatModelIT {
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
-        TestStreamingResponseHandler<AiMessage> secondHandler = new TestStreamingResponseHandler<>();
-        model.generate(messages, secondHandler);
+        TestStreamingChatResponseHandler secondHandler = new TestStreamingChatResponseHandler();
+        model.chat(messages, secondHandler);
 
         // then
-        Response<AiMessage> secondResponse = secondHandler.get();
-        AiMessage secondAiMessage = secondResponse.content();
+        ChatResponse secondResponse = secondHandler.get();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("12:00:20");
         assertThat(secondAiMessage.text()).contains("2024");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
@@ -231,21 +239,21 @@ public class ZhipuAiStreamingChatModelIT {
     void should_listen_request_and_response() {
 
         // given
-        AtomicReference<ChatModelRequest> requestReference = new AtomicReference<>();
-        AtomicReference<ChatModelResponse> responseReference = new AtomicReference<>();
+        AtomicReference<ChatRequest> requestReference = new AtomicReference<>();
+        AtomicReference<ChatResponse> responseReference = new AtomicReference<>();
 
         ChatModelListener listener = new ChatModelListener() {
 
             @Override
             public void onRequest(ChatModelRequestContext requestContext) {
-                requestReference.set(requestContext.request());
+                requestReference.set(requestContext.chatRequest());
                 requestContext.attributes().put("id", "12345");
             }
 
             @Override
             public void onResponse(ChatModelResponseContext responseContext) {
-                responseReference.set(responseContext.response());
-                assertThat(responseContext.request()).isSameAs(requestReference.get());
+                responseReference.set(responseContext.chatResponse());
+                assertThat(responseContext.chatRequest()).isSameAs(requestReference.get());
                 assertThat(responseContext.attributes()).containsEntry("id", "12345");
             }
 
@@ -284,24 +292,27 @@ public class ZhipuAiStreamingChatModelIT {
                 .build();
 
         // when
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(singletonList(userMessage), singletonList(toolSpecification), handler);
-        AiMessage aiMessage = handler.get().content();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(
+                ChatRequest.builder()
+                        .messages(singletonList(userMessage))
+                        .toolSpecifications(toolSpecification)
+                        .build(),
+                handler);
+        AiMessage aiMessage = handler.get().aiMessage();
 
         // then
-        ChatModelRequest request = requestReference.get();
-        assertThat(request.temperature()).isEqualTo(temperature);
-        assertThat(request.topP()).isEqualTo(topP);
-        assertThat(request.maxTokens()).isEqualTo(maxTokens);
+        ChatRequest request = requestReference.get();
+        assertThat(request.parameters().temperature()).isEqualTo(temperature);
+        assertThat(request.parameters().topP()).isEqualTo(topP);
+        assertThat(request.parameters().maxOutputTokens()).isEqualTo(maxTokens);
         assertThat(request.messages()).containsExactly(userMessage);
         assertThat(request.toolSpecifications()).containsExactly(toolSpecification);
 
-        ChatModelResponse response = responseReference.get();
-        assertThat(response.id()).isNotBlank();
-        assertThat(response.model()).isNotBlank();
-        assertThat(response.tokenUsage().inputTokenCount()).isGreaterThan(0);
-        assertThat(response.tokenUsage().outputTokenCount()).isGreaterThan(0);
-        assertThat(response.tokenUsage().totalTokenCount()).isGreaterThan(0);
+        ChatResponse response = responseReference.get();
+        assertThat(response.tokenUsage().inputTokenCount()).isPositive();
+        assertThat(response.tokenUsage().outputTokenCount()).isPositive();
+        assertThat(response.tokenUsage().totalTokenCount()).isPositive();
         assertThat(response.finishReason()).isNotNull();
         assertThat(response.aiMessage()).isEqualTo(aiMessage);
     }
@@ -309,14 +320,14 @@ public class ZhipuAiStreamingChatModelIT {
     @Test
     void should_listen_error() throws Exception {
 
-        AtomicReference<ChatModelRequest> requestReference = new AtomicReference<>();
+        AtomicReference<ChatRequest> requestReference = new AtomicReference<>();
         AtomicReference<Throwable> errorReference = new AtomicReference<>();
 
         ChatModelListener listener = new ChatModelListener() {
 
             @Override
             public void onRequest(ChatModelRequestContext requestContext) {
-                requestReference.set(requestContext.request());
+                requestReference.set(requestContext.chatRequest());
                 requestContext.attributes().put("id", "12345");
             }
 
@@ -328,8 +339,7 @@ public class ZhipuAiStreamingChatModelIT {
             @Override
             public void onError(ChatModelErrorContext errorContext) {
                 errorReference.set(errorContext.error());
-                assertThat(errorContext.request()).isSameAs(requestReference.get());
-                assertThat(errorContext.partialResponse()).isNull(); // can be non-null if it fails in the middle of streaming
+                assertThat(errorContext.chatRequest()).isSameAs(requestReference.get());
                 assertThat(errorContext.attributes()).containsEntry("id", "12345");
             }
         };
@@ -348,10 +358,10 @@ public class ZhipuAiStreamingChatModelIT {
         String userMessage = "this message will fail";
 
         CompletableFuture<String> future = new CompletableFuture<>();
-        StreamingResponseHandler<AiMessage> handler = new StreamingResponseHandler<AiMessage>() {
+        StreamingChatResponseHandler handler = new StreamingChatResponseHandler() {
 
             @Override
-            public void onNext(String token) {
+            public void onPartialResponse(String token) {
                 fail("onNext() must not be called");
             }
 
@@ -361,13 +371,13 @@ public class ZhipuAiStreamingChatModelIT {
             }
 
             @Override
-            public void onComplete(Response<AiMessage> response) {
-                future.complete(response.content().text());
+            public void onCompleteResponse(ChatResponse response) {
+                future.complete(response.aiMessage().text());
             }
         };
 
         // when
-        model.generate(userMessage, handler);
+        model.chat(userMessage, handler);
         String content = future.get(5, SECONDS);
 
         // then
@@ -386,11 +396,11 @@ public class ZhipuAiStreamingChatModelIT {
                 .writeTimeout(Duration.ofSeconds(60))
                 .readTimeout(Duration.ofSeconds(60))
                 .build();
-        TestStreamingResponseHandler<AiMessage> handler = new TestStreamingResponseHandler<>();
-        model.generate(multimodalChatMessagesWithImageData(), handler);
-        Response<AiMessage> response = handler.get();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(multimodalChatMessagesWithImageData(), handler);
+        ChatResponse response = handler.get();
 
-        assertThat(response.content().text()).containsIgnoringCase("parrot");
-        assertThat(response.content().text()).endsWith("That's all!");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
+        assertThat(response.aiMessage().text()).endsWith("That's all!");
     }
 }

@@ -8,10 +8,11 @@ import dev.langchain4j.community.model.qianfan.QianfanEmbeddingModel;
 import dev.langchain4j.community.model.qianfan.QianfanLanguageModel;
 import dev.langchain4j.community.model.qianfan.QianfanStreamingChatModel;
 import dev.langchain4j.community.model.qianfan.QianfanStreamingLanguageModel;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
@@ -47,7 +48,7 @@ class AutoConfigIT {
                 .run(context -> {
                     ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
                     assertThat(chatLanguageModel).isInstanceOf(QianfanChatModel.class);
-                    assertThat(chatLanguageModel.generate("What is the capital of Germany?"))
+                    assertThat(chatLanguageModel.chat("What is the capital of Germany?"))
                             .contains("Berlin");
 
                     assertThat(context.getBean(QianfanChatModel.class)).isSameAs(chatLanguageModel);
@@ -65,22 +66,22 @@ class AutoConfigIT {
                     StreamingChatLanguageModel streamingChatLanguageModel =
                             context.getBean(StreamingChatLanguageModel.class);
                     assertThat(streamingChatLanguageModel).isInstanceOf(QianfanStreamingChatModel.class);
-                    CompletableFuture<Response<AiMessage>> future = new CompletableFuture<>();
-                    streamingChatLanguageModel.generate("德国的首都是哪里?", new StreamingResponseHandler<AiMessage>() {
+                    CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+                    streamingChatLanguageModel.chat("德国的首都是哪里?", new StreamingChatResponseHandler() {
 
                         @Override
-                        public void onNext(String token) {}
+                        public void onPartialResponse(String token) {}
 
                         @Override
-                        public void onComplete(Response<AiMessage> response) {
+                        public void onCompleteResponse(ChatResponse response) {
                             future.complete(response);
                         }
 
                         @Override
                         public void onError(Throwable error) {}
                     });
-                    Response<AiMessage> response = future.get(60, SECONDS);
-                    assertThat(response.content().text()).isNotNull();
+                    ChatResponse response = future.get(60, SECONDS);
+                    assertThat(response.aiMessage().text()).isNotNull();
 
                     assertThat(context.getBean(QianfanStreamingChatModel.class)).isSameAs(streamingChatLanguageModel);
                 });

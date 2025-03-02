@@ -1,33 +1,6 @@
 package dev.langchain4j.community.model.zhipu;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
-import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
-import dev.langchain4j.community.model.zhipu.chat.ChatCompletionResponse;
-import dev.langchain4j.community.model.zhipu.spi.ZhipuAiChatModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.internal.ValidationUtils;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequest;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.aiMessageFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.createModelListenerRequest;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.createModelListenerResponse;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.isSuccessFinishReason;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toTools;
@@ -38,16 +11,38 @@ import static dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode.AUTO;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
+import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
+import dev.langchain4j.community.model.zhipu.chat.ChatCompletionResponse;
+import dev.langchain4j.community.model.zhipu.spi.ZhipuAiChatModelBuilderFactory;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.internal.ValidationUtils;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
+import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.FinishReason;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents an ZhipuAi language model with a chat completion interface, such as glm-3-turbo and glm-4.
  * You can find description of parameters <a href="https://open.bigmodel.cn/dev/api">here</a>.
  */
 public class ZhipuAiChatModel implements ChatLanguageModel {
+
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiChatModel.class);
 
     private final Double temperature;
@@ -74,8 +69,7 @@ public class ZhipuAiChatModel implements ChatLanguageModel {
             Duration callTimeout,
             Duration connectTimeout,
             Duration readTimeout,
-            Duration writeTimeout
-    ) {
+            Duration writeTimeout) {
         this.temperature = getOrDefault(temperature, 0.7);
         this.topP = topP;
         this.stops = stops;
@@ -95,40 +89,26 @@ public class ZhipuAiChatModel implements ChatLanguageModel {
                 .build();
     }
 
-    public static ZhipuAiChatModelBuilder builder() {
-        for (ZhipuAiChatModelBuilderFactory factories : loadFactories(ZhipuAiChatModelBuilderFactory.class)) {
-            return factories.get();
-        }
-        return new ZhipuAiChatModelBuilder();
-    }
-
     @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages) {
-        return generate(messages, (ToolSpecification) null);
-    }
+    public ChatResponse doChat(ChatRequest request) {
+        List<ChatMessage> messages = request.messages();
+        List<ToolSpecification> toolSpecifications = request.toolSpecifications();
 
-    @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
-        ensureNotEmpty(messages, "messages");
-
-        ChatCompletionRequest.Builder requestBuilder = ChatCompletionRequest.builder()
-                .model(this.model)
-                .maxTokens(this.maxToken)
-                .stream(false)
-                .topP(this.topP)
-                .stop(this.stops)
-                .temperature(this.temperature)
-                .toolChoice(AUTO)
-                .messages(toZhipuAiMessages(messages));
+        ChatCompletionRequest.Builder requestBuilder =
+                ChatCompletionRequest.builder().model(this.model).maxTokens(this.maxToken).stream(false)
+                        .topP(this.topP)
+                        .stop(this.stops)
+                        .temperature(this.temperature)
+                        .toolChoice(AUTO)
+                        .messages(toZhipuAiMessages(messages));
 
         if (!isNullOrEmpty(toolSpecifications)) {
             requestBuilder.tools(toTools(toolSpecifications));
         }
 
-        ChatCompletionRequest request = requestBuilder.build();
-        ChatModelRequest modelListenerRequest = createModelListenerRequest(request, messages, toolSpecifications);
+        ChatCompletionRequest completionRequest = requestBuilder.build();
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(modelListenerRequest, attributes);
+        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, attributes);
         for (ChatModelListener chatModelListener : listeners) {
             try {
                 chatModelListener.onRequest(requestContext);
@@ -137,45 +117,42 @@ public class ZhipuAiChatModel implements ChatLanguageModel {
             }
         }
 
-        ChatCompletionResponse response = withRetry(() -> client.chatCompletion(request), maxRetries);
+        ChatCompletionResponse completionResponse =
+                withRetry(() -> client.chatCompletion(completionRequest), maxRetries);
 
-        FinishReason finishReason = finishReasonFrom(response.getChoices().get(0).getFinishReason());
+        FinishReason finishReason =
+                finishReasonFrom(completionResponse.getChoices().get(0).getFinishReason());
 
-        Response<AiMessage> messageResponse = Response.from(
-                aiMessageFrom(response),
-                tokenUsageFrom(response.getUsage()),
-                finishReason
-        );
+        ChatResponse response = ChatResponse.builder()
+                .aiMessage(aiMessageFrom(completionResponse))
+                .tokenUsage(tokenUsageFrom(completionResponse.getUsage()))
+                .finishReason(finishReason)
+                .build();
 
         listeners.forEach(listener -> {
             try {
                 if (isSuccessFinishReason(finishReason)) {
-                    listener.onResponse(new ChatModelResponseContext(
-                            createModelListenerResponse(response.getId(), request.getModel(), messageResponse),
-                            modelListenerRequest,
-                            attributes
-                    ));
+                    listener.onResponse(new ChatModelResponseContext(response, request, attributes));
                 } else {
                     listener.onError(new ChatModelErrorContext(
-                            new ZhipuAiException(messageResponse.content().text()),
-                            modelListenerRequest,
-                            null,
-                            attributes
-                    ));
+                            new ZhipuAiException(response.aiMessage().text()), request, attributes));
                 }
             } catch (Exception e) {
                 log.warn("Exception while calling model listener", e);
             }
         });
-        return messageResponse;
+        return response;
     }
 
-    @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
-        return generate(messages, toolSpecification != null ? singletonList(toolSpecification) : null);
+    public static ZhipuAiChatModelBuilder builder() {
+        for (ZhipuAiChatModelBuilderFactory factories : loadFactories(ZhipuAiChatModelBuilderFactory.class)) {
+            return factories.get();
+        }
+        return new ZhipuAiChatModelBuilder();
     }
 
     public static class ZhipuAiChatModelBuilder {
+
         private String baseUrl;
         private String apiKey;
         private Double temperature;
@@ -192,8 +169,7 @@ public class ZhipuAiChatModel implements ChatLanguageModel {
         private Duration readTimeout;
         private Duration writeTimeout;
 
-        public ZhipuAiChatModelBuilder() {
-        }
+        public ZhipuAiChatModelBuilder() {}
 
         public ZhipuAiChatModelBuilder model(ChatCompletionModel model) {
             this.model = model.toString();
@@ -277,7 +253,22 @@ public class ZhipuAiChatModel implements ChatLanguageModel {
         }
 
         public ZhipuAiChatModel build() {
-            return new ZhipuAiChatModel(this.baseUrl, this.apiKey, this.temperature, this.topP, this.model, this.stops, this.maxRetries, this.maxToken, this.logRequests, this.logResponses, this.listeners, this.callTimeout, this.connectTimeout, this.readTimeout, this.writeTimeout);
+            return new ZhipuAiChatModel(
+                    this.baseUrl,
+                    this.apiKey,
+                    this.temperature,
+                    this.topP,
+                    this.model,
+                    this.stops,
+                    this.maxRetries,
+                    this.maxToken,
+                    this.logRequests,
+                    this.logResponses,
+                    this.listeners,
+                    this.callTimeout,
+                    this.connectTimeout,
+                    this.readTimeout,
+                    this.writeTimeout);
         }
     }
 }
