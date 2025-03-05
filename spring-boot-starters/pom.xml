@@ -33,7 +33,7 @@
     </modules>
 
     <properties>
-        <spring.boot.version>3.3.8</spring.boot.version>
+        <spring.boot.version>3.4.3</spring.boot.version>
         <lombok.version>1.18.34</lombok.version>
         <logback.version>1.3.14</logback.version>
     </properties>
