@@ -81,11 +81,10 @@ class WanxImageModelIT {
                 WanxImageModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         model.setImageSynthesisParamCustomizer(builder -> {
-            builder.extraInput("lora_index", "wanx1.4.6_textlora_jianzhi1_20240816");
-            builder.extraInput("trigger_word", "papercut");
+            builder.parameter("ref_img", "https://raw.githubusercontent.com/langchain4j/langchain4j-community/refs/heads/main/models/langchain4j-community-dashscope/src/test/resources/parrot.jpg");
         });
 
-        Response<Image> response = model.generate("Beautiful house on country side");
+        Response<Image> response = model.generate("Draw a parrot");
 
         URI remoteImage = response.content().url();
         log.info("Your remote image is here: {}", remoteImage);
