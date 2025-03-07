@@ -1,8 +1,7 @@
 package dev.langchain4j.community.model.dashscope;
 
-import org.junit.jupiter.params.provider.Arguments;
-
 import java.util.stream.Stream;
+import org.junit.jupiter.params.provider.Arguments;
 
 class WanxTestHelper {
 
@@ -11,8 +10,7 @@ class WanxTestHelper {
                 Arguments.of(WanxModelName.WANX_V1),
                 Arguments.of(WanxModelName.WANX2_0_T2I_TURBO),
                 Arguments.of(WanxModelName.WANX2_1_T2I_TURBO),
-                Arguments.of(WanxModelName.WANX2_1_T2I_PLUS)
-        );
+                Arguments.of(WanxModelName.WANX2_1_T2I_PLUS));
     }
 
     // Some parameter features are only supported by v2
@@ -21,7 +19,6 @@ class WanxTestHelper {
         return Stream.of(
                 Arguments.of(WanxModelName.WANX2_0_T2I_TURBO),
                 Arguments.of(WanxModelName.WANX2_1_T2I_TURBO),
-                Arguments.of(WanxModelName.WANX2_1_T2I_PLUS)
-        );
+                Arguments.of(WanxModelName.WANX2_1_T2I_PLUS));
     }
 }

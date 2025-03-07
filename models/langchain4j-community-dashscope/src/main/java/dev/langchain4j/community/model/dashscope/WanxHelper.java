@@ -1,12 +1,13 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static java.util.stream.Collectors.toList;
+
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisOutput;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisResult;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.utils.OSSUtils;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.internal.Utils;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,8 +20,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static java.util.stream.Collectors.toList;
-
 public class WanxHelper {
 
     static List<Image> imagesFrom(ImageSynthesisResult result) {
@@ -29,8 +28,10 @@ public class WanxHelper {
                 .map(ImageSynthesisOutput::getResults)
                 .orElse(Collections.emptyList())
                 .stream()
-                .map(resultMap ->
-                        Image.builder().url(resultMap.get("url")).revisedPrompt(resultMap.get("actual_prompt")).build())
+                .map(resultMap -> Image.builder()
+                        .url(resultMap.get("url"))
+                        .revisedPrompt(resultMap.get("actual_prompt"))
+                        .build())
                 .collect(toList());
     }
 

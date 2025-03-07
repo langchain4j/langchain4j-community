@@ -1,5 +1,11 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.WanxHelper.imageUrl;
+import static dev.langchain4j.community.model.dashscope.WanxHelper.imagesFrom;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesis;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisOutput;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisParam;
@@ -10,15 +16,8 @@ import dev.langchain4j.data.image.Image;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.util.List;
 import java.util.function.Consumer;
-
-import static dev.langchain4j.community.model.dashscope.WanxHelper.imageUrl;
-import static dev.langchain4j.community.model.dashscope.WanxHelper.imagesFrom;
-import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * Represents a Wanx models to generate artistic images.
@@ -270,8 +269,17 @@ public class WanxImageModel implements ImageModel {
 
         public WanxImageModel build() {
             return new WanxImageModel(
-                    baseUrl, apiKey, modelName, refMode, refStrength, seed, size, style,
-                    negativePrompt, promptExtend, watermark);
+                    baseUrl,
+                    apiKey,
+                    modelName,
+                    refMode,
+                    refStrength,
+                    seed,
+                    size,
+                    style,
+                    negativePrompt,
+                    promptExtend,
+                    watermark);
         }
     }
 }
