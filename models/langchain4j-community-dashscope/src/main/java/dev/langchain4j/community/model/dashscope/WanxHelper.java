@@ -28,8 +28,10 @@ public class WanxHelper {
                 .map(ImageSynthesisOutput::getResults)
                 .orElse(Collections.emptyList())
                 .stream()
-                .map(resultMap -> resultMap.get("url"))
-                .map(url -> Image.builder().url(url).build())
+                .map(resultMap -> Image.builder()
+                        .url(resultMap.get("url"))
+                        .revisedPrompt(resultMap.get("actual_prompt"))
+                        .build())
                 .collect(toList());
     }
 

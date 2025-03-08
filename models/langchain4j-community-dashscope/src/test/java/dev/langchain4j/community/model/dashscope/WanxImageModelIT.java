@@ -33,16 +33,68 @@ class WanxImageModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.WanxTestHelper#imageModelNameProvider")
+    void simple_image_generation_works_with_negative_prompt(String modelName) {
+        WanxImageModel model = WanxImageModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .negativePrompt("dog")
+                .build();
+
+        Response<Image> response = model.generate("Cat and dog");
+
+        URI remoteImage = response.content().url();
+        log.info("Your remote image is here: {}", remoteImage);
+        assertThat(remoteImage).isNotNull();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.WanxTestHelper#imageModelNameV2Provider")
+    void simple_image_generation_works_with_prompt_extend(String modelName) {
+        WanxImageModel model = WanxImageModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .promptExtend(true)
+                .build();
+
+        Response<Image> response = model.generate("Cat and dog");
+
+        URI remoteImage = response.content().url();
+        String revisedPrompt = response.content().revisedPrompt();
+        log.info("Your remote image is here: {}", remoteImage);
+        log.info("Your revised prompt is: {}", revisedPrompt);
+        assertThat(remoteImage).isNotNull();
+        assertThat(revisedPrompt).isNotBlank();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.WanxTestHelper#imageModelNameV2Provider")
+    void simple_image_generation_works_with_watermark(String modelName) {
+        WanxImageModel model = WanxImageModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .watermark(true)
+                .build();
+
+        Response<Image> response = model.generate("Cat and dog");
+
+        URI remoteImage = response.content().url();
+        log.info("Your remote image is here: {}", remoteImage);
+        assertThat(remoteImage).isNotNull();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.WanxTestHelper#imageModelNameProvider")
     void simple_image_generation_works_by_customized_request(String modelName) {
         WanxImageModel model =
                 WanxImageModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         model.setImageSynthesisParamCustomizer(builder -> {
-            builder.extraInput("lora_index", "wanx1.4.6_textlora_jianzhi1_20240816");
-            builder.extraInput("trigger_word", "papercut");
+            builder.parameter(
+                    "ref_img",
+                    "https://raw.githubusercontent.com/langchain4j/langchain4j-community/refs/heads/main/models/langchain4j-community-dashscope/src/test/resources/parrot.jpg");
         });
 
-        Response<Image> response = model.generate("Beautiful house on country side");
+        Response<Image> response = model.generate("Draw a parrot");
 
         URI remoteImage = response.content().url();
         log.info("Your remote image is here: {}", remoteImage);

@@ -1,5 +1,11 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.WanxHelper.imageUrl;
+import static dev.langchain4j.community.model.dashscope.WanxHelper.imagesFrom;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesis;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisOutput;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisParam;
@@ -10,14 +16,8 @@ import dev.langchain4j.data.image.Image;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.util.List;
 import java.util.function.Consumer;
-
-import static dev.langchain4j.community.model.dashscope.WanxHelper.imageUrl;
-import static dev.langchain4j.community.model.dashscope.WanxHelper.imagesFrom;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * Represents a Wanx models to generate artistic images.
@@ -40,6 +40,19 @@ public class WanxImageModel implements ImageModel {
     // '720*1280', and '1280*720' resolutions. Default is '1024*1024'.
     private final WanxImageSize size;
     private final WanxImageStyle style;
+    // Negative prompt words are used to describe the content that you do not
+    // want to see on the screen. Supports Chinese and English.
+    private final String negativePrompt;
+    // Whether to enable prompt intelligent rewriting.
+    // When enabled, the input prompt will be intelligently rewritten
+    // using a large model, which is only effective for positive prompt words.
+    // For shorter input prompts, the generation effect is significantly improved,
+    // but it will increase the time consumption by 3-4 seconds.
+    private final Boolean promptExtend;
+    // Whether to add a watermark.
+    // The watermark is located in the lower right corner of the image
+    // and the text is "AI生成".
+    private final Boolean watermark;
     private final ImageSynthesis imageSynthesis;
     private Consumer<ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?>> imageSynthesisParamCustomizer = p -> {};
 
@@ -51,7 +64,10 @@ public class WanxImageModel implements ImageModel {
             Float refStrength,
             Integer seed,
             WanxImageSize size,
-            WanxImageStyle style) {
+            WanxImageStyle style,
+            String negativePrompt,
+            Boolean promptExtend,
+            Boolean watermark) {
         if (Utils.isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
                     "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
@@ -63,6 +79,9 @@ public class WanxImageModel implements ImageModel {
         this.seed = seed;
         this.size = size;
         this.style = style;
+        this.negativePrompt = negativePrompt;
+        this.promptExtend = promptExtend;
+        this.watermark = watermark;
         this.imageSynthesis =
                 Utils.isNullOrBlank(baseUrl) ? new ImageSynthesis() : new ImageSynthesis("text2image", baseUrl);
     }
@@ -152,6 +171,18 @@ public class WanxImageModel implements ImageModel {
             builder.parameter("ref_strength", refStrength);
         }
 
+        if (isNotNullOrBlank(negativePrompt)) {
+            builder.negativePrompt(negativePrompt);
+        }
+
+        if (promptExtend != null) {
+            builder.parameter("prompt_extend", promptExtend);
+        }
+
+        if (watermark != null) {
+            builder.parameter("watermark", watermark);
+        }
+
         return builder;
     }
 
@@ -172,6 +203,9 @@ public class WanxImageModel implements ImageModel {
         private Integer seed;
         private WanxImageSize size;
         private WanxImageStyle style;
+        private String negativePrompt;
+        private Boolean promptExtend;
+        private Boolean watermark;
 
         public WanxImageModelBuilder() {
             // This is public, so it can be extended
@@ -218,8 +252,34 @@ public class WanxImageModel implements ImageModel {
             return this;
         }
 
+        public WanxImageModelBuilder negativePrompt(String negativePrompt) {
+            this.negativePrompt = negativePrompt;
+            return this;
+        }
+
+        public WanxImageModelBuilder promptExtend(Boolean promptExtend) {
+            this.promptExtend = promptExtend;
+            return this;
+        }
+
+        public WanxImageModelBuilder watermark(Boolean watermark) {
+            this.watermark = watermark;
+            return this;
+        }
+
         public WanxImageModel build() {
-            return new WanxImageModel(baseUrl, apiKey, modelName, refMode, refStrength, seed, size, style);
+            return new WanxImageModel(
+                    baseUrl,
+                    apiKey,
+                    modelName,
+                    refMode,
+                    refStrength,
+                    seed,
+                    size,
+                    style,
+                    negativePrompt,
+                    promptExtend,
+                    watermark);
         }
     }
 }
