@@ -164,17 +164,9 @@ public class QianfanStreamingResponseBuilder {
             return null;
         }
 
-        int outputTokenCount = 0;
-        if (forcefulToolExecution) {
-            // Qianfan calculates output tokens differently when tool is executed forcefully
-            for (ToolExecutionRequest toolExecutionRequest : toolExecutionRequests) {
-                outputTokenCount += tokenizer.estimateTokenCountInForcefulToolExecutionRequest(toolExecutionRequest);
-            }
-        } else {
-            outputTokenCount = tokenizer.estimateTokenCountInToolExecutionRequests(toolExecutionRequests);
-        }
+        // Tool output token estimation has been removed since 1.0.0-beta1
 
-        return new TokenUsage(inputTokenCount, outputTokenCount);
+        return new TokenUsage(inputTokenCount, 0);
     }
 
     private static class ToolExecutionRequestBuilder {

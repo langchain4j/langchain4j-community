@@ -377,12 +377,9 @@ class QwenHelper {
         return ToolFunction.builder().function(functionDefinition).build();
     }
 
-    @SuppressWarnings("deprecation")
     private static JsonObject toParameters(ToolSpecification toolSpecification) {
         if (toolSpecification.parameters() != null) {
             return JsonUtils.toJsonObject(toMap(toolSpecification.parameters()));
-        } else if (toolSpecification.toolParameters() != null) {
-            return JsonUtils.toJsonObject(toolSpecification.toolParameters());
         } else {
             return JsonUtils.toJsonObject(Collections.emptyMap());
         }

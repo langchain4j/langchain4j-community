@@ -13,8 +13,6 @@ import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.tokenizers.Tokenization;
 import com.alibaba.dashscope.tokenizers.TokenizationResult;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.dashscope.spi.QwenTokenizerBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.Tokenizer;
@@ -76,16 +74,6 @@ public class QwenTokenizer implements Tokenizer {
         } catch (NoApiKeyException | InputRequiredException e) {
             throw new IllegalArgumentException(e);
         }
-    }
-
-    @Override
-    public int estimateTokenCountInToolSpecifications(Iterable<ToolSpecification> toolSpecifications) {
-        throw new IllegalArgumentException("Tools are currently not supported by this tokenizer");
-    }
-
-    @Override
-    public int estimateTokenCountInToolExecutionRequests(Iterable<ToolExecutionRequest> toolExecutionRequests) {
-        throw new IllegalArgumentException("Tools are currently not supported by this tokenizer");
     }
 
     public static boolean isBlank(CharSequence cs) {
