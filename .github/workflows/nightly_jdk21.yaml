@@ -14,7 +14,7 @@ jobs:
           - 17
         include:
           - java_version: '17'
-            mvn_opts: ''
+            mvn_opts: '-Dtinylog.writer.level=info'
       max-parallel: 1
     runs-on: ubuntu-latest
     steps:
