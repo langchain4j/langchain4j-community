@@ -1,10 +1,14 @@
 package dev.langchain4j.community.web.search.searxng;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.web.search.WebSearchEngine;
 import dev.langchain4j.web.search.WebSearchEngineIT;
 import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchRequest;
 import dev.langchain4j.web.search.WebSearchResults;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -14,11 +18,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
 class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
@@ -35,6 +34,8 @@ class SearXNGWebSearchEngineIT extends WebSearchEngineIT {
     protected WebSearchEngine searchEngine() {
         return SearXNGWebSearchEngine.builder()
                 .baseUrl("http://" + searxng.getHost() + ":" + searxng.getMappedPort(8080))
+                .logRequests(true)
+                .logResponses(true)
                 .build();
     }
 
