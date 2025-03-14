@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
-        <version>1.0.0-beta2</version>
+        <version>1.0.0-beta3-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
