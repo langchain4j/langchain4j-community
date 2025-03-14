@@ -92,7 +92,7 @@ public class ZhipuAiStreamingChatModel implements StreamingChatLanguageModel {
 
         ChatCompletionRequest completionRequest = requestBuilder.build();
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, attributes);
+        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
         for (ChatModelListener chatModelListener : listeners) {
             try {
                 chatModelListener.onRequest(requestContext);
@@ -101,7 +101,7 @@ public class ZhipuAiStreamingChatModel implements StreamingChatLanguageModel {
             }
         }
 
-        client.streamingChatCompletion(completionRequest, handler, listeners, requestContext);
+        client.streamingChatCompletion(completionRequest, handler, listeners, requestContext, provider());
     }
 
     public static ZhipuAiStreamingChatModelBuilder builder() {

@@ -22,6 +22,7 @@ import dev.langchain4j.community.model.zhipu.image.ImageResponse;
 import dev.langchain4j.community.model.zhipu.shared.Usage;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.internal.Utils;
+import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -112,7 +113,8 @@ public class ZhipuAiClient {
             ChatCompletionRequest request,
             StreamingChatResponseHandler handler,
             List<ChatModelListener> listeners,
-            ChatModelRequestContext requestContext) {
+            ChatModelRequestContext requestContext,
+            ModelProvider provider) {
         EventSourceListener eventSourceListener = new EventSourceListener() {
             final StringBuffer contentBuilder = new StringBuffer();
             List<ToolExecutionRequest> specifications;
@@ -146,7 +148,7 @@ public class ZhipuAiClient {
                             .build();
 
                     ChatModelResponseContext responseContext = new ChatModelResponseContext(
-                            response, requestContext.chatRequest(), requestContext.attributes());
+                            response, requestContext.chatRequest(), provider, requestContext.attributes());
                     for (ChatModelListener listener : listeners) {
                         try {
                             listener.onResponse(responseContext);
@@ -180,7 +182,7 @@ public class ZhipuAiClient {
                             this.specifications = specificationsFrom(toolCalls);
                         }
                     } catch (Exception exception) {
-                        handleResponseException(exception, handler, requestContext, listeners);
+                        handleResponseException(exception, handler, requestContext, provider, listeners);
                     }
                 }
             }
@@ -191,7 +193,7 @@ public class ZhipuAiClient {
                     log.debug("onFailure()", t);
                 }
                 Throwable throwable = Utils.getOrDefault(t, new ZhipuAiException(response));
-                handleResponseException(throwable, handler, requestContext, listeners);
+                handleResponseException(throwable, handler, requestContext, provider, listeners);
             }
 
             @Override
@@ -209,9 +211,10 @@ public class ZhipuAiClient {
             Throwable throwable,
             StreamingChatResponseHandler handler,
             ChatModelRequestContext requestContext,
+            ModelProvider provider,
             List<ChatModelListener> listeners) {
-        ChatModelErrorContext errorContext =
-                new ChatModelErrorContext(throwable, requestContext.chatRequest(), requestContext.attributes());
+        ChatModelErrorContext errorContext = new ChatModelErrorContext(
+                throwable, requestContext.chatRequest(), provider, requestContext.attributes());
 
         listeners.forEach(listener -> {
             try {

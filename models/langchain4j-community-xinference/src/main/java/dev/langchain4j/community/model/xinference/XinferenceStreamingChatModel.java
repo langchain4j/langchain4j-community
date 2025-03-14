@@ -130,7 +130,7 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
         ChatCompletionRequest xinferenceRequest = builder.build();
 
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, attributes);
+        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
         listeners.forEach(listener -> {
             try {
                 listener.onRequest(requestContext);
@@ -154,7 +154,7 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
                 .onComplete(() -> {
                     ChatResponse response = responseBuilder.build();
                     ChatModelResponseContext responseContext =
-                            new ChatModelResponseContext(response, request, attributes);
+                            new ChatModelResponseContext(response, request, provider(), attributes);
                     listeners.forEach(listener -> {
                         try {
                             listener.onResponse(responseContext);
@@ -166,7 +166,8 @@ public class XinferenceStreamingChatModel implements StreamingChatLanguageModel 
                     handler.onCompleteResponse(response);
                 })
                 .onError(throwable -> {
-                    ChatModelErrorContext errorContext = new ChatModelErrorContext(throwable, request, attributes);
+                    ChatModelErrorContext errorContext =
+                            new ChatModelErrorContext(throwable, request, provider(), attributes);
 
                     listeners.forEach(listener -> {
                         try {

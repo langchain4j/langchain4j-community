@@ -133,7 +133,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
         ChatCompletionRequest xinferenceRequest = builder.build();
 
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, attributes);
+        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
         listeners.forEach(listener -> {
             try {
                 listener.onRequest(requestContext);
@@ -154,7 +154,8 @@ public class XinferenceChatModel implements ChatLanguageModel {
                     .finishReason(finishReasonFrom(completionChoice.getFinishReason()))
                     .build();
 
-            ChatModelResponseContext responseContext = new ChatModelResponseContext(response, request, attributes);
+            ChatModelResponseContext responseContext =
+                    new ChatModelResponseContext(response, request, provider(), attributes);
             listeners.forEach(listener -> {
                 try {
                     listener.onResponse(responseContext);
@@ -171,7 +172,7 @@ public class XinferenceChatModel implements ChatLanguageModel {
             } else {
                 error = e;
             }
-            ChatModelErrorContext errorContext = new ChatModelErrorContext(error, request, attributes);
+            ChatModelErrorContext errorContext = new ChatModelErrorContext(error, request, provider(), attributes);
 
             listeners.forEach(listener -> {
                 try {
