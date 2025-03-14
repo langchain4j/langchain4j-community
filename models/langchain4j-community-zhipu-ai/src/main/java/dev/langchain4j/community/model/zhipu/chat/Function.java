@@ -1,15 +1,14 @@
 package dev.langchain4j.community.model.zhipu.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import dev.langchain4j.agent.tool.JsonSchemaProperty;
-
+import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
@@ -71,8 +70,7 @@ public final class Function {
         private String description;
         private Parameters parameters;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder name(String name) {
             this.name = name;
@@ -89,21 +87,21 @@ public final class Function {
             return this;
         }
 
-        public Builder addParameter(String name, JsonSchemaProperty... jsonSchemaProperties) {
-            this.addOptionalParameter(name, jsonSchemaProperties);
+        public Builder addParameter(String name, Map<String, JsonSchemaElement> properties) {
+            this.addOptionalParameter(name, properties);
             this.parameters.getRequired().add(name);
             return this;
         }
 
-        public Builder addOptionalParameter(String name, JsonSchemaProperty... jsonSchemaProperties) {
+        public Builder addOptionalParameter(String name, Map<String, JsonSchemaElement> properties) {
             if (this.parameters == null) {
                 this.parameters = Parameters.builder().build();
             }
 
             Map<String, Object> jsonSchemaPropertiesMap = new HashMap<>();
 
-            for (JsonSchemaProperty jsonSchemaProperty : jsonSchemaProperties) {
-                jsonSchemaPropertiesMap.put(jsonSchemaProperty.key(), jsonSchemaProperty.value());
+            for (Map.Entry<String, JsonSchemaElement> entry : properties.entrySet()) {
+                jsonSchemaPropertiesMap.put(entry.getKey(), entry.getValue());
             }
 
             this.parameters.getProperties().put(name, jsonSchemaPropertiesMap);

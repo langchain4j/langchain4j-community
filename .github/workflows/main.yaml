@@ -32,13 +32,13 @@ jobs:
           - 23
         include:
           - java_version: '17'
-            mvn_opts: ''
+            mvn_opts: '-Dtinylog.writer.level=info'
             experimental: false
           - java_version: '21'
-            mvn_opts: ''
+            mvn_opts: '-Dtinylog.writer.level=info'
             experimental: false
           - java_version: '23'
-            mvn_opts: ''
+            mvn_opts: '-Dtinylog.writer.level=info'
             experimental: true
     runs-on: ubuntu-latest
     steps:

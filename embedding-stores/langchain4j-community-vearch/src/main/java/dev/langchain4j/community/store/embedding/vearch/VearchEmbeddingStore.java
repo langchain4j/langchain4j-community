@@ -17,6 +17,7 @@ import static java.util.stream.Collectors.toList;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
@@ -46,6 +47,8 @@ public class VearchEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final boolean normalizeEmbeddings;
 
     public VearchEmbeddingStore(
+            HttpClientBuilder httpClientBuilder,
+            Map<String, String> customHeaders,
             String baseUrl,
             Duration timeout,
             VearchConfig vearchConfig,
@@ -58,6 +61,8 @@ public class VearchEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.normalizeEmbeddings = normalizeEmbeddings;
 
         vearchClient = VearchClient.builder()
+                .httpClientBuilder(httpClientBuilder)
+                .customHeaders(customHeaders)
                 .baseUrl(baseUrl)
                 .timeout(getOrDefault(timeout, ofSeconds(60)))
                 .logRequests(logRequests)
@@ -255,12 +260,24 @@ public class VearchEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     public static class Builder {
 
+        private HttpClientBuilder httpClientBuilder;
+        private Map<String, String> customHeaders;
         private VearchConfig vearchConfig;
         private String baseUrl;
         private Duration timeout;
         private boolean normalizeEmbeddings;
         private boolean logRequests;
         private boolean logResponses;
+
+        public Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
+            this.httpClientBuilder = httpClientBuilder;
+            return this;
+        }
+
+        public Builder customHeaders(Map<String, String> customHeaders) {
+            this.customHeaders = customHeaders;
+            return this;
+        }
 
         public Builder vearchConfig(VearchConfig vearchConfig) {
             this.vearchConfig = vearchConfig;
@@ -300,7 +317,15 @@ public class VearchEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         public VearchEmbeddingStore build() {
             return new VearchEmbeddingStore(
-                    baseUrl, timeout, vearchConfig, normalizeEmbeddings, logRequests, logResponses);
+                    httpClientBuilder,
+                    customHeaders,
+                    baseUrl,
+                    timeout,
+                    vearchConfig,
+                    normalizeEmbeddings,
+                    logRequests,
+                    logResponses
+            );
         }
     }
 }

@@ -183,17 +183,18 @@ public class XinferenceClient {
     }
 
     public static class Builder {
-        public String baseUrl;
-        public String apiKey;
-        public Duration callTimeout = Duration.ofSeconds(60);
-        public Duration connectTimeout = Duration.ofSeconds(60);
-        public Duration readTimeout = Duration.ofSeconds(60);
-        public Duration writeTimeout = Duration.ofSeconds(60);
+
+        private String baseUrl;
+        private String apiKey;
+        private Duration callTimeout = Duration.ofSeconds(60);
+        private Duration connectTimeout = Duration.ofSeconds(60);
+        private Duration readTimeout = Duration.ofSeconds(60);
+        private Duration writeTimeout = Duration.ofSeconds(60);
         private Proxy proxy;
-        public boolean logRequests;
-        public boolean logResponses;
-        public boolean logStreamingResponses;
-        public Map<String, String> customHeaders;
+        private boolean logRequests;
+        private boolean logResponses;
+        private boolean logStreamingResponses;
+        private Map<String, String> customHeaders;
 
         public Builder baseUrl(String baseUrl) {
             if (baseUrl == null || baseUrl.trim().isEmpty()) {
