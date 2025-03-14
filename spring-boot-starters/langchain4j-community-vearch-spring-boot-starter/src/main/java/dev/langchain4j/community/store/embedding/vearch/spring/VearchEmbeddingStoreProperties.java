@@ -4,6 +4,7 @@ import dev.langchain4j.community.store.embedding.vearch.field.Field;
 import dev.langchain4j.community.store.embedding.vearch.index.search.SearchIndexParam;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
@@ -14,6 +15,7 @@ public class VearchEmbeddingStoreProperties {
 
     private String baseUrl;
     private Duration timeout;
+    private Map<String, String> customHeaders;
 
     @NestedConfigurationProperty
     private Config config;
@@ -36,6 +38,14 @@ public class VearchEmbeddingStoreProperties {
 
     public void setTimeout(Duration timeout) {
         this.timeout = timeout;
+    }
+
+    public Map<String, String> getCustomHeaders() {
+        return customHeaders;
+    }
+
+    public void setCustomHeaders(Map<String, String> customHeaders) {
+        this.customHeaders = customHeaders;
     }
 
     public Config getConfig() {
