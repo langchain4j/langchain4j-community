@@ -108,7 +108,7 @@ public class ZhipuAiChatModel implements ChatLanguageModel {
 
         ChatCompletionRequest completionRequest = requestBuilder.build();
         Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, attributes);
+        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
         for (ChatModelListener chatModelListener : listeners) {
             try {
                 chatModelListener.onRequest(requestContext);
@@ -132,10 +132,10 @@ public class ZhipuAiChatModel implements ChatLanguageModel {
         listeners.forEach(listener -> {
             try {
                 if (isSuccessFinishReason(finishReason)) {
-                    listener.onResponse(new ChatModelResponseContext(response, request, attributes));
+                    listener.onResponse(new ChatModelResponseContext(response, request, provider(), attributes));
                 } else {
                     listener.onError(new ChatModelErrorContext(
-                            new ZhipuAiException(response.aiMessage().text()), request, attributes));
+                            new ZhipuAiException(response.aiMessage().text()), request, provider(), attributes));
                 }
             } catch (Exception e) {
                 log.warn("Exception while calling model listener", e);
