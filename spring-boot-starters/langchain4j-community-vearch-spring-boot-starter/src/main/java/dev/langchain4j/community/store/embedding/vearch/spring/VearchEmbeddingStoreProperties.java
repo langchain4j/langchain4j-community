@@ -2,12 +2,11 @@ package dev.langchain4j.community.store.embedding.vearch.spring;
 
 import dev.langchain4j.community.store.embedding.vearch.field.Field;
 import dev.langchain4j.community.store.embedding.vearch.index.search.SearchIndexParam;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.NestedConfigurationProperty;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 @ConfigurationProperties(prefix = VearchEmbeddingStoreProperties.CONFIG_PREFIX)
 public class VearchEmbeddingStoreProperties {

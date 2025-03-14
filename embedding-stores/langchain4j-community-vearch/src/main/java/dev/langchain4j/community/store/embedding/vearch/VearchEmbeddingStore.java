@@ -324,8 +324,7 @@ public class VearchEmbeddingStore implements EmbeddingStore<TextSegment> {
                     vearchConfig,
                     normalizeEmbeddings,
                     logRequests,
-                    logResponses
-            );
+                    logResponses);
         }
     }
 }

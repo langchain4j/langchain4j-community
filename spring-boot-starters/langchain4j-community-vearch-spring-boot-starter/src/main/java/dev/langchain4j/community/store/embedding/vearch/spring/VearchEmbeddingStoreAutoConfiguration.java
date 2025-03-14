@@ -8,7 +8,6 @@ import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.spring.restclient.SpringRestClient;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import java.util.Optional;
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
