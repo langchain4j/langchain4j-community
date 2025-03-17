@@ -27,9 +27,12 @@ class QwenTestHelper {
     public static Stream<Arguments> languageModelNameProvider() {
         return Stream.of(
                 Arguments.of(QwenModelName.QWEN_TURBO),
+                Arguments.of(QwenModelName.QWEN_TURBO_LATEST),
                 Arguments.of(QwenModelName.QWEN_PLUS),
+                Arguments.of(QwenModelName.QWEN_PLUS_LATEST),
                 Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_MAX_LONGCONTEXT),
+                Arguments.of(QwenModelName.QWEN_MAX_LATEST),
+                Arguments.of(QwenModelName.QWEN_LONG),
                 Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
@@ -40,9 +43,12 @@ class QwenTestHelper {
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
         return Stream.of(
                 Arguments.of(QwenModelName.QWEN_TURBO),
+                Arguments.of(QwenModelName.QWEN_TURBO_LATEST),
                 Arguments.of(QwenModelName.QWEN_PLUS),
+                Arguments.of(QwenModelName.QWEN_PLUS_LATEST),
                 Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_MAX_LONGCONTEXT),
+                Arguments.of(QwenModelName.QWEN_MAX_LATEST),
+                Arguments.of(QwenModelName.QWEN_LONG),
                 Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
@@ -55,7 +61,7 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> vlChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX), Arguments.of(QwenModelName.QWEN_VL_MAX_LATEST));
     }
 
     public static Stream<Arguments> mtChatModelNameProvider() {
@@ -63,7 +69,8 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> audioChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN2_AUDIO_INSTRUCT));
+        return Stream.of(
+                Arguments.of(QwenModelName.QWEN_AUDIO_TURBO), Arguments.of(QwenModelName.QWEN_AUDIO_TURBO_LATEST));
     }
 
     public static Stream<Arguments> embeddingModelNameProvider() {

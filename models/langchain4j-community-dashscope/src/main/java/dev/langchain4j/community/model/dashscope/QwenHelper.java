@@ -59,13 +59,6 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,7 +66,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -176,16 +168,8 @@ class QwenHelper {
                     imageContent = image.url().toString();
                     return Collections.singletonMap("image", imageContent);
                 } else if (Utils.isNotNullOrBlank(image.base64Data())) {
-                    // The dashscope sdk supports local file url: file://...
-                    // Using the temporary directory for storing temporary files is a safe practice,
-                    // as most operating systems will periodically clean up the contents of this directory
-                    // or do so upon system reboot.
-                    imageContent = saveDataAsTemporaryFile(image.base64Data(), image.mimeType());
-
-                    // In this case, the dashscope sdk requires a mutable map.
-                    HashMap<String, Object> contentMap = new HashMap<>(1);
-                    contentMap.put("image", imageContent);
-                    return contentMap;
+                    return Collections.singletonMap(
+                            "image", "data:%s;base64,%s".formatted(image.mimeType(), image.base64Data()));
                 } else {
                     return Collections.emptyMap();
                 }
@@ -196,16 +180,8 @@ class QwenHelper {
                     audioContent = audio.url().toString();
                     return Collections.singletonMap("audio", audioContent);
                 } else if (Utils.isNotNullOrBlank(audio.base64Data())) {
-                    // The dashscope sdk supports local file url: file://...
-                    // Using the temporary directory for storing temporary files is a safe practice,
-                    // as most operating systems will periodically clean up the contents of this directory
-                    // or do so upon system reboot.
-                    audioContent = saveDataAsTemporaryFile(audio.base64Data(), audio.mimeType());
-
-                    // In this case, the dashscope sdk requires a mutable map.
-                    HashMap<String, Object> contentMap = new HashMap<>(1);
-                    contentMap.put("audio", audioContent);
-                    return contentMap;
+                    return Collections.singletonMap(
+                            "audio", "data:%s;base64,%s".formatted(audio.mimeType(), audio.base64Data()));
                 } else {
                     return Collections.emptyMap();
                 }
@@ -214,28 +190,6 @@ class QwenHelper {
             default:
                 return Collections.emptyMap();
         }
-    }
-
-    static String saveDataAsTemporaryFile(String base64Data, String mimeType) {
-        String tmpDir = System.getProperty("java.io.tmpdir", "/tmp");
-        String tmpFileName = UUID.randomUUID().toString();
-        if (Utils.isNotNullOrBlank(mimeType)) {
-            // e.g. "image/png", "image/jpeg"...
-            int lastSlashIndex = mimeType.lastIndexOf("/");
-            if (lastSlashIndex >= 0 && lastSlashIndex < mimeType.length() - 1) {
-                String fileSuffix = mimeType.substring(lastSlashIndex + 1);
-                tmpFileName = tmpFileName + "." + fileSuffix;
-            }
-        }
-
-        Path tmpFilePath = Paths.get(tmpDir, tmpFileName);
-        byte[] data = Base64.getDecoder().decode(base64Data);
-        try {
-            Files.copy(new ByteArrayInputStream(data), tmpFilePath, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-        return tmpFilePath.toAbsolutePath().toUri().toString();
     }
 
     static String roleFrom(ChatMessage message) {
@@ -715,7 +669,7 @@ class QwenHelper {
                         .topK(parameters.topK())
                         .enableSearch(getOrDefault(parameters.enableSearch(), false))
                         .seed(parameters.seed())
-                        .maxLength(parameters.maxOutputTokens())
+                        .maxTokens(parameters.maxOutputTokens())
                         .messages(toQwenMultiModalMessages(chatRequest.messages()))
                         .incrementalOutput(incrementalOutput);
 
