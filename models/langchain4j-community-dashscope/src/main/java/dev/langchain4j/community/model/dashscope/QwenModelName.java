@@ -11,8 +11,7 @@ public class QwenModelName {
     public static final String QWEN_PLUS_LATEST = "qwen-plus-latest"; // Qwen plus model, latest version.
     public static final String QWEN_MAX = "qwen-max"; // Qwen max model, stable version.
     public static final String QWEN_MAX_LATEST = "qwen-max-latest"; // Qwen max model, latest version.
-    public static final String QWEN_LONG =
-            "qwen-long"; // Qwen long model, 10m context.
+    public static final String QWEN_LONG = "qwen-long"; // Qwen long model, 10m context.
     public static final String QWEN_7B_CHAT = "qwen-7b-chat"; // Qwen open sourced 7-billion-parameters model
     public static final String QWEN_14B_CHAT = "qwen-14b-chat"; // Qwen open sourced 14-billion-parameters model
     public static final String QWEN_72B_CHAT = "qwen-72b-chat"; // Qwen open sourced 72-billion-parameters model
@@ -54,11 +53,14 @@ public class QwenModelName {
     public static final String QWEN_VL_PLUS_LATEST =
             "qwen-vl-plus-latest"; // Qwen multi-modal model, supports image and text information, latest version.
     public static final String QWEN_VL_MAX =
-            "qwen-vl-max"; // Qwen multi-modal model, offers optimal performance on a wider range of complex tasks, stable version.
+            "qwen-vl-max"; // Qwen multi-modal model, offers optimal performance on a wider range of complex tasks,
+    // stable version.
     public static final String QWEN_VL_MAX_LATEST =
-            "qwen-vl-max-latest"; // Qwen multi-modal model, offers optimal performance on a wider range of complex tasks, stable version.
+            "qwen-vl-max-latest"; // Qwen multi-modal model, offers optimal performance on a wider range of complex
+    // tasks, stable version.
     public static final String QWEN_AUDIO_TURBO = "qwen-audio-turbo"; // Qwen audio understanding model, stable version
-    public static final String QWEN_AUDIO_TURBO_LATEST = "qwen-audio-turbo-latest"; // Qwen audio understanding model, latest version
+    public static final String QWEN_AUDIO_TURBO_LATEST =
+            "qwen-audio-turbo-latest"; // Qwen audio understanding model, latest version
     public static final String QWEN_MT_TURBO = "qwen-mt-turbo"; // Qwen turbo model for translation.
     public static final String QWEN_MT_PLUS = "qwen-mt-plus"; // Qwen plus model for translation.
 
