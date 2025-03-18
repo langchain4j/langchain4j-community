@@ -73,6 +73,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-alloydb-pg</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- content retrievers -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>

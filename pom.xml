@@ -60,6 +60,7 @@
         <module>embedding-stores/langchain4j-community-duckdb</module>
         <module>embedding-stores/langchain4j-community-redis</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
+        <module>embedding-stores/langchain4j-alloydb-pg</module>
 
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
@@ -179,7 +180,8 @@
             </plugin>
 
             <plugin>
-                <!-- failsafe will be in charge of running the integration tests (everything that ends in IT) -->
+                <!-- failsafe will be in charge of running the integration tests (everything that
+                ends in IT) -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration combine.children="append">
