@@ -1,5 +1,8 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+
 import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.AiMessage;
@@ -9,8 +12,6 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import org.junit.jupiter.params.provider.Arguments;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,9 +20,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import org.junit.jupiter.params.provider.Arguments;
 
 class QwenTestHelper {
 
@@ -60,9 +59,7 @@ class QwenTestHelper {
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
         // Function Call and structured output (JSON Mode) are not supported.
-        return Stream.of(
-                Arguments.of(QwenModelName.QWQ_PLUS),
-                Arguments.of(QwenModelName.QWQ_PLUS_LATEST));
+        return Stream.of(Arguments.of(QwenModelName.QWQ_PLUS), Arguments.of(QwenModelName.QWQ_PLUS_LATEST));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
