@@ -48,6 +48,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
     void should_send_non_multimodal_messages_and_receive_response(String modelName) {
         StreamingChatLanguageModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
@@ -63,6 +64,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
     void should_send_non_multimodal_messages_and_receive_response_by_customized_request(String modelName) {
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())

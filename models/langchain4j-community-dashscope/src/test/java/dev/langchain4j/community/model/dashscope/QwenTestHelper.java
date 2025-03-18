@@ -56,6 +56,12 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
     }
 
+    public static Stream<Arguments> reasoningChatModelNameProvider() {
+        // Only streaming output is supported.
+        // Function Call and structured output (JSON Mode) are not supported.
+        return Stream.of(Arguments.of(QwenModelName.QWQ_PLUS), Arguments.of(QwenModelName.QWQ_PLUS_LATEST));
+    }
+
     public static Stream<Arguments> functionCallChatModelNameProvider() {
         return Stream.of(Arguments.of(QwenModelName.QWEN_MAX));
     }
