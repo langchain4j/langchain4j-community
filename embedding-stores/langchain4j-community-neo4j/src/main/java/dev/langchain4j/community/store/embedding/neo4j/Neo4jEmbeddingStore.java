@@ -37,17 +37,28 @@ import org.slf4j.LoggerFactory;
 public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(Neo4jEmbeddingStore.class);
-    public static final String INDEX_CREATION = """
+    public static final String INDEX_CREATION =
+            """
             UNWIND $rows AS row
             MERGE (u:%1$s {%2$s: row.%2$s})
             SET u += row.%3$s
             WITH row, u
             CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
             RETURN count(*)""";
-    public static final String INDEX_ALREADY_EXISTS_ERROR = """
+    public static final String INDEX_ALREADY_EXISTS_ERROR =
+            """
             It's not possible to create an index for the label `%s` and the property `%s`,
             as there is another index with name `%s` with different labels: `%s` and properties `%s`.
             Please provide another indexName to create the vector index, or delete the existing one""";
+    public static final String CREATE_VECTOR_INDEX =
+            """
+            CREATE VECTOR INDEX %s IF NOT EXISTS
+            FOR (m:%s) ON m.%s
+            OPTIONS { indexConfig: {
+                `vector.dimensions`: %s,
+                `vector.similarity_function`: 'cosine'
+            }}
+            """;
 
     /* Neo4j Java Driver settings */
     private final Driver driver;
@@ -140,7 +151,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
     public static Builder builder() {
         return new Builder();
     }
-    
+
     /**
      * Close the Neo4j Driver connection
      */
@@ -261,9 +272,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
 
         try (var session = session()) {
             rowsBatched.forEach(rows -> {
-                String statement =
-                        String.format(INDEX_CREATION,
-                                this.sanitizedLabel, this.sanitizedIdProperty, PROPS, EMBEDDINGS_ROW_KEY);
+                String statement = String.format(
+                        INDEX_CREATION, this.sanitizedLabel, this.sanitizedIdProperty, PROPS, EMBEDDINGS_ROW_KEY);
 
                 Map<String, Object> params = Map.of("rows", rows, "embeddingProperty", this.embeddingProperty);
 
@@ -291,7 +301,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
     private boolean indexExists() {
         try (var session = session()) {
             Map<String, Object> params = Map.of("name", this.indexName);
-            var resIndex = session.run("SHOW INDEX WHERE type = 'VECTOR' AND name = $name", params);
+            var resIndex = session.run("SHOW VECTOR INDEX WHERE name = $name", params);
             if (!resIndex.hasNext()) {
                 return false;
             }
@@ -304,7 +314,11 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
             if (isIndexDifferent) {
                 String errMessage = String.format(
                         INDEX_ALREADY_EXISTS_ERROR,
-                        this.label, this.embeddingProperty, this.indexName, idxLabels, idxProps);
+                        this.label,
+                        this.embeddingProperty,
+                        this.indexName,
+                        idxLabels,
+                        idxProps);
                 throw new RuntimeException(errMessage);
             }
             return true;
@@ -324,9 +338,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
 
         // create vector index
         try (var session = session()) {
-            session.run(
-                    "CALL db.index.vector.createNodeIndex($indexName, $label, $embeddingProperty, $dimension, 'cosine')",
-                    params);
+            session.run(CREATE_VECTOR_INDEX, params);
 
             session.run("CALL db.awaitIndexes($timeout)", Map.of("timeout", awaitIndexTimeout))
                     .consume();

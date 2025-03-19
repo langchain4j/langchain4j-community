@@ -12,27 +12,21 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
-import dev.langchain4j.store.embedding.CosineSimilarity;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIT;
-import dev.langchain4j.store.embedding.RelevanceScore;
-
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.neo4j.cypherdsl.support.schema_name.SchemaNames;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
@@ -71,39 +65,8 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
         session = driver.session();
     }
 
-//    @BeforeEach
-//    void initEmptyNeo4jEmbeddingStore() {
-//        embeddingStore = Neo4jEmbeddingStore.builder()
-//                .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
-//                .dimension(384)
-//                .label(LABEL_TO_SANITIZE)
-//                .build();
-//    }
-
     @AfterEach
     void afterEach() {
-//        final Optional<Method> testMethod = testInfo.getTestMethod();
-
-//        final String testName = testMethod.map(Method::getName).orElse(null);
-        
-        // TODO - 
-        // should_add_embedding_with_segment_with_metadata,  
-        // should_add_embedding,
-        // should_add_embedding_with_id,
-        // should_add_embedding_with_segment,
-        // should_add_multiple_embeddings,
-        // should_add_multiple_embeddings_with_segments,
-        // should_add_multiple_embeddings_with_ids_and_segments,
-        // should_find_with_min_score,
-        // should_return_correct_score
-        
-//        if ("should_add_embedding_with_segment_with_metadata".equals(testName)) {
-//            checkSegmentWithMetadata(METADATA_KEY, LABEL_TO_SANITIZE);
-//        }
-//        if ("should_add_embedding".equals(testName)) {
-//            checkEntitiesCreated(1, iterator -> checkDefaultProps(embedding, match, iterator.next()));
-//        }
-
         session.run("MATCH (n) DETACH DELETE n");
         String indexName = ((Neo4jEmbeddingStore) embeddingStore()).getIndexName();
         session.run("DROP INDEX " + SchemaNames.sanitize(indexName).get());
@@ -118,7 +81,7 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
     protected EmbeddingModel embeddingModel() {
         return embeddingModel;
     }
-    
+
     @Override
     protected void clearStore() {
         embeddingStore = Neo4jEmbeddingStore.builder()
@@ -135,63 +98,17 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
         String id = embeddingStore.add(embedding);
         assertThat(id).isNotNull();
 
-        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(embedding, 10);
+        final EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embedding)
+                .maxResults(10)
+                .build();
+        final List<EmbeddingMatch<TextSegment>> relevant =
+                embeddingStore.search(request).matches();
         assertThat(relevant).hasSize(1);
         EmbeddingMatch<TextSegment> match = relevant.get(0);
 
         checkEntitiesCreated(relevant.size(), iterator -> checkDefaultProps(embedding, match, iterator.next()));
     }
-
-//    @Test
-//    void should_add_embedding_with_id() {
-//
-//        String id = randomUUID();
-//        Embedding embedding = embeddingModel.embed("embedText").content();
-//
-//        embeddingStore.add(id, embedding);
-//
-//        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(embedding, 10);
-//        assertThat(relevant).hasSize(1);
-//
-//        EmbeddingMatch<TextSegment> match = relevant.get(0);
-//        assertThat(match.score()).isCloseTo(1, withPercentage(1));
-//        assertThat(match.embeddingId()).isEqualTo(id);
-//        assertThat(match.embedding()).isEqualTo(embedding);
-//        assertThat(match.embedded()).isNull();
-//
-//        checkEntitiesCreated(relevant.size(), iterator -> checkDefaultProps(embedding, match, iterator.next()));
-//    }
-
-//    @Test
-//    void should_add_embedding_with_segment() {
-//
-//        TextSegment segment = TextSegment.from(randomUUID());
-//        Embedding embedding = embeddingModel.embed(segment.text()).content();
-//
-//        String id = embeddingStore.add(embedding, segment);
-//        assertThat(id).isNotNull();
-//
-//        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(embedding, 10);
-//        assertThat(relevant).hasSize(1);
-//
-//        EmbeddingMatch<TextSegment> match = relevant.get(0);
-//        assertThat(match.score()).isCloseTo(1, withPercentage(1));
-//        assertThat(match.embeddingId()).isEqualTo(id);
-//        assertThat(match.embedding()).isEqualTo(embedding);
-//        assertThat(match.embedded()).isEqualTo(segment);
-//
-//        checkEntitiesCreated(relevant.size(), iterator -> {
-//            List<String> otherProps = Collections.singletonList(DEFAULT_TEXT_PROP);
-//            checkDefaultProps(embedding, match, iterator.next(), otherProps);
-//        });
-//    }
-
-//    @Test
-//    void should_add_embedding_with_segment_with_metadata() {
-//        System.out.println("USERNAME = " + USERNAME);
-////        super.should_add_embedding_with_segment_with_metadata();
-////        checkSegmentWithMetadata(METADATA_KEY, LABEL_TO_SANITIZE);
-//    }
 
     @Test
     void should_add_embedding_with_segment_with_custom_metadata_prefix() {
@@ -231,7 +148,12 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
         String id = embeddingStore.add(embedding, segment);
         assertThat(id).isNotNull();
 
-        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(embedding, 10);
+        final EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embedding)
+                .maxResults(10)
+                .build();
+        final List<EmbeddingMatch<TextSegment>> relevant =
+                embeddingStore.search(request).matches();
         assertThat(relevant).hasSize(1);
 
         EmbeddingMatch<TextSegment> match = relevant.get(0);
@@ -275,20 +197,16 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
         List<String> ids = embeddingStore.addAll(asList(firstEmbedding, secondEmbedding));
         assertThat(ids).hasSize(2);
 
-        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(firstEmbedding, 10);
+        final EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(firstEmbedding)
+                .maxResults(10)
+                .build();
+        final List<EmbeddingMatch<TextSegment>> relevant =
+                embeddingStore.search(request).matches();
         assertThat(relevant).hasSize(2);
 
         EmbeddingMatch<TextSegment> firstMatch = relevant.get(0);
-//        assertThat(firstMatch.score()).isCloseTo(1, withPercentage(1));
-//        assertThat(firstMatch.embeddingId()).isEqualTo(ids.get(0));
-//        assertThat(firstMatch.embedding()).isEqualTo(firstEmbedding);
-//        assertThat(firstMatch.embedded()).isNull();
-
         EmbeddingMatch<TextSegment> secondMatch = relevant.get(1);
-//        assertThat(secondMatch.score()).isBetween(0d, 1d);
-//        assertThat(secondMatch.embeddingId()).isEqualTo(ids.get(1));
-//        assertThat(secondMatch.embedding()).isEqualTo(secondEmbedding);
-//        assertThat(secondMatch.embedded()).isNull();
 
         checkEntitiesCreated(relevant.size(), iterator -> {
             iterator.forEachRemaining(node -> {
@@ -300,115 +218,6 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
             });
         });
     }
-
-//    @Test
-//    void should_add_multiple_embeddings_with_segments() {
-//
-//        TextSegment firstSegment = TextSegment.from("firstText");
-//        Embedding firstEmbedding = embeddingModel.embed(firstSegment.text()).content();
-//        TextSegment secondSegment = TextSegment.from("secondText");
-//        Embedding secondEmbedding = embeddingModel.embed(secondSegment.text()).content();
-//
-//        List<String> ids =
-//                embeddingStore.addAll(asList(firstEmbedding, secondEmbedding), asList(firstSegment, secondSegment));
-//        assertThat(ids).hasSize(2);
-//
-//        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(firstEmbedding, 10);
-//        assertThat(relevant).hasSize(2);
-//
-//        EmbeddingMatch<TextSegment> firstMatch = relevant.get(0);
-//        assertThat(firstMatch.score()).isCloseTo(1, withPercentage(1));
-//        assertThat(firstMatch.embeddingId()).isEqualTo(ids.get(0));
-//        assertThat(firstMatch.embedding()).isEqualTo(firstEmbedding);
-//        assertThat(firstMatch.embedded()).isEqualTo(firstSegment);
-//
-//        EmbeddingMatch<TextSegment> secondMatch = relevant.get(1);
-//        assertThat(secondMatch.score()).isBetween(0d, 1d);
-//        assertThat(secondMatch.embeddingId()).isEqualTo(ids.get(1));
-//        assertThat(secondMatch.embedding()).isEqualTo(secondEmbedding);
-//        assertThat(secondMatch.embedded()).isEqualTo(secondSegment);
-//
-//        checkEntitiesCreated(relevant.size(), iterator -> {
-//            List<String> otherProps = Collections.singletonList(DEFAULT_TEXT_PROP);
-//            iterator.forEachRemaining(node -> {
-//                if (node.get(DEFAULT_ID_PROP).asString().equals(firstMatch.embeddingId())) {
-//                    checkDefaultProps(firstEmbedding, firstMatch, node, otherProps);
-//                } else {
-//                    checkDefaultProps(secondEmbedding, secondMatch, node, otherProps);
-//                }
-//            });
-//        });
-//    }
-
-//    @Test
-//    void should_find_with_min_score() {
-//
-//        String firstId = randomUUID();
-//        Embedding firstEmbedding = embeddingModel.embed("firstEmbedText").content();
-//        embeddingStore.add(firstId, firstEmbedding);
-//
-//        String secondId = randomUUID();
-//        Embedding secondEmbedding = embeddingModel.embed("secondEmbedText").content();
-//        embeddingStore.add(secondId, secondEmbedding);
-//
-//        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(firstEmbedding, 10);
-//        assertThat(relevant).hasSize(2);
-//        EmbeddingMatch<TextSegment> firstMatch = relevant.get(0);
-//        assertThat(firstMatch.score()).isCloseTo(1, withPercentage(1));
-//        assertThat(firstMatch.embeddingId()).isEqualTo(firstId);
-//        EmbeddingMatch<TextSegment> secondMatch = relevant.get(1);
-//        assertThat(secondMatch.score()).isBetween(0d, 1d);
-//        assertThat(secondMatch.embeddingId()).isEqualTo(secondId);
-//
-//        List<EmbeddingMatch<TextSegment>> relevant2 =
-//                embeddingStore.findRelevant(firstEmbedding, 10, secondMatch.score() - 0.01);
-//        assertThat(relevant2).hasSize(2);
-//        assertThat(relevant2.get(0).embeddingId()).isEqualTo(firstId);
-//        assertThat(relevant2.get(1).embeddingId()).isEqualTo(secondId);
-//
-//        List<EmbeddingMatch<TextSegment>> relevant3 =
-//                embeddingStore.findRelevant(firstEmbedding, 10, secondMatch.score());
-//        assertThat(relevant3).hasSize(2);
-//        assertThat(relevant3.get(0).embeddingId()).isEqualTo(firstId);
-//        assertThat(relevant3.get(1).embeddingId()).isEqualTo(secondId);
-//
-//        List<EmbeddingMatch<TextSegment>> relevant4 =
-//                embeddingStore.findRelevant(firstEmbedding, 10, secondMatch.score() + 0.01);
-//        assertThat(relevant4).hasSize(1);
-//        assertThat(relevant4.get(0).embeddingId()).isEqualTo(firstId);
-//
-//        checkEntitiesCreated(relevant.size(), iterator -> {
-//            iterator.forEachRemaining(node -> {
-//                if (node.get(DEFAULT_ID_PROP).asString().equals(firstMatch.embeddingId())) {
-//                    checkDefaultProps(firstEmbedding, firstMatch, node);
-//                } else {
-//                    checkDefaultProps(secondEmbedding, secondMatch, node);
-//                }
-//            });
-//        });
-//    }
-
-//    @Test
-//    void should_return_correct_score() {
-//
-//        Embedding embedding = embeddingModel.embed("hello").content();
-//
-//        String id = embeddingStore.add(embedding);
-//        assertThat(id).isNotNull();
-//
-//        Embedding referenceEmbedding = embeddingModel.embed("hi").content();
-//
-//        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(referenceEmbedding, 1);
-//        assertThat(relevant).hasSize(1);
-//
-//        EmbeddingMatch<TextSegment> match = relevant.get(0);
-//        assertThat(match.score())
-//                .isCloseTo(
-//                        RelevanceScore.fromCosineSimilarity(CosineSimilarity.between(embedding, referenceEmbedding)),
-//                        withPercentage(1));
-//
-//        checkEntitiesCreated(relevant.size(), iterator -> checkDefaultProps(embedding, match, iterator.next()));
-//    }
 
     @Test
     void should_throw_error_if_another_index_name_with_different_label_exists() {
@@ -483,10 +292,6 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
                 .toList();
     }
 
-    private void checkSegmentWithMetadata(String metadataKey, String labelName) {
-        checkSegmentWithMetadata(metadataKey, DEFAULT_ID_PROP, labelName);
-    }
-
     private void checkSegmentWithMetadata(String metadataKey, String idProp, String labelName) {
         TextSegment segment = TextSegment.from(randomUUID(), Metadata.from(METADATA_KEY, "test-value"));
         Embedding embedding = embeddingModel.embed(segment.text()).content();
@@ -494,7 +299,12 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
         String id = embeddingStore.add(embedding, segment);
         assertThat(id).isNotNull();
 
-        List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(embedding, 10);
+        final EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                .queryEmbedding(embedding)
+                .maxResults(10)
+                .build();
+        final List<EmbeddingMatch<TextSegment>> relevant =
+                embeddingStore.search(request).matches();
         assertThat(relevant).hasSize(1);
 
         EmbeddingMatch<TextSegment> match = relevant.get(0);
@@ -514,7 +324,8 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
     }
 
     private void checkEntitiesCreated(int expectedSize, String labelName, Consumer<Iterator<Node>> nodeConsumer) {
-        String query = String.format("MATCH (n:%s) RETURN n ORDER BY n.%s",
+        String query = String.format(
+                "MATCH (n:%s) RETURN n ORDER BY n.%s",
                 SchemaNames.sanitize(labelName).get(), DEFAULT_TEXT_PROP);
 
         List<Node> n = session.run(query).list(i -> i.get("n").asNode());
@@ -529,11 +340,6 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
 
     private void checkDefaultProps(Embedding embedding, EmbeddingMatch<TextSegment> match, Node node) {
         checkDefaultProps(embedding, DEFAULT_ID_PROP, match, node, Collections.emptyList());
-    }
-
-    private void checkDefaultProps(
-            Embedding embedding, EmbeddingMatch<TextSegment> match, Node node, List<String> otherProps) {
-        checkDefaultProps(embedding, DEFAULT_ID_PROP, match, node, otherProps);
     }
 
     private void checkDefaultProps(
