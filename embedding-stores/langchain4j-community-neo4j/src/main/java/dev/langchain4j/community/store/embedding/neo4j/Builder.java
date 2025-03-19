@@ -141,7 +141,6 @@ public class Builder {
                 indexName,
                 databaseName,
                 retrievalQuery,
-                awaitIndexTimeout
-        );
+                awaitIndexTimeout);
     }
 }
