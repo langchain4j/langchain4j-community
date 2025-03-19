@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>langchain4j-alloydb-pg</artifactId>
-    <name>LangChain4j :: Integration :: AlloyDB</name>
+    <name>LangChain4j :: Community :: AlloyDB</name>
     <description>AlloyDB for Langchain4j</description>
 
     <licenses>
@@ -49,6 +49,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- JDBC Postgres Driver -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
@@ -61,6 +62,8 @@
             </exclusions>
         </dependency>
 
+        <!-- Enable PGVector data type -->
+        <!-- https://github.com/pgvector/pgvector-java -->
         <dependency>
             <groupId>com.pgvector</groupId>
             <artifactId>pgvector</artifactId>
@@ -79,6 +82,8 @@
             <version>6.2.1</version>
         </dependency>
 
+        <!-- Supports authentication to Google Cloud AlloyDB -->
+        <!-- https://github.com/GoogleCloudPlatform/alloydb-java-connector -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>alloydb-jdbc-connector</artifactId>

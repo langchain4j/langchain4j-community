@@ -39,6 +39,10 @@ public class AlloyDBLoader {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String DEFAULT_METADATA_COL = "langchain_metadata";
 
+    /**
+     * Create a new {@link AlloyDBLoader} from the Builder.
+     * @param builder the builder.
+     */
     private AlloyDBLoader(Builder builder) {
         this.engine = builder.engine;
         this.query = builder.query;
@@ -46,6 +50,14 @@ public class AlloyDBLoader {
         this.contentColumns = builder.contentColumns;
         this.metadataColumns = builder.metadataColumns;
         this.metadataJsonColumn = builder.metadataJsonColumn;
+    }
+
+    /**
+     * Create a new {@link Builder}.
+     * @return the new {@link Builder}.
+     */
+    public static Builder builder(AlloyDBEngine engine) {
+        return new Builder(engine);
     }
 
     /**

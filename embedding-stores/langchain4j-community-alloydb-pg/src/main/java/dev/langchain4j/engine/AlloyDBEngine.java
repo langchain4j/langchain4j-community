@@ -210,6 +210,14 @@ public class AlloyDBEngine {
     }
 
     /**
+     * Create a new {@link Builder}.
+     * @return the new {@link Builder}.
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
      * Builder which configures and creates instances of {@link AlloyDBEngine}.
      * Connect directly to an instance using projectId, region, cluster, instance, and database params
      * (Optional: user/password, iamAccountEmail, ipType)

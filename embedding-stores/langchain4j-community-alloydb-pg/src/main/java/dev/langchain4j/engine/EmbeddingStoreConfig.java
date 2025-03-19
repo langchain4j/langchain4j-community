@@ -78,6 +78,7 @@ public class EmbeddingStoreConfig {
     public String getEmbeddingColumn() {
         return embeddingColumn;
     }
+
     /**
      * get id column
      * @return name of the embedding store's id column
@@ -116,6 +117,14 @@ public class EmbeddingStoreConfig {
      */
     public Boolean getStoreMetadata() {
         return storeMetadata;
+    }
+
+    /**
+     * Create a new {@link Builder}.
+     * @return the new {@link Builder}.
+     */
+    public static Builder builder(String tableName, Integer vectorSize) {
+        return new Builder(tableName, vectorSize);
     }
 
     /**

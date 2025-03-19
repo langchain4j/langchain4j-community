@@ -31,7 +31,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,6 +62,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final DistanceStrategy distanceStrategy;
     private final QueryOptions queryOptions;
     private String metadataJsonColumn;
+    private final String insertQuery;
+    private final String deleteQuery;
+    private final String selectQuery;
 
     /**
      * Constructor for AlloyDBEmbeddingStore
@@ -83,6 +85,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         // check columns exist in the table
         verifyEmbeddingStoreColumns(builder.ignoreMetadataColumnNames);
+        insertQuery = generateInsertQuery();
+        selectQuery = generateSelectQuery();
+        deleteQuery = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s = ANY(?)", schemaName, tableName, idColumn);
     }
 
     private void verifyEmbeddingStoreColumns(List<String> ignoredColumns) {
@@ -154,6 +159,54 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
+    private String generateSelectQuery() {
+        List<String> columns = new ArrayList<>(metadataColumns);
+        columns.add(idColumn);
+        columns.add(contentColumn);
+        columns.add(embeddingColumn);
+        if (isNotNullOrBlank(metadataJsonColumn)) {
+            columns.add(metadataJsonColumn);
+        }
+        String columnNames =
+                columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
+        return String.format(
+                "SELECT %s, %s(%s, ?) as distance FROM \"%s\".\"%s\" ? ORDER BY %s %s ? LIMIT ?;",
+                columnNames,
+                distanceStrategy.getSearchFunction(),
+                embeddingColumn,
+                schemaName,
+                tableName,
+                embeddingColumn,
+                distanceStrategy.getOperator());
+    }
+
+    private String generateInsertQuery() {
+        String metadataColumnNames =
+                metadataColumns.stream().map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
+
+        // idColumn, contentColumn and embeddedColumn
+        int totalColumns = 3;
+
+        if (isNotNullOrEmpty(metadataColumnNames)) {
+            totalColumns += metadataColumnNames.split(",").length;
+            metadataColumnNames = ", " + metadataColumnNames;
+        }
+
+        if (isNotNullOrEmpty(metadataJsonColumn)) {
+            metadataColumnNames += ", \"" + metadataJsonColumn + "\"";
+            totalColumns++;
+        }
+
+        String placeholders = "?";
+        for (int p = 1; p < totalColumns; p++) {
+            placeholders += ", ?";
+        }
+
+        return String.format(
+                "INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)",
+                schemaName, tableName, idColumn, embeddingColumn, contentColumn, metadataColumnNames, placeholders);
+    }
+
     @Override
     public String add(Embedding embedding) {
         String id = randomUUID();
@@ -189,48 +242,29 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     @Override
-    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
-        List<String> columns = new ArrayList<>(metadataColumns);
-        columns.add(idColumn);
-        columns.add(contentColumn);
-        columns.add(embeddingColumn);
-        if (isNotNullOrBlank(metadataJsonColumn)) {
-            columns.add(metadataJsonColumn);
-        }
-
-        String columnNames =
-                columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) throws SQLException {
 
         String filterString = FILTER_MAPPER.map(request.filter());
 
         String whereClause = isNotNullOrBlank(filterString) ? String.format("WHERE %s", filterString) : "";
 
-        String vector =
-                String.format("'%s'", Arrays.toString(request.queryEmbedding().vector()));
-
-        String query = String.format(
-                "SELECT %s, %s(%s, %s) as distance FROM \"%s\".\"%s\" %s ORDER BY %s %s %s LIMIT %d;",
-                columnNames,
-                distanceStrategy.getSearchFunction(),
-                embeddingColumn,
-                vector,
-                schemaName,
-                tableName,
-                whereClause,
-                embeddingColumn,
-                distanceStrategy.getOperator(),
-                vector,
-                request.maxResults());
         List<EmbeddingMatch<TextSegment>> embeddingMatches = new ArrayList<>();
 
         try (Connection conn = engine.getConnection()) {
+            PGvector.registerTypes(conn);
             try (Statement statement = conn.createStatement()) {
                 if (queryOptions != null) {
                     for (String option : queryOptions.getParameterSettings()) {
                         statement.executeQuery(String.format("SET LOCAL %s;", option));
                     }
                 }
-                ResultSet resultSet = statement.executeQuery(query);
+            }
+            try (PreparedStatement preparedStatement = conn.prepareStatement(selectQuery)) {
+                preparedStatement.setString(
+                        0, new PGvector(request.queryEmbedding().vector()));
+                preparedStatement.setObject(
+                        1, new PGvector(request.queryEmbedding().vector()));
+                ResultSet resultSet = preparedStatement.executeUpdate();
                 while (resultSet.next()) {
                     double score = calculateRelevanceScore(resultSet.getDouble("distance"));
 
@@ -282,9 +316,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new IllegalArgumentException("ids cannot be null or empty");
         }
 
-        String query = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s = ANY(?)", schemaName, tableName, idColumn);
         try (Connection conn = engine.getConnection()) {
-            try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            try (PreparedStatement preparedStatement = conn.prepareStatement(deleteQuery)) {
                 Array array = conn.createArrayOf(
                         "uuid", ids.stream().map(UUID::fromString).toArray());
                 preparedStatement.setArray(1, array);
@@ -310,31 +343,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     "List parameters ids and embeddings and textSegments shouldn't be different sizes!");
         }
         try (Connection connection = engine.getConnection()) {
-            String metadataColumnNames =
-                    metadataColumns.stream().map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
-
-            // idColumn, contentColumn and embeddedColumn
-            int totalColumns = 3;
-
-            if (isNotNullOrEmpty(metadataColumnNames)) {
-                totalColumns += metadataColumnNames.split(",").length;
-                metadataColumnNames = ", " + metadataColumnNames;
-            }
-
-            if (isNotNullOrEmpty(metadataJsonColumn)) {
-                metadataColumnNames += ", \"" + metadataJsonColumn + "\"";
-                totalColumns++;
-            }
-
-            String placeholders = "?";
-            for (int p = 1; p < totalColumns; p++) {
-                placeholders += ", ?";
-            }
-
-            String query = String.format(
-                    "INSERT INTO \"%s\".\"%s\" (\"%s\", \"%s\", \"%s\"%s) VALUES (%s)",
-                    schemaName, tableName, idColumn, embeddingColumn, contentColumn, metadataColumnNames, placeholders);
-            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
                 PGvector.registerTypes(connection);
                 for (int i = 0; i < ids.size(); i++) {
                     String id = ids.get(i);
@@ -405,6 +414,14 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                         distanceStrategy.getSearchFunction()));
             }
         }
+    }
+
+    /**
+     * Create a new {@link Builder}.
+     * @return the new {@link Builder}.
+     */
+    public static Builder builder(AlloyDBEngine engine, String tableName) {
+        return new Builder(engine, tableName);
     }
 
     /**
