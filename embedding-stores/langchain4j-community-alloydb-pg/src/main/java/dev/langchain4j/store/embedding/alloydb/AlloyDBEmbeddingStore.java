@@ -4,6 +4,7 @@ import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -21,7 +22,9 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.AlloyDBFilterMapper;
+import dev.langchain4j.store.embedding.index.BaseIndex;
 import dev.langchain4j.store.embedding.index.DistanceStrategy;
+import dev.langchain4j.store.embedding.index.ScaNNIndex;
 import dev.langchain4j.store.embedding.index.query.QueryOptions;
 import java.sql.Array;
 import java.sql.Connection;
@@ -64,7 +67,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private String metadataJsonColumn;
     private final String insertQuery;
     private final String deleteQuery;
-    private final String selectQuery;
 
     /**
      * Constructor for AlloyDBEmbeddingStore
@@ -86,7 +88,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         // check columns exist in the table
         verifyEmbeddingStoreColumns(builder.ignoreMetadataColumnNames);
         insertQuery = generateInsertQuery();
-        selectQuery = generateSelectQuery();
         deleteQuery = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s = ANY(?)", schemaName, tableName, idColumn);
     }
 
@@ -159,27 +160,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    private String generateSelectQuery() {
-        List<String> columns = new ArrayList<>(metadataColumns);
-        columns.add(idColumn);
-        columns.add(contentColumn);
-        columns.add(embeddingColumn);
-        if (isNotNullOrBlank(metadataJsonColumn)) {
-            columns.add(metadataJsonColumn);
-        }
-        String columnNames =
-                columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
-        return String.format(
-                "SELECT %s, %s(%s, ?) as distance FROM \"%s\".\"%s\" ? ORDER BY %s %s ? LIMIT ?;",
-                columnNames,
-                distanceStrategy.getSearchFunction(),
-                embeddingColumn,
-                schemaName,
-                tableName,
-                embeddingColumn,
-                distanceStrategy.getOperator());
-    }
-
     private String generateInsertQuery() {
         String metadataColumnNames =
                 metadataColumns.stream().map(column -> "\"" + column + "\"").collect(Collectors.joining(", "));
@@ -243,10 +223,30 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+        List<String> columns = new ArrayList<>(metadataColumns);
+        columns.add(idColumn);
+        columns.add(contentColumn);
+        columns.add(embeddingColumn);
+        if (isNotNullOrBlank(metadataJsonColumn)) {
+            columns.add(metadataJsonColumn);
+        }
+        String columnNames =
+                columns.stream().map(c -> String.format("\"%s\"", c)).collect(Collectors.joining(", "));
 
         String filterString = FILTER_MAPPER.map(request.filter());
 
         String whereClause = isNotNullOrBlank(filterString) ? String.format("WHERE %s", filterString) : "";
+
+        String selectQuery = String.format(
+                "SELECT %s, %s(%s, ?) as distance FROM \"%s\".\"%s\" %s ORDER BY %s %s ? LIMIT ?;",
+                columnNames,
+                distanceStrategy.getSearchFunction(),
+                embeddingColumn,
+                schemaName,
+                tableName,
+                whereClause,
+                embeddingColumn,
+                distanceStrategy.getOperator());
 
         List<EmbeddingMatch<TextSegment>> embeddingMatches = new ArrayList<>();
 
@@ -264,6 +264,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                         1, new PGvector(request.queryEmbedding().vector()));
                 preparedStatement.setObject(
                         2, new PGvector(request.queryEmbedding().vector()));
+                preparedStatement.setInt(3, request.maxResults());
                 ResultSet resultSet = preparedStatement.executeQuery();
                 while (resultSet.next()) {
                     double score = calculateRelevanceScore(resultSet.getDouble("distance"));
@@ -390,6 +391,98 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new RuntimeException(
                     "Exception caught when inserting into vector store table: \"" + schemaName + "\".\"" + tableName
                             + "\"",
+                    ex);
+        }
+    }
+
+    /**
+     * Create index in the vector store table
+     * @param index, index to be applied
+     * @param name, name of the index
+     * @param concurrently, CONCURRENTLY option
+     */
+    public void applyVectorIndex(BaseIndex index, String name, Boolean concurrently) {
+        String function;
+        if (index == null) {
+            dropVectorIndex(null);
+            return;
+        }
+        if (isNullOrBlank(name)) {
+            if (isNotNullOrBlank(index.getName())) {
+                name = index.getName();
+            } else {
+                name = tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
+            }
+        }
+
+        try (Connection conn = engine.getConnection(); ) {
+            if (index instanceof ScaNNIndex scaNNIndex) {
+                conn.createStatement().executeQuery("CREATE EXTENSION IF NOT EXISTS alloydb_scann");
+                function = scaNNIndex.getDistanceStrategy().getScannIndexFunction();
+            } else {
+                function = index.getDistanceStrategy().getIndexFunction();
+            }
+
+            String filter = (index.getPartialIndexes() != null
+                            && index.getPartialIndexes().isEmpty())
+                    ? String.format("WHERE %s", String.join(", ", index.getPartialIndexes()))
+                    : "";
+            String params = String.format("WITH %s", index.getIndexOptions());
+
+            String concurrentlyString = concurrently ? "CONCURRENTLY" : "";
+
+            String stmt = String.format(
+                    "CREATE INDEX %s %s ON \"%s\".\"%s\" USING %s (%s %s) %s %s;",
+                    concurrentlyString,
+                    name,
+                    schemaName,
+                    tableName,
+                    index.getIndexType(),
+                    embeddingColumn,
+                    function,
+                    params,
+                    filter);
+
+            conn.createStatement().executeQuery(stmt);
+
+        } catch (SQLException ex) {
+            throw new RuntimeException(
+                    "Exception caught when creating " + name + " index in vector store table: \"" + schemaName + "\".\""
+                            + tableName + "\"",
+                    ex);
+        }
+    }
+
+    /**
+     * remove index from the vector store table
+     * @param name, name of the index
+     */
+    public void dropVectorIndex(String name) {
+        name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
+        String query = String.format("DROP INDEX IF EXISTS %s;", name);
+        try (Connection conn = engine.getConnection(); ) {
+            conn.createStatement().executeQuery(query);
+        } catch (SQLException ex) {
+            throw new RuntimeException(
+                    "Exception caught when removing " + name + " index in vector store table: \"" + schemaName + "\".\""
+                            + tableName + "\"",
+                    ex);
+        }
+    }
+
+    /**
+     * re-index the vector store table
+     * @param name, name of the index
+     */
+    public void reindex(String name) {
+        name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
+        String query = String.format("REINDEX INDEX %s;", name);
+        try (Connection conn = engine.getConnection(); ) {
+            conn.createStatement().executeQuery(query);
+        } catch (SQLException ex) {
+            throw new RuntimeException(
+                    "Exception caught when reindexing " + name + " index in vector store table: \"" + schemaName
+                            + "\".\"" + tableName + "\"",
                     ex);
         }
     }

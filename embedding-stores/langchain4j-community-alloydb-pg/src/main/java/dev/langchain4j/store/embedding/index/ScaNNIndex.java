@@ -32,34 +32,26 @@ public class ScaNNIndex implements BaseIndex {
         return String.format("(num_leaves = %s, quantizer = %s)", numLeaves, quantizer);
     }
 
-    /**
-     * retrieve index type
-     * @return index type String
-     */
+    /** {@inheritDoc} */
+    @Override
     public String getIndexType() {
         return indexType;
     }
 
-    /**
-     * retrieve name
-     * @return name
-     */
+    /** {@inheritDoc} */
+    @Override
     public String getName() {
         return name;
     }
 
-    /**
-     * the distance strategy for the index
-     * @return DistanceStrategy
-     */
+    /** {@inheritDoc} */
+    @Override
     public DistanceStrategy getDistanceStrategy() {
         return distanceStrategy;
     }
 
-    /**
-     * retrieve partial indexes
-     * @return list of partial indexes
-     */
+    /** {@inheritDoc} */
+    @Override
     public List<String> getPartialIndexes() {
         return partialIndexes;
     }

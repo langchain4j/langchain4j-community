@@ -32,32 +32,26 @@ public class IVFIndex implements BaseIndex {
         return String.format("(lists = %s, quantizer = %s)", listCount, quantizer);
     }
 
-    /**
-     * the distance strategy for the index
-     * @return DistanceStrategy
-     */
+    /** {@inheritDoc} */
+    @Override
     public DistanceStrategy getDistanceStrategy() {
         return distanceStrategy;
     }
-    /**
-     * retrieve partial indexes
-     * @return list of partial indexes
-     */
+
+    /** {@inheritDoc} */
+    @Override
     public List<String> getPartialIndexes() {
         return partialIndexes;
     }
-    /**
-     * retrieve index type
-     * @return index type String
-     */
+
+    /** {@inheritDoc} */
+    @Override
     public String getIndexType() {
         return indexType;
     }
 
-    /**
-     * retrieve name
-     * @return name
-     */
+    /** {@inheritDoc} */
+    @Override
     public String getName() {
         return name;
     }
