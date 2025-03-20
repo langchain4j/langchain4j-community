@@ -73,8 +73,12 @@ class Neo4jEmbeddingUtils {
         if (embedded != null) {
             TextSegment segment = embedded.get(idx);
             properties.put(store.getTextProperty(), segment.text());
-            Map<String, String> metadata = segment.metadata().asMap();
-            metadata.forEach((k, v) -> properties.put(store.getMetadataPrefix() + k, Values.value(v)));
+            Map<String, Object> metadata = segment.metadata().toMap();
+            metadata.forEach((k, v) -> {
+                final String propKey = store.getMetadataPrefix() + k;
+                final Value propValue = Values.value( String.valueOf(v) );
+                properties.put(propKey, propValue);
+            });
         }
 
         row.put(EMBEDDINGS_ROW_KEY, Values.value(embedding.vector()));

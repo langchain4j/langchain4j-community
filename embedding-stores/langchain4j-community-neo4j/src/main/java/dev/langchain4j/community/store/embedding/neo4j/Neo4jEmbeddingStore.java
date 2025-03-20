@@ -71,6 +71,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
     private final String indexName;
     private final String metadataPrefix;
     private final String embeddingProperty;
+    private final String sanitizedEmbeddingProperty;
     private final String idProperty;
     private final String sanitizedIdProperty;
     private final String label;
@@ -126,7 +127,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
 
         /* sanitize labels and property names, to prevent from Cypher Injections */
         this.sanitizedLabel = sanitizeOrThrows(this.label, "label");
-        String sanitizedEmbeddingProperty = sanitizeOrThrows(this.embeddingProperty, "embeddingProperty");
+        this.sanitizedEmbeddingProperty = sanitizeOrThrows(this.embeddingProperty, "embeddingProperty");
         this.sanitizedIdProperty = sanitizeOrThrows(this.idProperty, "idProperty");
         String sanitizedText = sanitizeOrThrows(this.textProperty, "textProperty");
 
@@ -338,7 +339,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
 
         // create vector index
         try (var session = session()) {
-            session.run(CREATE_VECTOR_INDEX, params);
+            final String createIndexQuery = String.format(CREATE_VECTOR_INDEX, 
+                    indexName, sanitizedLabel, sanitizedEmbeddingProperty, dimension);
+            session.run(createIndexQuery, params);
 
             session.run("CALL db.awaitIndexes($timeout)", Map.of("timeout", awaitIndexTimeout))
                     .consume();
