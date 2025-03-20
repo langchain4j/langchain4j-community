@@ -261,9 +261,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
             try (PreparedStatement preparedStatement = conn.prepareStatement(selectQuery)) {
                 preparedStatement.setObject(
-                        0, new PGvector(request.queryEmbedding().vector()));
-                preparedStatement.setObject(
                         1, new PGvector(request.queryEmbedding().vector()));
+                preparedStatement.setObject(
+                        2, new PGvector(request.queryEmbedding().vector()));
                 ResultSet resultSet = preparedStatement.executeQuery();
                 while (resultSet.next()) {
                     double score = calculateRelevanceScore(resultSet.getDouble("distance"));
