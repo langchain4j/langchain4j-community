@@ -242,7 +242,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     @Override
-    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) throws SQLException {
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
 
         String filterString = FILTER_MAPPER.map(request.filter());
 
@@ -260,11 +260,11 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
             }
             try (PreparedStatement preparedStatement = conn.prepareStatement(selectQuery)) {
-                preparedStatement.setString(
+                preparedStatement.setObject(
                         0, new PGvector(request.queryEmbedding().vector()));
                 preparedStatement.setObject(
                         1, new PGvector(request.queryEmbedding().vector()));
-                ResultSet resultSet = preparedStatement.executeUpdate();
+                ResultSet resultSet = preparedStatement.executeQuery();
                 while (resultSet.next()) {
                     double score = calculateRelevanceScore(resultSet.getDouble("distance"));
 
