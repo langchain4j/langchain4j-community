@@ -76,7 +76,7 @@ class Neo4jEmbeddingUtils {
             Map<String, Object> metadata = segment.metadata().toMap();
             metadata.forEach((k, v) -> {
                 final String propKey = store.getMetadataPrefix() + k;
-                final Value propValue = Values.value( String.valueOf(v) );
+                final Value propValue = Values.value(String.valueOf(v));
                 properties.put(propKey, propValue);
             });
         }

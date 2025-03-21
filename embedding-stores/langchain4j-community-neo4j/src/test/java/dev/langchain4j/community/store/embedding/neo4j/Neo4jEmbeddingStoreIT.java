@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -59,10 +60,16 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
     private static Session session;
 
     @BeforeAll
-    static void startContainer() {
+    static void beforeAll() {
         neo4jContainer.start();
         Driver driver = GraphDatabase.driver(neo4jContainer.getBoltUrl(), AuthTokens.basic(USERNAME, ADMIN_PASSWORD));
         session = driver.session();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        session.close();
+        neo4jContainer.stop();
     }
 
     @AfterEach

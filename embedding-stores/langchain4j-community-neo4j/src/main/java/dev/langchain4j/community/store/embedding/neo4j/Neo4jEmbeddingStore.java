@@ -34,10 +34,10 @@ import org.slf4j.LoggerFactory;
  * }
  * }</pre><p>
  */
-public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCloseable {
+public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final Logger log = LoggerFactory.getLogger(Neo4jEmbeddingStore.class);
-    public static final String INDEX_CREATION =
+    public static final String ENTITIES_CREATION =
             """
             UNWIND $rows AS row
             MERGE (u:%1$s {%2$s: row.%2$s})
@@ -153,14 +153,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
         return new Builder();
     }
 
-    /**
-     * Close the Neo4j Driver connection
-     */
-    @Override
-    public void close() {
-        driver.close();
-    }
-
     /*
     Getter methods
     */
@@ -214,6 +206,28 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
     @Override
     public List<String> addAll(List<Embedding> embeddings) {
         return addAll(embeddings, null);
+    }
+
+    @Override
+    public void removeAll() {
+        try (var session = session()) {
+            String statement =
+                    String.format("CALL { MATCH (n:%1$s) DETACH DELETE n } IN TRANSACTIONS", this.sanitizedLabel);
+            session.run(statement);
+        }
+    }
+
+    @Override
+    public void removeAll(Collection<String> ids) {
+        ensureNotEmpty(ids, "ids");
+
+        try (var session = session()) {
+            String statement = String.format(
+                    "CALL { UNWIND $ids AS id MATCH (n:%1$s {%2$s: id}) DETACH DELETE n } IN TRANSACTIONS ",
+                    this.sanitizedLabel, this.sanitizedIdProperty);
+            final Map<String, Object> params = Map.of("ids", ids);
+            session.run(statement, params);
+        }
     }
 
     @Override
@@ -274,7 +288,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
         try (var session = session()) {
             rowsBatched.forEach(rows -> {
                 String statement = String.format(
-                        INDEX_CREATION, this.sanitizedLabel, this.sanitizedIdProperty, PROPS, EMBEDDINGS_ROW_KEY);
+                        ENTITIES_CREATION, this.sanitizedLabel, this.sanitizedIdProperty, PROPS, EMBEDDINGS_ROW_KEY);
 
                 Map<String, Object> params = Map.of("rows", rows, "embeddingProperty", this.embeddingProperty);
 
@@ -339,8 +353,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
 
         // create vector index
         try (var session = session()) {
-            final String createIndexQuery = String.format(CREATE_VECTOR_INDEX, 
-                    indexName, sanitizedLabel, sanitizedEmbeddingProperty, dimension);
+            final String createIndexQuery = String.format(
+                    CREATE_VECTOR_INDEX, indexName, sanitizedLabel, sanitizedEmbeddingProperty, dimension);
             session.run(createIndexQuery, params);
 
             session.run("CALL db.awaitIndexes($timeout)", Map.of("timeout", awaitIndexTimeout))
