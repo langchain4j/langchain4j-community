@@ -69,12 +69,12 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>alloydb-jdbc-connector</artifactId>
             <version>1.2.1</version>
-            <!-- <exclusions>
+            <exclusions>
                 <exclusion>
                     <groupId>com.google.code.gson</groupId>
                     <artifactId>gson</artifactId>
                 </exclusion>
-            </exclusions> -->
+            </exclusions>
         </dependency>
 
         <dependency>
