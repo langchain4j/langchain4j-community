@@ -81,12 +81,12 @@ public class AlloyDBLoaderIT {
         assertEquals(2, documents.size());
 
         assertEquals("test content 1", documents.get(0).text());
-        assertEquals("value1", documents.get(0).metadata().asMap().get("key"));
-        assertEquals("test metadata 1", documents.get(0).metadata().asMap().get("metadata"));
+        assertEquals("value1", documents.get(0).metadata().toMap().get("key"));
+        assertEquals("test metadata 1", documents.get(0).metadata().toMap().get("metadata"));
 
         assertEquals("test content 2", documents.get(1).text());
-        assertEquals("value2", documents.get(1).metadata().asMap().get("key"));
-        assertEquals("test metadata 2", documents.get(1).metadata().asMap().get("metadata"));
+        assertEquals("value2", documents.get(1).metadata().toMap().get("key"));
+        assertEquals("test metadata 2", documents.get(1).metadata().toMap().get("metadata"));
     }
 
     @Test
@@ -104,8 +104,8 @@ public class AlloyDBLoaderIT {
         assertEquals(1, documents.size());
 
         assertEquals("test content 1", documents.get(0).text());
-        assertEquals("value1", documents.get(0).metadata().asMap().get("key"));
-        assertEquals("test metadata 1", documents.get(0).metadata().asMap().get("metadata"));
+        assertEquals("value1", documents.get(0).metadata().toMap().get("key"));
+        assertEquals("test metadata 1", documents.get(0).metadata().toMap().get("metadata"));
     }
 
     @Test

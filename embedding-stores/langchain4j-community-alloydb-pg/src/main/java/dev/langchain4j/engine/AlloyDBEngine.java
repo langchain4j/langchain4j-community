@@ -1,22 +1,23 @@
 package dev.langchain4j.engine;
 
+import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.alloydb.ConnectorConfig;
 import com.google.cloud.alloydb.ConnectorRegistry;
 import com.google.cloud.alloydb.RefreshStrategy;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,7 @@ public class AlloyDBEngine {
     private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
     private static ConnectorConfig namedConnectorConfig;
     private final HikariDataSource dataSource;
+    static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
 
     /**
      * Constructor for AlloyDBEngine
@@ -132,10 +134,9 @@ public class AlloyDBEngine {
 
             String oauth2APIURL = "https://oauth2.googleapis.com/tokeninfo?access_token=" + accessToken;
             byte[] responseBytes = readBytes(oauth2APIURL);
-            JsonObject responseJson =
-                    JsonParser.parseString(new String(responseBytes)).getAsJsonObject();
-            if (responseJson.has("email")) {
-                return responseJson.get("email").getAsString();
+            Map<String, String> responseJson = OBJECT_MAPPER.readValue(new String(responseBytes), Map.class);
+            if (responseJson.containsKey("email")) {
+                return responseJson.get("email");
             } else {
                 throw new RuntimeException("unable to load IAM principal email");
             }

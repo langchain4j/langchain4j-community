@@ -52,14 +52,6 @@ public class AlloyDBEmbeddingStoreConfigIT {
     private static final Integer VECTOR_SIZE = 384;
     private static final EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     private static EmbeddingStoreConfig embeddingStoreConfig;
-    private static String projectId;
-    private static String region;
-    private static String cluster;
-    private static String instance;
-    private static String database;
-    private static String user;
-    private static String password;
-
     private static AlloyDBEngine engine;
     private static AlloyDBEmbeddingStore store;
     private static Connection defaultConnection;

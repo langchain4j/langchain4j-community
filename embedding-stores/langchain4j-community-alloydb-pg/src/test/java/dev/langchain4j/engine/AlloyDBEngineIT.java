@@ -38,8 +38,6 @@ public class AlloyDBEngineIT {
     private static String cluster;
     private static String instance;
     private static String database;
-    private static String user;
-    private static String password;
 
     private static AlloyDBEngine engine;
     private static Connection defaultConnection;
