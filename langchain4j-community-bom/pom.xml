@@ -79,6 +79,11 @@
                 <artifactId>langchain4j-community-lucene</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-neo4j</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <!-- web search engines -->
             <dependency>
