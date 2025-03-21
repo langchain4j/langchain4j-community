@@ -23,16 +23,16 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Represents a <a href="https://neo4j.com/">Neo4j</a> Vector index as an embedding store.
- * </p><p>
+ * <p>
  * Instances of this store are created by configuring a builder:
- * </p><pre>{@code
+ * <p><pre>{@code
  * EmbeddingStore<TextSegment> example() {
  *   return Neo4jEmbeddingStore.builder()
  *             .withBasicAuth("bolt://host:port", "username", "password")
  *             .dimension(384)
  *             .build();
  * }
- * }</pre><p>
+ * }</pre>
  */
 public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
