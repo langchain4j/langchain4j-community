@@ -9,68 +9,68 @@ public class Properties {
     static final String PREFIX = "langchain4j.community.dashscope";
 
     @NestedConfigurationProperty
-    ChatModelProperties chatModel;
+    private ChatModelProperties chatModel;
 
     @NestedConfigurationProperty
-    ChatModelProperties streamingChatModel;
+    private ChatModelProperties streamingChatModel;
 
     @NestedConfigurationProperty
-    LanguageModelProperties languageModel;
+    private LanguageModelProperties languageModel;
 
     @NestedConfigurationProperty
-    LanguageModelProperties streamingLanguageModel;
+    private LanguageModelProperties streamingLanguageModel;
 
     @NestedConfigurationProperty
-    EmbeddingModelProperties embeddingModel;
+    private EmbeddingModelProperties embeddingModel;
 
     @NestedConfigurationProperty
-    TokenizerProperties tokenizer;
+    private TokenizerProperties tokenizer;
 
-    ChatModelProperties getChatModel() {
+    public ChatModelProperties getChatModel() {
         return chatModel;
     }
 
-    void setChatModel(ChatModelProperties chatModel) {
+    public void setChatModel(ChatModelProperties chatModel) {
         this.chatModel = chatModel;
     }
 
-    ChatModelProperties getStreamingChatModel() {
+    public ChatModelProperties getStreamingChatModel() {
         return streamingChatModel;
     }
 
-    void setStreamingChatModel(ChatModelProperties streamingChatModel) {
+    public void setStreamingChatModel(ChatModelProperties streamingChatModel) {
         this.streamingChatModel = streamingChatModel;
     }
 
-    LanguageModelProperties getLanguageModel() {
+    public LanguageModelProperties getLanguageModel() {
         return languageModel;
     }
 
-    void setLanguageModel(LanguageModelProperties languageModel) {
+    public void setLanguageModel(LanguageModelProperties languageModel) {
         this.languageModel = languageModel;
     }
 
-    LanguageModelProperties getStreamingLanguageModel() {
+    public LanguageModelProperties getStreamingLanguageModel() {
         return streamingLanguageModel;
     }
 
-    void setStreamingLanguageModel(LanguageModelProperties streamingLanguageModel) {
+    public void setStreamingLanguageModel(LanguageModelProperties streamingLanguageModel) {
         this.streamingLanguageModel = streamingLanguageModel;
     }
 
-    EmbeddingModelProperties getEmbeddingModel() {
+    public EmbeddingModelProperties getEmbeddingModel() {
         return embeddingModel;
     }
 
-    void setEmbeddingModel(EmbeddingModelProperties embeddingModel) {
+    public void setEmbeddingModel(EmbeddingModelProperties embeddingModel) {
         this.embeddingModel = embeddingModel;
     }
 
-    TokenizerProperties getTokenizer() {
+    public TokenizerProperties getTokenizer() {
         return tokenizer;
     }
 
-    void setTokenizer(TokenizerProperties tokenizer) {
+    public void setTokenizer(TokenizerProperties tokenizer) {
         this.tokenizer = tokenizer;
     }
 }

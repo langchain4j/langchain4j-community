@@ -1,6 +1,6 @@
 package dev.langchain4j.community.dashscope.spring;
 
-class EmbeddingModelProperties {
+public class EmbeddingModelProperties {
 
     private String baseUrl;
     private String apiKey;
