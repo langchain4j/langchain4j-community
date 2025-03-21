@@ -4,7 +4,7 @@ import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import java.util.List;
 
-class ChatModelProperties {
+public class ChatModelProperties {
 
     private String baseUrl;
     private String apiKey;
