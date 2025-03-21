@@ -27,10 +27,11 @@ import org.testcontainers.junit.jupiter.Container;
 
 @ExtendWith(MockitoExtension.class)
 class Neo4jContentRetrieverIT {
-
+    private static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26");
+    
     @Container
     private static final Neo4jContainer<?> neo4jContainer =
-            new Neo4jContainer<>("neo4j:latest").withoutAuthentication().withPlugins("apoc");
+            new Neo4jContainer<>("neo4j:" + NEO4J_VERSION).withoutAuthentication().withPlugins("apoc");
 
     private Driver driver;
     private Neo4jGraph graph;
