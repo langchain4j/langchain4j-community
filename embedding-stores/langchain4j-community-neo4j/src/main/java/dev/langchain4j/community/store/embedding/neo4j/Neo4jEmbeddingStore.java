@@ -1,8 +1,24 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.*;
-import static dev.langchain4j.internal.Utils.*;
-import static dev.langchain4j.internal.ValidationUtils.*;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_AWAIT_INDEX_TIMEOUT;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_DATABASE_NAME;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_EMBEDDING_PROP;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_IDX_NAME;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_ID_PROP;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_LABEL;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_TEXT_PROP;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.EMBEDDINGS_ROW_KEY;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.PROPS;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.getRowsBatched;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.sanitizeOrThrows;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.toEmbeddingMatch;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureBetween;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 import static java.util.Collections.singletonList;
 
 import dev.langchain4j.data.embedding.Embedding;
@@ -11,7 +27,12 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
@@ -39,26 +60,26 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private static final Logger log = LoggerFactory.getLogger(Neo4jEmbeddingStore.class);
     public static final String ENTITIES_CREATION =
             """
-            UNWIND $rows AS row
-            MERGE (u:%1$s {%2$s: row.%2$s})
-            SET u += row.%3$s
-            WITH row, u
-            CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
-            RETURN count(*)""";
+                    UNWIND $rows AS row
+                    MERGE (u:%1$s {%2$s: row.%2$s})
+                    SET u += row.%3$s
+                    WITH row, u
+                    CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
+                    RETURN count(*)""";
     public static final String INDEX_ALREADY_EXISTS_ERROR =
             """
-            It's not possible to create an index for the label `%s` and the property `%s`,
-            as there is another index with name `%s` with different labels: `%s` and properties `%s`.
-            Please provide another indexName to create the vector index, or delete the existing one""";
+                    It's not possible to create an index for the label `%s` and the property `%s`,
+                    as there is another index with name `%s` with different labels: `%s` and properties `%s`.
+                    Please provide another indexName to create the vector index, or delete the existing one""";
     public static final String CREATE_VECTOR_INDEX =
             """
-            CREATE VECTOR INDEX %s IF NOT EXISTS
-            FOR (m:%s) ON m.%s
-            OPTIONS { indexConfig: {
-                `vector.dimensions`: %s,
-                `vector.similarity_function`: 'cosine'
-            }}
-            """;
+                    CREATE VECTOR INDEX %s IF NOT EXISTS
+                    FOR (m:%s) ON m.%s
+                    OPTIONS { indexConfig: {
+                        `vector.dimensions`: %s,
+                        `vector.similarity_function`: 'cosine'
+                    }}
+                    """;
 
     /* Neo4j Java Driver settings */
     private final Driver driver;
@@ -82,19 +103,20 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     /**
      * Creates an instance of Neo4jEmbeddingStore
-     * @param driver the {@link Driver} (required)
-     * @param dimension the dimension (required)
-     * @param config the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
-     * @param label the optional label name (default: "Document")
+     *
+     * @param driver            the {@link Driver} (required)
+     * @param dimension         the dimension (required)
+     * @param config            the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
+     * @param label             the optional label name (default: "Document")
      * @param embeddingProperty the optional embeddingProperty name (default: "embedding")
-     * @param idProperty the optional id property name (default: "id")
-     * @param metadataPrefix the optional metadata prefix (default: "")
-     * @param textProperty the optional textProperty property name (default: "text")
-     * @param indexName the optional index name (default: "vector")
-     * @param databaseName the optional database name (default: "neo4j")
+     * @param idProperty        the optional id property name (default: "id")
+     * @param metadataPrefix    the optional metadata prefix (default: "")
+     * @param textProperty      the optional textProperty property name (default: "text")
+     * @param indexName         the optional index name (default: "vector")
+     * @param databaseName      the optional database name (default: "neo4j")
      * @param awaitIndexTimeout the optional awaiting timeout for all indexes to come online, in seconds (default: 60s)
-     * @param retrievalQuery the optional retrieval query
-     *                        (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
+     * @param retrievalQuery    the optional retrieval query
+     *                          (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
      */
     public Neo4jEmbeddingStore(
             SessionConfig config,
@@ -248,10 +270,10 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             List<EmbeddingMatch<TextSegment>> matches = session.run(
                             """
-                        CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
-                        YIELD node, score
-                        WHERE score >= $minScore
-                        """
+                                    CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
+                                    YIELD node, score
+                                    WHERE score >= $minScore
+                                    """
                                     + retrievalQuery,
                             params)
                     .list(item -> toEmbeddingMatch(this, item));
