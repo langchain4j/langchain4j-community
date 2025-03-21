@@ -155,6 +155,7 @@ public class AlloyDBEngine {
     }
 
     /**
+     * Create a table for the EmbeddingStore
      * @param embeddingStoreConfig contains the parameters necessary to initialize
      * the Vector table
      */
@@ -244,6 +245,7 @@ public class AlloyDBEngine {
         public Builder() {}
 
         /**
+         * Project Id
          * @param projectId (Optional) AlloyDB database projectId
          * @return this builder
          */
@@ -253,6 +255,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * Instance
          * @param instance (Optional) AlloyDB database instance
          * @return this builder
          */
@@ -262,6 +265,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * Region
          * @param region (Optional) AlloyDB database region
          * @return this builder
          */
@@ -271,6 +275,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * Cluster
          * @param cluster (Optional) AlloyDB database cluster
          * @return this builder
          */
@@ -280,6 +285,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * Database
          * @param database (Optional) AlloyDB database database
          * @return this builder
          */
@@ -289,6 +295,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * User
          * @param user (Optional) AlloyDB database user
          * @return this builder
          */
@@ -307,6 +314,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * IP Type
          * @param ipType (Optional) type of IP to be used (PUBLIC, PSC)
          * @return this builder
          */
@@ -316,6 +324,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * Email account for auth
          * @param iamAccountEmail (Optional) IAM account email
          * @return this builder
          */
@@ -325,6 +334,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * Database IP Address
          * @param host (Optional) AlloyDB database host
          * @return this builder
          */
@@ -334,6 +344,7 @@ public class AlloyDBEngine {
         }
 
         /**
+         * Database Port
          * @param port (Optional) AlloyDB database port
          * @return this builder
          */

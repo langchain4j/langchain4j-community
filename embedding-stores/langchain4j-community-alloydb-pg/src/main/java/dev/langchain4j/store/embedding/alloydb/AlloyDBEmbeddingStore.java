@@ -221,6 +221,19 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         return ids;
     }
 
+    /**
+     * Searches for the most similar (closest in the embedding space) {@link Embedding}s.
+     * <br>
+     * All search criteria are defined inside the {@link EmbeddingSearchRequest}.
+     * <br>
+     * {@link EmbeddingSearchRequest#filter()} can be used to filter by various metadata entries
+     * based on MetadataColumns in the EmbeddingStoreConfig.
+     *
+     * @param request A request to search in an {@link EmbeddingStore}. Contains all search criteria.
+     * @return An {@link EmbeddingSearchResult} containing all found {@link Embedding}s.
+     * Included {@link EmbeddingMatch} scores are derived from chosen {@link DistanceStrategy} set in
+     * the {@link AlloyDBEmbeddingStore}.
+     */
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
         List<String> columns = new ArrayList<>(metadataColumns);
@@ -511,6 +524,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     /**
      * Create a new {@link Builder}.
+     * @param engine required {@link AlloyDBEngine}
+     * @param tableName table to be used as embedding store
      * @return the new {@link Builder}.
      */
     public static Builder builder(AlloyDBEngine engine, String tableName) {
@@ -534,7 +549,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         private DistanceStrategy distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
         private QueryOptions queryOptions;
 
-        /**Constructor for Builder
+        /**
+         * Constructor for Builder
          * @param engine required {@link AlloyDBEngine}
          * @param tableName table to be used as embedding store
          */
@@ -544,7 +560,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param schemaName (Default: "public") The schema name
+         * Schema Name
+         * @param schemaName The schema name (Default: "public")
          * @return this builder
          */
         public Builder schemaName(String schemaName) {
@@ -553,7 +570,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param contentColumn (Default: "content") create the content column
+         * Content Column
+         * @param contentColumn create the content column (Default: "content")
          * with custom name
          * @return this builder
          */
@@ -563,7 +581,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param embeddingColumn (Default: "embedding") create the embedding
+         * Embedding Column
+         * @param embeddingColumn create the embedding (Default: "embedding")
          * column with custom name
          * @return this builder
          */
@@ -573,6 +592,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * Id Column
          * @param idColumn (Optional, Default: "langchain_id") Column to store
          * ids.
          * @return this builder
@@ -583,6 +603,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * Metadata Columns
          * @param metadataColumns list of SQLAlchemy Columns to create for
          * custom metadata
          * @return this builder
@@ -593,6 +614,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * Metadata JSON Column
          * @param metadataJsonColumn (Default: "langchain_metadata") the column
          * to store extra metadata in
          * @return this builder
@@ -603,6 +625,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * Ignore Columns
          * @param ignoreMetadataColumnNames (Optional) Column(s) to ignore in
          * pre-existing tables for a document’s
          * @return this builder
@@ -613,6 +636,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * Distance Strategy
          * @param distanceStrategy (Defaults: COSINE_DISTANCE) Distance strategy
          * to use for vector similarity search
          * @return this builder
@@ -623,6 +647,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * Query Options
          * @param queryOptions (Optional) QueryOptions class with vector search
          * parameters
          * @return this builder

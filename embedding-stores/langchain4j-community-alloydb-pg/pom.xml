@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>langchain4j-alloydb-pg</artifactId>
-    <name>LangChain4j :: Community :: AlloyDB</name>
+    <name>LangChain4j :: Community :: Integration :: AlloyDB</name>
     <description>AlloyDB for Langchain4j</description>
 
     <licenses>
@@ -173,5 +173,17 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <skipCompliance>true</skipCompliance>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
