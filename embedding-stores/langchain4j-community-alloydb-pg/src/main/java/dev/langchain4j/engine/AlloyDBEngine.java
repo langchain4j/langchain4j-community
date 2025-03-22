@@ -35,7 +35,7 @@ public class AlloyDBEngine {
 
     private static final String USER_AGENT = "langchain4j-alloydb-pg";
     private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
-    private static ConnectorConfig namedConnectorConfig;
+    private ConnectorConfig namedConnectorConfig;
     private final HikariDataSource dataSource;
     static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
 
@@ -52,7 +52,7 @@ public class AlloyDBEngine {
         }
 
         if (isNotNullOrBlank(builder.cluster)) {
-            Boolean enableIAMAuth;
+            boolean enableIAMAuth;
             String authId = builder.user;
             if (isNullOrBlank(authId) && isNullOrBlank(builder.password)) {
                 enableIAMAuth = true;
@@ -88,7 +88,7 @@ public class AlloyDBEngine {
     }
 
     private HikariDataSource createConnectorDataSource(
-            String database, String user, String password, String instanceName, String ipType, Boolean enableIAMAuth) {
+            String database, String user, String password, String instanceName, String ipType, boolean enableIAMAuth) {
         if (namedConnectorConfig == null) {
             namedConnectorConfig = new ConnectorConfig.Builder()
                     .withRefreshStrategy(RefreshStrategy.LAZY)
@@ -162,39 +162,41 @@ public class AlloyDBEngine {
      */
     public void initVectorStoreTable(EmbeddingStoreConfig embeddingStoreConfig) {
         try (Connection connection = getConnection(); ) {
-            Statement statement = connection.createStatement();
-            statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
+            try (Statement statement = connection.createStatement()) {
 
-            if (embeddingStoreConfig.getOverwriteExisting()) {
-                statement.executeUpdate(String.format(
-                        "DROP TABLE IF EXISTS \"%s\".\"%s\"",
-                        embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()));
+                statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
+
+                if (embeddingStoreConfig.getOverwriteExisting()) {
+                    statement.executeUpdate(String.format(
+                            "DROP TABLE IF EXISTS \"%s\".\"%s\"",
+                            embeddingStoreConfig.getSchemaName(), embeddingStoreConfig.getTableName()));
+                }
+                String metadataClause = "";
+                if (embeddingStoreConfig.getMetadataColumns() != null
+                        && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
+                    metadataClause += String.format(
+                            ", %s",
+                            embeddingStoreConfig.getMetadataColumns().stream()
+                                    .map(MetadataColumn::generateColumnString)
+                                    .collect(Collectors.joining(", ")));
+                }
+                if (embeddingStoreConfig.getStoreMetadata()) {
+                    metadataClause += String.format(
+                            ", %s",
+                            new MetadataColumn(embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true)
+                                    .generateColumnString());
+                }
+                String query = String.format(
+                        "CREATE TABLE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NULL, \"%s\" vector(%d) NOT NULL%s)",
+                        embeddingStoreConfig.getSchemaName(),
+                        embeddingStoreConfig.getTableName(),
+                        embeddingStoreConfig.getIdColumn(),
+                        embeddingStoreConfig.getContentColumn(),
+                        embeddingStoreConfig.getEmbeddingColumn(),
+                        embeddingStoreConfig.getVectorSize(),
+                        metadataClause);
+                statement.executeUpdate(query);
             }
-            String metadataClause = "";
-            if (embeddingStoreConfig.getMetadataColumns() != null
-                    && !embeddingStoreConfig.getMetadataColumns().isEmpty()) {
-                metadataClause += String.format(
-                        ", %s",
-                        embeddingStoreConfig.getMetadataColumns().stream()
-                                .map(MetadataColumn::generateColumnString)
-                                .collect(Collectors.joining(", ")));
-            }
-            if (embeddingStoreConfig.getStoreMetadata()) {
-                metadataClause += String.format(
-                        ", %s",
-                        new MetadataColumn(embeddingStoreConfig.getMetadataJsonColumn(), "JSON", true)
-                                .generateColumnString());
-            }
-            String query = String.format(
-                    "CREATE TABLE \"%s\".\"%s\" (\"%s\" UUID PRIMARY KEY, \"%s\" TEXT NULL, \"%s\" vector(%d) NOT NULL%s)",
-                    embeddingStoreConfig.getSchemaName(),
-                    embeddingStoreConfig.getTableName(),
-                    embeddingStoreConfig.getIdColumn(),
-                    embeddingStoreConfig.getContentColumn(),
-                    embeddingStoreConfig.getEmbeddingColumn(),
-                    embeddingStoreConfig.getVectorSize(),
-                    metadataClause);
-            statement.executeUpdate(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
                     String.format(
