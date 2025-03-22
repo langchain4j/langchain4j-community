@@ -10,6 +10,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.spring.EmbeddingStoreAutoConfigurationIT;
 import java.util.List;
@@ -73,7 +74,12 @@ class ClickHouseEmbeddingStoreAutoConfigurationIT extends EmbeddingStoreAutoConf
 
             awaitUntilPersisted(context);
 
-            List<EmbeddingMatch<TextSegment>> relevant = embeddingStore.findRelevant(embedding, 10);
+            List<EmbeddingMatch<TextSegment>> relevant = embeddingStore
+                    .search(EmbeddingSearchRequest.builder()
+                            .queryEmbedding(embedding)
+                            .maxResults(10)
+                            .build())
+                    .matches();
             assertThat(relevant).hasSize(1);
 
             EmbeddingMatch<TextSegment> match = relevant.get(0);
