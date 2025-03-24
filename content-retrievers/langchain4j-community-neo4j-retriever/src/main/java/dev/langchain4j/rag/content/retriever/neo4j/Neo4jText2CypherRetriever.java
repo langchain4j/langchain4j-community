@@ -103,33 +103,37 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                 .toList();
     }
 
-    public static class Builder {
-        private Neo4jGraph graph;
-        private ChatLanguageModel chatLanguageModel;
-        private PromptTemplate promptTemplate;
+    public static class Builder<T extends Builder<T>> {
+        protected Neo4jGraph graph;
+        protected ChatLanguageModel chatLanguageModel;
+        protected PromptTemplate promptTemplate;
 
         /**
          * @param graph the {@link Neo4jGraph} (required)
          */
-        public Builder graph(Neo4jGraph graph) {
+        public T graph(Neo4jGraph graph) {
             this.graph = graph;
-            return this;
+            return self();
         }
 
         /**
          * @param chatLanguageModel the {@link ChatLanguageModel} (required)
          */
-        public Builder chatLanguageModel(ChatLanguageModel chatLanguageModel) {
+        public T chatLanguageModel(ChatLanguageModel chatLanguageModel) {
             this.chatLanguageModel = chatLanguageModel;
-            return this;
+            return self();
         }
 
         /**
          * @param promptTemplate the {@link PromptTemplate} (optional, default is {@link Neo4jText2CypherRetriever#DEFAULT_PROMPT_TEMPLATE})
          */
-        public Builder promptTemplate(PromptTemplate promptTemplate) {
+        public T promptTemplate(PromptTemplate promptTemplate) {
             this.promptTemplate = promptTemplate;
-            return this;
+            return self();
+        }
+
+        protected T self() {
+            return (T) this;
         }
 
         Neo4jText2CypherRetriever build() {

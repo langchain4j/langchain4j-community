@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
@@ -93,6 +92,25 @@ class Neo4JText2CypherRetrieverIT {
     }
 
     @Test
+    void shouldRetrieveContentWhenQueryIsValidWithDeprecatedClass() {
+        // Given
+        Query query = new Query("Who is the author of the book 'Dune'?");
+        when(chatLanguageModel.chat(anyString()))
+                .thenReturn("MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output");
+
+        Neo4jContentRetriever retriever = Neo4jContentRetriever.builder()
+                .graph(graph)
+                .chatLanguageModel(chatLanguageModel)
+                .build();
+
+        // When
+        List<Content> contents = retriever.retrieve(query);
+
+        // Then
+        assertThat(contents).hasSize(1);
+    }
+
+    @Test
     void shouldRetrieveContentWhenQueryIsValidAndResponseHasBackticks() {
         // Given
         Query query = new Query("Who is the author of the book 'Dune'?");
@@ -148,39 +166,5 @@ class Neo4JText2CypherRetrieverIT {
 
         // Then
         assertThat(contents).isEmpty();
-    }
-
-    public static class Neo4jContentRetrieverBuilder {
-        private Neo4jGraph graph;
-        private ChatLanguageModel chatLanguageModel;
-        private PromptTemplate promptTemplate;
-
-        /**
-         * @param graph the {@link Neo4jGraph} (required)
-         */
-        public Neo4jContentRetrieverBuilder graph(Neo4jGraph graph) {
-            this.graph = graph;
-            return this;
-        }
-
-        /**
-         * @param chatLanguageModel the {@link ChatLanguageModel} (required)
-         */
-        public Neo4jContentRetrieverBuilder chatLanguageModel(ChatLanguageModel chatLanguageModel) {
-            this.chatLanguageModel = chatLanguageModel;
-            return this;
-        }
-
-        /**
-         * @param promptTemplate the {@link PromptTemplate} (optional, default is {@link Neo4jText2CypherRetriever#DEFAULT_PROMPT_TEMPLATE})
-         */
-        public Neo4jContentRetrieverBuilder promptTemplate(PromptTemplate promptTemplate) {
-            this.promptTemplate = promptTemplate;
-            return this;
-        }
-
-        Neo4jText2CypherRetriever build() {
-            return new Neo4jText2CypherRetriever(graph, chatLanguageModel, promptTemplate);
-        }
     }
 }
