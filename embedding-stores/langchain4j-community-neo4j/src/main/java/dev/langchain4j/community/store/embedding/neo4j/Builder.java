@@ -18,6 +18,10 @@ public class Builder {
     private Driver driver;
     private int dimension;
     private long awaitIndexTimeout;
+    private String fullTextIndexName;
+    private String fullTextQuery;
+    private String fullTextRetrievalQuery;
+    private boolean fullTextAutocreate;
 
     /**
      * @param indexName the optional index name (default: "vector")
@@ -117,6 +121,38 @@ public class Builder {
     }
 
     /**
+     * @param fullTextIndexName the optional full-text index name, to perform a hybrid search (default: `fulltext`)
+     */
+    public Builder fullTextIndexName(String fullTextIndexName) {
+        this.fullTextIndexName = fullTextIndexName;
+        return this;
+    }
+
+    /**
+     * @param fullTextQuery the optional full-text index query, required if we want to perform a hybrid search
+     */
+    public Builder fullTextQuery(String fullTextQuery) {
+        this.fullTextQuery = fullTextQuery;
+        return this;
+    }
+
+    /**
+     * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
+     */
+    public Builder fullTextRetrievalQuery(String fullTextRetrievalQuery) {
+        this.fullTextRetrievalQuery = fullTextRetrievalQuery;
+        return this;
+    }
+
+    /**
+     * @param fullTextAutocreate if true, it will auto create the full-text index if not exists (default: false)
+     */
+    public Builder fullTextAutocreate(boolean fullTextAutocreate) {
+        this.fullTextAutocreate = fullTextAutocreate;
+        return this;
+    }
+
+    /**
      * Creates an instance a {@link Driver}, starting from uri, user and password
      *
      * @param uri      the Bolt URI to a Neo4j instance
@@ -141,6 +177,10 @@ public class Builder {
                 indexName,
                 databaseName,
                 retrievalQuery,
-                awaitIndexTimeout);
+                awaitIndexTimeout,
+                fullTextIndexName,
+                fullTextQuery,
+                fullTextRetrievalQuery,
+                fullTextAutocreate);
     }
 }

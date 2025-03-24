@@ -1,17 +1,6 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_AWAIT_INDEX_TIMEOUT;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_DATABASE_NAME;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_EMBEDDING_PROP;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_IDX_NAME;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_ID_PROP;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_LABEL;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_TEXT_PROP;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.EMBEDDINGS_ROW_KEY;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.PROPS;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.getRowsBatched;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.sanitizeOrThrows;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.toEmbeddingMatch;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.*;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
@@ -29,11 +18,14 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+
+import org.neo4j.cypherdsl.support.schema_name.SchemaNames;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
@@ -101,6 +93,11 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String retrievalQuery;
     private final Set<String> notMetaKeys;
 
+    private final String fullTextIndexName;
+    private final String fullTextQuery;
+    private final String fullTextRetrievalQuery;
+    private final boolean fullTextAutocreate;
+
     /**
      * Creates an instance of Neo4jEmbeddingStore
      *
@@ -117,6 +114,10 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param awaitIndexTimeout the optional awaiting timeout for all indexes to come online, in seconds (default: 60s)
      * @param retrievalQuery    the optional retrieval query
      *                          (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
+     * @param fullTextIndexName the optional full-text index name, to perform a hybrid search (default: `fulltext`) 
+     * @param fullTextQuery the optional full-text index query, required if we want to perform a hybrid search                        
+     * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})                        
+     * @param fullTextAutocreate if true, it will auto create the full-text index if not exists (default: false)                        
      */
     public Neo4jEmbeddingStore(
             SessionConfig config,
@@ -130,7 +131,11 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             String indexName,
             String databaseName,
             String retrievalQuery,
-            long awaitIndexTimeout) {
+            long awaitIndexTimeout,
+            String fullTextIndexName,
+            String fullTextQuery,
+            String fullTextRetrievalQuery,
+            boolean fullTextAutocreate) {
 
         /* required configs */
         this.driver = ensureNotNull(driver, "driver");
@@ -166,7 +171,13 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.retrievalQuery = getOrDefault(retrievalQuery, defaultRetrievalQuery);
 
         this.notMetaKeys = new HashSet<>(Arrays.asList(this.idProperty, this.embeddingProperty, this.textProperty));
-
+        
+        /* optional full text index */
+        this.fullTextAutocreate = fullTextAutocreate;
+        this.fullTextIndexName = getOrDefault(fullTextIndexName, DEFAULT_FULLTEXT_IDX_NAME);
+        this.fullTextQuery = SchemaNames.sanitize(fullTextQuery).orElse(null);
+        this.fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
+        
         /* auto-schema creation */
         createSchema();
     }
@@ -258,7 +269,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         var embeddingValue = Values.value(request.queryEmbedding().vector());
 
         try (var session = session()) {
-            Map<String, Object> params = Map.of(
+            Map<String, Object> params = new HashMap<>(Map.of(
                     "indexName",
                     indexName,
                     "embeddingValue",
@@ -266,17 +277,34 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     "minScore",
                     request.minScore(),
                     "maxResults",
-                    request.maxResults());
+                    request.maxResults()));
 
-            List<EmbeddingMatch<TextSegment>> matches = session.run(
-                            """
-                                    CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
-                                    YIELD node, score
-                                    WHERE score >= $minScore
-                                    """
-                                    + retrievalQuery,
-                            params)
-                    .list(item -> toEmbeddingMatch(this, item));
+            String query =
+                    """
+                    CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
+                    YIELD node, score
+                    WHERE score >= $minScore
+                    """
+                            + retrievalQuery;
+
+            if (fullTextQuery != null) {
+
+                query +=
+                        """
+                   \nUNION
+                   CALL db.index.fulltext.queryNodes($fullTextIndexName, $question, {limit: $maxResults})
+                   YIELD node, score
+                   WHERE score >= $minScore
+                   """
+                                + fullTextRetrievalQuery;
+
+                params.putAll(Map.of(
+                        "fullTextIndexName", fullTextIndexName,
+                        "question", fullTextQuery));
+            }
+
+            List<EmbeddingMatch<TextSegment>> matches =
+                    session.run(query, params).list(item -> toEmbeddingMatch(this, item));
 
             return new EmbeddingSearchResult<>(matches);
         }
@@ -323,6 +351,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         if (!indexExists()) {
             createIndex();
         }
+        createFullTextIndex();
         createUniqueConstraint();
     }
 
@@ -359,6 +388,21 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 throw new RuntimeException(errMessage);
             }
             return true;
+        }
+    }
+
+    private void createFullTextIndex() {
+        if (!fullTextAutocreate) {
+            System.out.println("Neo4jEmbeddingStore.createFullTextIndex");
+            
+            return;
+        }
+
+        try (var session = session()) {
+
+            final String query = "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (n:%s) ON EACH [n.%s]"
+                    .formatted(this.fullTextIndexName, this.sanitizedLabel, this.sanitizedIdProperty);
+            session.run(query).consume();
         }
     }
 
