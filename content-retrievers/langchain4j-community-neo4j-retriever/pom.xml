@@ -31,6 +31,18 @@
             <version>5.26.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-dsl-parser</artifactId>
+            <version>2024.5.1</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-dsl</artifactId>
+            <version>2024.5.1</version>
+        </dependency>
+
         <!-- test dependencies -->
         <dependency>
             <groupId>org.testcontainers</groupId>
