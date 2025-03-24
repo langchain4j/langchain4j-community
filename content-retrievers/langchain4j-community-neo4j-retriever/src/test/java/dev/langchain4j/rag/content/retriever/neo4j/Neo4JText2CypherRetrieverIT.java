@@ -2,128 +2,17 @@ package dev.langchain4j.rag.content.retriever.neo4j;
 
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.neo4j.driver.AuthTokens;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.GraphDatabase;
-import org.neo4j.driver.Session;
-import org.testcontainers.containers.Neo4jContainer;
-import org.testcontainers.junit.jupiter.Container;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-@ExtendWith(MockitoExtension.class)
-class Neo4JText2CypherRetrieverIT {
-    private static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26");
-
-    @Container
-    private static final Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>("neo4j:" + NEO4J_VERSION)
-            .withoutAuthentication()
-            .withPlugins("apoc");
-
-    private Driver driver;
-    private Neo4jGraph graph;
-    private Neo4jText2CypherRetriever retriever;
-
-    @Mock
-    private ChatLanguageModel chatLanguageModel;
-
-    @BeforeAll
-    static void beforeAll() {
-        neo4jContainer.start();
-    }
-
-    @BeforeEach
-    void beforeEach() {
-
-        driver = GraphDatabase.driver(neo4jContainer.getBoltUrl(), AuthTokens.none());
-
-        try (Session session = driver.session()) {
-            session.run("CREATE (book:Book {title: 'Dune'})<-[:WROTE]-(author:Person {name: 'Frank Herbert'})");
-        }
-
-        graph = Neo4jGraph.builder().driver(driver).build();
-
-        retriever = Neo4jText2CypherRetriever.builder()
-                .graph(graph)
-                .chatLanguageModel(chatLanguageModel)
-                .build();
-    }
-
-    @AfterEach
-    void afterEach() {
-        try (Session session = driver.session()) {
-            session.run("MATCH (n) DETACH DELETE n");
-        }
-        graph.close();
-        driver.close();
-    }
-
-    @AfterAll
-    static void afterAll() {
-        neo4jContainer.stop();
-    }
-
-    @Test
-    void shouldRetrieveContentWhenQueryIsValid() {
-        // Given
-        Query query = new Query("Who is the author of the book 'Dune'?");
-        when(chatLanguageModel.chat(anyString()))
-                .thenReturn("MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output");
-
-        // When
-        List<Content> contents = retriever.retrieve(query);
-
-        // Then
-        assertThat(contents).hasSize(1);
-    }
-
-    @Test
-    void shouldRetrieveContentWhenQueryIsValidWithDeprecatedClass() {
-        // Given
-        Query query = new Query("Who is the author of the book 'Dune'?");
-        when(chatLanguageModel.chat(anyString()))
-                .thenReturn("MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output");
-
-        Neo4jContentRetriever retriever = Neo4jContentRetriever.builder()
-                .graph(graph)
-                .chatLanguageModel(chatLanguageModel)
-                .build();
-
-        // When
-        List<Content> contents = retriever.retrieve(query);
-
-        // Then
-        assertThat(contents).hasSize(1);
-    }
-
-    @Test
-    void shouldRetrieveContentWhenQueryIsValidAndResponseHasBackticks() {
-        // Given
-        Query query = new Query("Who is the author of the book 'Dune'?");
-        when(chatLanguageModel.chat(anyString()))
-                .thenReturn(
-                        "```MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output```");
-
-        // When
-        List<Content> contents = retriever.retrieve(query);
-
-        // Then
-        assertThat(contents).hasSize(1);
-    }
+@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
+class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
 
     @Test
     void shouldRetrieveContentWhenQueryIsValidAndOpenAiChatModelIsUsed() {
@@ -151,20 +40,5 @@ class Neo4JText2CypherRetrieverIT {
 
         // Then
         assertThat(contents).hasSize(1);
-    }
-
-    @Test
-    void shouldReturnEmptyListWhenQueryIsInvalid() {
-        // Given
-        Query query = new Query("Who is the author of the movie 'Dune'?");
-        when(chatLanguageModel.chat(anyString()))
-                .thenReturn(
-                        "MATCH(movie:Movie {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output");
-
-        // When
-        List<Content> contents = retriever.retrieve(query);
-
-        // Then
-        assertThat(contents).isEmpty();
     }
 }
