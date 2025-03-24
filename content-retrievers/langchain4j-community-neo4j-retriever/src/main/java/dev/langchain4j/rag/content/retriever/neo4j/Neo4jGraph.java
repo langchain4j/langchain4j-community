@@ -5,9 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.neo4j.driver.Driver;
-import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
-import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.exceptions.ClientException;
@@ -95,15 +93,7 @@ public class Neo4jGraph implements AutoCloseable {
 
     public List<Record> executeRead(String queryString) {
 
-        try (Session session = this.driver.session()) {
-            return session.executeRead(tx -> {
-                Query query = new Query(queryString);
-                Result result = tx.run(query);
-                return result.list();
-            });
-        } catch (ClientException e) {
-            throw new Neo4jException("Error executing query: " + queryString, e);
-        }
+        return this.driver.executableQuery(queryString).execute().records();
     }
 
     public void refreshSchema() {

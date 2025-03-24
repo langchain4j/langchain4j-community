@@ -17,7 +17,7 @@ import org.neo4j.driver.Record;
 import org.neo4j.driver.types.Type;
 import org.neo4j.driver.types.TypeSystem;
 
-public class Neo4jContentRetriever implements ContentRetriever {
+public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     public static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
             """
@@ -30,6 +30,8 @@ public class Neo4jContentRetriever implements ContentRetriever {
 
     private static final Pattern BACKTICKS_PATTERN = Pattern.compile("```(.*?)```", Pattern.MULTILINE | Pattern.DOTALL);
     private static final Type NODE = TypeSystem.getDefault().NODE();
+    private static final Type RELATIONSHIP = TypeSystem.getDefault().RELATIONSHIP();
+    private static final Type PATH = TypeSystem.getDefault().PATH();
 
     private final Neo4jGraph graph;
 
@@ -37,15 +39,16 @@ public class Neo4jContentRetriever implements ContentRetriever {
 
     private final PromptTemplate promptTemplate;
 
-    public Neo4jContentRetriever(Neo4jGraph graph, ChatLanguageModel chatLanguageModel, PromptTemplate promptTemplate) {
+    public Neo4jText2CypherRetriever(
+            Neo4jGraph graph, ChatLanguageModel chatLanguageModel, PromptTemplate promptTemplate) {
 
         this.graph = ensureNotNull(graph, "graph");
         this.chatLanguageModel = ensureNotNull(chatLanguageModel, "chatLanguageModel");
         this.promptTemplate = getOrDefault(promptTemplate, DEFAULT_PROMPT_TEMPLATE);
     }
 
-    public static Neo4jContentRetrieverBuilder builder() {
-        return new Neo4jContentRetrieverBuilder();
+    public static Builder builder() {
+        return new Builder();
     }
 
     /*
@@ -89,7 +92,48 @@ public class Neo4jContentRetriever implements ContentRetriever {
         List<Record> records = graph.executeRead(cypherQuery);
         return records.stream()
                 .flatMap(r -> r.values().stream())
-                .map(value -> NODE.isTypeOf(value) ? value.asMap().toString() : value.toString())
+                .map(value -> {
+                    final boolean isEntity =
+                            NODE.isTypeOf(value) || RELATIONSHIP.isTypeOf(value) || PATH.isTypeOf(value);
+                    if (isEntity) {
+                        return value.asMap().toString();
+                    }
+                    return value.toString();
+                })
                 .toList();
+    }
+
+    public static class Builder {
+        private Neo4jGraph graph;
+        private ChatLanguageModel chatLanguageModel;
+        private PromptTemplate promptTemplate;
+
+        /**
+         * @param graph the {@link Neo4jGraph} (required)
+         */
+        public Builder graph(Neo4jGraph graph) {
+            this.graph = graph;
+            return this;
+        }
+
+        /**
+         * @param chatLanguageModel the {@link ChatLanguageModel} (required)
+         */
+        public Builder chatLanguageModel(ChatLanguageModel chatLanguageModel) {
+            this.chatLanguageModel = chatLanguageModel;
+            return this;
+        }
+
+        /**
+         * @param promptTemplate the {@link PromptTemplate} (optional, default is {@link Neo4jText2CypherRetriever#DEFAULT_PROMPT_TEMPLATE})
+         */
+        public Builder promptTemplate(PromptTemplate promptTemplate) {
+            this.promptTemplate = promptTemplate;
+            return this;
+        }
+
+        Neo4jText2CypherRetriever build() {
+            return new Neo4jText2CypherRetriever(graph, chatLanguageModel, promptTemplate);
+        }
     }
 }

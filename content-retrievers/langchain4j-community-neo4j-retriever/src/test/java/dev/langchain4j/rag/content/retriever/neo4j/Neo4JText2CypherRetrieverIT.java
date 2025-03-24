@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
@@ -26,16 +27,17 @@ import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 
 @ExtendWith(MockitoExtension.class)
-class Neo4jContentRetrieverIT {
+class Neo4JText2CypherRetrieverIT {
     private static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26");
-    
+
     @Container
-    private static final Neo4jContainer<?> neo4jContainer =
-            new Neo4jContainer<>("neo4j:" + NEO4J_VERSION).withoutAuthentication().withPlugins("apoc");
+    private static final Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>("neo4j:" + NEO4J_VERSION)
+            .withoutAuthentication()
+            .withPlugins("apoc");
 
     private Driver driver;
     private Neo4jGraph graph;
-    private Neo4jContentRetriever retriever;
+    private Neo4jText2CypherRetriever retriever;
 
     @Mock
     private ChatLanguageModel chatLanguageModel;
@@ -56,7 +58,7 @@ class Neo4jContentRetrieverIT {
 
         graph = Neo4jGraph.builder().driver(driver).build();
 
-        retriever = Neo4jContentRetriever.builder()
+        retriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
                 .chatLanguageModel(chatLanguageModel)
                 .build();
@@ -118,7 +120,7 @@ class Neo4jContentRetrieverIT {
                 .logResponses(true)
                 .build();
 
-        Neo4jContentRetriever neo4jContentRetriever = Neo4jContentRetriever.builder()
+        Neo4jText2CypherRetriever neo4jContentRetriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
                 .chatLanguageModel(openAiChatModel)
                 .build();
@@ -146,5 +148,39 @@ class Neo4jContentRetrieverIT {
 
         // Then
         assertThat(contents).isEmpty();
+    }
+
+    public static class Neo4jContentRetrieverBuilder {
+        private Neo4jGraph graph;
+        private ChatLanguageModel chatLanguageModel;
+        private PromptTemplate promptTemplate;
+
+        /**
+         * @param graph the {@link Neo4jGraph} (required)
+         */
+        public Neo4jContentRetrieverBuilder graph(Neo4jGraph graph) {
+            this.graph = graph;
+            return this;
+        }
+
+        /**
+         * @param chatLanguageModel the {@link ChatLanguageModel} (required)
+         */
+        public Neo4jContentRetrieverBuilder chatLanguageModel(ChatLanguageModel chatLanguageModel) {
+            this.chatLanguageModel = chatLanguageModel;
+            return this;
+        }
+
+        /**
+         * @param promptTemplate the {@link PromptTemplate} (optional, default is {@link Neo4jText2CypherRetriever#DEFAULT_PROMPT_TEMPLATE})
+         */
+        public Neo4jContentRetrieverBuilder promptTemplate(PromptTemplate promptTemplate) {
+            this.promptTemplate = promptTemplate;
+            return this;
+        }
+
+        Neo4jText2CypherRetriever build() {
+            return new Neo4jText2CypherRetriever(graph, chatLanguageModel, promptTemplate);
+        }
     }
 }
