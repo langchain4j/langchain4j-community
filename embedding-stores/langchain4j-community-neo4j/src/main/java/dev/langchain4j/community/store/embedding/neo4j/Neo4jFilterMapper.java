@@ -42,7 +42,7 @@ public class Neo4jFilterMapper {
 
     final IncrementalKeyMap map = new IncrementalKeyMap();
 
-    AbstractMap.SimpleEntry<String, Map> map(Filter filter) {
+    AbstractMap.SimpleEntry<String, Map<?, ?>> map(Filter filter) {
         final String stringMapPair = getStringMapping(filter);
         return new AbstractMap.SimpleEntry<>(stringMapPair, map.getMap());
     }
