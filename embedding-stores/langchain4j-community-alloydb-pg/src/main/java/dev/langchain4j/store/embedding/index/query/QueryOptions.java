@@ -9,7 +9,8 @@ public interface QueryOptions {
 
     /**
      * Convert index attributes to list of configuration
+     *
      * @return List of parameter setting strings
      */
-    public List<String> getParameterSettings();
+    List<String> getParameterSettings();
 }

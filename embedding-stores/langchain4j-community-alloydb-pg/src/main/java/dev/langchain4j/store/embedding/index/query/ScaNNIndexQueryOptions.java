@@ -13,6 +13,7 @@ public class ScaNNIndexQueryOptions implements QueryOptions {
 
     /**
      * Constructor for ScaNNIndexQueryOptions
+     *
      * @param builder builder
      */
     public ScaNNIndexQueryOptions(Builder builder) {
@@ -20,7 +21,9 @@ public class ScaNNIndexQueryOptions implements QueryOptions {
         this.preOrderingNumNeighbors = builder.preOrderingNumNeighbors;
     }
 
-    /** {@inheritDoc}  */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<String> getParameterSettings() {
         List<String> parameters = new ArrayList<>();
@@ -47,15 +50,17 @@ public class ScaNNIndexQueryOptions implements QueryOptions {
         }
 
         /**
-         * @param preOrderingNumNeighbors  number of preordering neighbors
+         * @param preOrderingNumNeighbors number of preordering neighbors
          * @return this builder
          */
         public Builder preOrderingNumNeighbors(Integer preOrderingNumNeighbors) {
             this.preOrderingNumNeighbors = preOrderingNumNeighbors;
             return this;
         }
+
         /**
          * Builds an {@link ScaNNIndexQueryOptions} store with the configuration applied to this builder.
+         *
          * @return A new {@link ScaNNIndexQueryOptions} instance
          */
         public ScaNNIndexQueryOptions build() {

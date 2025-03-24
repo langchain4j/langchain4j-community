@@ -7,36 +7,43 @@ import java.util.List;
  */
 public interface BaseIndex {
 
-    /** base index name suffix */
-    final String DEFAULT_INDEX_NAME_SUFFIX = "langchainvectorindex";
+    /**
+     * base index name suffix
+     */
+    String DEFAULT_INDEX_NAME_SUFFIX = "langchainvectorindex";
 
     /**
      * get  index query options
-     * @return  index query options string
+     *
+     * @return index query options string
      */
-    public String getIndexOptions();
+    String getIndexOptions();
 
     /**
      * the distance strategy for the index
+     *
      * @return DistanceStrategy
      */
-    public DistanceStrategy getDistanceStrategy();
+    DistanceStrategy getDistanceStrategy();
 
     /**
      * retrieve partial indexes
+     *
      * @return list of partial indexes
      */
-    public List<String> getPartialIndexes();
+    List<String> getPartialIndexes();
 
     /**
      * retrieve name
+     *
      * @return name
      */
-    public String getName();
+    String getName();
 
     /**
      * retrieve index type
+     *
      * @return index type String
      */
-    public String getIndexType();
+    String getIndexType();
 }

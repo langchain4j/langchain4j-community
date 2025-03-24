@@ -16,6 +16,7 @@ public class ScaNNIndex implements BaseIndex {
 
     /**
      * Constructor for ScaNNIndex
+     *
      * @param builder builder
      */
     public ScaNNIndex(Builder builder) {
@@ -26,31 +27,41 @@ public class ScaNNIndex implements BaseIndex {
         this.partialIndexes = builder.partialIndexes;
     }
 
-    /**{@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getIndexOptions() {
         return String.format("(num_leaves = %s, quantizer = %s)", numLeaves, quantizer);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getIndexType() {
         return indexType;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
         return name;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public DistanceStrategy getDistanceStrategy() {
         return distanceStrategy;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<String> getPartialIndexes() {
         return partialIndexes;
@@ -114,6 +125,7 @@ public class ScaNNIndex implements BaseIndex {
 
         /**
          * Builds an {@link ScaNNIndex} store with the configuration applied to this builder.
+         *
          * @return A new {@link ScaNNIndex} instance
          */
         public ScaNNIndex build() {

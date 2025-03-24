@@ -177,7 +177,7 @@ public class AlloyDBEngineIT {
                 .database(database)
                 .iamAccountEmail(iamEmail)
                 .build();
-        try (Connection connection = iamEngine.getConnection(); ) {
+        try (Connection connection = iamEngine.getConnection()) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
             assertThat(rs.getInt(1)).isEqualTo(1);
@@ -194,7 +194,7 @@ public class AlloyDBEngineIT {
                 .instance(instance)
                 .database(database)
                 .build();
-        try (Connection connection = iamEngine.getConnection(); ) {
+        try (Connection connection = iamEngine.getConnection()) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
             assertThat(rs.getInt(1)).isEqualTo(1);

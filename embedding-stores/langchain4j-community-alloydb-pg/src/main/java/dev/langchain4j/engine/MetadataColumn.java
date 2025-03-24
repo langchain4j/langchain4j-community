@@ -11,8 +11,9 @@ public class MetadataColumn {
 
     /**
      * Metadata column's name, type and nullable constraint
-     * @param name the column name
-     * @param type supported types: "text", "char()", "varchar()", "uuid", "integer", "bigint", "real" and "double"
+     *
+     * @param name     the column name
+     * @param type     supported types: "text", "char()", "varchar()", "uuid", "integer", "bigint", "real" and "double"
      * @param nullable should use nullable constraint
      */
     public MetadataColumn(String name, String type, Boolean nullable) {
@@ -23,6 +24,7 @@ public class MetadataColumn {
 
     /**
      * generate the column clause to be used by {@link AlloyDBEngine}
+     *
      * @return column clause for create table
      */
     public String generateColumnString() {
@@ -31,6 +33,7 @@ public class MetadataColumn {
 
     /**
      * the metadata column name
+     *
      * @return name string
      */
     public String getName() {

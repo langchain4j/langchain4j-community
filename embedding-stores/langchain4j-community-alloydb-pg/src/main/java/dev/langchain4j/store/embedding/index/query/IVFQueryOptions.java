@@ -12,13 +12,16 @@ public class IVFQueryOptions implements QueryOptions {
 
     /**
      * Constructor for IVFQueryOptions
+     *
      * @param builder builder
      */
     public IVFQueryOptions(Builder builder) {
         this.probes = builder.probes;
     }
 
-    /** {@inheritDoc}  */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<String> getParameterSettings() {
         List<String> parameters = new ArrayList<>();
@@ -44,6 +47,7 @@ public class IVFQueryOptions implements QueryOptions {
 
         /**
          * Builds an {@link IVFQueryOptions} store with the configuration applied to this builder.
+         *
          * @return A new {@link IVFQueryOptions} instance
          */
         public IVFQueryOptions build() {

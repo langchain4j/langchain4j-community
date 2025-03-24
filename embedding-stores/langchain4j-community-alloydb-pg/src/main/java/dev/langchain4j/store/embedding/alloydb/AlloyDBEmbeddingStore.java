@@ -103,7 +103,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         Map<String, String> allColumns = new HashMap<>();
 
-        try (Connection conn = engine.getConnection(); ) {
+        try (Connection conn = engine.getConnection()) {
 
             ResultSet resultSet = conn.createStatement().executeQuery(query);
 
@@ -410,8 +410,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     /**
      * Create index in the vector store table
-     * @param index, index to be applied
-     * @param name, name of the index
+     *
+     * @param index,        index to be applied
+     * @param name,         name of the index
      * @param concurrently, CONCURRENTLY option
      */
     public void applyVectorIndex(BaseIndex index, String name, Boolean concurrently) {
@@ -428,7 +429,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
         }
 
-        try (Connection conn = engine.getConnection(); ) {
+        try (Connection conn = engine.getConnection()) {
             if (index instanceof ScaNNIndex scaNNIndex) {
                 conn.createStatement().executeQuery("CREATE EXTENSION IF NOT EXISTS alloydb_scann");
                 function = scaNNIndex.getDistanceStrategy().getScannIndexFunction();
@@ -468,12 +469,13 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     /**
      * remove index from the vector store table
+     *
      * @param name, name of the index
      */
     public void dropVectorIndex(String name) {
         name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
         String query = String.format("DROP INDEX IF EXISTS %s;", name);
-        try (Connection conn = engine.getConnection(); ) {
+        try (Connection conn = engine.getConnection()) {
             conn.createStatement().executeQuery(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
@@ -485,12 +487,13 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     /**
      * re-index the vector store table
+     *
      * @param name, name of the index
      */
     public void reindex(String name) {
         name = isNotNullOrBlank(name) ? name : tableName + BaseIndex.DEFAULT_INDEX_NAME_SUFFIX;
         String query = String.format("REINDEX INDEX %s;", name);
-        try (Connection conn = engine.getConnection(); ) {
+        try (Connection conn = engine.getConnection()) {
             conn.createStatement().executeQuery(query);
         } catch (SQLException ex) {
             throw new RuntimeException(
@@ -524,7 +527,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     /**
      * Create a new {@link Builder}.
-     * @param engine required {@link AlloyDBEngine}
+     *
+     * @param engine    required {@link AlloyDBEngine}
      * @param tableName table to be used as embedding store
      * @return the new {@link Builder}.
      */
@@ -537,8 +541,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
      */
     public static class Builder {
 
-        private AlloyDBEngine engine;
-        private String tableName;
+        private final AlloyDBEngine engine;
+        private final String tableName;
         private String schemaName = "public";
         private String contentColumn = "content";
         private String embeddingColumn = "embedding";
@@ -551,7 +555,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Constructor for Builder
-         * @param engine required {@link AlloyDBEngine}
+         *
+         * @param engine    required {@link AlloyDBEngine}
          * @param tableName table to be used as embedding store
          */
         public Builder(AlloyDBEngine engine, String tableName) {
@@ -561,6 +566,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Schema Name
+         *
          * @param schemaName The schema name (Default: "public")
          * @return this builder
          */
@@ -571,8 +577,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Content Column
+         *
          * @param contentColumn create the content column (Default: "content")
-         * with custom name
+         *                      with custom name
          * @return this builder
          */
         public Builder contentColumn(String contentColumn) {
@@ -582,8 +589,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Embedding Column
+         *
          * @param embeddingColumn create the embedding (Default: "embedding")
-         * column with custom name
+         *                        column with custom name
          * @return this builder
          */
         public Builder embeddingColumn(String embeddingColumn) {
@@ -593,8 +601,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Id Column
+         *
          * @param idColumn (Optional, Default: "langchain_id") Column to store
-         * ids.
+         *                 ids.
          * @return this builder
          */
         public Builder idColumn(String idColumn) {
@@ -604,8 +613,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Metadata Columns
+         *
          * @param metadataColumns list of SQLAlchemy Columns to create for
-         * custom metadata
+         *                        custom metadata
          * @return this builder
          */
         public Builder metadataColumns(List<String> metadataColumns) {
@@ -615,8 +625,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Metadata JSON Column
+         *
          * @param metadataJsonColumn (Default: "langchain_metadata") the column
-         * to store extra metadata in
+         *                           to store extra metadata in
          * @return this builder
          */
         public Builder metadataJsonColumn(String metadataJsonColumn) {
@@ -626,8 +637,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Ignore Columns
+         *
          * @param ignoreMetadataColumnNames (Optional) Column(s) to ignore in
-         * pre-existing tables for a document’s
+         *                                  pre-existing tables for a document’s
          * @return this builder
          */
         public Builder ignoreMetadataColumnNames(List<String> ignoreMetadataColumnNames) {
@@ -637,8 +649,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Distance Strategy
+         *
          * @param distanceStrategy (Defaults: COSINE_DISTANCE) Distance strategy
-         * to use for vector similarity search
+         *                         to use for vector similarity search
          * @return this builder
          */
         public Builder distanceStrategy(DistanceStrategy distanceStrategy) {
@@ -648,8 +661,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Query Options
+         *
          * @param queryOptions (Optional) QueryOptions class with vector search
-         * parameters
+         *                     parameters
          * @return this builder
          */
         public Builder queryOptions(QueryOptions queryOptions) {
@@ -659,6 +673,7 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * Builds an {@link AlloyDBEmbeddingStore} store with the configuration applied to this builder.
+         *
          * @return A new {@link AlloyDBEmbeddingStore} instance
          */
         public AlloyDBEmbeddingStore build() {

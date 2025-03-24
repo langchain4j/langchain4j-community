@@ -12,6 +12,7 @@ public class HNSWQueryOptions implements QueryOptions {
 
     /**
      * Constructor for HNSWQueryOptions
+     *
      * @param builder builder
      */
     public HNSWQueryOptions(Builder builder) {
@@ -43,6 +44,7 @@ public class HNSWQueryOptions implements QueryOptions {
 
         /**
          * Builds an {@link HNSWQueryOptions} store with the configuration applied to this builder.
+         *
          * @return A new {@link HNSWQueryOptions} instance
          */
         public HNSWQueryOptions build() {

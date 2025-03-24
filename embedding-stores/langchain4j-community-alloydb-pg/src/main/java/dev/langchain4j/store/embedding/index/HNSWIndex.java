@@ -16,6 +16,7 @@ public class HNSWIndex implements BaseIndex {
 
     /**
      * Constructor for HNSWIndex
+     *
      * @param builder builder
      */
     public HNSWIndex(Builder builder) {
@@ -26,31 +27,41 @@ public class HNSWIndex implements BaseIndex {
         this.partialIndexes = builder.partialIndexes;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getIndexOptions() {
         return String.format("(m = %s, ef_construction = %s)", m, efConstruction);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public DistanceStrategy getDistanceStrategy() {
         return distanceStrategy;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<String> getPartialIndexes() {
         return partialIndexes;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getIndexType() {
         return indexType;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
         return name;
@@ -114,6 +125,7 @@ public class HNSWIndex implements BaseIndex {
 
         /**
          * Builds an {@link HNSWIndex} store with the configuration applied to this builder.
+         *
          * @return A new {@link HNSWIndex} instance
          */
         public HNSWIndex build() {

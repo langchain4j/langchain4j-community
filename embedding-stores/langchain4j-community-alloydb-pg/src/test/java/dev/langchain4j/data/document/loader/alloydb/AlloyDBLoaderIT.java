@@ -8,7 +8,6 @@ import dev.langchain4j.engine.AlloyDBEngine;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -70,8 +69,8 @@ public class AlloyDBLoaderIT {
     public void testLoadDocumentsFromDatabase() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
-                .contentColumns(Arrays.asList("content"))
-                .metadataColumns(Arrays.asList("metadata"))
+                .contentColumns(List.of("content"))
+                .metadataColumns(List.of("metadata"))
                 .metadataJsonColumn("langchain_metadata")
                 .build();
 
@@ -93,8 +92,8 @@ public class AlloyDBLoaderIT {
     public void testLoadDocumentsWithCustomQuery() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .query("SELECT content, metadata, langchain_metadata FROM test_table WHERE id = 1")
-                .contentColumns(Arrays.asList("content"))
-                .metadataColumns(Arrays.asList("metadata"))
+                .contentColumns(List.of("content"))
+                .metadataColumns(List.of("metadata"))
                 .metadataJsonColumn("langchain_metadata")
                 .build();
 
@@ -112,8 +111,8 @@ public class AlloyDBLoaderIT {
     public void testLoadDocumentsWithTextFormatter() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
-                .contentColumns(Arrays.asList("content"))
-                .metadataColumns(Arrays.asList("metadata"))
+                .contentColumns(List.of("content"))
+                .metadataColumns(List.of("metadata"))
                 .metadataJsonColumn("langchain_metadata")
                 .format("text")
                 .build();
@@ -128,8 +127,8 @@ public class AlloyDBLoaderIT {
     public void testLoadDocumentsWithCsvFormatter() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
-                .contentColumns(Arrays.asList("content"))
-                .metadataColumns(Arrays.asList("metadata"))
+                .contentColumns(List.of("content"))
+                .metadataColumns(List.of("metadata"))
                 .metadataJsonColumn("langchain_metadata")
                 .format("csv")
                 .build();
@@ -144,8 +143,8 @@ public class AlloyDBLoaderIT {
     public void testLoadDocumentsWithYamlFormatter() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
-                .contentColumns(Arrays.asList("content"))
-                .metadataColumns(Arrays.asList("metadata"))
+                .contentColumns(List.of("content"))
+                .metadataColumns(List.of("metadata"))
                 .metadataJsonColumn("langchain_metadata")
                 .format("YAML")
                 .build();
@@ -160,8 +159,8 @@ public class AlloyDBLoaderIT {
     public void testLoadDocumentsWithJsonFormatter() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
-                .contentColumns(Arrays.asList("content"))
-                .metadataColumns(Arrays.asList("metadata"))
+                .contentColumns(List.of("content"))
+                .metadataColumns(List.of("metadata"))
                 .metadataJsonColumn("langchain_metadata")
                 .format("JSON")
                 .build();

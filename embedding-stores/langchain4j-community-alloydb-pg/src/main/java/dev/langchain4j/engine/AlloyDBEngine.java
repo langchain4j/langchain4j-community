@@ -70,15 +70,13 @@ public class AlloyDBEngine {
                 throw new IllegalStateException(
                         "Either one of user or password is blank, expected both user and password to be valid credentials or empty");
             }
-            String instanceName = new StringBuilder("projects/")
-                    .append(ensureNotBlank(builder.projectId, "projectId"))
-                    .append("/locations/")
-                    .append(ensureNotBlank(builder.region, "region"))
-                    .append("/clusters/")
-                    .append(ensureNotBlank(builder.cluster, "cluster"))
-                    .append("/instances/")
-                    .append(ensureNotBlank(builder.instance, "instance"))
-                    .toString();
+            String instanceName = "projects/" + ensureNotBlank(builder.projectId, "projectId")
+                    + "/locations/"
+                    + ensureNotBlank(builder.region, "region")
+                    + "/clusters/"
+                    + ensureNotBlank(builder.cluster, "cluster")
+                    + "/instances/"
+                    + ensureNotBlank(builder.instance, "instance");
             dataSource = createConnectorDataSource(
                     builder.database, authId, builder.password, instanceName, builder.ipType, enableIAMAuth);
         } else {
@@ -147,6 +145,7 @@ public class AlloyDBEngine {
 
     /**
      * Gets a Connection from the datasource
+     *
      * @return A connection with the database specified in {@link AlloyDBEngine}
      * @throws SQLException if database error occurs
      */
@@ -157,11 +156,12 @@ public class AlloyDBEngine {
 
     /**
      * Create a table for the EmbeddingStore
+     *
      * @param embeddingStoreConfig contains the parameters necessary to initialize
-     * the Vector table
+     *                             the Vector table
      */
     public void initVectorStoreTable(EmbeddingStoreConfig embeddingStoreConfig) {
-        try (Connection connection = getConnection(); ) {
+        try (Connection connection = getConnection()) {
             try (Statement statement = connection.createStatement()) {
 
                 statement.executeUpdate("CREATE EXTENSION IF NOT EXISTS vector");
@@ -215,6 +215,7 @@ public class AlloyDBEngine {
 
     /**
      * Create a new {@link Builder}.
+     *
      * @return the new {@link Builder}.
      */
     public static Builder builder() {
@@ -249,6 +250,7 @@ public class AlloyDBEngine {
 
         /**
          * Project Id
+         *
          * @param projectId (Optional) AlloyDB database projectId
          * @return this builder
          */
@@ -259,6 +261,7 @@ public class AlloyDBEngine {
 
         /**
          * Instance
+         *
          * @param instance (Optional) AlloyDB database instance
          * @return this builder
          */
@@ -269,6 +272,7 @@ public class AlloyDBEngine {
 
         /**
          * Region
+         *
          * @param region (Optional) AlloyDB database region
          * @return this builder
          */
@@ -279,6 +283,7 @@ public class AlloyDBEngine {
 
         /**
          * Cluster
+         *
          * @param cluster (Optional) AlloyDB database cluster
          * @return this builder
          */
@@ -289,6 +294,7 @@ public class AlloyDBEngine {
 
         /**
          * Database
+         *
          * @param database (Optional) AlloyDB database database
          * @return this builder
          */
@@ -299,6 +305,7 @@ public class AlloyDBEngine {
 
         /**
          * User
+         *
          * @param user (Optional) AlloyDB database user
          * @return this builder
          */
@@ -318,6 +325,7 @@ public class AlloyDBEngine {
 
         /**
          * IP Type
+         *
          * @param ipType (Optional) type of IP to be used (PUBLIC, PSC)
          * @return this builder
          */
@@ -328,6 +336,7 @@ public class AlloyDBEngine {
 
         /**
          * Email account for auth
+         *
          * @param iamAccountEmail (Optional) IAM account email
          * @return this builder
          */
@@ -338,6 +347,7 @@ public class AlloyDBEngine {
 
         /**
          * Database IP Address
+         *
          * @param host (Optional) AlloyDB database host
          * @return this builder
          */
@@ -348,6 +358,7 @@ public class AlloyDBEngine {
 
         /**
          * Database Port
+         *
          * @param port (Optional) AlloyDB database port
          * @return this builder
          */
@@ -358,6 +369,7 @@ public class AlloyDBEngine {
 
         /**
          * Builds an {@link AlloyDBEngine} store with the configuration applied to this builder.
+         *
          * @return A new {@link AlloyDBEngine} instance
          */
         public AlloyDBEngine build() {

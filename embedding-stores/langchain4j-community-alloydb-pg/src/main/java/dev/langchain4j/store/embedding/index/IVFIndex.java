@@ -16,6 +16,7 @@ public class IVFIndex implements BaseIndex {
 
     /**
      * Constructor for IVFIndex
+     *
      * @param builder builder
      */
     public IVFIndex(Builder builder) {
@@ -26,31 +27,41 @@ public class IVFIndex implements BaseIndex {
         this.partialIndexes = builder.partialIndexes;
     }
 
-    /**{@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getIndexOptions() {
         return String.format("(lists = %s, quantizer = %s)", listCount, quantizer);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public DistanceStrategy getDistanceStrategy() {
         return distanceStrategy;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<String> getPartialIndexes() {
         return partialIndexes;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getIndexType() {
         return indexType;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
         return name;
@@ -114,6 +125,7 @@ public class IVFIndex implements BaseIndex {
 
         /**
          * Builds an {@link IVFIndex} store with the configuration applied to this builder.
+         *
          * @return A new {@link IVFIndex} instance
          */
         public IVFIndex build() {

@@ -9,7 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>langchain4j-alloydb-pg</artifactId>
+    <artifactId>langchain4j-community-alloydb-pg</artifactId>
     <name>LangChain4j :: Community :: Integration :: AlloyDB</name>
     <description>AlloyDB for Langchain4j</description>
 

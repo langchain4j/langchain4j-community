@@ -28,6 +28,7 @@ public class AlloyDBFilterMapper {
 
     /**
      * Maps {@link Filter} into a string
+     *
      * @param filter the filter to be mapped
      * @return AlloyDB compatible filter string
      */

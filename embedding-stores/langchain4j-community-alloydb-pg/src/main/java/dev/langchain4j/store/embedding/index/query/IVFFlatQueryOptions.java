@@ -12,13 +12,16 @@ public class IVFFlatQueryOptions implements QueryOptions {
 
     /**
      * Constructor for IVFFlatQueryOptions
+     *
      * @param builder builder
      */
     public IVFFlatQueryOptions(Builder builder) {
         this.probes = builder.probes;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<String> getParameterSettings() {
         List<String> parameters = new ArrayList<>();
@@ -44,6 +47,7 @@ public class IVFFlatQueryOptions implements QueryOptions {
 
         /**
          * Builds an {@link IVFFlatQueryOptions} store with the configuration applied to this builder.
+         *
          * @return A new {@link IVFFlatQueryOptions} instance
          */
         public IVFFlatQueryOptions build() {

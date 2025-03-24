@@ -41,6 +41,7 @@ public class AlloyDBLoader {
 
     /**
      * Create a new {@link AlloyDBLoader} from the Builder.
+     *
      * @param builder the builder.
      */
     private AlloyDBLoader(Builder builder) {
@@ -54,6 +55,7 @@ public class AlloyDBLoader {
 
     /**
      * Create a new {@link Builder}.
+     *
      * @param engine The AlloyDB Engine
      * @return the new {@link Builder}.
      */
@@ -78,6 +80,7 @@ public class AlloyDBLoader {
 
         /**
          * Construct a LoaderBuilder.
+         *
          * @param engine The AlloyDBEngine.
          */
         public Builder(AlloyDBEngine engine) {
@@ -182,9 +185,9 @@ public class AlloyDBLoader {
          *
          * @return The built {@link AlloyDBLoader} instance.
          * @throws IllegalArgumentException if neither query nor tableName is
-         * specified, or if both format and formatter are specified, or if
-         * specified column not found.
-         * @throws SQLException if a database error occurs.
+         *                                  specified, or if both format and formatter are specified, or if
+         *                                  specified column not found.
+         * @throws SQLException             if a database error occurs.
          */
         public AlloyDBLoader build() throws SQLException {
             if ((this.query == null || this.query.isEmpty()) && (this.tableName == null || this.tableName.isEmpty())) {
@@ -260,7 +263,7 @@ public class AlloyDBLoader {
     /**
      * Formats the row data into a text string.
      *
-     * @param row The row data as a map of column names to values.
+     * @param row            The row data as a map of column names to values.
      * @param contentColumns The list of columns to use for content.
      * @return The formatted text string.
      */
@@ -277,7 +280,7 @@ public class AlloyDBLoader {
     /**
      * Formats the row data into a CSV string.
      *
-     * @param row The row data as a map of column names to values.
+     * @param row            The row data as a map of column names to values.
      * @param contentColumns The list of columns to use for content.
      * @return The formatted CSV string.
      */
@@ -294,7 +297,7 @@ public class AlloyDBLoader {
     /**
      * Formats the row data into a YAML string.
      *
-     * @param row The row data as a map of column names to values.
+     * @param row            The row data as a map of column names to values.
      * @param contentColumns The list of columns to use for content.
      * @return The formatted YAML string.
      */
@@ -311,7 +314,7 @@ public class AlloyDBLoader {
     /**
      * Formats the row data into a JSON string.
      *
-     * @param row The row data as a map of column names to values.
+     * @param row            The row data as a map of column names to values.
      * @param contentColumns The list of columns to use for content.
      * @return The formatted JSON string.
      */
@@ -337,12 +340,12 @@ public class AlloyDBLoader {
      *
      * @return A list of {@link Document} objects, where each document
      * represents a row from the database result set.
-     * @throws SQLException If a database error occurs during the execution of
-     * the query or while processing the result set. This could include issues
-     * such as connection problems, SQL syntax errors, or data retrieval
-     * failures.
+     * @throws SQLException     If a database error occurs during the execution of
+     *                          the query or while processing the result set. This could include issues
+     *                          such as connection problems, SQL syntax errors, or data retrieval
+     *                          failures.
      * @throws RuntimeException If there's an error parsing the JSON metadata
-     * column, indicating an issue with the JSON structure.
+     *                          column, indicating an issue with the JSON structure.
      */
     public List<Document> load() throws SQLException {
         List<Document> documents = new ArrayList<>();

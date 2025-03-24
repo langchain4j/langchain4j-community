@@ -7,14 +7,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.data.document.Document;
-import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.engine.AlloyDBEngine;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,7 +80,7 @@ public class AlloyDBLoaderTest {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
 
-        builder.contentColumns(Arrays.asList("invalid_col"));
+        builder.contentColumns(List.of("invalid_col"));
 
         assertThrows(IllegalArgumentException.class, () -> builder.build());
     }
@@ -109,8 +107,8 @@ public class AlloyDBLoaderTest {
         when(mockResultSet.getObject("metadata")).thenReturn("test metadata");
         when(mockResultSet.getObject("langchain_metadata")).thenReturn("{\"key\":\"value\"}");
 
-        AlloyDBLoader loader = builder.contentColumns(Arrays.asList("content"))
-                .metadataColumns(Arrays.asList("metadata"))
+        AlloyDBLoader loader = builder.contentColumns(List.of("content"))
+                .metadataColumns(List.of("metadata"))
                 .metadataJsonColumn("langchain_metadata")
                 .build();
 
@@ -118,9 +116,7 @@ public class AlloyDBLoaderTest {
 
         assertEquals(1, documents.size());
         assertEquals("test content", documents.get(0).text());
-        assertEquals("value", ((Metadata) documents.get(0).metadata()).toMap().get("key"));
-        assertEquals(
-                "test metadata",
-                ((Metadata) documents.get(0).metadata()).toMap().get("metadata"));
+        assertEquals("value", documents.get(0).metadata().toMap().get("key"));
+        assertEquals("test metadata", documents.get(0).metadata().toMap().get("metadata"));
     }
 }
