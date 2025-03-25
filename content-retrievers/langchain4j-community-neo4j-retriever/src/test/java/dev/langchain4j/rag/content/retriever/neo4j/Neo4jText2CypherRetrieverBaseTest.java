@@ -12,6 +12,7 @@ import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 
 public class Neo4jText2CypherRetrieverBaseTest {
+
     protected static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26");
 
     protected Driver driver;

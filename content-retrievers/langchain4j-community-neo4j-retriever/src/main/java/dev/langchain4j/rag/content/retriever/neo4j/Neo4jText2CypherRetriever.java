@@ -21,12 +21,12 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     public static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
             """
-            Based on the Neo4j graph schema below, write a Cypher query that would answer the user's question:
-            {{schema}}
+                    Based on the Neo4j graph schema below, write a Cypher query that would answer the user's question:
+                    {{schema}}
 
-            Question: {{question}}
-            Cypher query:
-            """);
+                    Question: {{question}}
+                    Cypher query:
+                    """);
 
     private static final Pattern BACKTICKS_PATTERN = Pattern.compile("```(.*?)```", Pattern.MULTILINE | Pattern.DOTALL);
     private static final Type NODE = TypeSystem.getDefault().NODE();
@@ -104,6 +104,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     }
 
     public static class Builder<T extends Builder<T>> {
+
         protected Neo4jGraph graph;
         protected ChatLanguageModel chatLanguageModel;
         protected PromptTemplate promptTemplate;

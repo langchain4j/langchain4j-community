@@ -31,30 +31,30 @@ public class Neo4jGraph implements AutoCloseable {
 
     private static final String NODE_PROPERTIES_QUERY =
             """
-            CALL apoc.meta.data()
-            YIELD label, other, elementType, type, property
-            WHERE NOT type = "RELATIONSHIP" AND elementType = "node"
-            WITH label AS nodeLabels, collect({property:property, type:type}) AS properties
-            RETURN {labels: nodeLabels, properties: properties} AS output
-            """;
+                    CALL apoc.meta.data()
+                    YIELD label, other, elementType, type, property
+                    WHERE NOT type = "RELATIONSHIP" AND elementType = "node"
+                    WITH label AS nodeLabels, collect({property:property, type:type}) AS properties
+                    RETURN {labels: nodeLabels, properties: properties} AS output
+                    """;
 
     private static final String REL_PROPERTIES_QUERY =
             """
-            CALL apoc.meta.data()
-            YIELD label, other, elementType, type, property
-            WHERE NOT type = "RELATIONSHIP" AND elementType = "relationship"
-            WITH label AS nodeLabels, collect({property:property, type:type}) AS properties
-            RETURN {type: nodeLabels, properties: properties} AS output
-            """;
+                    CALL apoc.meta.data()
+                    YIELD label, other, elementType, type, property
+                    WHERE NOT type = "RELATIONSHIP" AND elementType = "relationship"
+                    WITH label AS nodeLabels, collect({property:property, type:type}) AS properties
+                    RETURN {type: nodeLabels, properties: properties} AS output
+                    """;
 
     private static final String RELATIONSHIPS_QUERY =
             """
-            CALL apoc.meta.data()
-            YIELD label, other, elementType, type, property
-            WHERE type = "RELATIONSHIP" AND elementType = "node"
-            UNWIND other AS other_node
-            RETURN {start: label, type: property, end: toString(other_node)} AS output
-            """;
+                    CALL apoc.meta.data()
+                    YIELD label, other, elementType, type, property
+                    WHERE type = "RELATIONSHIP" AND elementType = "node"
+                    UNWIND other AS other_node
+                    RETURN {start: label, type: property, end: toString(other_node)} AS output
+                    """;
 
     private final Driver driver;
 

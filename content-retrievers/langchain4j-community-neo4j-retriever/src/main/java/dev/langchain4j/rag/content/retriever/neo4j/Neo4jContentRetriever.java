@@ -8,8 +8,8 @@ import dev.langchain4j.model.input.PromptTemplate;
  */
 @Deprecated(forRemoval = true)
 public class Neo4jContentRetriever extends Neo4jText2CypherRetriever {
-    public Neo4jContentRetriever(
-            final Neo4jGraph graph, final ChatLanguageModel chatLanguageModel, final PromptTemplate promptTemplate) {
+
+    public Neo4jContentRetriever(Neo4jGraph graph, ChatLanguageModel chatLanguageModel, PromptTemplate promptTemplate) {
         super(graph, chatLanguageModel, promptTemplate);
     }
 
