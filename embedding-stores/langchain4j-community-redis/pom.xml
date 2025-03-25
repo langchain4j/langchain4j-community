@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <jedis.version>5.1.5</jedis.version>
+        <jedis.version>5.2.0</jedis.version>
         <redis-containers.version>2.2.4</redis-containers.version>
     </properties>
 
