@@ -2,6 +2,7 @@ package dev.langchain4j.rag.content.retriever.neo4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -93,5 +94,46 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
 
         // Then
         assertThat(contents).isEmpty();
+    }
+
+    @Test
+    void shouldRetrieveContentWithExample() {
+        // Given
+        Query query = new Query("Who is the author of the book 'Dune'?");
+        when(chatLanguageModel.chat((String) argThat(arg -> {
+                    final String argString = (String) arg;
+                    return argString != null && argString.contains("Cypher examples:");
+                })))
+                .thenReturn(
+                        "```MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output```");
+
+        when(chatLanguageModel.chat((String) argThat(arg -> {
+                    final String argString = (String) arg;
+                    return argString != null && !argString.contains("Cypher examples:");
+                })))
+                .thenReturn("```MATCH(author:NotExisting) RETURN author.name AS output```");
+
+        // When
+        final Neo4jText2CypherRetriever retrieverWithoutExamples = Neo4jText2CypherRetriever.builder()
+                .graph(graph)
+                .chatLanguageModel(chatLanguageModel)
+                .build();
+
+        List<Content> contentsWithoutExamples = retrieverWithoutExamples.retrieve(query);
+
+        // Then
+        assertThat(contentsWithoutExamples).isEmpty();
+
+        // When
+        final Neo4jText2CypherRetriever retrieverWithExamples = Neo4jText2CypherRetriever.builder()
+                .graph(graph)
+                .chatLanguageModel(chatLanguageModel)
+                .examples("Mock cypher examples..")
+                .build();
+
+        List<Content> contentsWithExamples = retrieverWithExamples.retrieve(query);
+
+        // Then
+        assertThat(contentsWithExamples).hasSize(1);
     }
 }
