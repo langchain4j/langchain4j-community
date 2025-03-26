@@ -21,7 +21,7 @@ public class Builder {
     private String fullTextIndexName;
     private String fullTextQuery;
     private String fullTextRetrievalQuery;
-    private boolean fullTextAutocreate;
+    private boolean autoCreateFullText;
 
     /**
      * @param indexName the optional index name (default: "vector")
@@ -145,10 +145,10 @@ public class Builder {
     }
 
     /**
-     * @param fullTextAutocreate if true, it will auto create the full-text index if not exists (default: false)
+     * @param autoCreateFullText if true, it will auto create the full-text index if not exists (default: false)
      */
-    public Builder fullTextAutocreate(boolean fullTextAutocreate) {
-        this.fullTextAutocreate = fullTextAutocreate;
+    public Builder autoCreateFullText(boolean autoCreateFullText) {
+        this.autoCreateFullText = autoCreateFullText;
         return this;
     }
 
@@ -181,6 +181,6 @@ public class Builder {
                 fullTextIndexName,
                 fullTextQuery,
                 fullTextRetrievalQuery,
-                fullTextAutocreate);
+                autoCreateFullText);
     }
 }

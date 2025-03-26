@@ -31,10 +31,12 @@ class Neo4jEmbeddingUtils {
     public static final String DEFAULT_LABEL = "Document";
     public static final String DEFAULT_TEXT_PROP = "text";
     public static final long DEFAULT_AWAIT_INDEX_TIMEOUT = 60L;
+    public static final String METADATA = "metadata";
+    public static final String SCORE = "score";
 
     public static EmbeddingMatch<TextSegment> toEmbeddingMatch(Neo4jEmbeddingStore store, Record neo4jRecord) {
         Map<String, String> metaData = new HashMap<>();
-        neo4jRecord.get("metadata").asMap().forEach((key, value) -> {
+        neo4jRecord.get(METADATA).asMap().forEach((key, value) -> {
             if (!store.getNotMetaKeys().contains(key)) {
                 String stringValue = value == null ? null : value.toString();
                 metaData.put(key.replace(store.getMetadataPrefix(), ""), stringValue);
@@ -52,7 +54,7 @@ class Neo4jEmbeddingUtils {
         Embedding embedding = Embedding.from(embeddingList);
 
         return new EmbeddingMatch<>(
-                neo4jRecord.get("score").asDouble(),
+                neo4jRecord.get(SCORE).asDouble(),
                 neo4jRecord.get(store.getIdProperty()).asString(),
                 embedding,
                 textSegment);
