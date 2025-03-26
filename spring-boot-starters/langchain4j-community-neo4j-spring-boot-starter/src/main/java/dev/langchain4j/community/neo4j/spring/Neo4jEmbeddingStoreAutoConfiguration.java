@@ -23,8 +23,8 @@ public class Neo4jEmbeddingStoreAutoConfiguration {
     public Neo4jEmbeddingStore neo4jEmbeddingStore(
             Neo4jEmbeddingStoreProperties properties, @Nullable EmbeddingModel embeddingModel) {
 
-        final Neo4jEmbeddingStoreProperties.BasicAuth auth = properties.getAuth();
-        final Builder builder = Neo4jEmbeddingStore.builder()
+        Neo4jEmbeddingStoreProperties.BasicAuth auth = properties.getAuth();
+        Builder builder = Neo4jEmbeddingStore.builder()
                 .indexName(properties.getIndexName())
                 .metadataPrefix(properties.getMetadataPrefix())
                 .embeddingProperty(properties.getEmbeddingProperty())

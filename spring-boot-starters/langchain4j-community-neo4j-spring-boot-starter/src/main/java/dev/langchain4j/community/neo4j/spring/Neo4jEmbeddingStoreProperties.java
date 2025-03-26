@@ -133,6 +133,7 @@ public class Neo4jEmbeddingStoreProperties {
     }
 
     public static class BasicAuth {
+
         private String uri;
         private String user;
         private String password;

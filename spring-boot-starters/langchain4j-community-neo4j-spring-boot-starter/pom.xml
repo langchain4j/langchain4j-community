@@ -19,11 +19,6 @@
         </license>
     </licenses>
 
-    <properties>
-        <neo4j-jdbc.version>0.8.2</neo4j-jdbc.version>
-        <lz4.version>1.8.0</lz4.version>
-    </properties>
-
     <dependencies>
 
         <dependency>
@@ -53,7 +48,7 @@
             <artifactId>spring-boot-autoconfigure-processor</artifactId>
             <optional>true</optional>
         </dependency>
-        
+
         <!-- test dependencies -->
 
         <dependency>
@@ -61,7 +56,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
