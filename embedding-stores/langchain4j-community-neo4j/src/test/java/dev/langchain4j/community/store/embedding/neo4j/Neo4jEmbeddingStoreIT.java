@@ -16,8 +16,11 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIT;
+import dev.langchain4j.store.embedding.filter.comparison.*;
+import dev.langchain4j.store.embedding.filter.logical.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -287,6 +290,53 @@ class Neo4jEmbeddingStoreIT extends EmbeddingStoreIT {
         assertThat(rowsBatched).hasSize(2);
         assertThat(rowsBatched.get(0)).hasSize(10000);
         assertThat(rowsBatched.get(1)).hasSize(1001);
+    }
+
+    @Test
+    void should_add_embedding_with_id_and_retrieve_with_and_without_prefilter() {
+
+        final List<TextSegment> segments = IntStream.range(0, 10)
+                .boxed()
+                .map(i -> {
+                    if (i == 0) {
+                        final Map<String, Object> metas =
+                                Map.of("key1", "value1", "key2", 10, "key3", "3", "key4", "value4");
+                        final Metadata metadata = new Metadata(metas);
+                        return TextSegment.from(randomUUID(), metadata);
+                    }
+                    return TextSegment.from(randomUUID());
+                })
+                .toList();
+
+        final List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
+
+        embeddingStore.addAll(embeddings, segments);
+
+        final And filter = new And(
+                new And(new IsEqualTo("key1", "value1"), new IsEqualTo("key2", "10")),
+                new Not(new Or(new IsIn("key3", asList("1", "2")), new IsNotEqualTo("key4", "value4"))));
+
+        TextSegment segmentToSearch = TextSegment.from(randomUUID());
+        Embedding embeddingToSearch =
+                embeddingModel.embed(segmentToSearch.text()).content();
+        final EmbeddingSearchRequest requestWithFilter = EmbeddingSearchRequest.builder()
+                .maxResults(5)
+                .minScore(0.0)
+                .filter(filter)
+                .queryEmbedding(embeddingToSearch)
+                .build();
+        final EmbeddingSearchResult<TextSegment> searchWithFilter = embeddingStore.search(requestWithFilter);
+        final List<EmbeddingMatch<TextSegment>> matchesWithFilter = searchWithFilter.matches();
+        assertThat(matchesWithFilter).hasSize(1);
+
+        final EmbeddingSearchRequest requestWithoutFilter = EmbeddingSearchRequest.builder()
+                .maxResults(5)
+                .minScore(0.0)
+                .queryEmbedding(embeddingToSearch)
+                .build();
+        final EmbeddingSearchResult<TextSegment> searchWithoutFilter = embeddingStore.search(requestWithoutFilter);
+        final List<EmbeddingMatch<TextSegment>> matchesWithoutFilter = searchWithoutFilter.matches();
+        assertThat(matchesWithoutFilter).hasSize(5);
     }
 
     private List<List<Map<String, Object>>> getListRowsBatched(int numElements) {
