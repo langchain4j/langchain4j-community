@@ -53,11 +53,12 @@ public class Neo4jGraph implements AutoCloseable {
             YIELD label, other, elementType, type, property
             WITH label, elementType,
                  apoc.text.join(collect(case when NOT type = "RELATIONSHIP" then property+": "+type else null end),", ") AS properties,
-                 collect(case when type = "RELATIONSHIP" AND elementType = "node" then "(:" + label + ")-[:" + property + "]->(:" + toString(other[0]) + ")" else null end) as patterns
-            with  elementType as type,
-            apoc.text.join(collect(":"+label+" {"+properties+"}"),"\\n") as entities, apoc.text.join(apoc.coll.flatten(collect(coalesce(patterns,[]))),"\\n") as patterns
-            return collect(case type when "relationship" then entities end)[0] as relationships,
-                collect(case type when "node" then entities end)[0] as nodes,
+                 collect(case when type = "RELATIONSHIP" AND elementType = "node" then "(:" + label + ")-[:" + property + "]->(:" + toString(other[0]) + ")" else null end) AS patterns
+            WITH elementType AS type,
+                apoc.text.join(collect(":"+label+" {"+properties+"}"),"\\n") AS entities,
+                apoc.text.join(apoc.coll.flatten(collect(coalesce(patterns,[]))),"\\n") AS patterns
+            RETURN collect(case type when "relationship" then entities end)[0] AS relationships,
+                collect(case type when "node" then entities end)[0] AS nodes,
                 collect(case type when "node" then patterns end)[0] as patterns
             """;
 
