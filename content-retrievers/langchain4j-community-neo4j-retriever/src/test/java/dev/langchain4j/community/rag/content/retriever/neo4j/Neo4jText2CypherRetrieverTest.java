@@ -333,4 +333,17 @@ class Neo4jText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBaseTest {
         // Then
         assertThat(contentsWithExamples).hasSize(1);
     }
+
+    @Test
+    void shouldReturnCorrectStructuredSchema() {
+        final Neo4jGraph.GraphSchema structuredSchema = graph.getStructuredSchema();
+
+        final List<String> patterns = structuredSchema.patterns();
+        final List<String> nodesProperties = structuredSchema.nodesProperties();
+        final List<String> relationshipsProperties = structuredSchema.relationshipsProperties();
+
+        assertThat(patterns).containsExactly("(:Person)-[:WROTE]->(:Book)");
+        assertThat(nodesProperties).containsExactly(":Book {title: STRING}", ":Person {name: STRING}");
+        assertThat(relationshipsProperties).containsExactly(":WROTE {}");
+    }
 }
