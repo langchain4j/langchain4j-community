@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.neo4j.cypherdsl.support.schema_name.SchemaNames;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
@@ -194,7 +193,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         /* optional full text index */
         this.autoCreateFullText = autoCreateFullText;
         this.fullTextIndexName = getOrDefault(fullTextIndexName, DEFAULT_FULLTEXT_IDX_NAME);
-        this.fullTextQuery = SchemaNames.sanitize(fullTextQuery).orElse(null);
+        this.fullTextQuery = fullTextQuery;
 
         this.fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
         //        fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
@@ -314,7 +313,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 query +=
                         """
                    \nUNION
-                   CALL db.index.fulltext.queryNodes($fullTextIndexName, $question, {limit: $maxResults})
+                   CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
                    YIELD node, score
                    WHERE score >= $minScore
                    """
@@ -322,7 +321,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                 params.putAll(Map.of(
                         "fullTextIndexName", fullTextIndexName,
-                        "question", fullTextQuery));
+                        "fullTextQuery", fullTextQuery));
             }
 
             final String finalQuery = query;

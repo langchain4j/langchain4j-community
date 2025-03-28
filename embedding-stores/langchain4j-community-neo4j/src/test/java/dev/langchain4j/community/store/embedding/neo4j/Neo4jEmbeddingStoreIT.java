@@ -1,6 +1,9 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_EMBEDDING_PROP;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_ID_PROP;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_TEXT_PROP;
+import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,14 +34,22 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
     @Test
     void should_emulate_issue_1306_case() {
 
-        final String label = "Elisabeth";
+        final String label = "Entity";
+        final String retrievalQuery = String.format(
+                "RETURN properties(node) AS metadata, node.%1$s AS %1$s, node.%2$s AS %2$s, node.%3$s AS %3$s, score",
+                DEFAULT_ID_PROP, DEFAULT_TEXT_PROP, DEFAULT_EMBEDDING_PROP);
         Neo4jEmbeddingStore embeddingStore = Neo4jEmbeddingStore.builder()
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .dimension(384)
                 .label(label)
                 .indexName("elisabeth_vector")
-                .fullTextIndexName("elisabeth_text")
-                .fullTextQuery("Matrix")
+                .fullTextIndexName("elizabeth_text")
+                .fullTextQuery("elizabeth*")
+                // create a `retrievalQuery` which returns empty result (but with the same column as the fulltext one)
+                // and a `fullTextRetrievalQuery` returning results
+                // so that we know that the result are all coming from full-text query
+                .retrievalQuery(" AND node.nonexistent IS NOT NULL " + retrievalQuery)
+                .fullTextRetrievalQuery(retrievalQuery)
                 .build();
 
         DocumentParser parser = new TextDocumentParser();
@@ -56,7 +67,7 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
         Document textDocument = extractor.transform(document);
 
         session.executeWrite(tx -> {
-            final String s = "CREATE FULLTEXT INDEX elisabeth_text IF NOT EXISTS FOR (e:%s) ON EACH [e.%s]"
+            final String s = "CREATE FULLTEXT INDEX elizabeth_text IF NOT EXISTS FOR (e:%s) ON EACH [e.%s]"
                     .formatted(label, DEFAULT_ID_PROP);
             tx.run(s).consume();
             return null;
@@ -67,18 +78,16 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
         List<Embedding> embeddings = embeddingModel.embedAll(split).content();
         embeddingStore.addAll(embeddings, split);
 
-        final Embedding queryEmbedding = embeddingModel.embed("Elisabeth I").content();
+        final Embedding queryEmbedding = embeddingModel.embed("Elizabeth I").content();
 
         final EmbeddingSearchRequest embeddingSearchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(queryEmbedding)
                 .maxResults(3)
                 .build();
-        final List<EmbeddingMatch<TextSegment>> matches =
+        final List<EmbeddingMatch<TextSegment>> matchesWithoutFullText =
                 embeddingStore.search(embeddingSearchRequest).matches();
-        matches.forEach(i -> {
-            final String embeddedText = i.embedded().text();
-            assertThat(embeddedText).contains("Elizabeth");
-        });
+        // this is empty because of `node.nonexistent IS NOT NULL ` in the retrieval query
+        assertThat(matchesWithoutFullText).isEmpty();
 
         String wikiContent = textDocument.text().split("Signature ")[1];
         wikiContent = wikiContent.substring(0, 5000);
@@ -87,7 +96,7 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
                 """
                         Can you transform the following text into Cypher statements using both nodes and relationships?
                         Each node and relation should have a single property "id",\s
-                        and each node has an additional label named __Entity__
+                        and each node has an additional label named Entity
                         The id property values should have whitespace instead of _ or other special characters.
                         Just returns an unique query non ; separated,
                         without the ``` wrapping.
@@ -105,21 +114,29 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
                 .logRequests(true)
                 .logResponses(true)
                 .build();
-        final String generate = openAiChatModel.chat(userMessage);
 
-        for (String query : generate.split(";")) {
-            session.executeWrite(tx -> {
-                tx.run(query).consume();
-                return null;
-            });
-        }
+        // re-execute the Cypher statements in case of errors
+        withRetry(
+                () -> {
+                    session.executeWrite(
+                            tx -> tx.run("MATCH (n) DETACH DELETE n").consume());
 
+                    final String generate = openAiChatModel.chat(userMessage);
+
+                    for (String query : generate.split(";")) {
+                        session.executeWrite(tx -> {
+                            tx.run(query).consume();
+                            return null;
+                        });
+                    }
+                    return null;
+                },
+                3);
         final List<EmbeddingMatch<TextSegment>> matchesWithFullText =
                 embeddingStore.search(embeddingSearchRequest).matches();
-        assertThat(matchesWithFullText).hasSize(3);
-        matchesWithFullText.forEach(i -> {
-            final String embeddedText = i.embedded().text();
-            assertThat(embeddedText).contains("Elizabeth");
-        });
+        // besides `Elizabeth I`, there could be other similar nodes like `Elizabethan era`, `Elizabeth of York`,
+        // `Elizabethan Religious Settlement`, ...
+        assertThat(matchesWithFullText).hasSizeGreaterThanOrEqualTo(1);
+        matchesWithFullText.forEach(i -> assertThat(i.embeddingId()).contains("Elizabeth"));
     }
 }

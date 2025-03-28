@@ -48,10 +48,12 @@ class Neo4jEmbeddingUtils {
         Value text = neo4jRecord.get(store.getTextProperty());
         TextSegment textSegment = text.isNull() ? null : TextSegment.from(text.asString(), metadata);
 
-        List<Float> embeddingList =
-                neo4jRecord.get(store.getEmbeddingProperty()).asList(Value::asFloat);
-
-        Embedding embedding = Embedding.from(embeddingList);
+        Embedding embedding = null;
+        final Value embeddingValue = neo4jRecord.get(store.getEmbeddingProperty());
+        if (!embeddingValue.isNull()) {
+            List<Float> embeddingList = embeddingValue.asList(Value::asFloat);
+            embedding = Embedding.from(embeddingList);
+        }
 
         return new EmbeddingMatch<>(
                 neo4jRecord.get(SCORE).asDouble(),
