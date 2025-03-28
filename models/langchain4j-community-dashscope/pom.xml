@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.0.0-alpha2-SNAPSHOT</version>
+        <version>1.0.0-beta3-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <dashscope.version>2.18.0</dashscope.version>
+        <dashscope.version>2.18.5</dashscope.version>
     </properties>
 
     <dependencies>
@@ -94,6 +94,17 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.tinylog</groupId>
+            <artifactId>slf4j-tinylog</artifactId>
             <scope>test</scope>
         </dependency>
 

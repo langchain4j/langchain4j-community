@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.0.0-alpha2-SNAPSHOT</version>
+        <version>1.0.0-beta3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -27,12 +27,14 @@
         <module>langchain4j-community-clickhouse-spring-boot-starter</module>
         <module>langchain4j-community-dashscope-spring-boot-starter</module>
         <module>langchain4j-community-qianfan-spring-boot-starter</module>
+        <module>langchain4j-community-redis-spring-boot-starter</module>
+        <module>langchain4j-community-vearch-spring-boot-starter</module>
         <module>langchain4j-community-xinference-spring-boot-starter</module>
+        <module>langchain4j-community-neo4j-spring-boot-starter</module>
     </modules>
 
     <properties>
-        <spring.boot.version>3.2.6</spring.boot.version>
-        <lombok.version>1.18.34</lombok.version>
+        <spring.boot.version>3.3.8</spring.boot.version>
         <logback.version>1.3.14</logback.version>
     </properties>
 
@@ -54,20 +56,8 @@
 
             <dependency>
                 <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-configuration-processor</artifactId>
-                <version>${spring.boot.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-test</artifactId>
                 <version>${spring.boot.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>${lombok.version}</version>
             </dependency>
 
             <dependency>
@@ -86,5 +76,23 @@
 
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                            <version>${spring.boot.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

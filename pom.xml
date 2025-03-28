@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.0.0-alpha2-SNAPSHOT</version>
+        <version>1.0.0-beta3-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -58,10 +58,14 @@
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
         <module>embedding-stores/langchain4j-community-duckdb</module>
+        <module>embedding-stores/langchain4j-community-redis</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
+        <module>embedding-stores/langchain4j-community-alloydb-pg</module>
+        <module>embedding-stores/langchain4j-community-neo4j</module>
 
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
+        <module>content-retrievers/langchain4j-community-neo4j-retriever</module>
 
         <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
@@ -181,7 +185,8 @@
             </plugin>
 
             <plugin>
-                <!-- failsafe will be in charge of running the integration tests (everything that ends in IT) -->
+                <!-- failsafe will be in charge of running the integration tests (everything that
+                ends in IT) -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration combine.children="append">

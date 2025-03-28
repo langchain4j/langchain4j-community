@@ -1,18 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageData;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageUrl;
-import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
-import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -21,19 +8,43 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.common.AbstractChatModelIT;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageData;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultimodalChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
+import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
+import static dev.langchain4j.data.message.UserMessage.userMessage;
+import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
-class QwenChatModelIT {
+class QwenChatModelIT extends AbstractChatModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
@@ -41,9 +52,9 @@ class QwenChatModelIT {
         ChatLanguageModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
-        Response<AiMessage> response = model.generate(QwenTestHelper.chatMessages());
+        ChatResponse response = model.chat(QwenTestHelper.chatMessages());
 
-        assertThat(response.content().text()).containsIgnoringCase("rain");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("rain");
     }
 
     @ParameterizedTest
@@ -54,10 +65,10 @@ class QwenChatModelIT {
 
         model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rain"));
 
-        Response<AiMessage> response = model.generate(QwenTestHelper.chatMessages());
+        ChatResponse response = model.chat(QwenTestHelper.chatMessages());
 
         // it should generate "rain" but is stopped
-        assertThat(response.content().text()).doesNotContain("rain");
+        assertThat(response.aiMessage().text()).doesNotContain("rain");
     }
 
     @ParameterizedTest
@@ -74,22 +85,28 @@ class QwenChatModelIT {
 
         UserMessage userMessage = UserMessage.from("What time is it?");
 
-        Response<AiMessage> response = model.generate(singletonList(userMessage), singletonList(noArgToolSpec));
+        ChatResponse response = model.chat(ChatRequest.builder()
+                .messages(userMessage)
+                .toolSpecifications(singletonList(noArgToolSpec))
+                .build());
 
-        assertThat(response.content().text()).isNull();
-        assertThat(response.content().toolExecutionRequests()).hasSize(1);
+        assertThat(response.aiMessage().text()).isBlank();
+        assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
-                response.content().toolExecutionRequests().get(0);
+                response.aiMessage().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).isEqualTo("{}");
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
 
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "10 o'clock");
-        List<ChatMessage> messages = asList(userMessage, response.content(), toolExecutionResultMessage);
+        List<ChatMessage> messages = asList(userMessage, response.aiMessage(), toolExecutionResultMessage);
 
-        Response<AiMessage> secondResponse = model.generate(messages, singletonList(noArgToolSpec));
+        ChatResponse secondResponse = model.chat(ChatRequest.builder()
+                .messages(messages)
+                .toolSpecifications(singletonList(noArgToolSpec))
+                .build());
 
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("10");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -117,22 +134,28 @@ class QwenChatModelIT {
 
         UserMessage userMessage = UserMessage.from("Weather in Beijing?");
 
-        Response<AiMessage> response = model.generate(singletonList(userMessage), singletonList(hasArgToolSpec));
+        ChatResponse response = model.chat(ChatRequest.builder()
+                .messages(userMessage)
+                .toolSpecifications(singletonList(hasArgToolSpec))
+                .build());
 
-        assertThat(response.content().text()).isNull();
-        assertThat(response.content().toolExecutionRequests()).hasSize(1);
+        assertThat(response.aiMessage().text()).isBlank();
+        assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
-                response.content().toolExecutionRequests().get(0);
+                response.aiMessage().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).contains("Beijing");
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
 
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "rainy");
-        List<ChatMessage> messages = asList(userMessage, response.content(), toolExecutionResultMessage);
+        List<ChatMessage> messages = asList(userMessage, response.aiMessage(), toolExecutionResultMessage);
 
-        Response<AiMessage> secondResponse = model.generate(messages, singletonList(hasArgToolSpec));
+        ChatResponse secondResponse = model.chat(ChatRequest.builder()
+                .messages(messages)
+                .toolSpecifications(singletonList(hasArgToolSpec))
+                .build());
 
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("rain");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -161,12 +184,18 @@ class QwenChatModelIT {
         // not related to tools
         UserMessage userMessage = UserMessage.from("How many students in the classroom?");
 
-        Response<AiMessage> response = model.generate(singletonList(userMessage), mustBeExecutedTool);
+        ChatResponse response = model.chat(ChatRequest.builder()
+                .messages(userMessage)
+                .parameters(QwenChatRequestParameters.builder()
+                        .toolSpecifications(mustBeExecutedTool)
+                        .toolChoice(REQUIRED)
+                        .build())
+                .build());
 
-        assertThat(response.content().text()).isNull();
-        assertThat(response.content().toolExecutionRequests()).hasSize(1);
+        assertThat(response.aiMessage().text()).isBlank();
+        assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
-                response.content().toolExecutionRequests().get(0);
+                response.aiMessage().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
         assertThat(toolExecutionRequest.arguments()).hasSizeGreaterThan(0);
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
@@ -190,10 +219,13 @@ class QwenChatModelIT {
 
         UserMessage userMessage = userMessage("2+2=?");
 
-        Response<AiMessage> response = model.generate(singletonList(userMessage), calculator);
+        ChatResponse response = model.chat(ChatRequest.builder()
+                .messages(singletonList(userMessage))
+                .toolSpecifications(calculator)
+                .build());
 
-        AiMessage aiMessage = response.content();
-        assertThat(aiMessage.text()).isNull();
+        AiMessage aiMessage = response.aiMessage();
+        assertThat(aiMessage.text()).isBlank();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
         ToolExecutionRequest toolExecutionRequest =
@@ -212,9 +244,12 @@ class QwenChatModelIT {
         ToolExecutionResultMessage toolExecutionResultMessage = from(toolExecutionRequest, "4");
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
-        Response<AiMessage> secondResponse = model.generate(messages, singletonList(calculator));
+        ChatResponse secondResponse = model.chat(ChatRequest.builder()
+                .messages(messages)
+                .toolSpecifications(singletonList(calculator))
+                .build());
 
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("4");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -232,9 +267,9 @@ class QwenChatModelIT {
         ChatLanguageModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
-        Response<AiMessage> response = model.generate(multimodalChatMessagesWithImageUrl());
+        ChatResponse response = model.chat(multimodalChatMessagesWithImageUrl());
 
-        assertThat(response.content().text()).containsIgnoringCase("dog");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("dog");
     }
 
     @ParameterizedTest
@@ -243,9 +278,9 @@ class QwenChatModelIT {
         ChatLanguageModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
-        Response<AiMessage> response = model.generate(multimodalChatMessagesWithImageData());
+        ChatResponse response = model.chat(multimodalChatMessagesWithImageData());
 
-        assertThat(response.content().text()).containsIgnoringCase("parrot");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
     @ParameterizedTest
@@ -254,9 +289,9 @@ class QwenChatModelIT {
         ChatLanguageModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
-        Response<AiMessage> response = model.generate(multimodalChatMessagesWithAudioUrl());
+        ChatResponse response = model.chat(multimodalChatMessagesWithAudioUrl());
 
-        assertThat(response.content().text()).containsIgnoringCase("阿里云");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
     @ParameterizedTest
@@ -265,9 +300,9 @@ class QwenChatModelIT {
         ChatLanguageModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
-        Response<AiMessage> response = model.generate(multimodalChatMessagesWithAudioData());
+        ChatResponse response = model.chat(multimodalChatMessagesWithAudioData());
 
-        assertThat(response.content().text()).containsIgnoringCase("阿里云");
+        assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
     @Test
@@ -341,5 +376,151 @@ class QwenChatModelIT {
 
         assertThat(sanitizedMessages.get(5)).isInstanceOf(UserMessage.class);
         assertThat(((UserMessage) sanitizedMessages.get(5)).singleText()).isEqualTo("User message 6");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
+    void should_send_messages_and_receive_response_by_searching(String modelName) {
+        // given
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .enableSearch(true)
+                .searchOptions(QwenChatRequestParameters.SearchOptions.builder()
+                        .citationFormat("[<number>]")
+                        .enableCitation(true)
+                        .enableSource(true)
+                        .forcedSearch(true)
+                        .searchStrategy("standard")
+                        .build())
+                .build();
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(UserMessage.from("What is the capital of Germany?"))
+                .parameters(parameters)
+                .build();
+
+        // when
+        ChatResponse chatResponse = model.chat(chatRequest);
+
+        // then
+        assertThat(chatResponse).isNotNull();
+        assertThat(chatResponse.metadata()).isNotNull();
+        assertThat(chatResponse.metadata()).isInstanceOf(QwenChatResponseMetadata.class);
+
+        QwenChatResponseMetadata metadata = (QwenChatResponseMetadata) chatResponse.metadata();
+        assertThat(metadata.searchInfo()).isNotNull();
+        assertThat(metadata.searchInfo().searchResults()).isNotEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#mtChatModelNameProvider")
+    void should_translate_messages_and_receive_response(String modelName) {
+        // given
+        ChatLanguageModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .translationOptions(QwenChatRequestParameters.TranslationOptions.builder()
+                        .sourceLang("English")
+                        .targetLang("Chinese")
+                        .terms(singletonList(QwenChatRequestParameters.TranslationOptionTerm.builder()
+                                .source("memory")
+                                .target("内存")
+                                .build()))
+                        .domains(
+                                "The sentence is from Ali Cloud IT domain. It mainly involves computer-related software development and usage methods, including many terms related to computer software and hardware. Pay attention to professional troubleshooting terminologies and sentence patterns when translating. Translate into this IT domain style.")
+                        .build())
+                .build();
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(UserMessage.from("my memory"))
+                .parameters(parameters)
+                .build();
+
+        // when
+        ChatResponse chatResponse = model.chat(chatRequest);
+
+        // then
+        assertThat(chatResponse).isNotNull();
+        assertThat(chatResponse.aiMessage().text().trim()).isEqualTo("我的内存");
+    }
+
+    @Override
+    protected List<ChatLanguageModel> models() {
+        return nonMultimodalChatModelNameProvider()
+                .map(Arguments::get)
+                .map(modelNames -> modelNames[0])
+                .map(modelName -> QwenChatModel.builder()
+                        .apiKey(apiKey())
+                        .modelName((String) modelName)
+                        .temperature(0.0f)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    protected List<ChatLanguageModel> modelsSupportingTools() {
+        return functionCallChatModelNameProvider()
+                .map(Arguments::get)
+                .map(modelNames -> modelNames[0])
+                .map(modelName -> QwenChatModel.builder()
+                        .apiKey(apiKey())
+                        .modelName((String) modelName)
+                        .temperature(0.0f)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    protected List<ChatLanguageModel> modelsSupportingStructuredOutputs() {
+        return this.modelsSupportingTools();
+    }
+
+    @Override
+    protected List<ChatLanguageModel> modelsSupportingImageInputs() {
+        return vlChatModelNameProvider()
+                .map(Arguments::get)
+                .map(modelNames -> modelNames[0])
+                .map(modelName -> QwenChatModel.builder()
+                        .apiKey(apiKey())
+                        .modelName((String) modelName)
+                        .temperature(0.0f)
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    protected ChatLanguageModel createModelWith(ChatRequestParameters parameters) {
+        QwenChatModel.QwenChatModelBuilder qwenChatModelBuilder =
+                QwenChatModel.builder().apiKey(apiKey()).defaultRequestParameters(parameters);
+        if (parameters.modelName() == null) {
+            qwenChatModelBuilder.modelName(QWEN_MAX);
+        }
+        return qwenChatModelBuilder.build();
+    }
+
+    @Override
+    protected String customModelName() {
+        return "qwen-max-2025-01-25";
+    }
+
+    @Override
+    protected ChatRequestParameters createIntegrationSpecificParameters(int maxOutputTokens) {
+        return QwenChatRequestParameters.builder()
+                .maxOutputTokens(maxOutputTokens)
+                .build();
+    }
+
+    @Override
+    protected boolean supportsJsonResponseFormatWithSchema() {
+        return false;
+    }
+
+    @Override
+    protected boolean supportsSingleImageInputAsPublicURL() {
+        // The dashscope service can't access wiki urls...
+        return false;
     }
 }

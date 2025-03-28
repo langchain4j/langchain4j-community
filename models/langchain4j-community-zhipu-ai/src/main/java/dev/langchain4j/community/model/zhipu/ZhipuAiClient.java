@@ -1,5 +1,15 @@
 package dev.langchain4j.community.model.zhipu;
 
+import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.aiMessageFrom;
+import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.getFinishReason;
+import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.specificationsFrom;
+import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toChatErrorResponse;
+import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.tokenUsageFrom;
+import static dev.langchain4j.community.model.zhipu.Json.OBJECT_MAPPER;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static retrofit2.converter.jackson.JacksonConverterFactory.create;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionChoice;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
@@ -12,15 +22,18 @@ import dev.langchain4j.community.model.zhipu.image.ImageResponse;
 import dev.langchain4j.community.model.zhipu.shared.Usage;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.internal.Utils;
-import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponse;
 import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.List;
 import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
 import okhttp3.sse.EventSource;
@@ -31,22 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit2.Retrofit;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.List;
-
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.aiMessageFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.createModelListenerResponse;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.getFinishReason;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.specificationsFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toChatErrorResponse;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.tokenUsageFrom;
-import static dev.langchain4j.community.model.zhipu.Json.OBJECT_MAPPER;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static retrofit2.converter.jackson.JacksonConverterFactory.create;
-
 public class ZhipuAiClient {
+
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiClient.class);
 
     private final ZhipuAiApi zhipuAiApi;
@@ -98,7 +97,8 @@ public class ZhipuAiClient {
 
     public EmbeddingResponse embedAll(EmbeddingRequest request) {
         try {
-            retrofit2.Response<EmbeddingResponse> responseResponse = zhipuAiApi.embeddings(request).execute();
+            retrofit2.Response<EmbeddingResponse> responseResponse =
+                    zhipuAiApi.embeddings(request).execute();
             if (responseResponse.isSuccessful()) {
                 return responseResponse.body();
             } else {
@@ -111,10 +111,10 @@ public class ZhipuAiClient {
 
     void streamingChatCompletion(
             ChatCompletionRequest request,
-            StreamingResponseHandler<AiMessage> handler,
+            StreamingChatResponseHandler handler,
             List<ChatModelListener> listeners,
-            ChatModelRequestContext requestContext
-    ) {
+            ChatModelRequestContext requestContext,
+            ModelProvider provider) {
         EventSourceListener eventSourceListener = new EventSourceListener() {
             final StringBuffer contentBuilder = new StringBuffer();
             List<ToolExecutionRequest> specifications;
@@ -141,22 +141,14 @@ public class ZhipuAiClient {
                     } else {
                         aiMessage = AiMessage.from(specifications);
                     }
-                    Response<AiMessage> response = Response.from(
-                            aiMessage,
-                            tokenUsage,
-                            finishReason
-                    );
+                    ChatResponse response = ChatResponse.builder()
+                            .aiMessage(aiMessage)
+                            .tokenUsage(tokenUsage)
+                            .finishReason(finishReason)
+                            .build();
 
-                    ChatModelResponse modelListenerResponse = createModelListenerResponse(
-                            chatCompletionResponse.getId(),
-                            request.getModel(),
-                            response
-                    );
                     ChatModelResponseContext responseContext = new ChatModelResponseContext(
-                            modelListenerResponse,
-                            requestContext.request(),
-                            requestContext.attributes()
-                    );
+                            response, requestContext.chatRequest(), provider, requestContext.attributes());
                     for (ChatModelListener listener : listeners) {
                         try {
                             listener.onResponse(responseContext);
@@ -165,14 +157,15 @@ public class ZhipuAiClient {
                         }
                     }
 
-                    handler.onComplete(response);
+                    handler.onCompleteResponse(response);
                 } else {
                     try {
                         chatCompletionResponse = OBJECT_MAPPER.readValue(data, ChatCompletionResponse.class);
-                        ChatCompletionChoice zhipuChatCompletionChoice = chatCompletionResponse.getChoices().get(0);
+                        ChatCompletionChoice zhipuChatCompletionChoice =
+                                chatCompletionResponse.getChoices().get(0);
                         String chunk = zhipuChatCompletionChoice.getDelta().getContent();
                         contentBuilder.append(chunk);
-                        handler.onNext(chunk);
+                        handler.onPartialResponse(chunk);
                         Usage zhipuUsageInfo = chatCompletionResponse.getUsage();
                         if (zhipuUsageInfo != null) {
                             this.tokenUsage = tokenUsageFrom(zhipuUsageInfo);
@@ -183,12 +176,13 @@ public class ZhipuAiClient {
                             this.finishReason = finishReasonFrom(finishReasonString);
                         }
 
-                        List<ToolCall> toolCalls = zhipuChatCompletionChoice.getDelta().getToolCalls();
+                        List<ToolCall> toolCalls =
+                                zhipuChatCompletionChoice.getDelta().getToolCalls();
                         if (!isNullOrEmpty(toolCalls)) {
                             this.specifications = specificationsFrom(toolCalls);
                         }
                     } catch (Exception exception) {
-                        handleResponseException(exception, handler, requestContext, listeners);
+                        handleResponseException(exception, handler, requestContext, provider, listeners);
                     }
                 }
             }
@@ -199,7 +193,7 @@ public class ZhipuAiClient {
                     log.debug("onFailure()", t);
                 }
                 Throwable throwable = Utils.getOrDefault(t, new ZhipuAiException(response));
-                handleResponseException(throwable, handler, requestContext, listeners);
+                handleResponseException(throwable, handler, requestContext, provider, listeners);
             }
 
             @Override
@@ -210,22 +204,17 @@ public class ZhipuAiClient {
             }
         };
         EventSources.createFactory(this.okHttpClient)
-                .newEventSource(
-                        zhipuAiApi.streamingChatCompletion(request).request(),
-                        eventSourceListener
-                );
+                .newEventSource(zhipuAiApi.streamingChatCompletion(request).request(), eventSourceListener);
     }
 
-    private void handleResponseException(Throwable throwable,
-                                         StreamingResponseHandler<AiMessage> handler,
-                                         ChatModelRequestContext requestContext,
-                                         List<ChatModelListener> listeners) {
+    private void handleResponseException(
+            Throwable throwable,
+            StreamingChatResponseHandler handler,
+            ChatModelRequestContext requestContext,
+            ModelProvider provider,
+            List<ChatModelListener> listeners) {
         ChatModelErrorContext errorContext = new ChatModelErrorContext(
-                throwable,
-                requestContext.request(),
-                null,
-                requestContext.attributes()
-        );
+                throwable, requestContext.chatRequest(), provider, requestContext.attributes());
 
         listeners.forEach(listener -> {
             try {
@@ -237,17 +226,16 @@ public class ZhipuAiClient {
 
         if (throwable instanceof ZhipuAiException) {
             ChatCompletionResponse errorResponse = toChatErrorResponse(throwable);
-            Response<AiMessage> messageResponse = Response.from(
-                    aiMessageFrom(errorResponse),
-                    tokenUsageFrom(errorResponse.getUsage()),
-                    finishReasonFrom(getFinishReason(throwable))
-            );
-            handler.onComplete(messageResponse);
+            ChatResponse response = ChatResponse.builder()
+                    .aiMessage(aiMessageFrom(errorResponse))
+                    .tokenUsage(tokenUsageFrom(errorResponse.getUsage()))
+                    .finishReason(finishReasonFrom(getFinishReason(throwable)))
+                    .build();
+            handler.onCompleteResponse(response);
         } else {
             handler.onError(throwable);
         }
     }
-
 
     private RuntimeException toException(retrofit2.Response<?> retrofitResponse) throws IOException {
         int code = retrofitResponse.code();
@@ -266,7 +254,8 @@ public class ZhipuAiClient {
 
     public ImageResponse imagesGeneration(ImageRequest request) {
         try {
-            retrofit2.Response<ImageResponse> responseResponse = zhipuAiApi.generations(request).execute();
+            retrofit2.Response<ImageResponse> responseResponse =
+                    zhipuAiApi.generations(request).execute();
             if (responseResponse.isSuccessful()) {
                 return responseResponse.body();
             } else {
@@ -278,6 +267,7 @@ public class ZhipuAiClient {
     }
 
     public static class Builder {
+
         private String baseUrl;
         private String apiKey;
         private Duration callTimeout;

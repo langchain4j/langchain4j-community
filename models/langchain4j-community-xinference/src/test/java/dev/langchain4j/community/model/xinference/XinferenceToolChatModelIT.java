@@ -15,8 +15,9 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +40,7 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
             .description("Get the current time")
             .build();
 
-    ChatLanguageModel ollamaChatModel = XinferenceChatModel.builder()
+    ChatLanguageModel chatModel = XinferenceChatModel.builder()
             .baseUrl(baseUrl())
             .modelName(modelName())
             .apiKey(apiKey())
@@ -50,7 +51,7 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
 
     @Override
     protected List<ChatLanguageModel> models() {
-        return singletonList(ollamaChatModel);
+        return singletonList(chatModel);
     }
 
     @Test
@@ -61,10 +62,13 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
         List<ToolSpecification> toolSpecifications = singletonList(weatherToolSpecification);
 
         // when
-        Response<AiMessage> response = ollamaChatModel.generate(singletonList(userMessage), toolSpecifications);
+        ChatResponse response = chatModel.chat(ChatRequest.builder()
+                .messages(singletonList(userMessage))
+                .toolSpecifications(toolSpecifications)
+                .build());
 
         // then
-        AiMessage aiMessage = response.content();
+        AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
@@ -80,10 +84,10 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
-        Response<AiMessage> secondResponse = ollamaChatModel.generate(messages);
+        ChatResponse secondResponse = chatModel.chat(messages);
 
         // then
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("32");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
     }
@@ -96,10 +100,13 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
 
         // when
         List<ChatMessage> chatMessages = asList(systemMessage("Use tools only if needed"), userMessage("Tell a joke"));
-        Response<AiMessage> response = ollamaChatModel.generate(chatMessages, toolSpecifications);
+        ChatResponse response = chatModel.chat(ChatRequest.builder()
+                .messages(chatMessages)
+                .toolSpecifications(toolSpecifications)
+                .build());
 
         // then
-        AiMessage aiMessage = response.content();
+        AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.text()).isNotNull();
         assertThat(aiMessage.toolExecutionRequests()).isNull();
     }
@@ -115,7 +122,10 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
 
         // then
         assertDoesNotThrow(() -> {
-            ollamaChatModel.generate(chatMessages, toolSpecifications);
+            chatModel.chat(ChatRequest.builder()
+                    .messages(chatMessages)
+                    .toolSpecifications(toolSpecifications)
+                    .build());
         });
     }
 

@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.0.0-alpha2-SNAPSHOT</version>
+        <version>1.0.0-beta3-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-bom</artifactId>
@@ -63,7 +63,25 @@
 
             <dependency>
                 <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-redis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-vearch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-neo4j</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-alloydb-pg</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -71,6 +89,11 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-lucene</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-neo4j-retriever</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -87,6 +110,11 @@
                 <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-neo4j-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>dev.langchain4j</groupId>
@@ -97,6 +125,18 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-qianfan-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-vearch-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

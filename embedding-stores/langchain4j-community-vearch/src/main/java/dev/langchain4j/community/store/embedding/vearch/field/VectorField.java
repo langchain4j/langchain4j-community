@@ -1,5 +1,7 @@
 package dev.langchain4j.community.store.embedding.vearch.field;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
@@ -7,8 +9,6 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.store.embedding.vearch.StoreParam;
 import dev.langchain4j.community.store.embedding.vearch.StoreType;
 import dev.langchain4j.community.store.embedding.vearch.index.Index;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
@@ -22,6 +22,7 @@ public class VectorField extends Field {
      * @see StoreType
      */
     private StoreType storeType;
+
     private StoreParam storeParam;
     private String modelId;
     /**
@@ -29,11 +30,16 @@ public class VectorField extends Field {
      */
     private String format;
 
-    public VectorField() {
-    }
+    public VectorField() {}
 
-    public VectorField(String name, Index index, Integer dimension, StoreType storeType,
-                       StoreParam storeParam, String modelId, String format) {
+    public VectorField(
+            String name,
+            Index index,
+            Integer dimension,
+            StoreType storeType,
+            StoreParam storeParam,
+            String modelId,
+            String format) {
         super(name, FieldType.VECTOR, index);
         this.dimension = dimension;
         this.storeType = storeType;
@@ -44,6 +50,10 @@ public class VectorField extends Field {
 
     public Integer getDimension() {
         return dimension;
+    }
+
+    public void setDimension(Integer dimension) {
+        this.dimension = dimension;
     }
 
     public StoreType getStoreType() {

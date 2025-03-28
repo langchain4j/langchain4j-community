@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
-        <version>1.0.0-alpha2-SNAPSHOT</version>
+        <version>1.0.0-beta3-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
@@ -20,7 +20,7 @@
     </licenses>
 
     <properties>
-        <clickhouse-jdbc.version>0.7.1</clickhouse-jdbc.version>
+        <clickhouse-jdbc.version>0.8.2</clickhouse-jdbc.version>
         <lz4.version>1.8.0</lz4.version>
     </properties>
 
@@ -51,13 +51,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- needed to generate automatic metadata about available config properties -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
 

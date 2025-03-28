@@ -15,8 +15,8 @@ import dev.langchain4j.community.model.xinference.client.completion.CompletionCh
 import dev.langchain4j.community.model.xinference.client.completion.CompletionResponse;
 import dev.langchain4j.community.model.xinference.client.shared.CompletionUsage;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * in fact it almost certainly won't be.
  */
 public class XinferenceStreamingResponseBuilder {
+
     private final StringBuffer contentBuilder = new StringBuffer();
     private final AtomicReference<String> responseId = new AtomicReference<>();
     private final AtomicReference<String> responseModel = new AtomicReference<>();
@@ -115,7 +116,7 @@ public class XinferenceStreamingResponseBuilder {
         }
     }
 
-    public Response<AiMessage> build() {
+    public ChatResponse build() {
         String text = contentBuilder.toString();
         if (!isNullOrEmpty(toolExecutionRequestList)) {
             List<ToolExecutionRequest> list = toolExecutionRequestList.stream()
@@ -126,10 +127,18 @@ public class XinferenceStreamingResponseBuilder {
                             .build())
                     .toList();
             AiMessage aiMessage = isNullOrBlank(text) ? AiMessage.from(list) : AiMessage.from(text, list);
-            return Response.from(aiMessage, tokenUsage, finishReason);
+            return ChatResponse.builder()
+                    .aiMessage(aiMessage)
+                    .tokenUsage(tokenUsage)
+                    .finishReason(finishReason)
+                    .build();
         }
         if (!isNullOrBlank(text)) {
-            return Response.from(AiMessage.from(text), tokenUsage, finishReason);
+            return ChatResponse.builder()
+                    .aiMessage(AiMessage.from(text))
+                    .tokenUsage(tokenUsage)
+                    .finishReason(finishReason)
+                    .build();
         }
         return null;
     }

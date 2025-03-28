@@ -11,8 +11,8 @@ import dev.langchain4j.community.model.xinference.client.completion.CompletionCh
 import dev.langchain4j.community.model.xinference.client.completion.CompletionRequest;
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
 import dev.langchain4j.community.model.xinference.spi.XinferenceStreamingLanguageModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
 import java.net.Proxy;
@@ -108,9 +108,9 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
                     }
                 })
                 .onComplete(() -> {
-                    Response<AiMessage> response = responseBuilder.build();
+                    ChatResponse response = responseBuilder.build();
                     handler.onComplete(
-                            Response.from(response.content().text(), response.tokenUsage(), response.finishReason()));
+                            Response.from(response.aiMessage().text(), response.tokenUsage(), response.finishReason()));
                 })
                 .onError(handler::onError)
                 .execute();

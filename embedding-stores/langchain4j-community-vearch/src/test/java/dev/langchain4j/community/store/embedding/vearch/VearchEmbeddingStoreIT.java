@@ -1,5 +1,8 @@
 package dev.langchain4j.community.store.embedding.vearch;
 
+import static dev.langchain4j.community.store.embedding.vearch.TestUtils.isMethodFromClass;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.community.store.embedding.vearch.field.Field;
 import dev.langchain4j.community.store.embedding.vearch.field.FieldType;
 import dev.langchain4j.community.store.embedding.vearch.field.NumericField;
@@ -15,21 +18,17 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIT;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithoutMetadataIT;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-
-import static dev.langchain4j.community.store.embedding.vearch.TestUtils.isMethodFromClass;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 class VearchEmbeddingStoreIT extends EmbeddingStoreIT {
 
@@ -72,7 +71,8 @@ class VearchEmbeddingStoreIT extends EmbeddingStoreIT {
     void beforeEach(TestInfo testInfo) {
         if (isMethodFromClass(testInfo, EmbeddingStoreIT.class)) {
             buildEmbeddingStoreWithMetadata();
-        } else if (isMethodFromClass(testInfo, EmbeddingStoreWithoutMetadataIT.class) || isMethodFromClass(testInfo, VearchEmbeddingStoreIT.class)) {
+        } else if (isMethodFromClass(testInfo, EmbeddingStoreWithoutMetadataIT.class)
+                || isMethodFromClass(testInfo, VearchEmbeddingStoreIT.class)) {
             buildEmbeddingStoreWithoutMetadata();
         }
     }
@@ -106,24 +106,41 @@ class VearchEmbeddingStoreIT extends EmbeddingStoreIT {
                                 .efSearch(64)
                                 .build())
                         .build())
-                .build()
-        );
-        fields.add(StringField.builder().name(textFieldName).fieldType(FieldType.STRING).build());
+                .build());
+        fields.add(StringField.builder()
+                .name(textFieldName)
+                .fieldType(FieldType.STRING)
+                .build());
         if (withMetadata) {
             // metadata
             for (Map.Entry<String, Object> entry : metadata.entrySet()) {
                 String key = entry.getKey();
                 Object value = entry.getValue();
                 if (value instanceof String || value instanceof UUID) {
-                    fields.add(StringField.builder().name(key).fieldType(FieldType.STRING).build());
+                    fields.add(StringField.builder()
+                            .name(key)
+                            .fieldType(FieldType.STRING)
+                            .build());
                 } else if (value instanceof Integer) {
-                    fields.add(NumericField.builder().name(key).fieldType(FieldType.INTEGER).build());
+                    fields.add(NumericField.builder()
+                            .name(key)
+                            .fieldType(FieldType.INTEGER)
+                            .build());
                 } else if (value instanceof Long) {
-                    fields.add(NumericField.builder().name(key).fieldType(FieldType.LONG).build());
+                    fields.add(NumericField.builder()
+                            .name(key)
+                            .fieldType(FieldType.LONG)
+                            .build());
                 } else if (value instanceof Float) {
-                    fields.add(NumericField.builder().name(key).fieldType(FieldType.FLOAT).build());
+                    fields.add(NumericField.builder()
+                            .name(key)
+                            .fieldType(FieldType.FLOAT)
+                            .build());
                 } else if (value instanceof Double) {
-                    fields.add(NumericField.builder().name(key).fieldType(FieldType.DOUBLE).build());
+                    fields.add(NumericField.builder()
+                            .name(key)
+                            .fieldType(FieldType.DOUBLE)
+                            .build());
                 }
             }
         }
@@ -174,7 +191,8 @@ class VearchEmbeddingStoreIT extends EmbeddingStoreIT {
 
     @Override
     protected void ensureStoreIsEmpty() {
-        // This method should be skipped because the @BeforeEach method of the parent class is called before the @BeforeEach method of the child class
+        // This method should be skipped because the @BeforeEach method of the parent class is called before the
+        // @BeforeEach method of the child class
         // This test manually create Space at @BeforeEach, so it's guaranteed that the EmbeddingStore is empty
     }
 
@@ -192,7 +210,6 @@ class VearchEmbeddingStoreIT extends EmbeddingStoreIT {
     void should_delete_space() {
         embeddingStore.deleteSpace();
         List<ListSpaceResponse> actual = vearchClient.listSpaceOfDatabase(databaseName);
-        assertThat(actual.stream().map(ListSpaceResponse::getName)).doesNotContain(spaceName);
+        assertThat(actual.stream().map(ListSpaceResponse::getSpaceName)).doesNotContain(spaceName);
     }
-
 }

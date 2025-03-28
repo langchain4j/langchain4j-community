@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
-        <version>1.0.0-alpha2-SNAPSHOT</version>
+        <version>1.0.0-beta3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -19,6 +19,10 @@
             <comments>A business-friendly OSS license</comments>
         </license>
     </licenses>
+
+    <properties>
+        <skipXinferenceITs>false</skipXinferenceITs>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -46,13 +50,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- needed to generate automatic metadata about available config properties -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
 

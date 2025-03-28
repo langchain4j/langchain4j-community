@@ -20,24 +20,6 @@ public class VearchConfig {
     static final String DEFAULT_TEXT_FIELD_NAME = "text";
     static final String DEFAULT_SCORE_FILED_NAME = "_score";
 
-    static final List<Field> DEFAULT_FIELDS = List.of(
-            VectorField.builder()
-                    .name(DEFAULT_EMBEDDING_FIELD_NAME)
-                    .dimension(384)
-                    .index(Index.builder()
-                            .name("gamma")
-                            .type(IndexType.HNSW)
-                            .params(HNSWParam.builder()
-                                    .metricType(MetricType.INNER_PRODUCT)
-                                    .efSearch(64)
-                                    .build())
-                            .build())
-                    .build(),
-            StringField.builder()
-                    .fieldType(FieldType.STRING)
-                    .name(DEFAULT_TEXT_FIELD_NAME)
-                    .build());
-
     private String databaseName;
     private String spaceName;
 
@@ -73,10 +55,10 @@ public class VearchConfig {
         this.replicaNum = getOrDefault(builder.replicaNum, 1);
         this.partitionNum = getOrDefault(builder.partitionNum, 1);
         this.searchIndexParam = builder.searchIndexParam;
-        this.fields = getOrDefault(builder.fields, DEFAULT_FIELDS);
         this.embeddingFieldName = getOrDefault(builder.embeddingFieldName, DEFAULT_EMBEDDING_FIELD_NAME);
         this.textFieldName = getOrDefault(builder.textFieldName, DEFAULT_TEXT_FIELD_NAME);
         this.metadataFieldNames = builder.metadataFieldNames;
+        this.fields = getOrDefault(builder.fields, toFields(builder.dimension));
     }
 
     public String getDatabaseName() {
@@ -151,6 +133,30 @@ public class VearchConfig {
         this.metadataFieldNames = metadataFieldNames;
     }
 
+    private List<Field> toFields(Integer dimension) {
+
+        // Construct default fields without metadata
+        return List.of(
+                VectorField.builder()
+                        .name(embeddingFieldName)
+                        .dimension(dimension)
+                        .index(Index.builder()
+                                .name("gamma")
+                                .type(IndexType.HNSW)
+                                .params(HNSWParam.builder()
+                                        .metricType(MetricType.INNER_PRODUCT)
+                                        .efConstruction(100)
+                                        .nLinks(32)
+                                        .efSearch(64)
+                                        .build())
+                                .build())
+                        .build(),
+                StringField.builder()
+                        .name(textFieldName)
+                        .fieldType(FieldType.STRING)
+                        .build());
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -159,6 +165,7 @@ public class VearchConfig {
 
         private String databaseName;
         private String spaceName;
+        private Integer dimension;
         private Integer replicaNum;
         private Integer partitionNum;
         private SearchIndexParam searchIndexParam;
@@ -177,12 +184,17 @@ public class VearchConfig {
             return this;
         }
 
-        public Builder replicaNum(int replicaNum) {
+        public Builder dimension(Integer dimension) {
+            this.dimension = dimension;
+            return this;
+        }
+
+        public Builder replicaNum(Integer replicaNum) {
             this.replicaNum = replicaNum;
             return this;
         }
 
-        public Builder partitionNum(int partitionNum) {
+        public Builder partitionNum(Integer partitionNum) {
             this.partitionNum = partitionNum;
             return this;
         }

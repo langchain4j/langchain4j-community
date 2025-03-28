@@ -1,5 +1,11 @@
 package dev.langchain4j.community.model.chatglm;
 
+import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.time.Duration.ofSeconds;
+
 import dev.langchain4j.community.model.chatglm.spi.ChatGlmChatModelBuilderFactory;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -7,18 +13,12 @@ import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
-
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static dev.langchain4j.internal.RetryUtils.withRetry;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.time.Duration.ofSeconds;
 
 /**
  * Support <a href="https://github.com/THUDM/ChatGLM-6B">ChatGLM</a>,
@@ -32,14 +32,15 @@ public class ChatGlmChatModel implements ChatLanguageModel {
     private final Integer maxLength;
     private final Integer maxRetries;
 
-    public ChatGlmChatModel(String baseUrl,
-                            Duration timeout,
-                            Double temperature,
-                            Integer maxRetries,
-                            Double topP,
-                            Integer maxLength,
-                            boolean logRequests,
-                            boolean logResponses) {
+    public ChatGlmChatModel(
+            String baseUrl,
+            Duration timeout,
+            Double temperature,
+            Integer maxRetries,
+            Double topP,
+            Integer maxLength,
+            boolean logRequests,
+            boolean logResponses) {
         baseUrl = ensureNotNull(baseUrl, "baseUrl");
         timeout = getOrDefault(timeout, ofSeconds(60));
         this.temperature = getOrDefault(temperature, 0.7);
@@ -55,9 +56,13 @@ public class ChatGlmChatModel implements ChatLanguageModel {
                 .build();
     }
 
-
     @Override
-    public Response<AiMessage> generate(List<ChatMessage> messages) {
+    public ChatResponse doChat(ChatRequest chatRequest) {
+        List<ChatMessage> chatMessages = chatRequest.messages();
+        return ChatResponse.builder().aiMessage(doChat(chatMessages)).build();
+    }
+
+    public AiMessage doChat(List<ChatMessage> messages) {
         // get last user message
         String prompt;
         ChatMessage lastMessage = messages.get(messages.size() - 1);
@@ -77,7 +82,7 @@ public class ChatGlmChatModel implements ChatLanguageModel {
 
         ChatCompletionResponse response = withRetry(() -> client.chatCompletion(request), maxRetries);
 
-        return Response.from(AiMessage.from(response.getResponse()));
+        return AiMessage.from(response.getResponse());
     }
 
     private List<List<String>> toHistory(List<ChatMessage> historyMessages) {
@@ -88,7 +93,8 @@ public class ChatGlmChatModel implements ChatLanguageModel {
         }
 
         if (historyMessages.size() % 2 != 0) {
-            throw new IllegalArgumentException("History must be divisible by 2 because it's order User - AI - User - AI ...");
+            throw new IllegalArgumentException(
+                    "History must be divisible by 2 because it's order User - AI - User - AI ...");
         }
 
         List<List<String>> history = new ArrayList<>();
@@ -179,7 +185,8 @@ public class ChatGlmChatModel implements ChatLanguageModel {
         }
 
         public ChatGlmChatModel build() {
-            return new ChatGlmChatModel(baseUrl, timeout, temperature, maxRetries, topP, maxLength, logRequests, logResponses);
+            return new ChatGlmChatModel(
+                    baseUrl, timeout, temperature, maxRetries, topP, maxLength, logRequests, logResponses);
         }
     }
 }

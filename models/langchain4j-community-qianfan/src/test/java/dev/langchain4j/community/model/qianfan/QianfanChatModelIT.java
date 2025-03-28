@@ -1,5 +1,13 @@
 package dev.langchain4j.community.model.qianfan;
 
+import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
+import static dev.langchain4j.data.message.UserMessage.userMessage;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.qianfan.client.QianfanApiException;
@@ -9,26 +17,19 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
-import java.util.List;
-
-import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
-import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "QIANFAN_API_KEY", matches = ".+")
 class QianfanChatModelIT {
 
-    //see your api key and secret key here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
+    // see your api key and secret key here:
+    // https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
     private final String apiKey = System.getenv("QIANFAN_API_KEY");
     private final String secretKey = System.getenv("QIANFAN_SECRET_KEY");
 
@@ -59,14 +60,13 @@ class QianfanChatModelIT {
         UserMessage userMessage = userMessage("中国首都在哪里");
 
         // when
-        Response<AiMessage> response = model.generate(userMessage);
+        ChatResponse response = model.chat(userMessage);
 
         // then
-        assertThat(response.content().text()).contains("北京");
+        assertThat(response.aiMessage().text()).contains("北京");
 
         assertThat(response.finishReason()).isEqualTo(STOP);
     }
-
 
     @Test
     void should_execute_a_tool_then_answer() {
@@ -76,14 +76,18 @@ class QianfanChatModelIT {
         List<ToolSpecification> toolSpecifications = singletonList(calculator);
 
         // when
-        Response<AiMessage> response = model.generate(singletonList(userMessage), toolSpecifications);
+        ChatResponse response = model.chat(ChatRequest.builder()
+                .messages(singletonList(userMessage))
+                .toolSpecifications(toolSpecifications)
+                .build());
 
         // then
-        AiMessage aiMessage = response.content();
+        AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
-        ToolExecutionRequest toolExecutionRequest = aiMessage.toolExecutionRequests().get(0);
+        ToolExecutionRequest toolExecutionRequest =
+                aiMessage.toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo("calculator");
         assertThat(toolExecutionRequest.arguments()).isEqualToIgnoringWhitespace("{\"first\": 2, \"second\": 2}");
 
@@ -98,10 +102,10 @@ class QianfanChatModelIT {
         List<ChatMessage> messages = asList(userMessage, aiMessage, toolExecutionResultMessage);
 
         // when
-        Response<AiMessage> secondResponse = model.generate(messages);
+        ChatResponse secondResponse = model.chat(messages);
 
         // then
-        AiMessage secondAiMessage = secondResponse.content();
+        AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("4");
         assertThat(secondAiMessage.toolExecutionRequests()).isNull();
 
@@ -112,22 +116,23 @@ class QianfanChatModelIT {
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
 
-
     @Test
     void should_generate_valid_json() {
-        QianfanChatModel model = QianfanChatModel.builder().modelName("ERNIE-Bot 4.0").temperature(0.7).topP(1.0).maxRetries(1)
+        QianfanChatModel model = QianfanChatModel.builder()
+                .modelName("ERNIE-Bot 4.0")
+                .temperature(0.7)
+                .topP(1.0)
+                .maxRetries(1)
                 .apiKey(apiKey)
                 .secretKey(secretKey)
                 .responseFormat("json_object")
                 .build();
 
-        //given
+        // given
         String userMessage = "Return JSON with two fields: name and surname of Klaus Heisler. ";
         String expectedJson = "{\"name\": \"Klaus\", \"surname\": \"Heisler\"}";
 
-        assertThat(model.generate(userMessage)).isEqualToIgnoringWhitespace(expectedJson);
-
-
+        assertThat(model.chat(userMessage)).isEqualToIgnoringWhitespace(expectedJson);
     }
 
     @Test
@@ -139,11 +144,10 @@ class QianfanChatModelIT {
         SystemMessage systemMessage = SystemMessage.from("Please add the word hello before each answer");
 
         // when
-        Response<AiMessage> response = model.generate(userMessage, systemMessage);
+        ChatResponse response = model.chat(userMessage, systemMessage);
 
         // then
-        assertThat(response.content().text()).containsIgnoringCase("hello");
-
+        assertThat(response.aiMessage().text()).containsIgnoringCase("hello");
     }
 
     @Test
@@ -159,10 +163,9 @@ class QianfanChatModelIT {
         SystemMessage systemMessage = SystemMessage.from("Please add the word hello before each answer");
 
         // length of message is even excluding system message.
-        Response<AiMessage> response = model.generate(aiMessage, userMessage, systemMessage);
+        ChatResponse response = model.chat(aiMessage, userMessage, systemMessage);
 
-        assertThat(response.content().text()).containsIgnoringCase("hello");
-
+        assertThat(response.aiMessage().text()).containsIgnoringCase("hello");
     }
 
     @Test
@@ -175,10 +178,9 @@ class QianfanChatModelIT {
                 .build();
 
         try {
-            chatModel.generate(userMessage("Where is the capital of China"));
+            chatModel.chat(userMessage("Where is the capital of China"));
         } catch (RuntimeException e) {
             assertThat(e.getCause()).isInstanceOf(QianfanApiException.class);
         }
     }
-
 }
