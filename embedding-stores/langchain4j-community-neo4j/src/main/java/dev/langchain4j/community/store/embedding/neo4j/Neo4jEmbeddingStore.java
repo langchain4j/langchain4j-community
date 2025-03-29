@@ -117,23 +117,23 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * Creates an instance of Neo4jEmbeddingStore
      *
-     * @param driver            the {@link Driver} (required)
-     * @param dimension         the dimension (required)
-     * @param config            the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
-     * @param label             the optional label name (default: "Document")
-     * @param embeddingProperty the optional embeddingProperty name (default: "embedding")
-     * @param idProperty        the optional id property name (default: "id")
-     * @param metadataPrefix    the optional metadata prefix (default: "")
-     * @param textProperty      the optional textProperty property name (default: "text")
-     * @param indexName         the optional index name (default: "vector")
-     * @param databaseName      the optional database name (default: "neo4j")
-     * @param awaitIndexTimeout the optional awaiting timeout for all indexes to come online, in seconds (default: 60s)
-     * @param retrievalQuery    the optional retrieval query
-     *                          (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
-     * @param fullTextIndexName the optional full-text index name, to perform a hybrid search (default: `fulltext`)
-     * @param fullTextQuery the optional full-text index query, required if we want to perform a hybrid search
+     * @param driver                 the {@link Driver} (required)
+     * @param dimension              the dimension (required)
+     * @param config                 the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
+     * @param label                  the optional label name (default: "Document")
+     * @param embeddingProperty      the optional embeddingProperty name (default: "embedding")
+     * @param idProperty             the optional id property name (default: "id")
+     * @param metadataPrefix         the optional metadata prefix (default: "")
+     * @param textProperty           the optional textProperty property name (default: "text")
+     * @param indexName              the optional index name (default: "vector")
+     * @param databaseName           the optional database name (default: "neo4j")
+     * @param awaitIndexTimeout      the optional awaiting timeout for all indexes to come online, in seconds (default: 60s)
+     * @param retrievalQuery         the optional retrieval query
+     *                               (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
+     * @param fullTextIndexName      the optional full-text index name, to perform a hybrid search (default: `fulltext`)
+     * @param fullTextQuery          the optional full-text index query, required if we want to perform a hybrid search
      * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
-     * @param autoCreateFullText if true, it will auto create the full-text index if not exists (default: false)
+     * @param autoCreateFullText     if true, it will auto create the full-text index if not exists (default: false)
      */
     public Neo4jEmbeddingStore(
             SessionConfig config,
@@ -302,21 +302,21 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             String query =
                     """
-                    CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
-                    YIELD node, score
-                    WHERE score >= $minScore
-                    """
+                            CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
+                            YIELD node, score
+                            WHERE score >= $minScore
+                            """
                             + retrievalQuery;
 
             if (fullTextQuery != null) {
 
                 query +=
                         """
-                   \nUNION
-                   CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
-                   YIELD node, score
-                   WHERE score >= $minScore
-                   """
+                                \nUNION
+                                CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
+                                YIELD node, score
+                                WHERE score >= $minScore
+                                """
                                 + fullTextRetrievalQuery;
 
                 params.putAll(Map.of(
@@ -469,6 +469,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     public static class Builder {
+
         private String indexName;
         private String metadataPrefix;
         private String embeddingProperty;
