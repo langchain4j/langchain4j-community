@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Integration :: DuckDB</name>
 
     <properties>
-        <duckdb.version>1.2.0</duckdb.version>
+        <duckdb.version>1.2.1</duckdb.version>
     </properties>
 
     <dependencies>
