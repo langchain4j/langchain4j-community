@@ -1,16 +1,15 @@
 package dev.langchain4j.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+
 import dev.langchain4j.internal.ValidationUtils;
+import java.util.List;
+import java.util.Map;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.exceptions.ClientException;
 import org.neo4j.driver.summary.ResultSummary;
-
-import java.util.List;
-import java.util.Map;
-
-import static dev.langchain4j.internal.Utils.getOrDefault;
 
 public class Neo4jGraph implements AutoCloseable {
 
@@ -48,7 +47,8 @@ public class Neo4jGraph implements AutoCloseable {
         }
     }
 
-    private final static String SCHEMA_FROM_META_DATA = """
+    private static final String SCHEMA_FROM_META_DATA =
+            """
             CALL apoc.meta.data({maxRels: $maxRels, sample: $sample})
             YIELD label, other, elementType, type, property
             WITH label, elementType,
@@ -104,10 +104,14 @@ public class Neo4jGraph implements AutoCloseable {
     public List<Record> executeRead(String queryString) {
         return executeRead(queryString, Map.of());
     }
-    
+
     public List<Record> executeRead(String queryString, Map<String, Object> parameters) {
 
-        return this.driver.executableQuery(queryString).withParameters(parameters).execute().records();
+        return this.driver
+                .executableQuery(queryString)
+                .withParameters(parameters)
+                .execute()
+                .records();
     }
 
     public void refreshSchema() {

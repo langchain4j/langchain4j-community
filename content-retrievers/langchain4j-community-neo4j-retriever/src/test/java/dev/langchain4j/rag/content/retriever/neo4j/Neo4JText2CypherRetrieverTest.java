@@ -84,10 +84,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     @Test
     void shouldReturnArithmeticException() {
         try {
-            Neo4jGraph.builder().driver(driver)
-                    .sample(0L)
-                    .maxRels(0L)
-                    .build();
+            Neo4jGraph.builder().driver(driver).sample(0L).maxRels(0L).build();
             fail("Should fail due to ArithmeticException");
         } catch (RuntimeException e) {
             assertThat(e.getMessage()).contains("java.lang.ArithmeticException: / by zero");
