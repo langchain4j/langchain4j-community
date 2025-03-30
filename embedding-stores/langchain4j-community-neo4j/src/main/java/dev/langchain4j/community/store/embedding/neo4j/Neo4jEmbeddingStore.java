@@ -41,8 +41,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import dev.langchain4j.store.embedding.filter.Filter;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
@@ -269,9 +267,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public void removeAll() {
         try (var session = session()) {
-            String statement = String.format(
-                    "CALL { MATCH (n:%1$s) WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) DETACH DELETE n } IN TRANSACTIONS",
-                    this.sanitizedLabel, this.embeddingProperty, this.dimension);
+            String statement =
+                    String.format("CALL { MATCH (n:%1$s) DETACH DELETE n } IN TRANSACTIONS", this.sanitizedLabel);
             session.run(statement);
         }
     }
@@ -282,8 +279,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         try (var session = session()) {
             String statement = String.format(
-                    "CALL { UNWIND $ids AS id MATCH (n:%1$s {%2$s: id}) WHERE n.%3$s IS NOT NULL AND size(n.%3$s) = toInteger(%4$s) DETACH DELETE n } IN TRANSACTIONS ",
-                    this.sanitizedLabel, this.sanitizedIdProperty, this.embeddingProperty, this.dimension);
+                    "CALL { UNWIND $ids AS id MATCH (n:%1$s {%2$s: id}) DETACH DELETE n } IN TRANSACTIONS ",
+                    this.sanitizedLabel, this.sanitizedIdProperty);
             final Map<String, Object> params = Map.of("ids", ids);
             session.run(statement, params);
         }
@@ -382,14 +379,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     "fullTextIndexName", fullTextIndexName,
                     "fullTextQuery", fullTextQuery));
         }
-        
+
         final Set<String> columns = getColumnNames(session, query);
         final Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
 
         if (!allowedColumn.containsAll(columns) || columns.size() > allowedColumn.size()) {
             throw new RuntimeException(COLUMNS_NOT_ALLOWED_ERR + columns);
         }
-        
+
         return getEmbeddingSearchResult(session, query, params);
     }
 

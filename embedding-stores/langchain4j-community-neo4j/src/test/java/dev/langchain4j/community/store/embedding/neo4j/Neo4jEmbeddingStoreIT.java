@@ -6,6 +6,7 @@ import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtil
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.fail;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
@@ -18,23 +19,8 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.EmbeddingStoreIT;
-import dev.langchain4j.store.embedding.filter.comparison.*;
-import dev.langchain4j.store.embedding.filter.logical.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.stream.IntStream;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -129,22 +115,30 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
                 .logRequests(true)
                 .logResponses(true)
                 .build();
-        final List<EmbeddingMatch<TextSegment>> relevant =
-                embeddingStore.search(request).matches();
-        assertThat(relevant).hasSize(2);
 
-        EmbeddingMatch<TextSegment> firstMatch = relevant.get(0);
-        EmbeddingMatch<TextSegment> secondMatch = relevant.get(1);
+        // re-execute the Cypher statements in case of errors
+        withRetry(
+                () -> {
+                    session.executeWrite(
+                            tx -> tx.run("MATCH (n) DETACH DELETE n").consume());
 
-        checkEntitiesCreated(relevant.size(), iterator -> {
-            iterator.forEachRemaining(node -> {
-                if (node.get(DEFAULT_ID_PROP).asString().equals(firstMatch.embeddingId())) {
-                    checkDefaultProps(firstEmbedding, firstMatch, node);
-                } else {
-                    checkDefaultProps(secondEmbedding, secondMatch, node);
-                }
-            });
-        });
+                    final String generate = openAiChatModel.chat(userMessage);
+
+                    for (String query : generate.split(";")) {
+                        session.executeWrite(tx -> {
+                            tx.run(query).consume();
+                            return null;
+                        });
+                    }
+                    return null;
+                },
+                3);
+        final List<EmbeddingMatch<TextSegment>> matchesWithFullText =
+                embeddingStore.search(embeddingSearchRequest).matches();
+        // besides `Elizabeth I`, there could be other similar nodes like `Elizabethan era`, `Elizabeth of York`,
+        // `Elizabethan Religious Settlement`, ...
+        assertThat(matchesWithFullText).hasSizeGreaterThanOrEqualTo(1);
+        matchesWithFullText.forEach(i -> assertThat(i.embeddingId()).contains("Elizabeth"));
     }
 
     @Test
@@ -176,119 +170,5 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
                     secondLabel, DEFAULT_EMBEDDING_PROP);
             assertThat(e.getMessage()).contains(errMsg);
         }
-    }
-
-    @Test
-    void row_batches_single_element() {
-        List<List<Map<String, Object>>> rowsBatched = getListRowsBatched(1);
-        assertThat(rowsBatched).hasSize(1);
-        assertThat(rowsBatched.get(0)).hasSize(1);
-    }
-
-    @Test
-    void row_batches_10000_elements() {
-        List<List<Map<String, Object>>> rowsBatched = getListRowsBatched(10000);
-        assertThat(rowsBatched).hasSize(1);
-        assertThat(rowsBatched.get(0)).hasSize(10000);
-    }
-
-    @Test
-    void row_batches_20000_elements() {
-        List<List<Map<String, Object>>> rowsBatched = getListRowsBatched(20000);
-        assertThat(rowsBatched).hasSize(2);
-        assertThat(rowsBatched.get(0)).hasSize(10000);
-        assertThat(rowsBatched.get(1)).hasSize(10000);
-    }
-
-    @Test
-    void row_batches_11001_elements() {
-        List<List<Map<String, Object>>> rowsBatched = getListRowsBatched(11001);
-        assertThat(rowsBatched).hasSize(2);
-        assertThat(rowsBatched.get(0)).hasSize(10000);
-        assertThat(rowsBatched.get(1)).hasSize(1001);
-    }
-
-    @Test
-    void should_add_embedding_with_id_and_retrieve_with_and_without_prefilter() {
-
-        final List<TextSegment> segments = IntStream.range(0, 10)
-                .boxed()
-                .map(i -> {
-                    if (i == 0) {
-                        final Map<String, Object> metas =
-                                Map.of("key1", "value1", "key2", 10, "key3", "3", "key4", "value4");
-                        final Metadata metadata = new Metadata(metas);
-                        return TextSegment.from(randomUUID(), metadata);
-                    }
-                    return TextSegment.from(randomUUID());
-                })
-                .toList();
-
-        final List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
-
-        embeddingStore.addAll(embeddings, segments);
-
-        final And filter = new And(
-                new And(new IsEqualTo("key1", "value1"), new IsEqualTo("key2", "10")),
-                new Not(new Or(new IsIn("key3", asList("1", "2")), new IsNotEqualTo("key4", "value4"))));
-
-        TextSegment segmentToSearch = TextSegment.from(randomUUID());
-        Embedding embeddingToSearch =
-                embeddingModel.embed(segmentToSearch.text()).content();
-        final EmbeddingSearchRequest requestWithFilter = EmbeddingSearchRequest.builder()
-                .maxResults(5)
-                .minScore(0.0)
-                .filter(filter)
-                .queryEmbedding(embeddingToSearch)
-                .build();
-        final EmbeddingSearchResult<TextSegment> searchWithFilter = embeddingStore.search(requestWithFilter);
-        final List<EmbeddingMatch<TextSegment>> matchesWithFilter = searchWithFilter.matches();
-        assertThat(matchesWithFilter).hasSize(1);
-
-        final EmbeddingSearchRequest requestWithoutFilter = EmbeddingSearchRequest.builder()
-                .maxResults(5)
-                .minScore(0.0)
-                .queryEmbedding(embeddingToSearch)
-                .build();
-        final EmbeddingSearchResult<TextSegment> searchWithoutFilter = embeddingStore.search(requestWithoutFilter);
-        final List<EmbeddingMatch<TextSegment>> matchesWithoutFilter = searchWithoutFilter.matches();
-        assertThat(matchesWithoutFilter).hasSize(5);
-    }
-
-    private List<List<Map<String, Object>>> getListRowsBatched(int numElements) {
-        List<TextSegment> embedded = IntStream.range(0, numElements)
-                .mapToObj(i -> TextSegment.from("text-" + i))
-                .toList();
-        List<String> ids =
-                IntStream.range(0, numElements).mapToObj(i -> "id-" + i).toList();
-        List<Embedding> embeddings = embeddingModel.embedAll(embedded).content();
-
-        return Neo4jEmbeddingUtils.getRowsBatched((Neo4jEmbeddingStore) embeddingStore, ids, embeddings, embedded)
-                .toList();
-    }
-
-        // re-execute the Cypher statements in case of errors
-        withRetry(
-                () -> {
-                    session.executeWrite(
-                            tx -> tx.run("MATCH (n) DETACH DELETE n").consume());
-
-                    final String generate = openAiChatModel.chat(userMessage);
-
-                    for (String query : generate.split(";")) {
-                        session.executeWrite(tx -> {
-                            tx.run(query).consume();
-                            return null;
-                        });
-                    }
-                    return null;
-                },
-                3);
-        final List<EmbeddingMatch<TextSegment>> matchesWithFullText =
-                embeddingStore.search(embeddingSearchRequest).matches();
-        // besides `Elizabeth I`, there could be other similar nodes like `Elizabethan era`, `Elizabeth of York`,
-        // `Elizabethan Religious Settlement`, ...
-        assertThat(matchesWithFullText).hasSizeGreaterThanOrEqualTo(1);
-        matchesWithFullText.forEach(i -> assertThat(i.embeddingId()).contains("Elizabeth"));
     }
 }
