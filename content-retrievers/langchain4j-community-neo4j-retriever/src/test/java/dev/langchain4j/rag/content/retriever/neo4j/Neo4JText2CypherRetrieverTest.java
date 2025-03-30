@@ -128,7 +128,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
         final Neo4jText2CypherRetriever retrieverWithExamples = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
                 .chatLanguageModel(chatLanguageModel)
-                .examples("Mock cypher examples..")
+                .examples(List.of("Mock cypher examples.."))
                 .build();
 
         List<Content> contentsWithExamples = retrieverWithExamples.retrieve(query);

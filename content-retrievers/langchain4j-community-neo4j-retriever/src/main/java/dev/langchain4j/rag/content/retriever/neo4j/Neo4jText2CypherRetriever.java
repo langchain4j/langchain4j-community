@@ -46,15 +46,18 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private final ChatLanguageModel chatLanguageModel;
 
     private final PromptTemplate promptTemplate;
-    private final String examples;
+    private final List<String> examples;
 
     public Neo4jText2CypherRetriever(
-            Neo4jGraph graph, ChatLanguageModel chatLanguageModel, PromptTemplate promptTemplate, String examples) {
+            Neo4jGraph graph,
+            ChatLanguageModel chatLanguageModel,
+            PromptTemplate promptTemplate,
+            List<String> examples) {
 
         this.graph = ensureNotNull(graph, "graph");
         this.chatLanguageModel = ensureNotNull(chatLanguageModel, "chatLanguageModel");
         this.promptTemplate = getOrDefault(promptTemplate, DEFAULT_PROMPT_TEMPLATE);
-        this.examples = examples == null ? "" : "Cypher examples: " + examples;
+        this.examples = getOrDefault(examples, List.of());
     }
 
     public static Builder builder() {
@@ -88,8 +91,13 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     private String generateCypherQuery(String schema, String question) {
 
+        String examplesString = "";
+        if (!this.examples.isEmpty()) {
+            final String exampleJoin = String.join("\n", this.examples);
+            examplesString = String.format("Cypher examples: \n%s\n", exampleJoin);
+        }
         final Map<String, Object> templateVariables =
-                Map.of("schema", schema, "question", question, "examples", examples);
+                Map.of("schema", schema, "question", question, "examples", examplesString);
         Prompt cypherPrompt = promptTemplate.apply(templateVariables);
         String cypherQuery = chatLanguageModel.chat(cypherPrompt.text());
         Matcher matcher = BACKTICKS_PATTERN.matcher(cypherQuery);
@@ -120,7 +128,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         protected Neo4jGraph graph;
         protected ChatLanguageModel chatLanguageModel;
         protected PromptTemplate promptTemplate;
-        protected String examples;
+        protected List<String> examples;
 
         /**
          * @param graph the {@link Neo4jGraph} (required)
@@ -149,7 +157,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         /**
          * @param examples the few-shot examples to improve retrieving (optional, default is "")
          */
-        public T examples(String examples) {
+        public T examples(List<String> examples) {
             this.examples = examples;
             return self();
         }

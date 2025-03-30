@@ -76,19 +76,21 @@ class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
                 .logResponses(true)
                 .build();
 
-        String examples =
+        List<String> examples = List.of(
                 """
             # Which streamer has the most followers?
             MATCH (s:Stream)
             RETURN s.name AS streamer
             ORDER BY s.followers DESC LIMIT 1
+            """,
+                """
             # How many streamers are from Norway?
             MATCH (s:Stream)-[:HAS_LANGUAGE]->(:Language {{name: 'Norwegian'}})
             RETURN count(s) AS streamers
             Note: Do not include any explanations or apologies in your responses.
             Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
             Do not include any text except the generated Cypher statement.
-            """;
+            """);
         final String textQuery = "Which streamer from Italy has the most followers?";
         Query query = new Query(textQuery);
 
