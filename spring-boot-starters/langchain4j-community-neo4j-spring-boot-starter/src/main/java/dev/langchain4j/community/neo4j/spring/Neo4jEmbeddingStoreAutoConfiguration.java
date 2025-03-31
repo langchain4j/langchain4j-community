@@ -2,7 +2,6 @@ package dev.langchain4j.community.neo4j.spring;
 
 import static dev.langchain4j.community.neo4j.spring.Neo4jEmbeddingStoreProperties.PREFIX;
 
-import dev.langchain4j.community.store.embedding.neo4j.Builder;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import java.util.Optional;
@@ -24,7 +23,7 @@ public class Neo4jEmbeddingStoreAutoConfiguration {
             Neo4jEmbeddingStoreProperties properties, @Nullable EmbeddingModel embeddingModel) {
 
         Neo4jEmbeddingStoreProperties.BasicAuth auth = properties.getAuth();
-        Builder builder = Neo4jEmbeddingStore.builder()
+        Neo4jEmbeddingStore.Builder builder = Neo4jEmbeddingStore.builder()
                 .indexName(properties.getIndexName())
                 .metadataPrefix(properties.getMetadataPrefix())
                 .embeddingProperty(properties.getEmbeddingProperty())
