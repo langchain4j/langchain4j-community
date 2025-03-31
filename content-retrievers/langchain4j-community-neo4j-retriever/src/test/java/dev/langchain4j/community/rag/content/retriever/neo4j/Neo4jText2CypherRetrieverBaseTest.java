@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.content.retriever.neo4j;
+package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;

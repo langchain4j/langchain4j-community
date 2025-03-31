@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.content.retriever.neo4j;
+package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import dev.langchain4j.internal.ValidationUtils;
 import java.util.List;
