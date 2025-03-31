@@ -31,20 +31,20 @@ public class LlamaParseClientIT {
 
         log.debug("Uploading the file...");
         LlamaParseResponse responseBody = client.upload(path, parsingInstructions);
-        String JOB_ID = responseBody.id;
+        String jobId = responseBody.id;
         String status = responseBody.status;
 
-        assertThat(JOB_ID).isNotBlank();
+        assertThat(jobId).isNotBlank();
         //assertThat(status).isEqualTo("SUCCESS");
 
         log.debug("Waiting for parsing...");
         with().pollInterval(Duration.ofSeconds(3))
                 .await("check success status")
                 .atMost(Duration.ofSeconds(60))
-                .untilAsserted(() -> assertThat(client.jobStatus(JOB_ID).status).isEqualTo("SUCCESS"));
+                .untilAsserted(() -> assertThat(client.jobStatus(jobId).status).isEqualTo("SUCCESS"));
 
         log.debug("Getting markdown result...");
-        LlamaParseMarkdownResponse response = client.markdownResult(JOB_ID);
+        LlamaParseMarkdownResponse response = client.markdownResult(jobId);
         String markdown = response.markdown;
         assertThat(markdown.length()).isGreaterThan(0);
 

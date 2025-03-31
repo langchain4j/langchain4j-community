@@ -17,23 +17,23 @@ interface LlmaParseApi {
     @Headers({"accept: application/json"})
     Call<LlamaParseResponse> upload(@Part MultipartBody.Part file, @Part MultipartBody.Part parsingInstructions);
 
-    @GET("job/{job_id}/result/json")
+    @GET("job/{jobId}/result/json")
     @Headers({"accept: application/json"})
-    Call<ResponseBody> jsonResult(@Path("job_id") String jobId);
+    Call<ResponseBody> jsonResult(@Path("jobId") String jobId);
 
-    @GET("job/{job_id}/result/markdown")
+    @GET("job/{jobId}/result/markdown")
     @Headers({"accept: application/json"})
-    Call<LlamaParseMarkdownResponse> markdownResult(@Path("job_id") String job_id);
+    Call<LlamaParseMarkdownResponse> markdownResult(@Path("jobId") String jobId);
 
-    @GET("job/{job_id}/result/text")
+    @GET("job/{jobId}/result/text")
     @Headers({"accept: application/json"})
-    Call<LlamaParseTextResponse> textResult(@Path("job_id") String job_id);
+    Call<LlamaParseTextResponse> textResult(@Path("jobId") String jobId);
 
-    @GET("job/{job_id}/result/image/{image_name}")
+    @GET("job/{jobId}/result/image/{image_name}")
     @Headers({"accept: application/json"})
-    Call<ResponseBody> imageResult(@Path("job_id") String job_id, @Path("image_name") String image_name);
+    Call<ResponseBody> imageResult(@Path("jobId") String jobId, @Path("image_name") String image_name);
 
-    @GET("job/{job_id}")
+    @GET("job/{jobId}")
     @Headers({"accept: application/json"})
-    Call<LlamaParseResponse> jobStatus(@Path("job_id") String job_id);
+    Call<LlamaParseResponse> jobStatus(@Path("jobId") String jobId);
 }
