@@ -9,25 +9,36 @@ import com.google.gson.GsonBuilder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
-import lombok.Builder;
-import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-@Slf4j
 public class LlamaParseClient {
+    private static final Logger log = LoggerFactory.getLogger(LlamaParseClient.class);
+
     private static final Gson GSON =
             new GsonBuilder().setFieldNamingPolicy(LOWER_CASE_WITH_UNDERSCORES).create();
 
     private final LlmaParseApi llmaParseApi;
 
-    @Builder
+    public LlamaParseClient(String apiKey) {
+        llmaParseApi = createLlamaParseClient(null, null, apiKey);
+    }
+
     public LlamaParseClient(String baseUrl, Duration timeout, String apiKey) {
+        llmaParseApi = createLlamaParseClient(baseUrl, timeout, apiKey);
+    }
+
+    @NotNull
+    private LlmaParseApi createLlamaParseClient(String baseUrl, Duration timeout, String apiKey) {
+        final LlmaParseApi llmaParseApi;
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
                 .addInterceptor(new ApiKeyInsertingInterceptor(apiKey))
                 .callTimeout(getOrDefault(timeout, ofSeconds(30)))
@@ -44,6 +55,7 @@ public class LlamaParseClient {
                 .build();
 
         llmaParseApi = retrofit.create(LlmaParseApi.class);
+        return llmaParseApi;
     }
 
     public LlamaParseResponse upload(Path path, String parsingInstructions) {

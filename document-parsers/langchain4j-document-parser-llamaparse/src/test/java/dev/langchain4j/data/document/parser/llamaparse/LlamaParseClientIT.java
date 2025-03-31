@@ -24,7 +24,7 @@ public class LlamaParseClientIT {
 
         assertThat(API_KEY).isNotNull().isNotBlank();
 
-        LlamaParseClient client = LlamaParseClient.builder().apiKey(API_KEY).build();
+        LlamaParseClient client = new LlamaParseClient(API_KEY);
 
         Path path = toPath("files/sample.pdf");
         String parsingInstructions = "The provided document is a PDF sample containing Lorem Ipsum text.";
@@ -35,7 +35,7 @@ public class LlamaParseClientIT {
         String status = responseBody.status;
 
         assertThat(jobId).isNotBlank();
-        //assertThat(status).isEqualTo("SUCCESS");
+        // assertThat(status).isEqualTo("SUCCESS");
 
         log.debug("Waiting for parsing...");
         with().pollInterval(Duration.ofSeconds(3))
