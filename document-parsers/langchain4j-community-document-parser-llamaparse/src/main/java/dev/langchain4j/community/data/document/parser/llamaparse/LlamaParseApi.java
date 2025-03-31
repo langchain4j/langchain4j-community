@@ -1,4 +1,4 @@
-package dev.langchain4j.data.document.parser.llamaparse;
+package dev.langchain4j.community.data.document.parser.llamaparse;
 
 import okhttp3.MultipartBody;
 import okhttp3.ResponseBody;
@@ -10,7 +10,7 @@ import retrofit2.http.POST;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
 
-interface LlmaParseApi {
+interface LlamaParseApi {
 
     @POST("upload")
     @Multipart

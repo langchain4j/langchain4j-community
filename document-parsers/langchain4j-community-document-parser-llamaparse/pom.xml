@@ -9,23 +9,9 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>langchain4j-document-parser-llamaparse</artifactId>
+    <artifactId>langchain4j-community-document-parser-llamaparse</artifactId>
     <packaging>jar</packaging>
     <name>LangChain4j :: Community :: Document parser :: LlamaParse</name>
-
-    <properties>
-        <awaitility.version>4.2.1</awaitility.version>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.awaitility</groupId>
-                <artifactId>awaitility</artifactId>
-                <version>${awaitility.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
 
@@ -53,6 +39,11 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
         </dependency>
 
         <dependency>

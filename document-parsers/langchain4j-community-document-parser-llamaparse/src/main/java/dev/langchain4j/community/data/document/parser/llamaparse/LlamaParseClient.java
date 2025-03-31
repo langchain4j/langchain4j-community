@@ -1,4 +1,4 @@
-package dev.langchain4j.data.document.parser.llamaparse;
+package dev.langchain4j.community.data.document.parser.llamaparse;
 
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static java.time.Duration.ofSeconds;
@@ -11,7 +11,7 @@ import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit2.Retrofit;
@@ -20,19 +20,19 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 public class LlamaParseClient {
     private static final Logger log = LoggerFactory.getLogger(LlamaParseClient.class);
 
-    private final LlmaParseApi llmaParseApi;
+    private final LlamaParseApi llamaParseApi;
 
     public LlamaParseClient(String apiKey) {
-        llmaParseApi = createLlamaParseClient(null, null, apiKey);
+        llamaParseApi = createLlamaParseClient(null, null, apiKey);
     }
 
     public LlamaParseClient(String baseUrl, Duration timeout, String apiKey) {
-        llmaParseApi = createLlamaParseClient(baseUrl, timeout, apiKey);
+        llamaParseApi = createLlamaParseClient(baseUrl, timeout, apiKey);
     }
 
-    @NotNull
-    private LlmaParseApi createLlamaParseClient(String baseUrl, Duration timeout, String apiKey) {
-        final LlmaParseApi llmaParseApi;
+    @NonNull
+    private LlamaParseApi createLlamaParseClient(String baseUrl, Duration timeout, String apiKey) {
+        final LlamaParseApi llamaParseApi;
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
                 .addInterceptor(new ApiKeyInsertingInterceptor(apiKey))
                 .callTimeout(getOrDefault(timeout, ofSeconds(30)))
@@ -48,8 +48,8 @@ public class LlamaParseClient {
                 .addConverterFactory(JacksonConverterFactory.create())
                 .build();
 
-        llmaParseApi = retrofit.create(LlmaParseApi.class);
-        return llmaParseApi;
+        llamaParseApi = retrofit.create(LlamaParseApi.class);
+        return llamaParseApi;
     }
 
     public LlamaParseResponse upload(Path path, String parsingInstructions) {
@@ -63,7 +63,7 @@ public class LlamaParseClient {
                     MultipartBody.Part.createFormData("parsingInstructions", parsingInstructions);
 
             retrofit2.Response<LlamaParseResponse> retrofitResponse =
-                    llmaParseApi.upload(filePart, parsingInstructionsPart).execute();
+                    llamaParseApi.upload(filePart, parsingInstructionsPart).execute();
 
             if (retrofitResponse.isSuccessful()) {
                 return retrofitResponse.body();
@@ -78,7 +78,7 @@ public class LlamaParseClient {
     public ResponseBody jsonResult(String jobId) {
         try {
             retrofit2.Response<ResponseBody> response =
-                    llmaParseApi.jsonResult(jobId).execute();
+                    llamaParseApi.jsonResult(jobId).execute();
             if (response.isSuccessful()) {
                 return response.body();
             } else {
@@ -92,7 +92,7 @@ public class LlamaParseClient {
     public LlamaParseMarkdownResponse markdownResult(String jobId) {
         try {
             retrofit2.Response<LlamaParseMarkdownResponse> response =
-                    llmaParseApi.markdownResult(jobId).execute();
+                    llamaParseApi.markdownResult(jobId).execute();
             if (response != null && response.isSuccessful()) {
                 return response.body();
             } else {
@@ -106,7 +106,7 @@ public class LlamaParseClient {
     public LlamaParseTextResponse textResult(String jobId) {
         try {
             retrofit2.Response<LlamaParseTextResponse> response =
-                    llmaParseApi.textResult(jobId).execute();
+                    llamaParseApi.textResult(jobId).execute();
             if (response.isSuccessful()) {
                 return response.body();
             } else {
@@ -121,7 +121,7 @@ public class LlamaParseClient {
     public ResponseBody imageResult(String jobId, String imageName) {
         try {
             retrofit2.Response<ResponseBody> response =
-                    llmaParseApi.imageResult(jobId, imageName).execute();
+                    llamaParseApi.imageResult(jobId, imageName).execute();
             if (response.isSuccessful()) {
                 return response.body();
             } else {
@@ -135,7 +135,7 @@ public class LlamaParseClient {
     public LlamaParseResponse jobStatus(String jobId) {
         try {
             retrofit2.Response<LlamaParseResponse> retrofitResponse =
-                    llmaParseApi.jobStatus(jobId).execute();
+                    llamaParseApi.jobStatus(jobId).execute();
 
             if (retrofitResponse.isSuccessful()) {
                 return retrofitResponse.body();

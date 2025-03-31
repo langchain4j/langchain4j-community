@@ -1,4 +1,4 @@
-package dev.langchain4j.data.document.parser.llamaparse;
+package dev.langchain4j.community.data.document.parser.llamaparse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.with;
@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @EnabledIfEnvironmentVariable(named = "LLAMA_PARSE_API_KEY", matches = ".+")
-public class LlamaParseClientIT {
+class LlamaParseClientIT {
 
     private static final Logger log = LoggerFactory.getLogger(LlamaParseClientIT.class);
 

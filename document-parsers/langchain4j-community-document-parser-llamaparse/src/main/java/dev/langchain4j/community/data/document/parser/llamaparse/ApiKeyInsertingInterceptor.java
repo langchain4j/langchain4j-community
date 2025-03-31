@@ -1,4 +1,4 @@
-package dev.langchain4j.data.document.parser.llamaparse;
+package dev.langchain4j.community.data.document.parser.llamaparse;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
