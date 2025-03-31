@@ -29,7 +29,7 @@ jobs:
         java_version:
           - 17
           - 21
-          - 24
+          - 23
         include:
           - java_version: '17'
             mvn_opts: '-Dtinylog.writer.level=info'
@@ -37,7 +37,7 @@ jobs:
           - java_version: '21'
             mvn_opts: '-Dtinylog.writer.level=info'
             experimental: false
-          - java_version: '24'
+          - java_version: '23'
             mvn_opts: '-Dtinylog.writer.level=info'
             experimental: true
     runs-on: ubuntu-latest
