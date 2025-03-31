@@ -7,16 +7,18 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @EnabledIfEnvironmentVariable(named = "LLAMA_PARSE_API_KEY", matches = ".+")
-@Slf4j
 public class LlamaParseClientIT {
+
+    private static final Logger log = LoggerFactory.getLogger(LlamaParseClientIT.class);
 
     @Test
     void shouldParseUploadAndGetMarkdown() {
@@ -29,7 +31,7 @@ public class LlamaParseClientIT {
         Path path = toPath("files/sample.pdf");
         String parsingInstructions = "The provided document is a PDF sample containing Lorem Ipsum text.";
 
-        log.debug("Uploading the file...");
+        log.info("Uploading the file...");
         LlamaParseResponse responseBody = client.upload(path, parsingInstructions);
         String jobId = responseBody.id;
         String status = responseBody.status;
@@ -37,18 +39,18 @@ public class LlamaParseClientIT {
         assertThat(jobId).isNotBlank();
         // assertThat(status).isEqualTo("SUCCESS");
 
-        log.debug("Waiting for parsing...");
+        log.info("Waiting for parsing...");
         with().pollInterval(Duration.ofSeconds(3))
                 .await("check success status")
                 .atMost(Duration.ofSeconds(60))
                 .untilAsserted(() -> assertThat(client.jobStatus(jobId).status).isEqualTo("SUCCESS"));
 
-        log.debug("Getting markdown result...");
+        log.info("Getting markdown result...");
         LlamaParseMarkdownResponse response = client.markdownResult(jobId);
         String markdown = response.markdown;
         assertThat(markdown.length()).isGreaterThan(0);
 
-        log.debug("Test completed...");
+        log.info("Test completed...");
     }
 
     private Path toPath(String fileName) {

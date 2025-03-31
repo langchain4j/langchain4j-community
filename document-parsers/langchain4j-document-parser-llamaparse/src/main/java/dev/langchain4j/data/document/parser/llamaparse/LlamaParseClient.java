@@ -1,11 +1,8 @@
 package dev.langchain4j.data.document.parser.llamaparse;
 
-import static com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static java.time.Duration.ofSeconds;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -18,13 +15,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.converter.jackson.JacksonConverterFactory;
 
 public class LlamaParseClient {
     private static final Logger log = LoggerFactory.getLogger(LlamaParseClient.class);
-
-    private static final Gson GSON =
-            new GsonBuilder().setFieldNamingPolicy(LOWER_CASE_WITH_UNDERSCORES).create();
 
     private final LlmaParseApi llmaParseApi;
 
@@ -51,7 +45,7 @@ public class LlamaParseClient {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(getOrDefault(baseUrl, "https://api.cloud.llamaindex.ai/api/parsing/"))
                 .client(okHttpClient)
-                .addConverterFactory(GsonConverterFactory.create(GSON))
+                .addConverterFactory(JacksonConverterFactory.create())
                 .build();
 
         llmaParseApi = retrofit.create(LlmaParseApi.class);
