@@ -6,7 +6,7 @@
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
         <version>1.0.0-beta3-SNAPSHOT</version>
-        <relativePath></relativePath>
+        <relativePath>../langchain4j/langchain4j-parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>langchain4j-community</artifactId>
@@ -54,6 +54,7 @@
         <module>models/langchain4j-community-qianfan</module>
         <module>models/langchain4j-community-xinference</module>
         <module>models/langchain4j-community-zhipu-ai</module>
+        <module>models/langchain4j-community-novita-ai</module>
 
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
