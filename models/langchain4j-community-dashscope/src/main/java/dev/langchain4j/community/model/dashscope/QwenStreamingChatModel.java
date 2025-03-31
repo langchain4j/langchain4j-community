@@ -69,7 +69,8 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
             List<String> stops,
             Integer maxTokens,
             List<ChatModelListener> listeners,
-            ChatRequestParameters defaultRequestParameters) {
+            ChatRequestParameters defaultRequestParameters,
+            Boolean isMultimodalModel) {
         if (Utils.isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
                     "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
@@ -95,7 +96,8 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
 
         this.apiKey = apiKey;
         this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
-        this.isMultimodalModel = isMultimodalModel(modelNameParameter);
+        isMultimodalModel = isMultimodalModel == null ? isMultimodalModel(modelNameParameter) : isMultimodalModel;
+        this.isMultimodalModel = isMultimodalModel;
         this.defaultRequestParameters = QwenChatRequestParameters.builder()
                 // common parameters
                 .modelName(modelNameParameter)
@@ -247,6 +249,7 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
         private Integer maxTokens;
         private List<ChatModelListener> listeners;
         private ChatRequestParameters defaultRequestParameters;
+        private Boolean isMultimodalModel;
 
         public QwenStreamingChatModelBuilder() {
             // This is public so it can be extended
@@ -318,6 +321,11 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
             return this;
         }
 
+        public QwenStreamingChatModelBuilder isMultimodalModel(Boolean isMultimodalModel) {
+            this.isMultimodalModel = isMultimodalModel;
+            return this;
+        }
+
         public QwenStreamingChatModel build() {
             return new QwenStreamingChatModel(
                     baseUrl,
@@ -332,7 +340,8 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
                     stops,
                     maxTokens,
                     listeners,
-                    defaultRequestParameters);
+                    defaultRequestParameters,
+                    isMultimodalModel);
         }
 
         @Override
