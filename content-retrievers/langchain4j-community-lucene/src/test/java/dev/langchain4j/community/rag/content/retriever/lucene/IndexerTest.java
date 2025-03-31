@@ -1,4 +1,4 @@
-package test.dev.langchain4j.rag.content.retriever;
+package dev.langchain4j.community.rag.content.retriever.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -6,9 +6,6 @@ import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;
-import dev.langchain4j.rag.content.retriever.lucene.DirectoryFactory;
-import dev.langchain4j.rag.content.retriever.lucene.LuceneContentRetriever;
-import dev.langchain4j.rag.content.retriever.lucene.LuceneEmbeddingStore;
 import dev.langchain4j.rag.query.Query;
 import java.util.Collections;
 import java.util.List;
@@ -17,7 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class IndexerTest {
+class IndexerTest {
 
     private static final TextSegment textSegment =
             TextSegment.from("Lucene is a powerful search library.", metadataName("doc1"));
@@ -34,7 +31,7 @@ public class IndexerTest {
     private LuceneContentRetriever contentRetriever;
 
     @Test
-    public void addAll() {
+    void addAll() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
 
@@ -48,11 +45,11 @@ public class IndexerTest {
     }
 
     @Test
-    public void addAllEmbeddings() {
+    void addAllEmbeddings() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
 
-        indexer.addAll((List<Embedding>) null);
+        indexer.addAll(null);
 
         List<Content> results = contentRetriever.retrieve(query);
 
@@ -60,7 +57,7 @@ public class IndexerTest {
     }
 
     @Test
-    public void addEmbedding() {
+    void addEmbedding() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
 
@@ -72,7 +69,7 @@ public class IndexerTest {
     }
 
     @Test
-    public void addEmbeddingTextSegment() {
+    void addEmbeddingTextSegment() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
 
@@ -86,7 +83,7 @@ public class IndexerTest {
     }
 
     @Test
-    public void addStringEmbedding() {
+    void addStringEmbedding() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
 
@@ -98,7 +95,7 @@ public class IndexerTest {
     }
 
     @Test
-    public void addStringEmbeddingTextSegment() {
+    void addStringEmbeddingTextSegment() {
 
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
 
@@ -112,14 +109,14 @@ public class IndexerTest {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         directory = DirectoryFactory.tempDirectory();
 
         contentRetriever = LuceneContentRetriever.builder().directory(directory).build();
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         directory.close();
     }
 }

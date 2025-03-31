@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.content.retriever.lucene;
+package dev.langchain4j.community.rag.content.retriever.lucene;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
@@ -8,7 +8,9 @@ import java.nio.file.Paths;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 
-/** Static factory for create Lucene directories. */
+/**
+ * Static factory for create Lucene directories.
+ */
 public class DirectoryFactory {
 
     /**

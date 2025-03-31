@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.content.retriever.lucene;
+package dev.langchain4j.community.rag.content.retriever.lucene;
 
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
@@ -40,10 +40,14 @@ import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Lucene indexer for LangChain4J content (in the form of `TextSegment`). */
+/**
+ * Lucene indexer for LangChain4J content (in the form of `TextSegment`).
+ */
 public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
 
-    /** Builder for `LuceneEmbeddingStore`. */
+    /**
+     * Builder for `LuceneEmbeddingStore`.
+     */
     public static class LuceneEmbeddingStoreBuilder {
 
         private Directory directory;
@@ -107,7 +111,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         encoding = registry.getEncoding(EncodingType.CL100K_BASE);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String add(Embedding embedding) {
         if (embedding == null) {
@@ -118,7 +124,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         return id;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String add(Embedding embedding, TextSegment textSegment) {
         String id = randomUUID();
@@ -126,7 +134,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         return id;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void add(String id, Embedding embedding) {
         if (embedding == null) {
@@ -140,9 +150,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * if they are null. <br>
      * IMPORTANT: Token counts are approximate, and do not include metadata.
      *
-     * @param id Content id, can be null
+     * @param id        Content id, can be null
      * @param embedding Content embedding, can be null
-     * @param content Content, can be null
+     * @param content   Content, can be null
      */
     public void add(String id, Embedding embedding, TextSegment content) {
         addAll(Collections.singletonList(id), Collections.singletonList(embedding), Collections.singletonList(content));
@@ -163,7 +173,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         return id;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<String> addAll(List<Embedding> embeddings) {
         if (embeddings == null || embeddings.isEmpty()) {
@@ -174,7 +186,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         return ids;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void addAll(List<String> idsArg, List<Embedding> embeddingsArg, List<TextSegment> embeddedArg) {
 
@@ -195,14 +209,16 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         IndexWriterConfig config = new IndexWriterConfig(new StandardAnalyzer());
-        try (IndexWriter writer = new IndexWriter(directory, config); ) {
+        try (IndexWriter writer = new IndexWriter(directory, config)) {
             writer.addDocuments(documents);
         } catch (IOException e) {
             log.error("Could not index documents", e);
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
         if (request == null) {
@@ -254,9 +270,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * new list is returned. This way we can avoid threading issues if the original list was provided
      * from calling code.
      *
-     * @param <P> Type of list values
+     * @param <P>      Type of list values
      * @param provided Provided list
-     * @param maxSize Size to pad the list to
+     * @param maxSize  Size to pad the list to
      * @return New list padded with null values
      */
     private <P> List<P> ensureSize(List<P> provided, int maxSize) {
@@ -286,9 +302,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * Find the maximum size of lists, so they can be made the same size later.
      *
-     * @param ids List of content ids
+     * @param ids        List of content ids
      * @param embeddings List of content embeddings
-     * @param embedded List of content
+     * @param embedded   List of content
      * @return Maximum size of any of the lists
      */
     private int maxSize(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
@@ -317,9 +333,9 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * Convert provided id, embedding and text to a Lucene document.
      *
-     * @param id Document id, can be null
+     * @param id        Document id, can be null
      * @param embedding Embedding, can be null
-     * @param content Text content, can be null
+     * @param content   Text content, can be null
      * @return Lucene document
      */
     private Document toDocument(String id, Embedding embedding, TextSegment content) {

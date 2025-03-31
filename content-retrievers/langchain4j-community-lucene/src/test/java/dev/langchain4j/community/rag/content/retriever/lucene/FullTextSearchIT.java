@@ -1,13 +1,11 @@
-package test.dev.langchain4j.rag.content.retriever;
+package dev.langchain4j.community.rag.content.retriever.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.community.rag.content.retriever.lucene.utility.TextEmbedding;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.Content;
-import dev.langchain4j.rag.content.retriever.lucene.DirectoryFactory;
-import dev.langchain4j.rag.content.retriever.lucene.LuceneContentRetriever;
-import dev.langchain4j.rag.content.retriever.lucene.LuceneEmbeddingStore;
 import dev.langchain4j.rag.query.Query;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,9 +16,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import test.dev.langchain4j.rag.content.retriever.utility.TextEmbedding;
 
-public class FullTextSearchIT {
+class FullTextSearchIT {
 
     private static final TextEmbedding[] hits = {
         TextEmbedding.fromResource("hitDoc1.txt"),
@@ -45,7 +42,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever returning just 1 max result")
-    public void query1() {
+    void query1() {
 
         contentRetriever = LuceneContentRetriever.builder()
                 .maxResults(1)
@@ -66,7 +63,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever returning all resuts, not just matchine ones")
-    public void queryAll() {
+    void queryAll() {
 
         contentRetriever = LuceneContentRetriever.builder()
                 .matchUntilMaxResults()
@@ -94,7 +91,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever using default settings (except directory)")
-    public void queryContent() {
+    void queryContent() {
 
         contentRetriever = LuceneContentRetriever.builder().directory(directory).build();
 
@@ -118,7 +115,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever returning up to max tokens")
-    public void queryWithMaxTokens() {
+    void queryWithMaxTokens() {
 
         contentRetriever = LuceneContentRetriever.builder()
                 .maxTokens(8)
@@ -139,7 +136,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever return only matching documents")
-    public void queryWithMetadataFields() {
+    void queryWithMetadataFields() {
 
         Metadata metadata = metadataName("doc1");
         metadata.put("float", -1F);
@@ -171,7 +168,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever returning documents greater than a minimum score")
-    public void queryWithMinScore() {
+    void queryWithMinScore() {
 
         contentRetriever = LuceneContentRetriever.builder()
                 .minScore(0.3)
@@ -193,7 +190,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever where a token counts are not found due to an incorrect field name")
-    public void retrieverWithBadTokenCountField() {
+    void retrieverWithBadTokenCountField() {
 
         contentRetriever = LuceneContentRetriever.builder()
                 .tokenCountFieldName("BAD_TOKEN_COUNT_FIELD_NAME")
@@ -208,7 +205,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever using a null query")
-    public void retrieverWithNullQuery() {
+    void retrieverWithNullQuery() {
 
         contentRetriever = LuceneContentRetriever.builder().directory(directory).build();
 
@@ -219,7 +216,7 @@ public class FullTextSearchIT {
 
     @Test
     @DisplayName("Test retriever where documents are not found due to an incorrect field name")
-    public void retrieverWithWrongContentField() {
+    void retrieverWithWrongContentField() {
 
         contentRetriever = LuceneContentRetriever.builder()
                 .contentFieldName("MY_CONTENT")
@@ -232,7 +229,7 @@ public class FullTextSearchIT {
     }
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         directory = DirectoryFactory.tempDirectory();
         indexer = LuceneEmbeddingStore.builder().directory(directory).build();
         for (TextEmbedding textEmbedding : hits) {
@@ -241,7 +238,7 @@ public class FullTextSearchIT {
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         directory.close();
     }
 }

@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.content.retriever.lucene;
+package dev.langchain4j.community.rag.content.retriever.lucene;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
@@ -39,10 +39,14 @@ import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Full-text content retrieval using Apache Lucene for LangChain4J RAG. */
+/**
+ * Full-text content retrieval using Apache Lucene for LangChain4J RAG.
+ */
 public final class LuceneContentRetriever implements ContentRetriever {
 
-    /** Builder for `LuceneContentRetriever`. */
+    /**
+     * Builder for `LuceneContentRetriever`.
+     */
     public static class LuceneContentRetrieverBuilder {
 
         private Directory directory;
@@ -232,7 +236,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
     }
 
     private final Directory directory;
-    private EmbeddingModel embeddingModel;
+    private final EmbeddingModel embeddingModel;
     private final boolean onlyMatches;
     private final int maxResults;
     private final int maxTokens;
@@ -245,14 +249,14 @@ public final class LuceneContentRetriever implements ContentRetriever {
      * Initialize all fields, and do one more round of validation (even though the builder has
      * validated the fields).
      *
-     * @param directory Lucene directory
-     * @param embeddingModel Embedding model - can be null
-     * @param onlyMatches Whether to only consider matching documents
-     * @param maxResults Return only the first n matches
-     * @param maxTokens Return until a maximum token count
-     * @param contentFieldName Name of the Lucene field with the text
+     * @param directory           Lucene directory
+     * @param embeddingModel      Embedding model - can be null
+     * @param onlyMatches         Whether to only consider matching documents
+     * @param maxResults          Return only the first n matches
+     * @param maxTokens           Return until a maximum token count
+     * @param contentFieldName    Name of the Lucene field with the text
      * @param tokenCountFieldName Name of the Lucene field with token counts
-     * @param embeddingFieldName Name of the Lucene field with embedding vector
+     * @param embeddingFieldName  Name of the Lucene field with embedding vector
      */
     private LuceneContentRetriever(
             Directory directory,
@@ -275,7 +279,9 @@ public final class LuceneContentRetriever implements ContentRetriever {
         this.embeddingFieldName = ensureNotBlank(embeddingFieldName, "embeddingFieldName");
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Content> retrieve(dev.langchain4j.rag.query.Query query) {
         String queryText;
@@ -342,7 +348,7 @@ public final class LuceneContentRetriever implements ContentRetriever {
     /**
      * Build a Lucene hybrid full-text and embedding vector query.
      *
-     * @param query User prompt
+     * @param query     User prompt
      * @param embedding User prompt embedding vector, or null if not available
      * @return Lucene query
      * @throws ParseException When the query cannot be parsed into terms

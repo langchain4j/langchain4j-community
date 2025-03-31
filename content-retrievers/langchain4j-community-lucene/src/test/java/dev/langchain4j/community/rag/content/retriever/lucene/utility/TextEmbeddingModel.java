@@ -1,4 +1,4 @@
-package test.dev.langchain4j.rag.content.retriever.utility;
+package dev.langchain4j.community.rag.content.retriever.lucene.utility;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
