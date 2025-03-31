@@ -2,6 +2,7 @@ package dev.langchain4j.rag.content.retriever.neo4j;
 
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.rag.transformer.Neo4jUtils.getBacktickText;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
@@ -11,7 +12,6 @@ import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.types.Type;
@@ -80,11 +80,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
         Prompt cypherPrompt = promptTemplate.apply(Map.of("schema", schema, "question", question));
         String cypherQuery = chatLanguageModel.chat(cypherPrompt.text());
-        Matcher matcher = BACKTICKS_PATTERN.matcher(cypherQuery);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return cypherQuery;
+        return getBacktickText(cypherQuery);
     }
 
     private List<String> executeQuery(String cypherQuery) {
