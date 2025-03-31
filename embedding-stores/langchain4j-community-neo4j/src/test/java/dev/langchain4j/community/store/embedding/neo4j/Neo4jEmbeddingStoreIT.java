@@ -68,9 +68,10 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
         Document textDocument = extractor.transform(document);
 
         session.executeWrite(tx -> {
-            final String s = "CREATE FULLTEXT INDEX elizabeth_text IF NOT EXISTS FOR (e:%s) ON EACH [e.%s]"
-                    .formatted(label, DEFAULT_ID_PROP);
-            tx.run(s).consume();
+            final String query = String.format(
+                    "CREATE FULLTEXT INDEX elizabeth_text IF NOT EXISTS FOR (e:%s) ON EACH [e.%s]",
+                    label, DEFAULT_ID_PROP);
+            tx.run(query).consume();
             return null;
         });
 
