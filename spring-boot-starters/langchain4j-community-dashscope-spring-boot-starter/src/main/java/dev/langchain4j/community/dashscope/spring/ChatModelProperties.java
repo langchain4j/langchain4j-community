@@ -2,6 +2,7 @@ package dev.langchain4j.community.dashscope.spring;
 
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.ToolChoice;
+
 import java.util.List;
 
 public class ChatModelProperties {
@@ -18,6 +19,7 @@ public class ChatModelProperties {
     private List<String> stops;
     private Integer maxTokens;
     private Parameters parameters;
+    private Boolean isMultimodalModel;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -113,6 +115,14 @@ public class ChatModelProperties {
 
     public void setParameters(Parameters parameters) {
         this.parameters = parameters;
+    }
+
+    public Boolean getIsMultimodalModel() {
+        return isMultimodalModel;
+    }
+
+    public void setIsMultimodalModel(Boolean isMultimodalModel) {
+        this.isMultimodalModel = isMultimodalModel;
     }
 
     public static class Parameters {
