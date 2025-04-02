@@ -3,7 +3,7 @@
 
 This module implements `EmbeddingStore` backed by an CloudSQL for PostgreSQL database.
 
-- [Product Documentation](https://cloud.google.com/sql)
+- [Product Documentation]([https://cloud.google.com/sql](https://cloud.google.com/sql/docs/postgres))
 
 The **CloudSQL for LangChain** package provides a first class experience for connecting to
 CloudSQL instances from the LangChain ecosystem while providing the following benefits:
@@ -31,7 +31,7 @@ steps:
 ```xml
 <dependency>
     <groupId>dev.langchain4j</groupId>
-    <artificatId>langchain4j-cloud-sql-pg</artificatId>
+    <artificatId>langchain4j-community-cloud-sql-pg</artificatId>
     <version>1.0.0-beta2</version>
 </dependency>
 ```
