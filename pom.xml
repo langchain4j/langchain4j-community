@@ -61,6 +61,7 @@
         <module>embedding-stores/langchain4j-community-redis</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
         <module>embedding-stores/langchain4j-community-alloydb-pg</module>
+        <module>embedding-stores/langchain4j-community-cloud-sql-pg</module>
         <module>embedding-stores/langchain4j-community-neo4j</module>
 
         <!-- Integration of content retrievers -->
