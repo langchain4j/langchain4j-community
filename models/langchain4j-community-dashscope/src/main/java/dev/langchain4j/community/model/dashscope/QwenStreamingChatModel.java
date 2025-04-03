@@ -96,7 +96,7 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
 
         this.apiKey = apiKey;
         this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
-        isMultimodalModel = getOrDefault(isMultimodalModel, isMultimodalModel(modelNameParameter))
+        isMultimodalModel = getOrDefault(isMultimodalModel, isMultimodalModel(modelNameParameter));
         this.isMultimodalModel = isMultimodalModel;
         this.defaultRequestParameters = QwenChatRequestParameters.builder()
                 // common parameters

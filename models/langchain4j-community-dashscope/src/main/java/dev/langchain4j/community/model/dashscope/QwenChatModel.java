@@ -95,7 +95,7 @@ public class QwenChatModel implements ChatLanguageModel {
 
         this.apiKey = apiKey;
         this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
-        isMultimodalModel = getOrDefault(isMultimodalModel, isMultimodalModel(modelNameParameter))
+        isMultimodalModel = getOrDefault(isMultimodalModel, isMultimodalModel(modelNameParameter));
         this.isMultimodalModel = isMultimodalModel;
         this.defaultRequestParameters = QwenChatRequestParameters.builder()
                 // common parameters
