@@ -17,6 +17,7 @@ import dev.langchain4j.store.embedding.filter.logical.Or;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Neo4jFilterMapper {
 
@@ -25,10 +26,10 @@ public class Neo4jFilterMapper {
     public static class IncrementalKeyMap {
         private final Map<String, Object> map = new ConcurrentHashMap<>();
 
-        private int counter = 1;
+        private final AtomicInteger integer = new AtomicInteger();
 
         public String put(Object value) {
-            String key = "param_" + counter++;
+            String key = "param_" + integer.getAndIncrement();
             map.put(key, value);
             return key;
         }
@@ -42,7 +43,7 @@ public class Neo4jFilterMapper {
 
     final IncrementalKeyMap map = new IncrementalKeyMap();
 
-    AbstractMap.SimpleEntry<String, Map<?, ?>> map(Filter filter) {
+    AbstractMap.SimpleEntry<String, Map<String, Object>> map(Filter filter) {
         final String stringMapPair = getStringMapping(filter);
         return new AbstractMap.SimpleEntry<>(stringMapPair, map.getMap());
     }
@@ -87,7 +88,7 @@ public class Neo4jFilterMapper {
             return new RuntimeException(invalidSanitizeValue);
         });
 
-        return "n.%s %s $%s".formatted(sanitizedKey, operator, param);
+        return String.format("n.%s %s $%s", sanitizedKey, operator, param);
     }
 
     public String mapIn(IsIn filter) {
@@ -96,18 +97,18 @@ public class Neo4jFilterMapper {
 
     public String mapNotIn(IsNotIn filter) {
         final String inOperation = getOperation(filter.key(), "IN", filter.comparisonValues());
-        return "NOT (%s)".formatted(inOperation);
+        return String.format("NOT (%s)", inOperation);
     }
 
     private String mapAnd(And filter) {
-        return "(%s) AND (%s)".formatted(getStringMapping(filter.left()), getStringMapping(filter.right()));
+        return String.format("(%s) AND (%s)", getStringMapping(filter.left()), getStringMapping(filter.right()));
     }
 
     private String mapOr(Or filter) {
-        return "(%s) OR (%s)".formatted(getStringMapping(filter.left()), getStringMapping(filter.right()));
+        return String.format("(%s) OR (%s)", getStringMapping(filter.left()), getStringMapping(filter.right()));
     }
 
     private String mapNot(Not filter) {
-        return "NOT (%s)".formatted(getStringMapping(filter.expression()));
+        return String.format("NOT (%s)", getStringMapping(filter.expression()));
     }
 }

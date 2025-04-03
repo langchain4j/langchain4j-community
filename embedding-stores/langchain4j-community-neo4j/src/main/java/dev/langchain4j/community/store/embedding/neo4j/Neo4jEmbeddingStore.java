@@ -290,13 +290,13 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(Filter filter) {
         ensureNotNull(filter, "filter");
 
-        final AbstractMap.SimpleEntry<String, Map<?, ?>> filterEntry = new Neo4jFilterMapper().map(filter);
+        final AbstractMap.SimpleEntry<String, Map<String, Object>> filterEntry = new Neo4jFilterMapper().map(filter);
 
         try (var session = session()) {
             String statement = String.format(
                     "CALL { MATCH (n:%1$s) WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s DETACH DELETE n } IN TRANSACTIONS ",
                     this.sanitizedLabel, this.embeddingProperty, this.dimension, filterEntry.getKey());
-            final Map params = filterEntry.getValue();
+            final Map<String, Object> params = filterEntry.getValue();
             session.run(statement, params);
         }
     }
@@ -320,8 +320,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     */
     private EmbeddingSearchResult getSearchResUsingVectorSimilarity(
             EmbeddingSearchRequest request, Filter filter, Value embeddingValue, Session session) {
-        final AbstractMap.SimpleEntry<String, Map<?, ?>> entry = new Neo4jFilterMapper().map(filter);
-        final String query =
+        final AbstractMap.SimpleEntry<String, Map<String, Object>> entry = new Neo4jFilterMapper().map(filter);
+        final String query = String.format(
                 """
                 CYPHER runtime = parallel parallelRuntimeSupport=all
                 MATCH (n:%1$s)
@@ -332,13 +332,13 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 ORDER BY score DESC
                 LIMIT $maxResults
                 """
-                        .formatted(
-                                this.sanitizedLabel,
-                                this.embeddingProperty,
-                                this.dimension,
-                                entry.getKey(),
-                                embeddingValue);
-        final Map params = entry.getValue();
+                        + retrievalQuery,
+                this.sanitizedLabel,
+                this.embeddingProperty,
+                this.dimension,
+                entry.getKey(),
+                embeddingValue);
+        final Map<String, Object> params = entry.getValue();
         params.put("minScore", request.minScore());
         params.put("maxResults", request.maxResults());
         return getEmbeddingSearchResult(session, query, params);
@@ -491,8 +491,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         try (var session = session()) {
 
-            final String query = "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (n:%s) ON EACH [n.%s]"
-                    .formatted(this.fullTextIndexName, this.sanitizedLabel, this.sanitizedIdProperty);
+            final String query = String.format(
+                    "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (n:%s) ON EACH [n.%s]",
+                    this.fullTextIndexName, this.sanitizedLabel, this.sanitizedIdProperty);
             session.run(query).consume();
         }
     }
