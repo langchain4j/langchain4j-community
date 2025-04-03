@@ -116,4 +116,51 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
         var constraintProperties = session.run("SHOW CONSTRAINT WHERE 'Document5' IN labelsOrTypes").single().get("properties").asList(ofString());
         assertThat(constraintProperties).containsExactly("docId");
     }
+
+    @Test
+    void should_detect_existing_constraint_if_created_backticked() {
+        var createNodeKeyConstraintQuery = """
+                CREATE CONSTRAINT nk6
+                FOR (n:Document6)
+                REQUIRE n.`id property` IS NODE KEY;
+                """;
+        session.run(createNodeKeyConstraintQuery);
+
+        Neo4jEmbeddingStore.builder()
+                .label("Document6")
+                .embeddingProperty("embedding")
+                .indexName("vector6")
+                .idProperty("id property")
+                .dimension(384)
+                .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
+                .build();
+
+        var constraintName = session.run("SHOW CONSTRAINT WHERE 'Document6' IN labelsOrTypes").single().get("name").asString();
+        assertThat(constraintName).isEqualTo("nk6");
+    }
+
+    @Test
+    void should_detect_existing_vector_index_if_created_backticked() {
+        var createVectorIndexQuery = """
+                    CREATE VECTOR INDEX vector7
+                    FOR (n:`Document Seven`) ON n.embedding
+                    OPTIONS {
+                        indexConfig: {
+                            `vector.dimensions`: 384
+                        }
+                    }
+                    """;
+        session.run(createVectorIndexQuery);
+
+        Neo4jEmbeddingStore.builder()
+                .label("Document Seven")
+                .embeddingProperty("embedding")
+                .indexName("vector7")
+                .dimension(384)
+                .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
+                .build();
+
+        var existingVectorIndexes = session.run("SHOW VECTOR INDEX WHERE 'Document Seven' IN labelsOrTypes").list();
+        assertThat(existingVectorIndexes).hasSize(1);
+    }
 }

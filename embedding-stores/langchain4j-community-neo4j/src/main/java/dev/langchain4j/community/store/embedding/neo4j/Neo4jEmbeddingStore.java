@@ -403,7 +403,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     AND $property IN properties
                     AND type IN ['NODE_KEY', 'UNIQUENESS']
                     """;
-            var result = session.run(query, Map.of("label", sanitizedLabel, "property", sanitizedIdProperty));
+            var result = session.run(query, Map.of("label", this.label, "property", this.idProperty));
 
             return !result.list().isEmpty();
         }
