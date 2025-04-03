@@ -7,9 +7,9 @@ import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERE
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.resolve;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
-import dev.langchain4j.service.AiServicesWithNewToolsIT;
+import dev.langchain4j.service.common.AbstractAiServiceWithToolsIT;
 
-abstract class AbstractXinferenceToolsChatModelInfrastructure extends AiServicesWithNewToolsIT {
+abstract class AbstractXinferenceToolsChatModelInfrastructure extends AbstractAiServiceWithToolsIT {
     private static final String LOCAL_IMAGE = String.format("tc-%s-%s", XINFERENCE_IMAGE, modelName());
 
     static XinferenceContainer container;

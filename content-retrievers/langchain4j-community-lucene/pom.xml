@@ -12,6 +12,10 @@
     <packaging>jar</packaging>
     <name>LangChain4j :: Community :: Content Retriever :: Lucene</name>
 
+    <properties>
+        <lucene.version>9.12.1</lucene.version>
+    </properties>
+
     <dependencies>
 
         <dependency>
@@ -23,12 +27,12 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
-            <version>9.12.1</version>
+            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
-            <version>9.12.1</version>
+            <version>${lucene.version}</version>
         </dependency>
 
         <dependency>
