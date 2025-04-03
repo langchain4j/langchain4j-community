@@ -2,7 +2,6 @@ package dev.langchain4j.community.dashscope.spring;
 
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.ToolChoice;
-
 import java.util.List;
 
 public class ChatModelProperties {
