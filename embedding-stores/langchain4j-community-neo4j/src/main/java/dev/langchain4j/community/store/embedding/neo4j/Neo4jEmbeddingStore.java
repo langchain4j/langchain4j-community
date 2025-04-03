@@ -398,9 +398,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private boolean constraintExist() {
         try (var session = session()) {
             var query = """
-                    SHOW CONSTRAINTS\s
-                    WHERE $label IN labelsOrTypes\s
-                    AND $property IN properties\s
+                    SHOW CONSTRAINTS
+                    WHERE $label IN labelsOrTypes
+                    AND $property IN properties
                     AND type IN ['NODE_KEY', 'UNIQUENESS']
                     """;
             var result = session.run(query, Map.of("label", sanitizedLabel, "property", sanitizedIdProperty));
