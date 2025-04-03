@@ -24,11 +24,13 @@ public abstract class Neo4jEmbeddingStoreBaseTest extends EmbeddingStoreIT {
     protected static final String USERNAME = "neo4j";
     protected static final String ADMIN_PASSWORD = "adminPass";
     protected static final String LABEL_TO_SANITIZE = "Label ` to \\ sanitize";
-    protected static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26");
+    protected static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26-enterprise");
 
     @Container
     protected static Neo4jContainer<?> neo4jContainer =
-            new Neo4jContainer<>(DockerImageName.parse("neo4j:" + NEO4J_VERSION)).withAdminPassword(ADMIN_PASSWORD);
+            new Neo4jContainer<>(DockerImageName.parse("neo4j:" + NEO4J_VERSION))
+                    .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
+                    .withAdminPassword(ADMIN_PASSWORD);
 
     protected static final String METADATA_KEY = "test-key";
 
