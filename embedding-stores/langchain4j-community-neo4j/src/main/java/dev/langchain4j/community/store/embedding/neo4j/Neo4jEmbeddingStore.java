@@ -323,15 +323,15 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         final AbstractMap.SimpleEntry<String, Map<String, Object>> entry = new Neo4jFilterMapper().map(filter);
         final String query = String.format(
                 """
-                CYPHER runtime = parallel parallelRuntimeSupport=all
-                MATCH (n:%1$s)
-                WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
-                WITH n, vector.similarity.cosine(n.%2$s, %5$s) AS score
-                WHERE score >= $minScore
-                WITH n AS node, score
-                ORDER BY score DESC
-                LIMIT $maxResults
-                """
+                        CYPHER runtime = parallel parallelRuntimeSupport=all
+                        MATCH (n:%1$s)
+                        WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
+                        WITH n, vector.similarity.cosine(n.%2$s, %5$s) AS score
+                        WHERE score >= $minScore
+                        WITH n AS node, score
+                        ORDER BY score DESC
+                        LIMIT $maxResults
+                        """
                         + retrievalQuery,
                 this.sanitizedLabel,
                 this.embeddingProperty,

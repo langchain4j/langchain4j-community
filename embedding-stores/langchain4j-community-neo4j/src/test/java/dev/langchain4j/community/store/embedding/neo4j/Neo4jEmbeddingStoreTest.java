@@ -476,7 +476,7 @@ public class Neo4jEmbeddingStoreTest extends Neo4jEmbeddingStoreBaseTest {
     }
 
     private List<List<Map<String, Object>>> getListRowsBatched(int numElements) {
-        return getListRowsBatched(numElements, (Neo4jEmbeddingStore) embeddingStore);
+        return getListRowsBatched(numElements, embeddingStore);
     }
 
     private List<List<Map<String, Object>>> getListRowsBatched(int numElements, Neo4jEmbeddingStore embeddingStore) {
