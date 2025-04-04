@@ -68,7 +68,8 @@ public class QwenChatModel implements ChatLanguageModel {
             List<String> stops,
             Integer maxTokens,
             List<ChatModelListener> listeners,
-            ChatRequestParameters defaultRequestParameters) {
+            ChatRequestParameters defaultRequestParameters,
+            Boolean isMultimodalModel) {
         if (isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
                     "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
@@ -94,7 +95,8 @@ public class QwenChatModel implements ChatLanguageModel {
 
         this.apiKey = apiKey;
         this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
-        this.isMultimodalModel = isMultimodalModel(modelNameParameter);
+        isMultimodalModel = getOrDefault(isMultimodalModel, isMultimodalModel(modelNameParameter));
+        this.isMultimodalModel = isMultimodalModel;
         this.defaultRequestParameters = QwenChatRequestParameters.builder()
                 // common parameters
                 .modelName(modelNameParameter)
@@ -217,6 +219,7 @@ public class QwenChatModel implements ChatLanguageModel {
         private Integer maxTokens;
         private List<ChatModelListener> listeners;
         private ChatRequestParameters defaultRequestParameters;
+        private Boolean isMultimodalModel;
 
         public QwenChatModelBuilder() {
             // This is public so it can be extended
@@ -288,6 +291,11 @@ public class QwenChatModel implements ChatLanguageModel {
             return this;
         }
 
+        public QwenChatModelBuilder isMultimodalModel(Boolean isMultimodalModel) {
+            this.isMultimodalModel = isMultimodalModel;
+            return this;
+        }
+
         public QwenChatModel build() {
             return new QwenChatModel(
                     baseUrl,
@@ -302,7 +310,8 @@ public class QwenChatModel implements ChatLanguageModel {
                     stops,
                     maxTokens,
                     listeners,
-                    defaultRequestParameters);
+                    defaultRequestParameters,
+                    isMultimodalModel);
         }
 
         @Override
