@@ -445,7 +445,24 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             createIndex();
         }
         createFullTextIndex();
-        createUniqueConstraint();
+        if (!constraintExist()) {
+            createUniqueConstraint();
+        }
+    }
+
+    private boolean constraintExist() {
+        try (var session = session()) {
+            var query =
+                    """
+                    SHOW CONSTRAINTS
+                    WHERE $label IN labelsOrTypes
+                    AND $property IN properties
+                    AND type IN ['NODE_KEY', 'UNIQUENESS']
+                    """;
+            var result = session.run(query, Map.of("label", this.label, "property", this.idProperty));
+
+            return !result.list().isEmpty();
+        }
     }
 
     private void createUniqueConstraint() {
