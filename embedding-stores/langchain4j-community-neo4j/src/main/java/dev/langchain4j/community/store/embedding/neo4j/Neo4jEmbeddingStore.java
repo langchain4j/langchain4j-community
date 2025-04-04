@@ -391,13 +391,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
         createFullTextIndex();
         if (!constraintExist()) {
-            createUniqueConstraint();   
+            createUniqueConstraint();
         }
     }
 
     private boolean constraintExist() {
         try (var session = session()) {
-            var query = """
+            var query =
+                    """
                     SHOW CONSTRAINTS
                     WHERE $label IN labelsOrTypes
                     AND $property IN properties

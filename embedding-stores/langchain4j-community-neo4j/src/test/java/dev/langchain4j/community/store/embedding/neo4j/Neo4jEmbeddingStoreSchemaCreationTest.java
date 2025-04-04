@@ -1,9 +1,9 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.driver.Values.ofString;
+
+import org.junit.jupiter.api.Test;
 
 class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest {
 
@@ -17,13 +17,17 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
 
-        var index = session.run("SHOW VECTOR INDEX WHERE 'Document0' IN labelsOrTypes").single().get("name").asString();
+        var index = session.run("SHOW VECTOR INDEX WHERE 'Document0' IN labelsOrTypes")
+                .single()
+                .get("name")
+                .asString();
         assertThat(index).isEqualTo("vector0");
     }
 
     @Test
     void should_not_fail_if_vector_index_exist() {
-        var createVectorIndexQuery = """
+        var createVectorIndexQuery =
+                """
                     CREATE VECTOR INDEX vector1
                     FOR (n:Document1) ON n.embedding
                     OPTIONS {
@@ -53,7 +57,8 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
 
-        var uniqueConstraint = session.run("SHOW CONSTRAINT WHERE 'Document2' IN labelsOrTypes").single();
+        var uniqueConstraint = session.run("SHOW CONSTRAINT WHERE 'Document2' IN labelsOrTypes")
+                .single();
         var properties = uniqueConstraint.get("properties").asList(ofString());
         var type = uniqueConstraint.get("type").asString();
         assertThat(properties).containsExactly("id");
@@ -62,7 +67,8 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
 
     @Test
     void should_not_create_unique_index_if_already_existing() {
-        var createUniqueConstraintQuery = """
+        var createUniqueConstraintQuery =
+                """
                 CREATE CONSTRAINT uidx3
                 FOR (n:Document3)
                 REQUIRE n.id IS UNIQUE;
@@ -77,13 +83,17 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
 
-        var constraintName = session.run("SHOW CONSTRAINT WHERE 'Document3' IN labelsOrTypes").single().get("name").asString();
+        var constraintName = session.run("SHOW CONSTRAINT WHERE 'Document3' IN labelsOrTypes")
+                .single()
+                .get("name")
+                .asString();
         assertThat(constraintName).isEqualTo("uidx3");
     }
 
     @Test
     void should_not_fail_if_node_key_constraint_exist() {
-        var createNodeKeyConstraintQuery = """
+        var createNodeKeyConstraintQuery =
+                """
                 CREATE CONSTRAINT nk4
                 FOR (n:Document4)
                 REQUIRE n.id IS NODE KEY;
@@ -98,7 +108,10 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
 
-        var constraintName = session.run("SHOW CONSTRAINT WHERE 'Document4' IN labelsOrTypes").single().get("name").asString();
+        var constraintName = session.run("SHOW CONSTRAINT WHERE 'Document4' IN labelsOrTypes")
+                .single()
+                .get("name")
+                .asString();
         assertThat(constraintName).isEqualTo("nk4");
     }
 
@@ -113,13 +126,17 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
 
-        var constraintProperties = session.run("SHOW CONSTRAINT WHERE 'Document5' IN labelsOrTypes").single().get("properties").asList(ofString());
+        var constraintProperties = session.run("SHOW CONSTRAINT WHERE 'Document5' IN labelsOrTypes")
+                .single()
+                .get("properties")
+                .asList(ofString());
         assertThat(constraintProperties).containsExactly("docId");
     }
 
     @Test
     void should_detect_existing_constraint_if_created_backticked() {
-        var createNodeKeyConstraintQuery = """
+        var createNodeKeyConstraintQuery =
+                """
                 CREATE CONSTRAINT nk6
                 FOR (n:Document6)
                 REQUIRE n.`id property` IS NODE KEY;
@@ -135,13 +152,17 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
 
-        var constraintName = session.run("SHOW CONSTRAINT WHERE 'Document6' IN labelsOrTypes").single().get("name").asString();
+        var constraintName = session.run("SHOW CONSTRAINT WHERE 'Document6' IN labelsOrTypes")
+                .single()
+                .get("name")
+                .asString();
         assertThat(constraintName).isEqualTo("nk6");
     }
 
     @Test
     void should_detect_existing_vector_index_if_created_backticked() {
-        var createVectorIndexQuery = """
+        var createVectorIndexQuery =
+                """
                     CREATE VECTOR INDEX vector7
                     FOR (n:`Document Seven`) ON n.embedding
                     OPTIONS {
@@ -160,7 +181,8 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
 
-        var existingVectorIndexes = session.run("SHOW VECTOR INDEX WHERE 'Document Seven' IN labelsOrTypes").list();
+        var existingVectorIndexes = session.run("SHOW VECTOR INDEX WHERE 'Document Seven' IN labelsOrTypes")
+                .list();
         assertThat(existingVectorIndexes).hasSize(1);
     }
 }
