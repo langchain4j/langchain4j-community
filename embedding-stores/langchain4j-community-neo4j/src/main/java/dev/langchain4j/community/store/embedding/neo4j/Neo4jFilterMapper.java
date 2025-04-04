@@ -29,7 +29,7 @@ public class Neo4jFilterMapper {
         private final AtomicInteger integer = new AtomicInteger();
 
         public String put(Object value) {
-            String key = "param_" + integer.getAndIncrement();
+            String key = "param_" + integer.incrementAndGet();
             map.put(key, value);
             return key;
         }
