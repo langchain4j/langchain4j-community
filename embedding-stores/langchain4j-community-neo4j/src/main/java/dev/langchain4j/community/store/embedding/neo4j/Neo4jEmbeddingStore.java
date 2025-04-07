@@ -25,7 +25,6 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 import static java.util.Collections.singletonList;
 import static org.neo4j.cypherdsl.core.Cypher.call;
-
 import static org.neo4j.cypherdsl.core.Cypher.mapOf;
 import static org.neo4j.cypherdsl.core.Cypher.match;
 import static org.neo4j.cypherdsl.core.Cypher.name;
@@ -42,7 +41,6 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
-import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,7 +50,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.neo4j.cypherdsl.core.Condition;
 import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.Expression;
@@ -289,14 +286,11 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             // Build the MATCH and DETACH DELETE inside the subquery
             Node node = node(label).named("n");
 
-            Statement innerQuery = match(node)
-                    .detachDelete(node)
-                    .build();
+            Statement innerQuery = match(node).detachDelete(node).build();
 
             // Wrap it in a subquery with "CALL { ... } IN TRANSACTIONS"
-            Statement finalQuery = Statement.builder()
-                    .callInTransactions(innerQuery)
-                    .build();
+            Statement finalQuery =
+                    Statement.builder().callInTransactions(innerQuery).build();
 
             // Render Cypher
             String cypher = Renderer.getDefaultRenderer().render(finalQuery);
@@ -304,10 +298,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             // Execute using the Neo4j driver session
             session.run(cypher);
-            
-//            String statement =
-//                    String.format("CALL { MATCH (n:%1$s) DETACH DELETE n } IN TRANSACTIONS", this.sanitizedLabel);
-//            session.run(statement);
         }
     }
 
@@ -316,35 +306,22 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         ensureNotEmpty(ids, "ids");
 
         try (var session = session()) {
-            // UNWIND $ids AS id
+            // build an `UNWIND $ids AS id MATCH (n:<label> {<idProperty>: idVar}) DETACH DELETE n`
             var idVar = name("id");
-//            var unwind = unwind(parameter("ids")).as(idVar);
 
             // MATCH (n:Label {idProp: id})
             var node = node(label).named("n");
-            var match = unwind(parameter("ids")).as(idVar)
+            var match = unwind(parameter("ids"))
+                    .as(idVar)
                     .match(node)
                     .where(node.property(idProperty).isEqualTo(idVar))
                     .detachDelete(node)
                     .build();
 
-            // DETACH DELETE n
-//            var delete = detachDelete(node);
-
-            // Wrap all in subquery and use IN TRANSACTIONS
-//            Statement inner = statement(unwind, match, delete);
-            Statement full = Statement.builder()
-                    .callInTransactions(match)
-                    .build();
+            Statement full = Statement.builder().callInTransactions(match).build();
 
             // Render Cypher
             String cypher = Renderer.getDefaultRenderer().render(full);
-            System.out.println(cypher);  // Optional: for debugging
-            
-            
-//            String statement = String.format(
-//                    "CALL { UNWIND $ids AS id MATCH (n:%1$s {%2$s: id}) DETACH DELETE n } IN TRANSACTIONS ",
-//                    this.sanitizedLabel, this.sanitizedIdProperty);
             final Map<String, Object> params = Map.of("ids", ids);
             session.run(cypher, params);
         }
@@ -354,50 +331,23 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(Filter filter) {
         ensureNotNull(filter, "filter");
 
-//        final AbstractMap.SimpleEntry<String, Map<String, Object>> filterEntry = new Neo4jFilterMapper().map(filter);
-
-        // TODO..
         try (var session = session()) {
 
+            // Build a "CALL { MATCH (n:<label>) WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
+            // DETACH DELETE n } IN TRANSACTIONS ",
             var node = node(label).named("node");
             final Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
-
-
-            // UNWIND $ids AS id
-//            var idVar = name("id");
-//            var unwind = unwind(parameter("ids")).as(idVar);
-            
-            
-            
-//            var match = unwind(parameter("ids")).as(idVar)
-//                    .match(node)
-//                    .where(neo4jFilterMapper.getStringMapping(filter))
-//                    .detachDelete(node)
-//                    .build();
 
             var match = match(node)
                     .where(neo4jFilterMapper.getStringMapping(filter))
                     .detachDelete(node)
                     .build();
 
-            // DETACH DELETE n
-//            var delete = detachDelete(node);
-
             // Wrap all in subquery and use IN TRANSACTIONS
-//            Statement inner = statement(unwind, match, delete);
-            Statement full = Statement.builder()
-                    .callInTransactions(match)
-                    .build();
+            Statement full = Statement.builder().callInTransactions(match).build();
 
             // Render Cypher
             String cypher = Renderer.getDefaultRenderer().render(full);
-            System.out.println("filtercypher - " + cypher);  // Optional: for debugging
-            
-            
-//            String statement = String.format(
-//                    "CALL { MATCH (n:%1$s) WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s DETACH DELETE n } IN TRANSACTIONS ",
-//                    this.sanitizedLabel, this.embeddingProperty, this.dimension, filterEntry.getKey());
-//            final Map<String, Object> params = filterEntry.getValue();
             session.run(cypher);
         }
     }
@@ -421,35 +371,31 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     */
     private EmbeddingSearchResult getSearchResUsingVectorSimilarity(
             EmbeddingSearchRequest request, Filter filter, Value embeddingValue, Session session) {
-//        final AbstractMap.SimpleEntry<String, Map<String, Object>> entry = new Neo4jFilterMapper().map(filter);
+        /* Build an
+            CYPHER runtime = parallel parallelRuntimeSupport=all
+            MATCH (n:%1$s)
+            WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
+            WITH n, vector.similarity.cosine(n.%2$s, %5$s) AS score
+            WHERE score >= $minScore
+            WITH n AS node, score
+            ORDER BY score DESC
+            LIMIT $maxResults
+        */
 
         // Match Clause
         var node = node(this.label).named("node");
 
         final Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
 
-
         // WHERE conditions
-        Condition condition = node.property(this.embeddingProperty).isNotNull()
+        Condition condition = node.property(this.embeddingProperty)
+                .isNotNull()
                 .and(size(node.property(this.embeddingProperty)).eq(toCypherLiteral(this.dimension)))
                 .and(neo4jFilterMapper.getStringMapping(filter));
-//        TODO        .and(raw(additionalCondition)); // Raw condition for additional filters
 
-        final FunctionInvocation.FunctionDefinition functionDefinition = new FunctionInvocation.FunctionDefinition() {
-
-            @Override
-            public String getImplementationName() {
-                return "vector.similarity.cosine";
-            }
-
-            @Override
-            public boolean isAggregate() {
-                return false;
-            }
-        };
         // Cosine similarity
-        Expression similarity = FunctionInvocation.create(functionDefinition, node.property(this.embeddingProperty), toCypherLiteral(embeddingValue));
-//        Expression similarity = FunctionInvocation.create(functionDefinition, node.property(this.embeddingProperty), parameter("vectorParam"));
+        Expression similarity = FunctionInvocation.create(
+                functionDefinition, node.property(this.embeddingProperty), toCypherLiteral(embeddingValue));
 
         // Filtering by score
         Condition scoreCondition = similarity.gte(parameter("minScore"));
@@ -459,43 +405,38 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .where(condition)
                 .with(node.as("node"), similarity.as("score"))
                 .where(scoreCondition)
-                //.with(node.as("node"), score)
                 .returning(getaReturn(retrievalQuery))
-//                .returning(node.as("node"), name("score"))
-                .orderBy(name("score")).descending()
+                .orderBy(name("score"))
+                .descending()
                 .limit(parameter("maxResults"))
                 .build();
 
         // Render the Cypher query
         String cypherQuery = Renderer.getDefaultRenderer().render(statement);
-        System.out.println(cypherQuery);
 
-//        final String query = String.format(
-//                """
-//                CYPHER runtime = parallel parallelRuntimeSupport=all
-//                MATCH (n:%1$s)
-//                WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
-//                WITH n, vector.similarity.cosine(n.%2$s, %5$s) AS score
-//                WHERE score >= $minScore
-//                WITH n AS node, score
-//                ORDER BY score DESC
-//                LIMIT $maxResults
-//                """
-//                        + retrievalQuery,
-//                this.sanitizedLabel,
-//                this.embeddingProperty,
-//                this.dimension,
-//                entry.getKey(),
-//                embeddingValue);
-        final Map<String, Object> params = new HashMap<>();//entry.getValue();
+        final Map<String, Object> params = new HashMap<>(); // entry.getValue();
         params.put("minScore", request.minScore());
         params.put("maxResults", request.maxResults());
         return getEmbeddingSearchResult(session, cypherQuery, params);
     }
 
+    private final FunctionInvocation.FunctionDefinition functionDefinition =
+            new FunctionInvocation.FunctionDefinition() {
+
+                @Override
+                public String getImplementationName() {
+                    return "vector.similarity.cosine";
+                }
+
+                @Override
+                public boolean isAggregate() {
+                    return false;
+                }
+            };
+
     private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorIndex(
             EmbeddingSearchRequest request, Value embeddingValue, Session session) {
-        
+
         Map<String, Object> params = new HashMap<>(Map.of(
                 "indexName",
                 indexName,
@@ -510,24 +451,26 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         var maxResultsParam = parameter("maxResults");
         var embeddingValueParam = parameter("embeddingValue");
         var minScoreParam = parameter("minScore");
-        
-        // CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
+
+        // Build a "CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue) YIELD node, score WHERE
+        // score >= $minScore <retrievalQuery>"
         var vectorQuery = call("db.index.vector.queryNodes")
                 .withArgs(indexNameParam, maxResultsParam, embeddingValueParam)
                 .yield("node", "score")
                 .where(name("score").gte(minScoreParam))
                 .returning(getaReturn(retrievalQuery))
                 .build();
-        
-        
-        
 
-        // Placeholder for optional full-text search
         Statement statement;
 
         // Full-text search condition
-//        boolean isFullTextQueryEnabled = true; // Assume dynamic flag
         if (fullTextQuery != null) {
+            /* Build a
+            UNION
+            CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
+            YIELD node, score
+            WHERE score >= $minScore
+             */
             var fullTextIndexNameParam = parameter("fullTextIndexName");
             var fullTextQueryParam = parameter("fullTextQuery");
 
@@ -551,30 +494,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         // Render the Cypher query
         String cypherQuery = Renderer.getDefaultRenderer().render(statement);
         System.out.println(cypherQuery);
-
-//        String query =
-//                """
-//                        CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
-//                        YIELD node, score
-//                        WHERE score >= $minScore
-//                        """
-//                        + retrievalQuery;
-//
-//        if (fullTextQuery != null) {
-//
-//            query +=
-//                    """
-//                            \nUNION
-//                            CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
-//                            YIELD node, score
-//                            WHERE score >= $minScore
-//                            """
-//                            + fullTextRetrievalQuery;
-//
-//            params.putAll(Map.of(
-//                    "fullTextIndexName", fullTextIndexName,
-//                    "fullTextQuery", fullTextQuery));
-//        }
 
         final Set<String> columns = getColumnNames(session, cypherQuery);
         final Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
@@ -690,6 +609,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         try (var session = session()) {
+
             final String query = String.format(
                     "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (n:%s) ON EACH [n.%s]",
                     this.fullTextIndexName, this.sanitizedLabel, this.sanitizedIdProperty);

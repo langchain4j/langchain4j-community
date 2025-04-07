@@ -9,12 +9,10 @@ import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
-
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.neo4j.cypherdsl.core.renderer.Configuration;
 import org.neo4j.cypherdsl.core.renderer.Dialect;
 import org.neo4j.cypherdsl.core.renderer.Renderer;
@@ -48,7 +46,11 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private final String dialect;
 
     public Neo4jText2CypherRetriever(
-            Neo4jGraph graph, ChatLanguageModel chatLanguageModel, PromptTemplate promptTemplate, List<String> relationships, String dialect) {
+            Neo4jGraph graph,
+            ChatLanguageModel chatLanguageModel,
+            PromptTemplate promptTemplate,
+            List<String> relationships,
+            String dialect) {
 
         this.graph = ensureNotNull(graph, "graph");
         this.chatLanguageModel = ensureNotNull(chatLanguageModel, "chatLanguageModel");
@@ -82,14 +84,14 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         String question = query.text();
         String schema = graph.getSchema();
         String cypherQuery = generateCypherQuery(schema, question);
-        
+
         List<String> response = executeQuery(cypherQuery);
         return response.stream().map(Content::from).toList();
     }
 
     /**
      * To fixed e.g. wrong relationship directions
-     * 
+     *
      * @param cypher the starting Cypher statement
      * @return the fixed Cypher
      */
@@ -98,13 +100,13 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
             return cypher;
         }
         var statement = CypherParser.parse(cypher);
-        
+
         var configuration = Configuration.newConfig()
                 .withPrettyPrint(false)
                 .alwaysEscapeNames(false)
                 .withEnforceSchema(true)
                 .withDialect(Dialect.valueOf(dialect));
-        
+
         relationships.stream()
                 .map(Configuration::relationshipDefinition)
                 .forEach(configuration::withRelationshipDefinition);
@@ -122,7 +124,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         /*
-        Sometimes, `cypher` is generated as a prefix, e.g. 
+        Sometimes, `cypher` is generated as a prefix, e.g.
         ```
         cypher
         MATCH (p:Person)-[:WROTE]->(b:Book {title: 'Dune'}) RETURN p.name AS author
@@ -131,9 +133,9 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         if (cypherQuery.startsWith("cypher\n")) {
             cypherQuery = cypherQuery.replaceFirst("cypher\n", "");
         }
-        
+
         cypherQuery = getFixedCypherWithDSL(cypherQuery);
-        
+
         return cypherQuery;
     }
 
@@ -187,10 +189,10 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
         /**
          * @param relationships the list of relationships, if not null fix (if needed) the generated query via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withRelationshipDefinition(Configuration.RelationshipDefinition)}
-         *                      for example, a List.of( "(Foo, WROTE, Baz)", "(Jack, KNOWS, John)" ), 
+         *                      for example, a List.of( "(Foo, WROTE, Baz)", "(Jack, KNOWS, John)" ),
          *                      will create configuration.withRelationshipDefinition(new RelationshipDefinition("Foo", "WROTE", "Baz"))
          *                                  .withRelationshipDefinition("Jack", "KNOWS", "John")
-         *                      (default is: empty list)            
+         *                      (default is: empty list)
          */
         public T relationships(List<String> relationships) {
             this.relationships = relationships;
@@ -198,7 +200,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         /**
-         * @param dialect the string value of the {@link org.neo4j.cypherdsl.core.renderer}, 
+         * @param dialect the string value of the {@link org.neo4j.cypherdsl.core.renderer},
          *                to be used via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withDialect(Dialect)} , if {@param relationships} is not empty
          *                (default is: "NEO4J_5_23")
          */

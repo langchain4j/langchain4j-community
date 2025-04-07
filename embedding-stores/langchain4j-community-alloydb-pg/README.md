@@ -61,15 +61,15 @@ Connect to an AlloyDB Omni instance by specifying the host:
  - password
 
 ```java
-import dev.langchain4j.engine.AlloyDBEngine;
+import dev.langchain4j.community.store.embedding.alloydb.AlloyDBEngine;
 
-    AlloyDBEngine engine = new AlloyDBEngine.Builder()
-                .projectId("my-projectId")
-                .region("my-region")
-                .cluster("my-cluster")
-                .instance("my-instance")
-                .database("my-database")
-                .build();
+AlloyDBEngine engine = new AlloyDBEngine.Builder()
+        .projectId("my-projectId")
+        .region("my-region")
+        .cluster("my-cluster")
+        .instance("my-instance")
+        .database("my-database")
+        .build();
 
 ```
 
@@ -88,10 +88,11 @@ import dev.langchain4j.engine.AlloyDBEngine;
 - store metadata enabled (optional, default: false)
 
 example usage:
+
 ```java
 ...
-import dev.langchain4j.engine.EmbeddingStoreConfig;
-import dev.langchain4j.engine.MetadataColumn;
+import dev.langchain4j.community.store.embedding.alloydb.EmbeddingStoreConfig;
+import dev.langchain4j.community.store.embedding.alloydb.MetadataColumn;
 ...
         List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
@@ -122,17 +123,18 @@ Use a vector store to store text embedded data and perform vector search, instan
 - query options (optional).
 
 example usage:
+
 ```java
 ...
-    import dev.langchain4j.store.embedding.alloydb.AlloyDBEmbeddingStore;
+import dev.langchain4j.community.store.embedding.alloydb.AlloyDBEmbeddingStore;
 ...
 
-    AlloyDBEmbeddingStore store = new AlloyDBEmbeddingStore.Builder(engine, TABLE_NAME)
+AlloyDBEmbeddingStore store = new AlloyDBEmbeddingStore.Builder(engine, TABLE_NAME)
         .build();
 
-    List<String> testTexts = Arrays.asList("cat", "dog", "car", "truck");
-    List<Embedding> embeddings = new ArrayList<>();
-    List<TextSegment> textSegments = new ArrayList<>();
+List<String> testTexts = Arrays.asList("cat", "dog", "car", "truck");
+List<Embedding> embeddings = new ArrayList<>();
+List<TextSegment> textSegments = new ArrayList<>();
 
     for (String text : testTexts) {
         Map<String, Object> metaMap = new HashMap<>();
@@ -161,8 +163,7 @@ Use a document loader to load data as LangChain4j `Document`.
 ```java
 
 import dev.langchain4j.data.document.Document;
-import dev.langchain4j.engine.AlloyDBEngine;
-import dev.langchain4j.engine.AlloyDBLoader;
+import dev.langchain4j.community.data.document.loader.alloydb.AlloyDBLoader;
 
 
    AlloyDBLoader loader = AlloyDBLoader.builder()
