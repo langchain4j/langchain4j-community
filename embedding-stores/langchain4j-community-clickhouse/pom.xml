@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Integration :: ClickHouse</name>
 
     <properties>
-        <clickhouse.version>0.8.2</clickhouse.version>
+        <clickhouse.version>0.8.3</clickhouse.version>
         <clickhouse-jdbc.version>0.8.2</clickhouse-jdbc.version>
         <lz4.version>1.8.0</lz4.version>
     </properties>
