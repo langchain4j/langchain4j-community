@@ -91,9 +91,17 @@
                 <artifactId>langchain4j-community-lucene</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-neo4j-retriever</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- document parsers -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-document-parser-llamaparse</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -108,6 +116,11 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-neo4j-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
