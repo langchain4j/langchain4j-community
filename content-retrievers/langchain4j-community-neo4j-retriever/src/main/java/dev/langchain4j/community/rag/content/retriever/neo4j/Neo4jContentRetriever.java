@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.content.retriever.neo4j;
+package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -10,7 +10,7 @@ import dev.langchain4j.model.input.PromptTemplate;
 public class Neo4jContentRetriever extends Neo4jText2CypherRetriever {
 
     public Neo4jContentRetriever(Neo4jGraph graph, ChatLanguageModel chatLanguageModel, PromptTemplate promptTemplate) {
-        super(graph, chatLanguageModel, promptTemplate);
+        super(graph, chatLanguageModel, promptTemplate, null);
     }
 
     public static Builder builder() {
