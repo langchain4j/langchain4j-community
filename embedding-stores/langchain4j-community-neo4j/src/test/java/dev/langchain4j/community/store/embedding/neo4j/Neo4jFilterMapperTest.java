@@ -195,7 +195,7 @@ class Neo4jFilterMapperTest {
     void should_throws_unsupported_filter_error() {
         MockFilter filter = new MockFilter();
         try {
-            mapper.getStringMapping(filter);
+            mapper.getCondition(filter);
             fail("Should fail due to unsupported filter");
         } catch (UnsupportedOperationException e) {
             assertThat(e.getMessage()).contains(UNSUPPORTED_FILTER_TYPE_ERROR);
@@ -203,7 +203,7 @@ class Neo4jFilterMapperTest {
     }
 
     private String getCypherStatementFromFilterMapping(Filter filter) {
-        final Condition condition = mapper.getStringMapping(filter);
+        final Condition condition = mapper.getCondition(filter);
         Statement statement = Cypher.match(LABEL)
                 .where(condition)
                 .with(LABEL)

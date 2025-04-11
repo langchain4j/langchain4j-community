@@ -43,6 +43,10 @@ public class Neo4jFilterMapper {
         }
     }
 
+    /**
+     * The {@link Cypher#literalOf(Object)} doesn't handle all data types,
+     * so we use this method to transform non-managed data
+     */
     public static Expression toCypherLiteral(Object value) {
         if (value instanceof OffsetDateTime) {
             return Cypher.datetime(literalOf(value.toString()));
@@ -57,7 +61,7 @@ public class Neo4jFilterMapper {
             return literalOf(listValue.asList());
         }
 
-        // Other types
+        // Other data types
         return literalOf(value);
     }
 
@@ -69,8 +73,7 @@ public class Neo4jFilterMapper {
         this.node = node;
     }
 
-    // TODO - should return `Condition` ??
-    public Condition getStringMapping(Filter filter) {
+    public Condition getCondition(Filter filter) {
         if (filter instanceof IsEqualTo item) {
             final Expression cypherLiteral = toCypherLiteral(item.key());
             final Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
@@ -125,19 +128,19 @@ public class Neo4jFilterMapper {
     }
 
     private Condition mapAnd(And filter) {
-        final Condition left = getStringMapping(filter.left());
-        final Condition right = getStringMapping(filter.right());
+        final Condition left = getCondition(filter.left());
+        final Condition right = getCondition(filter.right());
         return left.and(right);
     }
 
     private Condition mapOr(Or filter) {
-        final Condition left = getStringMapping(filter.left());
-        final Condition right = getStringMapping(filter.right());
+        final Condition left = getCondition(filter.left());
+        final Condition right = getCondition(filter.right());
         return left.or(right);
     }
 
     private Condition mapNot(Not filter) {
-        final Condition expression = getStringMapping(filter.expression());
+        final Condition expression = getCondition(filter.expression());
         return not(expression);
     }
 }

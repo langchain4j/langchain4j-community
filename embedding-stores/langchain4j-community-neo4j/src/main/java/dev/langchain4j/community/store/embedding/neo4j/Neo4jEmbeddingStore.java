@@ -339,7 +339,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             final Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
 
             var match = match(node)
-                    .where(neo4jFilterMapper.getStringMapping(filter))
+                    .where(neo4jFilterMapper.getCondition(filter))
                     .detachDelete(node)
                     .build();
 
@@ -391,7 +391,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         Condition condition = node.property(this.embeddingProperty)
                 .isNotNull()
                 .and(size(node.property(this.embeddingProperty)).eq(toCypherLiteral(this.dimension)))
-                .and(neo4jFilterMapper.getStringMapping(filter));
+                .and(neo4jFilterMapper.getCondition(filter));
 
         // Cosine similarity
         Expression similarity = FunctionInvocation.create(
