@@ -400,7 +400,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .build();
 
         ChatRequest chatRequest = ChatRequest.builder()
-                .messages(UserMessage.from("What is the capital of Germany?"))
+                .messages(UserMessage.from("What is the weather of Beijing?"))
                 .parameters(parameters)
                 .build();
 
@@ -531,8 +531,12 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @Override
-    protected boolean supportsSingleImageInputAsPublicURL() {
-        // The dashscope service can't access wiki urls...
-        return false;
+    protected String catImageUrl() {
+        return "https://cdn.wanx.aliyuncs.com/upload/commons/Felis_silvestris_silvestris_small_gradual_decrease_of_quality.png";
+    }
+
+    @Override
+    protected String diceImageUrl() {
+        return "https://cdn.wanx.aliyuncs.com/upload/commons/PNG_transparency_demonstration_1.png";
     }
 }
