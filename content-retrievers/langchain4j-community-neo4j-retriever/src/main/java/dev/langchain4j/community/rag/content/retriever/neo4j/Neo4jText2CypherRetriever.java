@@ -240,7 +240,8 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         Neo4jText2CypherRetriever build() {
-            return new Neo4jText2CypherRetriever(graph, chatLanguageModel, promptTemplate, examples, relationships, dialect);
+            return new Neo4jText2CypherRetriever(
+                    graph, chatLanguageModel, promptTemplate, examples, relationships, dialect);
         }
     }
 }
