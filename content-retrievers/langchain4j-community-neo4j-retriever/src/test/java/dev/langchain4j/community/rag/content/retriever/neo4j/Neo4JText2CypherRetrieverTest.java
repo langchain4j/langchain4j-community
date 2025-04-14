@@ -48,6 +48,32 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     }
 
     @Test
+    void shouldRetrieveContentWhenQueryIsValidWithCypherDSLFixing() {
+        // Given
+        Query query = new Query("Who is the author of the book 'Dune'?");
+        when(chatLanguageModel.chat(anyString()))
+                .thenReturn("MATCH(book:Book {title: 'Dune'})-[:WROTE]->(author:Person) RETURN author.name AS output");
+
+        // When
+        List<Content> contents = retriever.retrieve(query);
+
+        // Then
+        assertThat(contents).hasSize(0);
+
+        retriever = Neo4jText2CypherRetriever.builder()
+                .graph(graph)
+                .chatLanguageModel(chatLanguageModel)
+                .relationships(List.of("(Person, WROTE, Book)"))
+                .build();
+
+        // When
+        List<Content> contentsWithCypherDSL = retriever.retrieve(query);
+
+        // Then
+        assertThat(contentsWithCypherDSL).hasSize(1);
+    }
+
+    @Test
     void shouldRetrieveContentWhenQueryIsValidWithDeprecatedClass() {
         // Given
         Query query = new Query("Who is the author of the book 'Dune'?");
