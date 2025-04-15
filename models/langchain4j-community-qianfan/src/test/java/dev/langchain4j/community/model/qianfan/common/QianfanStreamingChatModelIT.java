@@ -1,4 +1,4 @@
-package dev.langchain4j.community.model.qianfan;
+package dev.langchain4j.community.model.qianfan.common;
 
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
@@ -10,11 +10,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.community.model.qianfan.QianfanStreamingChatModel;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
+import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -24,7 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "QIANFAN_API_KEY", matches = ".+")
-class QianfanStreamingChatModelIT {
+class QianfanStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     // see your api key and secret key here:
     // https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
@@ -149,5 +152,85 @@ class QianfanStreamingChatModelIT {
         // then
         assertThat(json).contains("\"name\": \"Klaus\"");
         assertThat(response.aiMessage().text()).isEqualTo(json);
+    }
+
+    @Override
+    protected List<StreamingChatModel> models() {
+        return singletonList(model);
+    }
+
+    @Override
+    protected boolean supportsDefaultRequestParameters() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsTools() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsToolChoiceRequired() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsToolChoiceRequiredWithSingleTool() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsToolChoiceRequiredWithMultipleTools() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsJsonResponseFormat() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsJsonResponseFormatWithSchema() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsToolsAndJsonResponseFormatWithSchema() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsSingleImageInputAsBase64EncodedString() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsMultipleImageInputsAsBase64EncodedStrings() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsSingleImageInputAsPublicURL() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsMultipleImageInputsAsPublicURLs() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsStopSequencesParameter() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsModelNameParameter() {
+        return false; // TODO
+    }
+
+    @Override
+    protected boolean supportsMaxOutputTokensParameter() {
+        return false; // TODO
     }
 }

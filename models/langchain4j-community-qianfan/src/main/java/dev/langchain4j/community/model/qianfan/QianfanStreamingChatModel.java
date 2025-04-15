@@ -13,7 +13,7 @@ import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRespons
 import dev.langchain4j.community.model.qianfan.spi.QianfanStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.internal.Utils;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
@@ -24,7 +24,7 @@ import java.util.Objects;
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
  */
-public class QianfanStreamingChatModel implements StreamingChatLanguageModel {
+public class QianfanStreamingChatModel implements StreamingChatModel {
 
     private final QianfanClient client;
     private final String baseUrl;
