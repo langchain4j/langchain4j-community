@@ -4,6 +4,7 @@ import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import dev.langchain4j.community.store.embedding.cloudsql.EmbeddingStoreConfig;
 import dev.langchain4j.community.utils.PostgresTestUtils;
 import java.sql.Connection;
 import java.sql.ResultSet;

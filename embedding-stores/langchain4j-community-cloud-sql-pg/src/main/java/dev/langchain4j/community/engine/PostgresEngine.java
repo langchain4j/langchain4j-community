@@ -13,6 +13,7 @@ import com.google.cloud.sql.ConnectorRegistry;
 import com.google.cloud.sql.RefreshStrategy;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import dev.langchain4j.community.store.embedding.cloudsql.EmbeddingStoreConfig;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;

@@ -9,7 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pgvector.PGvector;
-import dev.langchain4j.community.engine.EmbeddingStoreConfig;
 import dev.langchain4j.community.engine.MetadataColumn;
 import dev.langchain4j.community.engine.PostgresEngine;
 import dev.langchain4j.community.store.embedding.cloudsql.index.DistanceStrategy;
