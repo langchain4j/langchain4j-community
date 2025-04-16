@@ -136,6 +136,7 @@ public class AutoConfig {
                 .stops(chatModelProperties.getStops())
                 .maxTokens(chatModelProperties.getMaxTokens())
                 .defaultRequestParameters(getParameters(chatModelProperties))
+                .isMultimodalModel(chatModelProperties.getIsMultimodalModel())
                 .build();
     }
 
@@ -157,6 +158,7 @@ public class AutoConfig {
                 .stops(chatModelProperties.getStops())
                 .maxTokens(chatModelProperties.getMaxTokens())
                 .defaultRequestParameters(getParameters(chatModelProperties))
+                .isMultimodalModel(chatModelProperties.getIsMultimodalModel())
                 .build();
     }
 

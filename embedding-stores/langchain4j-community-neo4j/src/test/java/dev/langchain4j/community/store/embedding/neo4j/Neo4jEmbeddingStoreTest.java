@@ -15,6 +15,13 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.filter.comparison.IsNotEqualTo;
+import dev.langchain4j.store.embedding.filter.logical.And;
+import dev.langchain4j.store.embedding.filter.logical.Not;
+import dev.langchain4j.store.embedding.filter.logical.Or;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -385,8 +392,9 @@ public class Neo4jEmbeddingStoreTest extends Neo4jEmbeddingStoreBaseTest {
         final Embedding queryEmbedding = embeddingModel.embed(fullTextSearch).content();
 
         session.executeWrite(tx -> {
-            final String query = "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (e:%s) ON EACH [e.%s]"
-                    .formatted(fullTextIndexName, label, DEFAULT_ID_PROP);
+            final String query = String.format(
+                    "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (e:%s) ON EACH [e.%s]",
+                    fullTextIndexName, label, DEFAULT_ID_PROP);
             tx.run(query).consume();
             return null;
         });
@@ -420,8 +428,55 @@ public class Neo4jEmbeddingStoreTest extends Neo4jEmbeddingStoreBaseTest {
         });
     }
 
+    @Test
+    void should_add_embedding_with_id_and_retrieve_with_and_without_prefilter() {
+
+        final List<TextSegment> segments = IntStream.range(0, 10)
+                .boxed()
+                .map(i -> {
+                    if (i == 0) {
+                        final Map<String, Object> metas =
+                                Map.of("key1", "value1", "key2", 10, "key3", "3", "key4", "value4");
+                        final Metadata metadata = new Metadata(metas);
+                        return TextSegment.from(randomUUID(), metadata);
+                    }
+                    return TextSegment.from(randomUUID());
+                })
+                .toList();
+
+        final List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
+
+        embeddingStore.addAll(embeddings, segments);
+
+        final And filter = new And(
+                new And(new IsEqualTo("key1", "value1"), new IsEqualTo("key2", "10")),
+                new Not(new Or(new IsIn("key3", asList("1", "2")), new IsNotEqualTo("key4", "value4"))));
+
+        TextSegment segmentToSearch = TextSegment.from(randomUUID());
+        Embedding embeddingToSearch =
+                embeddingModel.embed(segmentToSearch.text()).content();
+        final EmbeddingSearchRequest requestWithFilter = EmbeddingSearchRequest.builder()
+                .maxResults(5)
+                .minScore(0.0)
+                .filter(filter)
+                .queryEmbedding(embeddingToSearch)
+                .build();
+        final EmbeddingSearchResult<TextSegment> searchWithFilter = embeddingStore.search(requestWithFilter);
+        final List<EmbeddingMatch<TextSegment>> matchesWithFilter = searchWithFilter.matches();
+        assertThat(matchesWithFilter).hasSize(1);
+
+        final EmbeddingSearchRequest requestWithoutFilter = EmbeddingSearchRequest.builder()
+                .maxResults(5)
+                .minScore(0.0)
+                .queryEmbedding(embeddingToSearch)
+                .build();
+        final EmbeddingSearchResult<TextSegment> searchWithoutFilter = embeddingStore.search(requestWithoutFilter);
+        final List<EmbeddingMatch<TextSegment>> matchesWithoutFilter = searchWithoutFilter.matches();
+        assertThat(matchesWithoutFilter).hasSize(5);
+    }
+
     private List<List<Map<String, Object>>> getListRowsBatched(int numElements) {
-        return getListRowsBatched(numElements, (Neo4jEmbeddingStore) embeddingStore);
+        return getListRowsBatched(numElements, embeddingStore);
     }
 
     private List<List<Map<String, Object>>> getListRowsBatched(int numElements, Neo4jEmbeddingStore embeddingStore) {

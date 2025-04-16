@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.0.0-beta3-SNAPSHOT</version>
+        <version>1.0.0-beta4-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -69,6 +69,9 @@
 
         <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
+
+        <!-- Integration of document parsers -->
+        <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>

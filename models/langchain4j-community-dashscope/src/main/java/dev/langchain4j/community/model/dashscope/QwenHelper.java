@@ -212,7 +212,7 @@ class QwenHelper {
                 .map(choices -> choices.get(0))
                 .map(Choice::getMessage)
                 .map(Message::getContent)
-                .filter(Utils::isNotNullOrBlank)
+                .filter(Utils::isNotNullOrEmpty)
                 .isPresent();
     }
 
