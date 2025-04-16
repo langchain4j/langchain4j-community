@@ -1,16 +1,16 @@
-package dev.langchain4j.rag.content.retriever.neo4j;
+package dev.langchain4j.community.rag.content.retriever.neo4j;
 
-import static dev.langchain4j.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_ID_PROP;
-import static dev.langchain4j.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_LABEL;
-import static dev.langchain4j.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_TEXT_PROP;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_ID_PROP;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_LABEL;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_TEXT_PROP;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.community.rag.transformer.GraphDocument;
+import dev.langchain4j.community.rag.transformer.LLMGraphTransformer;
 import dev.langchain4j.data.document.DefaultDocument;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.rag.transformer.GraphDocument;
-import dev.langchain4j.rag.transformer.LLMGraphTransformer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;

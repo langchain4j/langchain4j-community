@@ -1,10 +1,10 @@
-package dev.langchain4j.rag.content.retriever.neo4j;
+package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.community.rag.transformer.Neo4jUtils.sanitizeOrThrows;
 import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.rag.transformer.Neo4jUtils.sanitizeOrThrows;
 
+import dev.langchain4j.community.rag.transformer.GraphDocument;
 import dev.langchain4j.internal.ValidationUtils;
-import dev.langchain4j.rag.transformer.GraphDocument;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;

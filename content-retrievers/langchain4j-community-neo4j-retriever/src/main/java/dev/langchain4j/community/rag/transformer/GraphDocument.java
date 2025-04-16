@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.transformer;
+package dev.langchain4j.community.rag.transformer;
 
 import dev.langchain4j.data.document.Document;
 import java.util.Objects;

@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.transformer;
+package dev.langchain4j.community.rag.transformer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

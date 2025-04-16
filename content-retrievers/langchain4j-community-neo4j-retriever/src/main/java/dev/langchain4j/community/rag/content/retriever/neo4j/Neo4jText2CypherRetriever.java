@@ -1,18 +1,18 @@
-package dev.langchain4j.rag.content.retriever.neo4j;
+package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.community.rag.transformer.Neo4jUtils.getBacktickText;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.rag.transformer.Neo4jUtils.getBacktickText;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
+import java.util.List;
+import java.util.Map;
+
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.types.Type;
 import org.neo4j.driver.types.TypeSystem;
@@ -28,7 +28,6 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                     Cypher query:
                     """);
 
-    private static final Pattern BACKTICKS_PATTERN = Pattern.compile("```(.*?)```", Pattern.MULTILINE | Pattern.DOTALL);
     private static final Type NODE = TypeSystem.getDefault().NODE();
     private static final Type RELATIONSHIP = TypeSystem.getDefault().RELATIONSHIP();
     private static final Type PATH = TypeSystem.getDefault().PATH();

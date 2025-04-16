@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.content.retriever.neo4j;
+package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;

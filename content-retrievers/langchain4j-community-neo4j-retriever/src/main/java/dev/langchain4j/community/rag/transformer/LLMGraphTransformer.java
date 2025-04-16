@@ -1,13 +1,13 @@
-package dev.langchain4j.rag.transformer;
+package dev.langchain4j.community.rag.transformer;
 
+import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.getStringFromListOfMaps;
+import static dev.langchain4j.community.rag.transformer.GraphDocument.Node;
+import static dev.langchain4j.community.rag.transformer.GraphDocument.Edge;
+import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.parseJson;
+import static dev.langchain4j.community.rag.transformer.Neo4jUtils.getBacktickText;
+import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.EXAMPLES_PROMPT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.rag.transformer.GraphDocument.Edge;
-import static dev.langchain4j.rag.transformer.GraphDocument.Node;
-import static dev.langchain4j.rag.transformer.LLMGraphTransformerUtils.EXAMPLES_PROMPT;
-import static dev.langchain4j.rag.transformer.LLMGraphTransformerUtils.getStringFromListOfMaps;
-import static dev.langchain4j.rag.transformer.LLMGraphTransformerUtils.parseJson;
-import static dev.langchain4j.rag.transformer.Neo4jUtils.getBacktickText;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.message.ChatMessage;
@@ -142,8 +142,8 @@ public class LLMGraphTransformer {
 
         final List<ChatMessage> messages = createUnstructuredPrompt(text);
 
-        Set<Node> nodesSet = new HashSet<>();
-        Set<Edge> relationships = new HashSet<>();
+        Set<GraphDocument.Node> nodesSet = new HashSet<>();
+        Set<GraphDocument.Edge> relationships = new HashSet<>();
 
         List<Map<String, String>> parsedJson = getJsonResult(messages);
         if (parsedJson == null || parsedJson.isEmpty()) {
@@ -196,7 +196,7 @@ public class LLMGraphTransformer {
         private List<String> allowedRelationships;
         private List<ChatMessage> prompt;
         private String additionalInstructions = ""; // Default: empty string
-        private List<Map<String, String>> examples = LLMGraphTransformerUtils.EXAMPLES_PROMPT; // Default examples
+        private List<Map<String, String>> examples = EXAMPLES_PROMPT; // Default examples
         private Integer maxAttempts = 1; // Default: 1 attempt
 
         /**

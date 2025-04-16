@@ -1,4 +1,4 @@
-package dev.langchain4j.rag.transformer;
+package dev.langchain4j.community.rag.transformer;
 
 import static org.neo4j.cypherdsl.support.schema_name.SchemaNames.sanitize;
 
