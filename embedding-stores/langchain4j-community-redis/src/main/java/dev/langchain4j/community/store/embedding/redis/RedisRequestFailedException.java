@@ -1,10 +1,8 @@
 package dev.langchain4j.community.store.embedding.redis;
 
-public class RedisRequestFailedException extends RuntimeException {
+import dev.langchain4j.exception.LangChain4jException;
 
-    public RedisRequestFailedException() {
-        super();
-    }
+public class RedisRequestFailedException extends LangChain4jException {
 
     public RedisRequestFailedException(String message) {
         super(message);

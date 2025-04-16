@@ -9,7 +9,7 @@ import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.community.model.dashscope.QwenLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
-import dev.langchain4j.community.model.dashscope.QwenTokenizer;
+import dev.langchain4j.community.model.dashscope.QwenTokenCountEstimator;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import java.util.Collections;
@@ -215,9 +215,9 @@ public class AutoConfig {
 
     @Bean
     @ConditionalOnProperty(Properties.PREFIX + ".tokenizer.api-key")
-    QwenTokenizer qwenTokenizer(Properties properties) {
+    QwenTokenCountEstimator qwenTokenizer(Properties properties) {
         TokenizerProperties tokenizerProperties = properties.getTokenizer();
-        return QwenTokenizer.builder()
+        return QwenTokenCountEstimator.builder()
                 .apiKey(tokenizerProperties.getApiKey())
                 .modelName(tokenizerProperties.getModelName())
                 .build();
