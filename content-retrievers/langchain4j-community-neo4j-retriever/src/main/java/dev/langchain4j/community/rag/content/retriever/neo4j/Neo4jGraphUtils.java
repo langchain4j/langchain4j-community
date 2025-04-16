@@ -1,5 +1,6 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.generateMD5;
 
 import dev.langchain4j.community.rag.transformer.GraphDocument;
 import dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils;
@@ -8,9 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.generateMD5;
-
 
 public class Neo4jGraphUtils {
 

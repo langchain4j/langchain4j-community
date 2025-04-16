@@ -1,11 +1,11 @@
 package dev.langchain4j.community.rag.transformer;
 
-import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.getStringFromListOfMaps;
-import static dev.langchain4j.community.rag.transformer.GraphDocument.Node;
 import static dev.langchain4j.community.rag.transformer.GraphDocument.Edge;
+import static dev.langchain4j.community.rag.transformer.GraphDocument.Node;
+import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.EXAMPLES_PROMPT;
+import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.getStringFromListOfMaps;
 import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.parseJson;
 import static dev.langchain4j.community.rag.transformer.Neo4jUtils.getBacktickText;
-import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.EXAMPLES_PROMPT;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
