@@ -27,13 +27,16 @@ class Neo4jEmbeddingUtils {
     public static final String DEFAULT_EMBEDDING_PROP = "embedding";
     public static final String PROPS = "props";
     public static final String DEFAULT_IDX_NAME = "vector";
+    public static final String DEFAULT_FULLTEXT_IDX_NAME = "fulltext";
     public static final String DEFAULT_LABEL = "Document";
     public static final String DEFAULT_TEXT_PROP = "text";
     public static final long DEFAULT_AWAIT_INDEX_TIMEOUT = 60L;
+    public static final String METADATA = "metadata";
+    public static final String SCORE = "score";
 
     public static EmbeddingMatch<TextSegment> toEmbeddingMatch(Neo4jEmbeddingStore store, Record neo4jRecord) {
         Map<String, String> metaData = new HashMap<>();
-        neo4jRecord.get("metadata").asMap().forEach((key, value) -> {
+        neo4jRecord.get(METADATA).asMap().forEach((key, value) -> {
             if (!store.getNotMetaKeys().contains(key)) {
                 String stringValue = value == null ? null : value.toString();
                 metaData.put(key.replace(store.getMetadataPrefix(), ""), stringValue);
@@ -45,13 +48,15 @@ class Neo4jEmbeddingUtils {
         Value text = neo4jRecord.get(store.getTextProperty());
         TextSegment textSegment = text.isNull() ? null : TextSegment.from(text.asString(), metadata);
 
-        List<Float> embeddingList =
-                neo4jRecord.get(store.getEmbeddingProperty()).asList(Value::asFloat);
-
-        Embedding embedding = Embedding.from(embeddingList);
+        Embedding embedding = null;
+        final Value embeddingValue = neo4jRecord.get(store.getEmbeddingProperty());
+        if (!embeddingValue.isNull()) {
+            List<Float> embeddingList = embeddingValue.asList(Value::asFloat);
+            embedding = Embedding.from(embeddingList);
+        }
 
         return new EmbeddingMatch<>(
-                neo4jRecord.get("score").asDouble(),
+                neo4jRecord.get(SCORE).asDouble(),
                 neo4jRecord.get(store.getIdProperty()).asString(),
                 embedding,
                 textSegment);

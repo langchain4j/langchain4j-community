@@ -12,7 +12,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
-public class Neo4jEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
+class Neo4jEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
+
     private static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26");
     private static final String USERNAME = "neo4j";
     private static final String ADMIN_PASSWORD = "adminPass";
@@ -43,10 +44,5 @@ public class Neo4jEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
     @Override
     protected EmbeddingModel embeddingModel() {
         return embeddingModel;
-    }
-
-    @Override
-    protected boolean supportsRemoveAllByFilter() {
-        return false;
     }
 }

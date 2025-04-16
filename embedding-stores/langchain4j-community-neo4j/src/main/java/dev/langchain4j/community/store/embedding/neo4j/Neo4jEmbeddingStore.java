@@ -3,12 +3,15 @@ package dev.langchain4j.community.store.embedding.neo4j;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_AWAIT_INDEX_TIMEOUT;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_DATABASE_NAME;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_EMBEDDING_PROP;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_FULLTEXT_IDX_NAME;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_IDX_NAME;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_ID_PROP;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_LABEL;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_TEXT_PROP;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.EMBEDDINGS_ROW_KEY;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.METADATA;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.PROPS;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.SCORE;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.getRowsBatched;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.sanitizeOrThrows;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.toEmbeddingMatch;
@@ -27,14 +30,20 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.Filter;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.Value;
@@ -80,6 +89,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                         `vector.similarity_function`: 'cosine'
                     }}
                     """;
+    public static final String COLUMNS_NOT_ALLOWED_ERR = "There are columns not allowed in the search query: ";
 
     /* Neo4j Java Driver settings */
     private final Driver driver;
@@ -101,22 +111,31 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String retrievalQuery;
     private final Set<String> notMetaKeys;
 
+    private final String fullTextIndexName;
+    private final String fullTextQuery;
+    private final String fullTextRetrievalQuery;
+    private final boolean autoCreateFullText;
+
     /**
      * Creates an instance of Neo4jEmbeddingStore
      *
-     * @param driver            the {@link Driver} (required)
-     * @param dimension         the dimension (required)
-     * @param config            the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
-     * @param label             the optional label name (default: "Document")
-     * @param embeddingProperty the optional embeddingProperty name (default: "embedding")
-     * @param idProperty        the optional id property name (default: "id")
-     * @param metadataPrefix    the optional metadata prefix (default: "")
-     * @param textProperty      the optional textProperty property name (default: "text")
-     * @param indexName         the optional index name (default: "vector")
-     * @param databaseName      the optional database name (default: "neo4j")
-     * @param awaitIndexTimeout the optional awaiting timeout for all indexes to come online, in seconds (default: 60s)
-     * @param retrievalQuery    the optional retrieval query
-     *                          (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
+     * @param driver                 the {@link Driver} (required)
+     * @param dimension              the dimension (required)
+     * @param config                 the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
+     * @param label                  the optional label name (default: "Document")
+     * @param embeddingProperty      the optional embeddingProperty name (default: "embedding")
+     * @param idProperty             the optional id property name (default: "id")
+     * @param metadataPrefix         the optional metadata prefix (default: "")
+     * @param textProperty           the optional textProperty property name (default: "text")
+     * @param indexName              the optional index name (default: "vector")
+     * @param databaseName           the optional database name (default: "neo4j")
+     * @param awaitIndexTimeout      the optional awaiting timeout for all indexes to come online, in seconds (default: 60s)
+     * @param retrievalQuery         the optional retrieval query
+     *                               (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
+     * @param fullTextIndexName      the optional full-text index name, to perform a hybrid search (default: `fulltext`)
+     * @param fullTextQuery          the optional full-text index query, required if we want to perform a hybrid search
+     * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
+     * @param autoCreateFullText     if true, it will auto create the full-text index if not exists (default: false)
      */
     public Neo4jEmbeddingStore(
             SessionConfig config,
@@ -130,7 +149,11 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             String indexName,
             String databaseName,
             String retrievalQuery,
-            long awaitIndexTimeout) {
+            long awaitIndexTimeout,
+            String fullTextIndexName,
+            String fullTextQuery,
+            String fullTextRetrievalQuery,
+            boolean autoCreateFullText) {
 
         /* required configs */
         this.driver = ensureNotNull(driver, "driver");
@@ -164,8 +187,19 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 "RETURN properties(node) AS metadata, node.%1$s AS %1$s, node.%2$s AS %2$s, node.%3$s AS %3$s, score",
                 this.sanitizedIdProperty, sanitizedText, sanitizedEmbeddingProperty);
         this.retrievalQuery = getOrDefault(retrievalQuery, defaultRetrievalQuery);
+        //        retrievalQuery = getOrDefault(retrievalQuery, defaultRetrievalQuery);
+        //        this.retrievalQuery = sanitizeOrThrows(retrievalQuery, "retrievalQuery");
 
         this.notMetaKeys = new HashSet<>(Arrays.asList(this.idProperty, this.embeddingProperty, this.textProperty));
+
+        /* optional full text index */
+        this.autoCreateFullText = autoCreateFullText;
+        this.fullTextIndexName = getOrDefault(fullTextIndexName, DEFAULT_FULLTEXT_IDX_NAME);
+        this.fullTextQuery = fullTextQuery;
+
+        this.fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
+        //        fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
+        //        this.fullTextRetrievalQuery = sanitizeOrThrows(fullTextRetrievalQuery, "fullTextRetrievalQuery");
 
         /* auto-schema creation */
         createSchema();
@@ -253,38 +287,125 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     @Override
+    public void removeAll(Filter filter) {
+        ensureNotNull(filter, "filter");
+
+        final AbstractMap.SimpleEntry<String, Map<String, Object>> filterEntry = new Neo4jFilterMapper().map(filter);
+
+        try (var session = session()) {
+            String statement = String.format(
+                    "CALL { MATCH (n:%1$s) WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s DETACH DELETE n } IN TRANSACTIONS ",
+                    this.sanitizedLabel, this.embeddingProperty, this.dimension, filterEntry.getKey());
+            final Map<String, Object> params = filterEntry.getValue();
+            session.run(statement, params);
+        }
+    }
+
+    @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
 
         var embeddingValue = Values.value(request.queryEmbedding().vector());
 
         try (var session = session()) {
-            Map<String, Object> params = Map.of(
-                    "indexName",
-                    indexName,
-                    "embeddingValue",
-                    embeddingValue,
-                    "minScore",
-                    request.minScore(),
-                    "maxResults",
-                    request.maxResults());
-
-            List<EmbeddingMatch<TextSegment>> matches = session.run(
-                            """
-                                    CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
-                                    YIELD node, score
-                                    WHERE score >= $minScore
-                                    """
-                                    + retrievalQuery,
-                            params)
-                    .list(item -> toEmbeddingMatch(this, item));
-
-            return new EmbeddingSearchResult<>(matches);
+            final Filter filter = request.filter();
+            if (filter == null) {
+                return getSearchResUsingVectorIndex(request, embeddingValue, session);
+            }
+            return getSearchResUsingVectorSimilarity(request, filter, embeddingValue, session);
         }
     }
 
     /*
     Private methods
     */
+    private EmbeddingSearchResult getSearchResUsingVectorSimilarity(
+            EmbeddingSearchRequest request, Filter filter, Value embeddingValue, Session session) {
+        final AbstractMap.SimpleEntry<String, Map<String, Object>> entry = new Neo4jFilterMapper().map(filter);
+        final String query = String.format(
+                """
+                        CYPHER runtime = parallel parallelRuntimeSupport=all
+                        MATCH (n:%1$s)
+                        WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
+                        WITH n, vector.similarity.cosine(n.%2$s, %5$s) AS score
+                        WHERE score >= $minScore
+                        WITH n AS node, score
+                        ORDER BY score DESC
+                        LIMIT $maxResults
+                        """
+                        + retrievalQuery,
+                this.sanitizedLabel,
+                this.embeddingProperty,
+                this.dimension,
+                entry.getKey(),
+                embeddingValue);
+        final Map<String, Object> params = entry.getValue();
+        params.put("minScore", request.minScore());
+        params.put("maxResults", request.maxResults());
+        return getEmbeddingSearchResult(session, query, params);
+    }
+
+    private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorIndex(
+            EmbeddingSearchRequest request, Value embeddingValue, Session session) {
+        Map<String, Object> params = new HashMap<>(Map.of(
+                "indexName",
+                indexName,
+                "embeddingValue",
+                embeddingValue,
+                "minScore",
+                request.minScore(),
+                "maxResults",
+                request.maxResults()));
+
+        String query =
+                """
+                        CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
+                        YIELD node, score
+                        WHERE score >= $minScore
+                        """
+                        + retrievalQuery;
+
+        if (fullTextQuery != null) {
+
+            query +=
+                    """
+                            \nUNION
+                            CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
+                            YIELD node, score
+                            WHERE score >= $minScore
+                            """
+                            + fullTextRetrievalQuery;
+
+            params.putAll(Map.of(
+                    "fullTextIndexName", fullTextIndexName,
+                    "fullTextQuery", fullTextQuery));
+        }
+
+        final Set<String> columns = getColumnNames(session, query);
+        final Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
+
+        if (!allowedColumn.containsAll(columns) || columns.size() > allowedColumn.size()) {
+            throw new RuntimeException(COLUMNS_NOT_ALLOWED_ERR + columns);
+        }
+
+        return getEmbeddingSearchResult(session, query, params);
+    }
+
+    private EmbeddingSearchResult<TextSegment> getEmbeddingSearchResult(
+            Session session, String query, Map<String, Object> params) {
+        List<EmbeddingMatch<TextSegment>> matches =
+                session.executeRead(tx -> tx.run(query, params).list(item -> toEmbeddingMatch(this, item)));
+
+        return new EmbeddingSearchResult<>(matches);
+    }
+
+    private Set<String> getColumnNames(Session session, String query) {
+        // retrieve column names
+        final List<String> keys = session.run("EXPLAIN " + query).keys();
+        // when there are multiple variables with the same name, e.g. within a "UNION ALL" Neo4j adds a suffix
+        // "@<number>" to distinguish them,
+        //  so to check the correctness of the output parameters we must first remove this suffix from the column names
+        return keys.stream().map(i -> i.replaceFirst("@[0-9]+", "").trim()).collect(Collectors.toSet());
+    }
 
     private void addInternal(String id, Embedding embedding, TextSegment embedded) {
         addAll(singletonList(id), singletonList(embedding), embedded == null ? null : singletonList(embedded));
@@ -323,7 +444,25 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         if (!indexExists()) {
             createIndex();
         }
-        createUniqueConstraint();
+        createFullTextIndex();
+        if (!constraintExist()) {
+            createUniqueConstraint();
+        }
+    }
+
+    private boolean constraintExist() {
+        try (var session = session()) {
+            var query =
+                    """
+                    SHOW CONSTRAINTS
+                    WHERE $label IN labelsOrTypes
+                    AND $property IN properties
+                    AND type IN ['NODE_KEY', 'UNIQUENESS']
+                    """;
+            var result = session.run(query, Map.of("label", this.label, "property", this.idProperty));
+
+            return !result.list().isEmpty();
+        }
     }
 
     private void createUniqueConstraint() {
@@ -362,6 +501,20 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
+    private void createFullTextIndex() {
+        if (!autoCreateFullText) {
+            return;
+        }
+
+        try (var session = session()) {
+
+            final String query = String.format(
+                    "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (n:%s) ON EACH [n.%s]",
+                    this.fullTextIndexName, this.sanitizedLabel, this.sanitizedIdProperty);
+            session.run(query).consume();
+        }
+    }
+
     private void createIndex() {
         Map<String, Object> params = Map.of(
                 "indexName",
@@ -386,5 +539,186 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private Session session() {
         return this.driver.session(this.config);
+    }
+
+    public static class Builder {
+
+        private String indexName;
+        private String metadataPrefix;
+        private String embeddingProperty;
+        private String idProperty;
+        private String label;
+        private String textProperty;
+        private String databaseName;
+        private String retrievalQuery;
+        private SessionConfig config;
+        private Driver driver;
+        private int dimension;
+        private long awaitIndexTimeout;
+        private String fullTextIndexName;
+        private String fullTextQuery;
+        private String fullTextRetrievalQuery;
+        private boolean autoCreateFullText;
+
+        /**
+         * @param indexName the optional index name (default: "vector")
+         */
+        public Builder indexName(String indexName) {
+            this.indexName = indexName;
+            return this;
+        }
+
+        /**
+         * @param metadataPrefix the optional metadata prefix (default: "")
+         */
+        public Builder metadataPrefix(String metadataPrefix) {
+            this.metadataPrefix = metadataPrefix;
+            return this;
+        }
+
+        /**
+         * @param embeddingProperty the optional embeddingProperty name (default: "embedding")
+         */
+        public Builder embeddingProperty(String embeddingProperty) {
+            this.embeddingProperty = embeddingProperty;
+            return this;
+        }
+
+        /**
+         * @param idProperty the optional id property name (default: "id")
+         */
+        public Builder idProperty(String idProperty) {
+            this.idProperty = idProperty;
+            return this;
+        }
+
+        /**
+         * @param label the optional label name (default: "Document")
+         */
+        public Builder label(String label) {
+            this.label = label;
+            return this;
+        }
+
+        /**
+         * @param textProperty the optional textProperty property name (default: "text")
+         */
+        public Builder textProperty(String textProperty) {
+            this.textProperty = textProperty;
+            return this;
+        }
+
+        /**
+         * @param databaseName the optional database name (default: "neo4j")
+         */
+        public Builder databaseName(String databaseName) {
+            this.databaseName = databaseName;
+            return this;
+        }
+
+        /**
+         * @param retrievalQuery the optional retrieval query
+         *                       (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
+         */
+        public Builder retrievalQuery(String retrievalQuery) {
+            this.retrievalQuery = retrievalQuery;
+            return this;
+        }
+
+        /**
+         * @param config the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
+         */
+        public Builder config(SessionConfig config) {
+            this.config = config;
+            return this;
+        }
+
+        /**
+         * @param driver the {@link Driver} (required)
+         */
+        public Builder driver(Driver driver) {
+            this.driver = driver;
+            return this;
+        }
+
+        /**
+         * @param dimension the dimension (required)
+         */
+        public Builder dimension(int dimension) {
+            this.dimension = dimension;
+            return this;
+        }
+
+        /**
+         * @param awaitIndexTimeout the optional awaiting timeout for all indexes to come online, in seconds (default: 60s)
+         */
+        public Builder awaitIndexTimeout(long awaitIndexTimeout) {
+            this.awaitIndexTimeout = awaitIndexTimeout;
+            return this;
+        }
+
+        /**
+         * @param fullTextIndexName the optional full-text index name, to perform a hybrid search (default: `fulltext`)
+         */
+        public Builder fullTextIndexName(String fullTextIndexName) {
+            this.fullTextIndexName = fullTextIndexName;
+            return this;
+        }
+
+        /**
+         * @param fullTextQuery the optional full-text index query, required if we want to perform a hybrid search
+         */
+        public Builder fullTextQuery(String fullTextQuery) {
+            this.fullTextQuery = fullTextQuery;
+            return this;
+        }
+
+        /**
+         * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
+         */
+        public Builder fullTextRetrievalQuery(String fullTextRetrievalQuery) {
+            this.fullTextRetrievalQuery = fullTextRetrievalQuery;
+            return this;
+        }
+
+        /**
+         * @param autoCreateFullText if true, it will auto create the full-text index if not exists (default: false)
+         */
+        public Builder autoCreateFullText(boolean autoCreateFullText) {
+            this.autoCreateFullText = autoCreateFullText;
+            return this;
+        }
+
+        /**
+         * Creates an instance a {@link Driver}, starting from uri, user and password
+         *
+         * @param uri      the Bolt URI to a Neo4j instance
+         * @param user     the Neo4j instance's username
+         * @param password the Neo4j instance's password
+         */
+        public Builder withBasicAuth(String uri, String user, String password) {
+            this.driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
+            return this;
+        }
+
+        public Neo4jEmbeddingStore build() {
+            return new Neo4jEmbeddingStore(
+                    config,
+                    driver,
+                    dimension,
+                    label,
+                    embeddingProperty,
+                    idProperty,
+                    metadataPrefix,
+                    textProperty,
+                    indexName,
+                    databaseName,
+                    retrievalQuery,
+                    awaitIndexTimeout,
+                    fullTextIndexName,
+                    fullTextQuery,
+                    fullTextRetrievalQuery,
+                    autoCreateFullText);
+        }
     }
 }

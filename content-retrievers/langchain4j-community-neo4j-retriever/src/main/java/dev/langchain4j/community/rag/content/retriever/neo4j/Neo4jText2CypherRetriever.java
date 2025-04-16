@@ -19,14 +19,22 @@ import org.neo4j.driver.types.TypeSystem;
 
 public class Neo4jText2CypherRetriever implements ContentRetriever {
 
-    public static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
+    private static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
             """
-                    Based on the Neo4j graph schema below, write a Cypher query that would answer the user's question:
-                    {{schema}}
+            Task:Generate Cypher statement to query a graph database.
+            Instructions
+            Use only the provided relationship types and properties in the schema.
+            Do not use any other relationship types or properties that are not provided.
 
-                    Question: {{question}}
-                    Cypher query:
-                    """);
+            Schema:
+            {{schema}}
+
+            {{examples}}
+            Note: Do not include any explanations or apologies in your responses.
+            Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
+            Do not include any text except the generated Cypher statement.
+            The question is: {{question}}
+            """);
 
     private static final Type NODE = TypeSystem.getDefault().NODE();
     private static final Type RELATIONSHIP = TypeSystem.getDefault().RELATIONSHIP();
@@ -37,13 +45,18 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private final ChatLanguageModel chatLanguageModel;
 
     private final PromptTemplate promptTemplate;
+    private final List<String> examples;
 
     public Neo4jText2CypherRetriever(
-            Neo4jGraph graph, ChatLanguageModel chatLanguageModel, PromptTemplate promptTemplate) {
+            Neo4jGraph graph,
+            ChatLanguageModel chatLanguageModel,
+            PromptTemplate promptTemplate,
+            List<String> examples) {
 
         this.graph = ensureNotNull(graph, "graph");
         this.chatLanguageModel = ensureNotNull(chatLanguageModel, "chatLanguageModel");
         this.promptTemplate = getOrDefault(promptTemplate, DEFAULT_PROMPT_TEMPLATE);
+        this.examples = getOrDefault(examples, List.of());
     }
 
     public static Builder builder() {
@@ -77,7 +90,14 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     private String generateCypherQuery(String schema, String question) {
 
-        Prompt cypherPrompt = promptTemplate.apply(Map.of("schema", schema, "question", question));
+        String examplesString = "";
+        if (!this.examples.isEmpty()) {
+            final String exampleJoin = String.join("\n", this.examples);
+            examplesString = String.format("Cypher examples: \n%s\n", exampleJoin);
+        }
+        final Map<String, Object> templateVariables =
+                Map.of("schema", schema, "question", question, "examples", examplesString);
+        Prompt cypherPrompt = promptTemplate.apply(templateVariables);
         String cypherQuery = chatLanguageModel.chat(cypherPrompt.text());
         return getBacktickText(cypherQuery);
     }
@@ -103,6 +123,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         protected Neo4jGraph graph;
         protected ChatLanguageModel chatLanguageModel;
         protected PromptTemplate promptTemplate;
+        protected List<String> examples;
 
         /**
          * @param graph the {@link Neo4jGraph} (required)
@@ -128,12 +149,20 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
             return self();
         }
 
+        /**
+         * @param examples the few-shot examples to improve retrieving (optional, default is "")
+         */
+        public T examples(List<String> examples) {
+            this.examples = examples;
+            return self();
+        }
+
         protected T self() {
             return (T) this;
         }
 
         Neo4jText2CypherRetriever build() {
-            return new Neo4jText2CypherRetriever(graph, chatLanguageModel, promptTemplate);
+            return new Neo4jText2CypherRetriever(graph, chatLanguageModel, promptTemplate, examples);
         }
     }
 }
