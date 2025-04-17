@@ -166,7 +166,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
             return (T) this;
         }
 
-        Neo4jText2CypherRetriever build() {
+       public Neo4jText2CypherRetriever build() {
             return new Neo4jText2CypherRetriever(graph, chatLanguageModel, promptTemplate, examples);
         }
     }
