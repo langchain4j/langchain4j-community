@@ -21,20 +21,20 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     private static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
             """
-            Task:Generate Cypher statement to query a graph database.
-            Instructions
-            Use only the provided relationship types and properties in the schema.
-            Do not use any other relationship types or properties that are not provided.
+                    Task:Generate Cypher statement to query a graph database.
+                    Instructions
+                    Use only the provided relationship types and properties in the schema.
+                    Do not use any other relationship types or properties that are not provided.
 
-            Schema:
-            {{schema}}
+                    Schema:
+                    {{schema}}
 
-            {{examples}}
-            Note: Do not include any explanations or apologies in your responses.
-            Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
-            Do not include any text except the generated Cypher statement.
-            The question is: {{question}}
-            """);
+                    {{examples}}
+                    Note: Do not include any explanations or apologies in your responses.
+                    Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
+                    Do not include any text except the generated Cypher statement.
+                    The question is: {{question}}
+                    """);
 
     private static final Pattern BACKTICKS_PATTERN = Pattern.compile("```(.*?)```", Pattern.MULTILINE | Pattern.DOTALL);
     private static final Type NODE = TypeSystem.getDefault().NODE();
@@ -163,7 +163,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
             return (T) this;
         }
 
-        Neo4jText2CypherRetriever build() {
+        public Neo4jText2CypherRetriever build() {
             return new Neo4jText2CypherRetriever(graph, chatModel, promptTemplate, examples);
         }
     }
