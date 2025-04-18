@@ -102,10 +102,10 @@ public class LLMGraphTransformer {
                 .apply(Map.of(
                         "nodes",
                         withAllowedNodes
-                                ? "The 'head_type' and 'tail_type' must be one of: " + allowedNodes.toString()
+                                ? "The 'head_type' and 'tail_type' must be one of: " + allowedNodes
                                 : "",
                         "rels",
-                        withAllowedRels ? "The 'relation' must be one of: " + allowedRelationships.toString() : "",
+                        withAllowedRels ? "The 'relation' must be one of: " + allowedRelationships : "",
                         "additional",
                         additionalInstructions))
                 .toSystemMessage();
@@ -126,8 +126,8 @@ public class LLMGraphTransformer {
 
         final UserMessage userMessage = humanTemplate
                 .apply(Map.of(
-                        "nodes", withAllowedNodes ? "# ENTITY TYPES:\n" + allowedNodes.toString() : "",
-                        "rels", withAllowedRels ? "# RELATION TYPES:\n" + allowedRelationships.toString() : "",
+                        "nodes", withAllowedNodes ? "# ENTITY TYPES:\n" + allowedNodes : "",
+                        "rels", withAllowedRels ? "# RELATION TYPES:\n" + allowedRelationships : "",
                         "examples", examplesString,
                         "additional", additionalInstructions,
                         "input", text))

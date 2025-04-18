@@ -130,26 +130,26 @@ public class KnowledgeGraphWriter {
         if (!includeSource) {
             return "";
         }
-        return """
+        return String.format("""
                 MERGE (d:Document {%1$s: $document.metadata.%1$s})
                 SET d.%2$s = $document.text
                 SET d += $document.metadata
                 WITH d
-                """
-                .formatted(sanitizedIdProperty, sanitizedTextProperty);
+                """,
+                sanitizedIdProperty, sanitizedTextProperty);
     }
 
     private String getRelImportQuery() {
 
-        return """
+        return String.format("""
                 UNWIND $data AS row
                 MERGE (source:%1$s {%2$s: row.source})
                 MERGE (target:%1$s {%2$s: row.target})
                 WITH source, target, row
                 MERGE (source)-[rel:$(toString(row.type) + '')]->(target)
                 RETURN distinct 'done'
-                """
-                .formatted(sanitizedLabel, sanitizedIdProperty);
+                """,
+                sanitizedLabel, sanitizedIdProperty);
     }
 
     public static class Builder {
@@ -211,7 +211,7 @@ public class KnowledgeGraphWriter {
             return this;
         }
 
-        KnowledgeGraphWriter build() {
+        public KnowledgeGraphWriter build() {
             return new KnowledgeGraphWriter(graph, idProperty, label, textProperty, relType, constraintName);
         }
     }
