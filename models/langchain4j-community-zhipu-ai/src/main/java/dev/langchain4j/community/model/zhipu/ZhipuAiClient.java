@@ -19,6 +19,7 @@ import dev.langchain4j.community.model.zhipu.embedding.EmbeddingRequest;
 import dev.langchain4j.community.model.zhipu.embedding.EmbeddingResponse;
 import dev.langchain4j.community.model.zhipu.image.ImageRequest;
 import dev.langchain4j.community.model.zhipu.image.ImageResponse;
+import dev.langchain4j.community.model.zhipu.shared.ErrorResponse;
 import dev.langchain4j.community.model.zhipu.shared.Usage;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.internal.Utils;
@@ -192,7 +193,17 @@ public class ZhipuAiClient {
                 if (logResponses) {
                     log.debug("onFailure()", t);
                 }
-                Throwable throwable = Utils.getOrDefault(t, new ZhipuAiException(response));
+                Throwable throwable;
+                try {
+                    ErrorResponse errorResponse = Json.fromJson(response.body().string(), ErrorResponse.class);
+                    throwable = Utils.getOrDefault(
+                            t,
+                            new ZhipuAiException(
+                                    errorResponse.getError().get("code"),
+                                    errorResponse.getError().get("message")));
+                } catch (IOException ignored) {
+                    throwable = new ZhipuAiException(String.valueOf(response.code()), null);
+                }
                 handleResponseException(throwable, handler, requestContext, provider, listeners);
             }
 

@@ -1,6 +1,8 @@
 package dev.langchain4j.community.model.qianfan.client;
 
-public class QianfanApiException extends RuntimeException {
+import dev.langchain4j.exception.LangChain4jException;
+
+public class QianfanApiException extends LangChain4jException {
 
     private final int code;
 

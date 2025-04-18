@@ -30,7 +30,7 @@ import com.alibaba.dashscope.exception.UploadFileException;
 import com.alibaba.dashscope.protocol.Protocol;
 import dev.langchain4j.community.model.dashscope.spi.QwenChatModelBuilderFactory;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -44,7 +44,7 @@ import java.util.function.Consumer;
  * Represents a Qwen language model with a chat completion interface.
  * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details">here</a>.
  */
-public class QwenChatModel implements ChatLanguageModel {
+public class QwenChatModel implements ChatModel {
     private final QwenChatRequestParameters defaultRequestParameters;
     private final String apiKey;
     private final Generation generation;

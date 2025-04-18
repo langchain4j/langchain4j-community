@@ -15,7 +15,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 
 class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
 
-    ChatLanguageModel chatModel = XinferenceChatModel.builder()
+    ChatModel chatModel = XinferenceChatModel.builder()
             .baseUrl(baseUrl())
             .apiKey(apiKey())
             .modelName(modelName())
@@ -65,7 +65,7 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
     void should_chat_answer_and_return_token_usage_and_finish_reason_length() {
         // given
         int maxTokens = 2;
-        ChatLanguageModel chatModel = XinferenceChatModel.builder()
+        ChatModel chatModel = XinferenceChatModel.builder()
                 .baseUrl(baseUrl())
                 .apiKey(apiKey())
                 .modelName(modelName())

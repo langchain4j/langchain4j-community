@@ -25,7 +25,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelIT;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -48,7 +48,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
     void should_send_non_multimodal_messages_and_receive_response(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         ChatResponse response = model.chat(QwenTestHelper.chatMessages());
@@ -73,7 +73,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_function_with_no_argument_then_answer(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         String toolName = "getCurrentDateAndTime";
@@ -120,7 +120,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_function_with_argument_then_answer(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         String toolName = "getCurrentWeather";
@@ -169,7 +169,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_must_be_executed_call_function(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         String toolName = "getCurrentWeather";
@@ -203,7 +203,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_call_must_be_executed_call_function_with_argument_then_answer(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         String toolName = "calculator";
@@ -263,7 +263,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
     void should_send_multimodal_image_url_and_receive_response(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         ChatResponse response = model.chat(multimodalChatMessagesWithImageUrl());
@@ -274,7 +274,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
     void should_send_multimodal_image_data_and_receive_response(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         ChatResponse response = model.chat(multimodalChatMessagesWithImageData());
@@ -285,7 +285,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_url_and_receive_response(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         ChatResponse response = model.chat(multimodalChatMessagesWithAudioUrl());
@@ -296,7 +296,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_data_and_receive_response(String modelName) {
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         ChatResponse response = model.chat(multimodalChatMessagesWithAudioData());
@@ -381,7 +381,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_send_messages_and_receive_response_by_searching(String modelName) {
         // given
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
@@ -417,7 +417,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#mtChatModelNameProvider")
     void should_translate_messages_and_receive_response(String modelName) {
         // given
-        ChatLanguageModel model =
+        ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
         QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
@@ -447,7 +447,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
-    protected List<ChatLanguageModel> models() {
+    protected List<ChatModel> models() {
         return nonMultimodalChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
@@ -460,7 +460,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
-    protected List<ChatLanguageModel> modelsSupportingTools() {
+    protected List<ChatModel> modelsSupportingTools() {
         return functionCallChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
@@ -473,12 +473,12 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
-    protected List<ChatLanguageModel> modelsSupportingStructuredOutputs() {
+    protected List<ChatModel> modelsSupportingStructuredOutputs() {
         return this.modelsSupportingTools();
     }
 
     @Override
-    protected List<ChatLanguageModel> modelsSupportingImageInputs() {
+    protected List<ChatModel> modelsSupportingImageInputs() {
         return vlChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
@@ -491,7 +491,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
-    protected ChatLanguageModel createModelWith(ChatRequestParameters parameters) {
+    protected ChatModel createModelWith(ChatRequestParameters parameters) {
         QwenChatModel.QwenChatModelBuilder qwenChatModelBuilder =
                 QwenChatModel.builder().apiKey(apiKey()).defaultRequestParameters(parameters);
         if (parameters.modelName() == null) {

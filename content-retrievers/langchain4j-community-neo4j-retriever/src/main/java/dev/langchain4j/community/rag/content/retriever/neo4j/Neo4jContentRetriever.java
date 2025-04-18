@@ -9,8 +9,8 @@ import dev.langchain4j.model.input.PromptTemplate;
 @Deprecated(forRemoval = true)
 public class Neo4jContentRetriever extends Neo4jText2CypherRetriever {
 
-    public Neo4jContentRetriever(Neo4jGraph graph, ChatModel chatLanguageModel, PromptTemplate promptTemplate) {
-        super(graph, chatLanguageModel, promptTemplate, null);
+    public Neo4jContentRetriever(Neo4jGraph graph, ChatModel chatModel, PromptTemplate promptTemplate) {
+        super(graph, chatModel, promptTemplate, null);
     }
 
     public static Builder builder() {
@@ -21,7 +21,7 @@ public class Neo4jContentRetriever extends Neo4jText2CypherRetriever {
 
         @Override
         public Neo4jContentRetriever build() {
-            return new Neo4jContentRetriever(graph, chatLanguageModel, promptTemplate);
+            return new Neo4jContentRetriever(graph, chatModel, promptTemplate);
         }
     }
 }

@@ -33,7 +33,7 @@ class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
 
         Neo4jText2CypherRetriever neo4jContentRetriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
-                .chatLanguageModel(openAiChatModel)
+                .chatModel(openAiChatModel)
                 .build();
 
         // Given
@@ -96,7 +96,7 @@ class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
 
         Neo4jText2CypherRetriever neo4jContentRetrieverWithoutExample = Neo4jText2CypherRetriever.builder()
                 .graph(graphStreamer)
-                .chatLanguageModel(openAiChatModel)
+                .chatModel(openAiChatModel)
                 .build();
         List<Content> contentsWithoutExample = neo4jContentRetrieverWithoutExample.retrieve(query);
         assertThat(contentsWithoutExample).isEmpty();
@@ -104,7 +104,7 @@ class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
         // When
         Neo4jText2CypherRetriever neo4jContentRetriever = Neo4jText2CypherRetriever.builder()
                 .graph(graphStreamer)
-                .chatLanguageModel(openAiChatModel)
+                .chatModel(openAiChatModel)
                 .examples(examples)
                 .build();
 
