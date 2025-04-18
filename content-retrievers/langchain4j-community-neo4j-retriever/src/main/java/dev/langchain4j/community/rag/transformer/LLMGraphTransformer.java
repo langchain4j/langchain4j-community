@@ -14,7 +14,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.internal.RetryUtils;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.input.PromptTemplate;
 import java.util.HashSet;
@@ -31,7 +31,7 @@ public class LLMGraphTransformer {
     private final List<String> allowedRelationships;
     private final List<ChatMessage> prompt;
     private final String additionalInstructions;
-    private final ChatLanguageModel model;
+    private final ChatModel model;
     private final List<Map<String, String>> examples;
     private final Integer maxAttempts;
 
@@ -39,7 +39,7 @@ public class LLMGraphTransformer {
      * It allows specifying constraints on the types of nodes and relationships to include in the output graph.
      * The class supports extracting properties for both nodes and relationships.
      *
-     * @param model the {@link ChatLanguageModel} (required)
+     * @param model the {@link ChatModel} (required)
      * @param allowedNodes Specifies which node types are allowed in the graph. If null or empty allows all node types (default: [])
      * @param allowedRelationships Specifies which relationship types are allowed in the graph. If null or empty allows all relationship types (default: [])
      * @param prompt The chat messages to pass to the LLM with additional instructions. (optional)
@@ -48,7 +48,7 @@ public class LLMGraphTransformer {
      * @param maxAttempts Retry N times the transformation if it fails (default: 1)
      */
     public LLMGraphTransformer(
-            ChatLanguageModel model,
+            ChatModel model,
             List<String> allowedNodes,
             List<String> allowedRelationships,
             List<ChatMessage> prompt,
@@ -191,7 +191,7 @@ public class LLMGraphTransformer {
      * Builder class for LLMGraphTransformer.
      */
     public static class Builder {
-        private ChatLanguageModel model;
+        private ChatModel model;
         private List<String> allowedNodes;
         private List<String> allowedRelationships;
         private List<ChatMessage> prompt;
@@ -200,12 +200,12 @@ public class LLMGraphTransformer {
         private Integer maxAttempts = 1; // Default: 1 attempt
 
         /**
-         * Sets the required ChatLanguageModel.
+         * Sets the required ChatModel.
          *
-         * @param model the {@link ChatLanguageModel} (required)
+         * @param model the {@link ChatModel} (required)
          * @return the Builder instance
          */
-        public Builder model(ChatLanguageModel model) {
+        public Builder model(ChatModel model) {
             this.model = model;
             return this;
         }
@@ -284,7 +284,7 @@ public class LLMGraphTransformer {
          */
         public LLMGraphTransformer build() {
             if (model == null) {
-                throw new IllegalArgumentException("ChatLanguageModel is required");
+                throw new IllegalArgumentException("ChatModel is required");
             }
             return new LLMGraphTransformer(
                     model, allowedNodes, allowedRelationships, prompt, additionalInstructions, examples, maxAttempts);

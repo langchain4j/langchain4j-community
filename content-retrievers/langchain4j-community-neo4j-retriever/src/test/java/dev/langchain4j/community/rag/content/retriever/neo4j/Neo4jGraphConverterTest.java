@@ -1,13 +1,16 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.List;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,10 +19,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class Neo4jGraphConverterTest extends Neo4jGraphConverterBaseTest {
 
     @Mock
-    private static ChatLanguageModel model;
+    private static ChatModel model;
 
     @Override
-    ChatLanguageModel getModel() {
+    ChatModel getModel() {
         final String keanuStringResponse =
                 "[{\"head_type\":\"Person\",\"text\":\"Keanu Reeves acted in Matrix\",\"relation\":\"ACTED_IN\",\"tail_type\":\"Movie\",\"tail\":\"Matrix\",\"head\":\"Keanu Reeves\"}]";
         final ChatResponse chatResponseKeanu = new ChatResponse.Builder()
@@ -39,5 +42,18 @@ public class Neo4jGraphConverterTest extends Neo4jGraphConverterBaseTest {
         when(model.chat(sylvesterMessages)).thenReturn(chatResponseSylvester);
 
         return model;
+    }
+
+    @Test
+    void testWrongConstraintName() {
+        try {
+            knowledgeGraphWriter = KnowledgeGraphWriter.builder()
+                    .graph(neo4jGraph)
+                    .constraintName("111")
+                    .build();
+            fail("Should fail due to invalid input");
+        } catch (Exception e) {
+            assertThat(e.getMessage()).contains("Error executing query: CREATE CONSTRAINT 111");
+        }
     }
 }

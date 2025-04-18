@@ -2,7 +2,7 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 public class Neo4jGraphConverterIT extends Neo4jGraphConverterBaseTest {
 
     @Override
-    ChatLanguageModel getModel() {
+    ChatModel getModel() {
         return OpenAiChatModel.builder()
                 .baseUrl(System.getenv("OPENAI_BASE_URL"))
                 .apiKey(System.getenv("OPENAI_API_KEY"))

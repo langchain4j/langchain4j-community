@@ -4,7 +4,7 @@ import static dev.langchain4j.community.rag.transformer.Neo4jUtils.getBacktickTe
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.content.Content;
@@ -41,16 +41,13 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     private final Neo4jGraph graph;
 
-    private final ChatLanguageModel chatLanguageModel;
+    private final ChatModel chatLanguageModel;
 
     private final PromptTemplate promptTemplate;
     private final List<String> examples;
 
     public Neo4jText2CypherRetriever(
-            Neo4jGraph graph,
-            ChatLanguageModel chatLanguageModel,
-            PromptTemplate promptTemplate,
-            List<String> examples) {
+            Neo4jGraph graph, ChatModel chatLanguageModel, PromptTemplate promptTemplate, List<String> examples) {
 
         this.graph = ensureNotNull(graph, "graph");
         this.chatLanguageModel = ensureNotNull(chatLanguageModel, "chatLanguageModel");
@@ -69,7 +66,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         return graph;
     }
 
-    public ChatLanguageModel getChatLanguageModel() {
+    public ChatModel getChatModel() {
         return chatLanguageModel;
     }
 
@@ -120,7 +117,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     public static class Builder<T extends Builder<T>> {
 
         protected Neo4jGraph graph;
-        protected ChatLanguageModel chatLanguageModel;
+        protected ChatModel chatLanguageModel;
         protected PromptTemplate promptTemplate;
         protected List<String> examples;
 
@@ -133,9 +130,9 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         /**
-         * @param chatLanguageModel the {@link ChatLanguageModel} (required)
+         * @param chatLanguageModel the {@link ChatModel} (required)
          */
-        public T chatLanguageModel(ChatLanguageModel chatLanguageModel) {
+        public T chatLanguageModel(ChatModel chatLanguageModel) {
             this.chatLanguageModel = chatLanguageModel;
             return self();
         }

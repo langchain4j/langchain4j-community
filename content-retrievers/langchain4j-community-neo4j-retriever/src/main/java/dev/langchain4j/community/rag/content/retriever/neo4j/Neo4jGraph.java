@@ -1,9 +1,5 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
-import static dev.langchain4j.community.rag.transformer.Neo4jUtils.sanitizeOrThrows;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-
-import dev.langchain4j.community.rag.transformer.GraphDocument;
 import dev.langchain4j.internal.ValidationUtils;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +16,6 @@ import org.neo4j.driver.summary.ResultSummary;
 public class Neo4jGraph implements AutoCloseable {
 
     public static class Builder {
-        private String label;
-        private String idProperty;
-        private String textProperty;
         private Driver driver;
 
         /**
@@ -30,33 +23,6 @@ public class Neo4jGraph implements AutoCloseable {
          */
         Builder driver(Driver driver) {
             this.driver = driver;
-            return this;
-        }
-
-        /**
-         * @param idProperty the entity id, to be used with {@link Neo4jGraph#addGraphDocuments(List, boolean, boolean)}
-         */
-        public Builder idProperty(String idProperty) {
-            this.idProperty = idProperty;
-            return this;
-        }
-
-        /**
-         * @param textProperty the document text, to be used with {@link Neo4jGraph#addGraphDocuments(List, boolean, boolean)}
-         *                     if the second parameter is true
-         */
-        public Builder textProperty(String textProperty) {
-            this.textProperty = textProperty;
-            return this;
-        }
-
-        /**
-         * @param label the entity label, to be used with {@link Neo4jGraph#addGraphDocuments(List, boolean, boolean)}
-         *              if the third parameter is true,
-         *              otherwise it will create nodes with label `Document`
-         */
-        public Builder label(String label) {
-            this.label = label;
             return this;
         }
 
@@ -73,14 +39,9 @@ public class Neo4jGraph implements AutoCloseable {
         }
 
         Neo4jGraph build() {
-            return new Neo4jGraph(driver, idProperty, label, textProperty);
+            return new Neo4jGraph(driver);
         }
     }
-
-    /* default configs */
-    public static final String DEFAULT_ID_PROP = "id";
-    public static final String DEFAULT_TEXT_PROP = "text";
-    public static final String DEFAULT_LABEL = "__Entity__";
 
     private static final String NODE_PROPERTIES_QUERY =
             """
@@ -110,24 +71,9 @@ public class Neo4jGraph implements AutoCloseable {
                     """;
 
     private final Driver driver;
-    final String label;
-    final String sanitizedLabel;
-    final String idProperty;
-    final String sanitizedIdProperty;
-    final String textProperty;
-    final String sanitizedTextProperty;
     private String schema;
 
-    public Neo4jGraph(final Driver driver, String idProperty, String label, String textProperty) {
-        this.label = getOrDefault(label, DEFAULT_LABEL);
-        this.idProperty = getOrDefault(idProperty, DEFAULT_ID_PROP);
-        this.textProperty = getOrDefault(textProperty, DEFAULT_TEXT_PROP);
-
-        /* sanitize labels and property names, to prevent from Cypher Injections */
-        this.sanitizedLabel = sanitizeOrThrows(this.label, "label");
-        this.sanitizedIdProperty = sanitizeOrThrows(this.idProperty, "idProperty");
-        this.sanitizedTextProperty = sanitizeOrThrows(this.textProperty, "textProperty");
-
+    public Neo4jGraph(final Driver driver) {
         this.driver = ValidationUtils.ensureNotNull(driver, "driver");
         this.driver.verifyConnectivity();
         try {
@@ -216,10 +162,6 @@ public class Neo4jGraph implements AutoCloseable {
         return properties.stream()
                 .map(prop -> prop.get("property") + ":" + prop.get("type"))
                 .collect(Collectors.joining(", ", "{", "}"));
-    }
-
-    public void addGraphDocuments(List<GraphDocument> graphDocuments, boolean includeSource, boolean baseEntityLabel) {
-        Neo4jGraphUtils.addGraphDocuments(graphDocuments, includeSource, baseEntityLabel, this);
     }
 
     @Override

@@ -4,7 +4,7 @@ import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.internal.RetryUtils;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
@@ -22,7 +22,7 @@ class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
     void shouldRetrieveContentWhenQueryIsValidAndOpenAiChatModelIsUsed() {
 
         // With
-        ChatLanguageModel openAiChatModel = OpenAiChatModel.builder()
+        ChatModel openAiChatModel = OpenAiChatModel.builder()
                 .baseUrl(System.getenv("OPENAI_BASE_URL"))
                 .apiKey(System.getenv("OPENAI_API_KEY"))
                 .organizationId(System.getenv("OPENAI_ORGANIZATION_ID"))
@@ -67,7 +67,7 @@ class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
         });
 
         // With
-        ChatLanguageModel openAiChatModel = OpenAiChatModel.builder()
+        ChatModel openAiChatModel = OpenAiChatModel.builder()
                 .baseUrl(System.getenv("OPENAI_BASE_URL"))
                 .apiKey(System.getenv("OPENAI_API_KEY"))
                 .organizationId(System.getenv("OPENAI_ORGANIZATION_ID"))

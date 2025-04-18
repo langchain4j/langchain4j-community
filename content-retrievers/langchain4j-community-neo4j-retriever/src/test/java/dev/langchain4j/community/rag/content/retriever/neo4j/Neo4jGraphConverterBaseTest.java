@@ -1,8 +1,9 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
-import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_ID_PROP;
-import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_LABEL;
-import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jGraph.DEFAULT_TEXT_PROP;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_ID_PROP;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_LABEL;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_REL_TYPE;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_TEXT_PROP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.community.rag.transformer.GraphDocument;
@@ -10,7 +11,7 @@ import dev.langchain4j.community.rag.transformer.LLMGraphTransformer;
 import dev.langchain4j.data.document.DefaultDocument;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,9 +44,8 @@ public abstract class Neo4jGraphConverterBaseTest {
 
     public static String CAT_ON_THE_TABLE = "Sylvester the cat is on the table";
     public static String KEANU_REEVES_ACTED = "Keanu Reeves acted in Matrix";
-    public static String MATCH_P_RETURN_P = "MATCH p=(n)-[]->() RETURN p ORDER BY n.%s";
-    public static String MATCH_P_DOCUMENT_MENTIONS_RETURN_P =
-            "MATCH p=(:Document)-[:MENTIONS]->(n)-[]->() RETURN p ORDER BY n.%s";
+    public static String MATCH_AND_RETURN_NODE = "MATCH p=(n)-[]->() RETURN p ORDER BY n.%s";
+    public static String MATCH_WITH_DOCUMENT_RETURN_NODE = "MATCH p=(:Document)-[]->(n)-[]->() RETURN p ORDER BY n.%s";
     public static String KEANU = "keanu";
     public static String MATRIX = "matrix";
     public static String ACTED = "acted";
@@ -53,7 +53,8 @@ public abstract class Neo4jGraphConverterBaseTest {
     public static String TABLE = "table";
     public static LLMGraphTransformer graphTransformer;
     public static List<GraphDocument> graphDocs;
-    public static Neo4jGraph graph;
+    public static Neo4jGraph neo4jGraph;
+    public static KnowledgeGraphWriter knowledgeGraphWriter;
 
     public static String CUSTOM_TEXT = "custom  `text";
     public static String CUSTOM_ID = "custom  ` id";
@@ -69,12 +70,13 @@ public abstract class Neo4jGraphConverterBaseTest {
 
     @BeforeEach
     void beforeAll() {
-        ChatLanguageModel model = getModel();
+        ChatModel model = getModel();
 
         graphTransformer = LLMGraphTransformer.builder().model(model).build();
-        graph = Neo4jGraph.builder()
+        neo4jGraph = Neo4jGraph.builder()
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
+        knowledgeGraphWriter = KnowledgeGraphWriter.builder().graph(neo4jGraph).build();
 
         // given
         Document docKeanu = new DefaultDocument(KEANU_REEVES_ACTED, Metadata.from(KEY_KEANU, VALUE_KEANU));
@@ -85,42 +87,114 @@ public abstract class Neo4jGraphConverterBaseTest {
         assertThat(graphDocs.size()).isEqualTo(2);
     }
 
-    abstract ChatLanguageModel getModel();
+    abstract ChatModel getModel();
 
     @AfterEach
     void afterEach() {
-        graph.executeWrite("MATCH (n) DETACH DELETE n");
+        neo4jGraph.executeWrite("MATCH (n) DETACH DELETE n");
     }
 
     @AfterAll
     static void afterAll() {
-        graph.close();
+        neo4jGraph.close();
     }
 
     @Test
     void testAddGraphDocuments() {
+
         addGraphDocumentsCommon();
 
         // retry to check that merge works correctly
         addGraphDocumentsCommon();
     }
 
+    @Test
+    void testAddGraphDocumentsWithCustomIdTextAndLabel() {
+
+        knowledgeGraphWriter = KnowledgeGraphWriter.builder()
+                .graph(neo4jGraph)
+                .textProperty(CUSTOM_TEXT)
+                .idProperty(CUSTOM_ID)
+                .label(CUSTOM_LABEL)
+                .build();
+
+        addGraphDocumentsWithCustomIdTextAndLabelCommon();
+
+        // retry to check that merge works correctly
+        addGraphDocumentsWithCustomIdTextAndLabelCommon();
+    }
+
+    @Test
+    void testAddGraphDocumentsWithIncludeSource() {
+        testWithIncludeSourceCommon(DEFAULT_REL_TYPE);
+
+        // retry to check that merge works correctly
+        testWithIncludeSourceCommon(DEFAULT_REL_TYPE);
+    }
+
+    @Test
+    void testAddGraphDocumentsWithIncludeSourceAndCustomRelType() {
+        final String customRelType = "CUSTOM_REL_TYPE";
+        knowledgeGraphWriter = KnowledgeGraphWriter.builder()
+                .graph(neo4jGraph)
+                .relType(customRelType)
+                .build();
+
+        testWithIncludeSourceCommon(customRelType);
+
+        // retry to check that merge works correctly
+        testWithIncludeSourceCommon(customRelType);
+    }
+
+    @Test
+    void testAddGraphDocumentsWithIncludeSourceAndCustomIdTextAndLabel() {
+
+        knowledgeGraphWriter = KnowledgeGraphWriter.builder()
+                .graph(Neo4jGraphConverterBaseTest.neo4jGraph)
+                .textProperty(CUSTOM_TEXT)
+                .idProperty(CUSTOM_ID)
+                .label(CUSTOM_LABEL)
+                .build();
+
+        testWithIncludeSourceAndCustomIdTextAndLabelCommon(DEFAULT_REL_TYPE);
+
+        // retry to check that merge works correctly
+        testWithIncludeSourceAndCustomIdTextAndLabelCommon(DEFAULT_REL_TYPE);
+    }
+
+    @Test
+    void testAddGraphDocumentsWithIncludeSourceAndCustomIdTextLabelRelType() {
+
+        final String customRelType = "CUSTOM_REL_TYPE";
+        knowledgeGraphWriter = KnowledgeGraphWriter.builder()
+                .graph(neo4jGraph)
+                .textProperty(CUSTOM_TEXT)
+                .idProperty(CUSTOM_ID)
+                .label(CUSTOM_LABEL)
+                .relType(customRelType)
+                .build();
+
+        testWithIncludeSourceAndCustomIdTextAndLabelCommon(customRelType);
+
+        // retry to check that merge works correctly
+        testWithIncludeSourceAndCustomIdTextAndLabelCommon(customRelType);
+    }
+
     private static void addGraphDocumentsCommon() {
         // when
-        graph.addGraphDocuments(graphDocs, false, false);
+        knowledgeGraphWriter.addGraphDocuments(graphDocs, false);
 
         // then
-        List<Record> records = graph.executeRead(MATCH_P_RETURN_P.formatted(DEFAULT_ID_PROP));
-
+        List<Record> records = neo4jGraph.executeRead(MATCH_AND_RETURN_NODE.formatted(DEFAULT_ID_PROP));
         assertThat(records).hasSize(2);
         Record record = records.get(0);
         PathValue p = (PathValue) record.get("p");
         Path path = p.asPath();
         Node start = path.start();
-        assertNodeWithoutBaseEntityLabel(start);
+        assertNodeLabels(start, DEFAULT_LABEL);
         assertNodeProps(start, KEANU, DEFAULT_ID_PROP);
         Node end = path.end();
-        assertNodeWithoutBaseEntityLabel(end);
+        assertNodeLabels(end, DEFAULT_LABEL);
         assertNodeProps(end, MATRIX, DEFAULT_ID_PROP);
         Relationship rel = Iterables.single(path.relationships());
         assertThat(rel.type()).containsIgnoringCase(ACTED);
@@ -129,46 +203,28 @@ public abstract class Neo4jGraphConverterBaseTest {
         p = (PathValue) record.get("p");
         path = p.asPath();
         start = path.start();
-        assertNodeWithoutBaseEntityLabel(start);
+        assertNodeLabels(start, DEFAULT_LABEL);
         assertNodeProps(start, SYLVESTER, DEFAULT_ID_PROP);
         end = path.end();
-        assertNodeWithoutBaseEntityLabel(end);
+        assertNodeLabels(end, DEFAULT_LABEL);
         assertNodeProps(end, TABLE, DEFAULT_ID_PROP);
         rel = Iterables.single(path.relationships());
         assertThat(rel.type()).containsIgnoringCase(ON);
     }
 
-    @Test
-    void testAddGraphDocumentsWithCustomIdTextAndLabel() {
-        Neo4jGraph neo4jGraph = Neo4jGraph.builder()
-                .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
-                .textProperty(CUSTOM_TEXT)
-                .idProperty(CUSTOM_ID)
-                .label(CUSTOM_LABEL)
-                .build();
+    private static void addGraphDocumentsWithCustomIdTextAndLabelCommon() {
+        knowledgeGraphWriter.addGraphDocuments(graphDocs, false);
 
-        addGraphDocumentsWithCustomIdTextAndLabelCommon(neo4jGraph);
-
-        // retry to check that merge works correctly
-        addGraphDocumentsWithCustomIdTextAndLabelCommon(neo4jGraph);
-
-        neo4jGraph.executeWrite("MATCH (n) DETACH DELETE n");
-        neo4jGraph.close();
-    }
-
-    private static void addGraphDocumentsWithCustomIdTextAndLabelCommon(Neo4jGraph neo4jGraph) {
-        neo4jGraph.addGraphDocuments(graphDocs, false, false);
-
-        List<Record> records = neo4jGraph.executeRead(MATCH_P_RETURN_P.formatted(SANITIZED_CUSTOM_ID));
+        List<Record> records = neo4jGraph.executeRead(MATCH_AND_RETURN_NODE.formatted(SANITIZED_CUSTOM_ID));
         assertThat(records).hasSize(2);
         Record record = records.get(0);
         PathValue p = (PathValue) record.get("p");
         Path path = p.asPath();
         Node start = path.start();
-        assertNodeWithoutBaseEntityLabel(start);
+        assertNodeLabels(start, CUSTOM_LABEL);
         assertNodeProps(start, KEANU, CUSTOM_ID);
         Node end = path.end();
-        assertNodeWithoutBaseEntityLabel(end);
+        assertNodeLabels(end, CUSTOM_LABEL);
         assertNodeProps(end, MATRIX, CUSTOM_ID);
         Relationship rel = Iterables.single(path.relationships());
         assertThat(rel.type()).containsIgnoringCase(ACTED);
@@ -177,70 +233,21 @@ public abstract class Neo4jGraphConverterBaseTest {
         p = (PathValue) record.get("p");
         path = p.asPath();
         start = path.start();
-        assertNodeWithoutBaseEntityLabel(start);
+        assertNodeLabels(start, CUSTOM_LABEL);
         assertNodeProps(start, SYLVESTER, CUSTOM_ID);
         end = path.end();
-        assertNodeWithoutBaseEntityLabel(end);
+        assertNodeLabels(end, CUSTOM_LABEL);
         assertNodeProps(end, TABLE, CUSTOM_ID);
         rel = Iterables.single(path.relationships());
         assertThat(rel.type()).containsIgnoringCase(ON);
     }
 
-    @Test
-    void testAddGraphDocumentsWithBaseEntityLabel() {
-
-        addGraphDocumentsWithBaseEntityLabelCommon();
-
-        // retry to check that merge works correctly
-        addGraphDocumentsWithBaseEntityLabelCommon();
-    }
-
-    private static void addGraphDocumentsWithBaseEntityLabelCommon() {
+    private static void testWithIncludeSourceCommon(String relType) {
         // when
-        graph.addGraphDocuments(graphDocs, false, true);
+        knowledgeGraphWriter.addGraphDocuments(graphDocs, true);
 
         // then
-        List<Record> records = graph.executeRead(MATCH_P_RETURN_P.formatted(DEFAULT_ID_PROP));
-        assertThat(records).hasSize(2);
-        Record record = records.get(0);
-        PathValue p = (PathValue) record.get("p");
-        Path path = p.asPath();
-        Node start = path.start();
-        assertNodeWithBaseEntityLabel(start, DEFAULT_LABEL);
-        assertNodeProps(start, KEANU, DEFAULT_ID_PROP);
-        Node end = path.end();
-        assertNodeWithBaseEntityLabel(end, DEFAULT_LABEL);
-        assertNodeProps(end, MATRIX, DEFAULT_ID_PROP);
-        Relationship rel = Iterables.single(path.relationships());
-        assertThat(rel.type()).containsIgnoringCase(ACTED);
-
-        record = records.get(1);
-        p = (PathValue) record.get("p");
-        path = p.asPath();
-        start = path.start();
-        assertNodeWithBaseEntityLabel(start, DEFAULT_LABEL);
-        assertNodeProps(start, SYLVESTER, DEFAULT_ID_PROP);
-        end = path.end();
-        assertNodeWithBaseEntityLabel(end, DEFAULT_LABEL);
-        assertNodeProps(end, TABLE, DEFAULT_ID_PROP);
-        rel = Iterables.single(path.relationships());
-        assertThat(rel.type()).containsIgnoringCase(ON);
-    }
-
-    @Test
-    void testAddGraphDocumentsWithBaseEntityLabelAndIncludeSource() {
-        testWithBaseEntityLabelAndIncludeSourceCommon();
-
-        // retry to check that merge works correctly
-        testWithBaseEntityLabelAndIncludeSourceCommon();
-    }
-
-    private static void testWithBaseEntityLabelAndIncludeSourceCommon() {
-        // when
-        graph.addGraphDocuments(graphDocs, true, true);
-
-        // then
-        List<Record> records = graph.executeRead(MATCH_P_DOCUMENT_MENTIONS_RETURN_P.formatted(DEFAULT_ID_PROP));
+        List<Record> records = neo4jGraph.executeRead(MATCH_WITH_DOCUMENT_RETURN_NODE.formatted(DEFAULT_ID_PROP));
         assertThat(records).hasSize(2);
         Record record = records.get(0);
         PathValue p = (PathValue) record.get("p");
@@ -251,14 +258,15 @@ public abstract class Neo4jGraphConverterBaseTest {
         assertionsDocument(node, DEFAULT_ID_PROP, DEFAULT_TEXT_PROP, KEANU_REEVES_ACTED, KEY_KEANU, VALUE_KEANU);
 
         node = iterator.next();
-        assertNodeWithBaseEntityLabel(node, DEFAULT_LABEL);
+        assertNodeLabels(node, DEFAULT_LABEL);
         assertNodeProps(node, KEANU, DEFAULT_ID_PROP);
 
         node = iterator.next();
-        assertNodeWithBaseEntityLabel(node, DEFAULT_LABEL);
+        assertNodeLabels(node, DEFAULT_LABEL);
         assertNodeProps(node, MATRIX, DEFAULT_ID_PROP);
         List<Relationship> rels = Iterables.asList(path.relationships());
         assertThat(rels).hasSize(2);
+        assertThat(rels.get(0).type()).containsIgnoringCase(relType);
         assertThat(rels.get(1).type()).containsIgnoringCase(ACTED);
 
         record = records.get(1);
@@ -270,40 +278,22 @@ public abstract class Neo4jGraphConverterBaseTest {
         assertionsDocument(node, DEFAULT_ID_PROP, DEFAULT_TEXT_PROP, CAT_ON_THE_TABLE, KEY_CAT, VALUE_CAT);
 
         node = iterator.next();
-        assertNodeWithBaseEntityLabel(node, DEFAULT_LABEL);
+        assertNodeLabels(node, DEFAULT_LABEL);
         assertNodeProps(node, SYLVESTER, DEFAULT_ID_PROP);
 
         node = iterator.next();
-        assertNodeWithBaseEntityLabel(node, DEFAULT_LABEL);
+        assertNodeLabels(node, DEFAULT_LABEL);
         assertNodeProps(node, TABLE, DEFAULT_ID_PROP);
         rels = Iterables.asList(path.relationships());
         assertThat(rels).hasSize(2);
+        assertThat(rels.get(0).type()).containsIgnoringCase(relType);
         assertThat(rels.get(1).type()).containsIgnoringCase(ON);
     }
 
-    @Test
-    void testAddGraphDocumentsWithBaseEntityLabelIncludeSourceAndCustomIdTextAndLabel() {
+    private static void testWithIncludeSourceAndCustomIdTextAndLabelCommon(String relType) {
+        knowledgeGraphWriter.addGraphDocuments(graphDocs, true);
 
-        Neo4jGraph neo4jGraph = Neo4jGraph.builder()
-                .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
-                .textProperty(CUSTOM_TEXT)
-                .idProperty(CUSTOM_ID)
-                .label(CUSTOM_LABEL)
-                .build();
-
-        baseEntityLabelIncludeSourceAndCustomIdTextAndLabelCommon(neo4jGraph);
-
-        // retry to check that merge works correctly
-        baseEntityLabelIncludeSourceAndCustomIdTextAndLabelCommon(neo4jGraph);
-
-        neo4jGraph.executeWrite("MATCH (n) DETACH DELETE n");
-        neo4jGraph.close();
-    }
-
-    private static void baseEntityLabelIncludeSourceAndCustomIdTextAndLabelCommon(Neo4jGraph neo4jGraph) {
-        neo4jGraph.addGraphDocuments(graphDocs, true, true);
-
-        List<Record> records = graph.executeRead(MATCH_P_DOCUMENT_MENTIONS_RETURN_P.formatted(SANITIZED_CUSTOM_ID));
+        List<Record> records = neo4jGraph.executeRead(MATCH_WITH_DOCUMENT_RETURN_NODE.formatted(SANITIZED_CUSTOM_ID));
         assertThat(records).hasSize(2);
         Record record = records.get(0);
         PathValue p = (PathValue) record.get("p");
@@ -314,14 +304,15 @@ public abstract class Neo4jGraphConverterBaseTest {
         assertionsDocument(node, CUSTOM_ID, CUSTOM_TEXT, KEANU_REEVES_ACTED, KEY_KEANU, VALUE_KEANU);
 
         node = iterator.next();
-        assertNodeWithBaseEntityLabel(node, CUSTOM_LABEL);
+        assertNodeLabels(node, CUSTOM_LABEL);
         assertNodeProps(node, KEANU, CUSTOM_ID);
 
         node = iterator.next();
-        assertNodeWithBaseEntityLabel(node, CUSTOM_LABEL);
+        assertNodeLabels(node, CUSTOM_LABEL);
         assertNodeProps(node, MATRIX, CUSTOM_ID);
         List<Relationship> rels = Iterables.asList(path.relationships());
         assertThat(rels).hasSize(2);
+        assertThat(rels.get(0).type()).containsIgnoringCase(relType);
         assertThat(rels.get(1).type()).containsIgnoringCase(ACTED);
 
         record = records.get(1);
@@ -333,77 +324,19 @@ public abstract class Neo4jGraphConverterBaseTest {
         assertionsDocument(node, CUSTOM_ID, CUSTOM_TEXT, CAT_ON_THE_TABLE, KEY_CAT, VALUE_CAT);
 
         node = iterator.next();
-        assertNodeWithBaseEntityLabel(node, CUSTOM_LABEL);
+        assertNodeLabels(node, CUSTOM_LABEL);
         assertNodeProps(node, SYLVESTER, CUSTOM_ID);
 
         node = iterator.next();
-        assertNodeWithBaseEntityLabel(node, CUSTOM_LABEL);
+        assertNodeLabels(node, CUSTOM_LABEL);
         assertNodeProps(node, TABLE, CUSTOM_ID);
         rels = Iterables.asList(path.relationships());
         assertThat(rels).hasSize(2);
+        assertThat(rels.get(0).type()).containsIgnoringCase(relType);
         assertThat(rels.get(1).type()).containsIgnoringCase(ON);
     }
 
-    @Test
-    void testAddGraphDocumentsWithIncludeSource() {
-        testAddGraphDocumentsWithIncludeSourceCommon();
-
-        // retry to check that merge works correctly
-        testAddGraphDocumentsWithIncludeSourceCommon();
-    }
-
-    private static void testAddGraphDocumentsWithIncludeSourceCommon() {
-        // when
-        graph.addGraphDocuments(graphDocs, true, false);
-
-        // then
-        List<Record> records = graph.executeRead(MATCH_P_DOCUMENT_MENTIONS_RETURN_P.formatted(DEFAULT_ID_PROP));
-        assertThat(records).hasSize(2);
-        Record record = records.get(0);
-
-        Path path = record.get("p").asPath();
-        Iterator<Node> iterator = path.nodes().iterator();
-        Node node = iterator.next();
-        assertThat(node.labels()).hasSize(1);
-        assertionsDocument(node, DEFAULT_ID_PROP, DEFAULT_TEXT_PROP, KEANU_REEVES_ACTED, KEY_KEANU, VALUE_KEANU);
-
-        node = iterator.next();
-        assertNodeWithoutBaseEntityLabel(node);
-        assertNodeProps(node, KEANU, DEFAULT_ID_PROP);
-
-        node = iterator.next();
-        assertNodeWithoutBaseEntityLabel(node);
-        assertNodeProps(node, MATRIX, DEFAULT_ID_PROP);
-        List<Relationship> rels = Iterables.asList(path.relationships());
-        assertThat(rels).hasSize(2);
-
-        record = records.get(1);
-
-        path = record.get("p").asPath();
-        iterator = path.nodes().iterator();
-        node = iterator.next();
-        assertThat(node.labels()).hasSize(1);
-        assertionsDocument(node, DEFAULT_ID_PROP, DEFAULT_TEXT_PROP, CAT_ON_THE_TABLE, KEY_CAT, VALUE_CAT);
-
-        node = iterator.next();
-        assertNodeWithoutBaseEntityLabel(node);
-        assertNodeProps(node, SYLVESTER, DEFAULT_ID_PROP);
-
-        node = iterator.next();
-        assertNodeWithoutBaseEntityLabel(node);
-        assertNodeProps(node, TABLE, DEFAULT_ID_PROP);
-        rels = Iterables.asList(path.relationships());
-        assertThat(rels).hasSize(2);
-        assertThat(rels.get(1).type()).containsIgnoringCase(ON);
-    }
-
-    private static void assertNodeWithoutBaseEntityLabel(Node start) {
-        Iterable<String> labels = start.labels();
-        assertThat(labels).hasSize(1);
-        assertThat(labels).doesNotContain(DEFAULT_LABEL);
-    }
-
-    private static void assertNodeWithBaseEntityLabel(Node start, String entityLabel) {
+    private static void assertNodeLabels(Node start, String entityLabel) {
         Iterable<String> labels = start.labels();
         assertThat(labels).hasSize(2);
         assertThat(labels).contains(entityLabel);

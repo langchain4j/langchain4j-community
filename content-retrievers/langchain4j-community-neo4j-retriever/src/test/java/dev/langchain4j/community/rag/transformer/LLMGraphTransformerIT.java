@@ -9,7 +9,7 @@ import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class LLMGraphTransformerIT {
 
-    private static ChatLanguageModel model;
+    private static ChatModel model;
 
     @BeforeAll
     static void beforeAll() {
@@ -42,7 +42,7 @@ class LLMGraphTransformerIT {
             LLMGraphTransformer.builder().build();
             fail();
         } catch (Exception e) {
-            assertThat(e.getMessage()).contains("ChatLanguageModel is required");
+            assertThat(e.getMessage()).contains("ChatModel is required");
         }
     }
 

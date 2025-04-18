@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
@@ -21,7 +21,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     private Neo4jText2CypherRetriever retriever;
 
     @Mock
-    private ChatLanguageModel chatLanguageModel;
+    private ChatModel chatLanguageModel;
 
     @BeforeEach
     void beforeEach() {
