@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import java.time.Duration;
 import java.util.Base64;
@@ -21,7 +21,7 @@ class XinferenceVisionModelIT extends AbstractXinferenceVisionModelInfrastructur
     final String DICE_IMAGE_URL =
             "https://img2.baidu.com/it/u=2780516711,2309358387&fm=253&fmt=auto&app=138&f=JPEG?w=450&h=332";
 
-    ChatLanguageModel vlModel = XinferenceChatModel.builder()
+    ChatModel vlModel = XinferenceChatModel.builder()
             .baseUrl(baseUrl())
             .apiKey(apiKey())
             .modelName(modelName())
