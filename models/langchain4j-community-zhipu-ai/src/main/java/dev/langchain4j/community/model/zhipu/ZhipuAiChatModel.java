@@ -21,7 +21,7 @@ import dev.langchain4j.community.model.zhipu.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.zhipu.spi.ZhipuAiChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.internal.ValidationUtils;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * Represents an ZhipuAi language model with a chat completion interface, such as glm-3-turbo and glm-4.
  * You can find description of parameters <a href="https://open.bigmodel.cn/dev/api">here</a>.
  */
-public class ZhipuAiChatModel implements ChatLanguageModel {
+public class ZhipuAiChatModel implements ChatModel {
 
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiChatModel.class);
 

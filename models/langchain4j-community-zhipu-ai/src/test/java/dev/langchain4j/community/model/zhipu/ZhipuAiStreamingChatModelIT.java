@@ -19,7 +19,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -99,7 +99,7 @@ public class ZhipuAiStreamingChatModelIT {
             }
         };
 
-        StreamingChatLanguageModel model = ZhipuAiStreamingChatModel.builder()
+        StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
@@ -267,7 +267,7 @@ public class ZhipuAiStreamingChatModelIT {
         double topP = 0.7;
         int maxTokens = 7;
 
-        StreamingChatLanguageModel model = ZhipuAiStreamingChatModel.builder()
+        StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .temperature(temperature)
                 .topP(topP)
@@ -344,7 +344,7 @@ public class ZhipuAiStreamingChatModelIT {
             }
         };
 
-        StreamingChatLanguageModel model = ZhipuAiStreamingChatModel.builder()
+        StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
@@ -388,7 +388,7 @@ public class ZhipuAiStreamingChatModelIT {
 
     @Test
     public void should_send_multimodal_image_data_and_receive_response() {
-        StreamingChatLanguageModel model = ZhipuAiStreamingChatModel.builder()
+        StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)
                 .callTimeout(Duration.ofSeconds(60))

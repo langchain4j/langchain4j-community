@@ -20,13 +20,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
-class QwenTokenizerIT {
+class QwenTokenCountEstimatorIT {
 
-    private QwenTokenizer tokenizer;
+    private QwenTokenCountEstimator tokenCountEstimator;
 
     @BeforeEach
     void setUp() {
-        tokenizer = QwenTokenizer.builder()
+        tokenCountEstimator = QwenTokenCountEstimator.builder()
                 .apiKey(apiKey())
                 .modelName(QwenModelName.QWEN_PLUS)
                 .build();
@@ -35,7 +35,7 @@ class QwenTokenizerIT {
     @ParameterizedTest
     @MethodSource
     void should_count_tokens_in_messages(List<ChatMessage> messages, int expectedTokenCount) {
-        int tokenCount = tokenizer.estimateTokenCountInMessages(messages);
+        int tokenCount = tokenCountEstimator.estimateTokenCountInMessages(messages);
         assertThat(tokenCount).isEqualTo(expectedTokenCount);
     }
 
@@ -48,53 +48,55 @@ class QwenTokenizerIT {
 
     @Test
     void should_count_tokens_in_short_texts() {
-        assertThat(tokenizer.estimateTokenCountInText("Hello")).isEqualTo(1);
-        assertThat(tokenizer.estimateTokenCountInText("Hello!")).isEqualTo(2);
-        assertThat(tokenizer.estimateTokenCountInText("Hello, how are you?")).isEqualTo(6);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("Hello")).isEqualTo(1);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("Hello!")).isEqualTo(2);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("Hello, how are you?"))
+                .isEqualTo(6);
 
-        assertThat(tokenizer.estimateTokenCountInText("")).isEqualTo(0);
-        assertThat(tokenizer.estimateTokenCountInText("\n")).isEqualTo(1);
-        assertThat(tokenizer.estimateTokenCountInText("\n\n")).isEqualTo(1);
-        assertThat(tokenizer.estimateTokenCountInText("\n \n\n")).isEqualTo(2);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("")).isEqualTo(0);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("\n")).isEqualTo(1);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("\n\n")).isEqualTo(1);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("\n \n\n")).isEqualTo(2);
     }
 
     @Test
     void should_count_tokens_in_short_texts_by_customized_request() {
-        tokenizer.setGenerationParamCustomizer(generationParamBuilder -> {
+        tokenCountEstimator.setGenerationParamCustomizer(generationParamBuilder -> {
             generationParamBuilder.prompt("{placeholder}");
         });
 
-        assertThat(tokenizer.estimateTokenCountInText("")).isPositive();
+        assertThat(tokenCountEstimator.estimateTokenCountInText("")).isPositive();
     }
 
     @Test
     void should_count_tokens_in_average_text() {
         String text1 = "Hello, how are you doing? What do you want to talk about?";
-        assertThat(tokenizer.estimateTokenCountInText(text1)).isEqualTo(15);
+        assertThat(tokenCountEstimator.estimateTokenCountInText(text1)).isEqualTo(15);
 
         String text2 = String.join(" ", repeat("Hello, how are you doing? What do you want to talk about?", 2));
-        assertThat(tokenizer.estimateTokenCountInText(text2)).isEqualTo(2 * 15);
+        assertThat(tokenCountEstimator.estimateTokenCountInText(text2)).isEqualTo(2 * 15);
 
         String text3 = String.join(" ", repeat("Hello, how are you doing? What do you want to talk about?", 3));
-        assertThat(tokenizer.estimateTokenCountInText(text3)).isEqualTo(3 * 15);
+        assertThat(tokenCountEstimator.estimateTokenCountInText(text3)).isEqualTo(3 * 15);
     }
 
     @Test
     void should_count_tokens_in_large_text() {
         String text1 = String.join(" ", repeat("Hello, how are you doing? What do you want to talk about?", 10));
-        assertThat(tokenizer.estimateTokenCountInText(text1)).isEqualTo(10 * 15);
+        assertThat(tokenCountEstimator.estimateTokenCountInText(text1)).isEqualTo(10 * 15);
 
         String text2 = String.join(" ", repeat("Hello, how are you doing? What do you want to talk about?", 50));
-        assertThat(tokenizer.estimateTokenCountInText(text2)).isEqualTo(50 * 15);
+        assertThat(tokenCountEstimator.estimateTokenCountInText(text2)).isEqualTo(50 * 15);
 
         String text3 = String.join(" ", repeat("Hello, how are you doing? What do you want to talk about?", 100));
-        assertThat(tokenizer.estimateTokenCountInText(text3)).isEqualTo(100 * 15);
+        assertThat(tokenCountEstimator.estimateTokenCountInText(text3)).isEqualTo(100 * 15);
     }
 
     @Test
     void should_count_empty_messages_and_return_0() {
-        assertThat(tokenizer.estimateTokenCountInMessages(null)).isZero();
-        assertThat(tokenizer.estimateTokenCountInMessages(emptyList())).isZero();
+        assertThat(tokenCountEstimator.estimateTokenCountInMessages(null)).isZero();
+        assertThat(tokenCountEstimator.estimateTokenCountInMessages(emptyList()))
+                .isZero();
     }
 
     public static List<String> repeat(String s, int n) {
