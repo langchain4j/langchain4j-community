@@ -1,5 +1,6 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.community.rag.transformer.Neo4jUtils.getBacktickText;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
@@ -11,8 +12,6 @@ import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.types.Type;
 import org.neo4j.driver.types.TypeSystem;
@@ -36,7 +35,6 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                     The question is: {{question}}
                     """);
 
-    private static final Pattern BACKTICKS_PATTERN = Pattern.compile("```(.*?)```", Pattern.MULTILINE | Pattern.DOTALL);
     private static final Type NODE = TypeSystem.getDefault().NODE();
     private static final Type RELATIONSHIP = TypeSystem.getDefault().RELATIONSHIP();
     private static final Type PATH = TypeSystem.getDefault().PATH();
@@ -49,10 +47,13 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private final List<String> examples;
 
     public Neo4jText2CypherRetriever(
-            Neo4jGraph graph, ChatModel ChatModel, PromptTemplate promptTemplate, List<String> examples) {
+            Neo4jGraph graph,
+            ChatModel chatModel,
+            PromptTemplate promptTemplate,
+            List<String> examples) {
 
         this.graph = ensureNotNull(graph, "graph");
-        this.chatModel = ensureNotNull(ChatModel, "chatModel");
+        this.chatModel = ensureNotNull(chatModel, "chatModel");
         this.promptTemplate = getOrDefault(promptTemplate, DEFAULT_PROMPT_TEMPLATE);
         this.examples = getOrDefault(examples, List.of());
     }
@@ -97,11 +98,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                 Map.of("schema", schema, "question", question, "examples", examplesString);
         Prompt cypherPrompt = promptTemplate.apply(templateVariables);
         String cypherQuery = chatModel.chat(cypherPrompt.text());
-        Matcher matcher = BACKTICKS_PATTERN.matcher(cypherQuery);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return cypherQuery;
+        return getBacktickText(cypherQuery);
     }
 
     private List<String> executeQuery(String cypherQuery) {

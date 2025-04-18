@@ -13,6 +13,7 @@
 
     <properties>
         <neo4j.version>1.2.0</neo4j.version>
+        <neo4j.cypher.dsl.version>2023.7.0</neo4j.cypher.dsl.version>
     </properties>
 
     <dependencies>
@@ -31,7 +32,7 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-dsl-schema-name-support</artifactId>
-            <version>2023.7.0</version>
+            <version>${neo4j.cypher.dsl.version}</version>
         </dependency>
 
         <!-- test dependencies -->

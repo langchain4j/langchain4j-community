@@ -69,6 +69,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- graph transformer dependencies -->
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-dsl-schema-name-support</artifactId>
+            <version>2023.7.0</version>
+        </dependency>
+
     </dependencies>
 
 </project>

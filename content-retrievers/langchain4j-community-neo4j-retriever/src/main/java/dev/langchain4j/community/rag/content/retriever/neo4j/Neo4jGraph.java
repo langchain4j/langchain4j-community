@@ -4,7 +4,9 @@ import dev.langchain4j.internal.ValidationUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Value;
@@ -21,6 +23,18 @@ public class Neo4jGraph implements AutoCloseable {
          */
         Builder driver(Driver driver) {
             this.driver = driver;
+            return this;
+        }
+
+        /**
+         * Creates an instance a {@link Driver}, starting from uri, user and password
+         *
+         * @param uri      the Bolt URI to a Neo4j instance
+         * @param user     the Neo4j instance's username
+         * @param password the Neo4j instance's password
+         */
+        public Builder withBasicAuth(String uri, String user, String password) {
+            this.driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
             return this;
         }
 
@@ -57,11 +71,9 @@ public class Neo4jGraph implements AutoCloseable {
                     """;
 
     private final Driver driver;
-
     private String schema;
 
     public Neo4jGraph(final Driver driver) {
-
         this.driver = ValidationUtils.ensureNotNull(driver, "driver");
         this.driver.verifyConnectivity();
         try {
@@ -83,9 +95,13 @@ public class Neo4jGraph implements AutoCloseable {
     }
 
     public ResultSummary executeWrite(String queryString) {
+        return executeWrite(queryString, Map.of());
+    }
+
+    public ResultSummary executeWrite(String queryString, Map<String, Object> params) {
 
         try (Session session = this.driver.session()) {
-            return session.executeWrite(tx -> tx.run(queryString).consume());
+            return session.executeWrite(tx -> tx.run(queryString, params).consume());
         } catch (ClientException e) {
             throw new Neo4jException("Error executing query: " + queryString, e);
         }
