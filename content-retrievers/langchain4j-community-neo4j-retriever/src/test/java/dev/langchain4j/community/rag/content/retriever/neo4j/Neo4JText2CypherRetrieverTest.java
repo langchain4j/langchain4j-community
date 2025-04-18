@@ -7,6 +7,8 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.rag.content.Content;
@@ -234,18 +236,25 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     void shouldRetrieveContentWithExample() {
         // Given
         Query query = new Query("Who is the author of the book 'Dune'?");
-        when(chatModel.chat((String) argThat(arg -> {
-                    final String argString = (String) arg;
-                    return argString != null && argString.contains("Cypher examples:");
+        when(chatModel.chat((List<ChatMessage>) argThat(arg -> {
+                    final List<ChatMessage> argString = (List<ChatMessage>) arg;
+                    return argString != null
+                            && argString.stream()
+                                    .anyMatch(
+                                            i -> ((UserMessage) i).singleText().contains("Cypher examples:"));
                 })))
                 .thenReturn(
-                        "```MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output```");
+                        getChatResponse(
+                                "```MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output```"));
 
-        when(chatModel.chat((String) argThat(arg -> {
-                    final String argString = (String) arg;
-                    return argString != null && !argString.contains("Cypher examples:");
+        when(chatModel.chat((List<ChatMessage>) argThat(arg -> {
+                    final List<ChatMessage> argString = (List<ChatMessage>) arg;
+                    return argString != null
+                            && argString.stream()
+                                    .noneMatch(
+                                            i -> ((UserMessage) i).singleText().contains("Cypher examples:"));
                 })))
-                .thenReturn("```MATCH(author:NotExisting) RETURN author.name AS output```");
+                .thenReturn(getChatResponse("```MATCH(author:NotExisting) RETURN author.name AS output```"));
 
         // When
         final Neo4jText2CypherRetriever retrieverWithoutExamples = Neo4jText2CypherRetriever.builder()

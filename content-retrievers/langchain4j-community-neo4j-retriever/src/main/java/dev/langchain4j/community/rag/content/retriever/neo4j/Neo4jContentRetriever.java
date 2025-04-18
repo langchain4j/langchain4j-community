@@ -10,7 +10,7 @@ import dev.langchain4j.model.input.PromptTemplate;
 public class Neo4jContentRetriever extends Neo4jText2CypherRetriever {
 
     public Neo4jContentRetriever(Neo4jGraph graph, ChatModel chatModel, PromptTemplate promptTemplate) {
-        super(graph, chatModel, promptTemplate, null, 3);
+        super(graph, chatModel, promptTemplate, null);
     }
 
     public static Builder builder() {

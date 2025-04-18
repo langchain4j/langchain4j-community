@@ -7,7 +7,6 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -52,6 +51,11 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private final PromptTemplate promptTemplate;
     private final int maxRetries;
     private final List<String> examples;
+
+    public Neo4jText2CypherRetriever(
+            Neo4jGraph graph, ChatModel chatModel, PromptTemplate promptTemplate, List<String> examples) {
+        this(graph, chatModel, promptTemplate, examples, 3);
+    }
 
     public Neo4jText2CypherRetriever(
             Neo4jGraph graph,
@@ -152,15 +156,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     private String generateCypherQuery(List<ChatMessage> messages) {
 
-        String examplesString = "";
-        if (!this.examples.isEmpty()) {
-            final String exampleJoin = String.join("\n", this.examples);
-            examplesString = String.format("Cypher examples: \n%s\n", exampleJoin);
-        }
-        final Map<String, Object> templateVariables =
-                Map.of("schema", schema, "question", question, "examples", examplesString);
-        Prompt cypherPrompt = promptTemplate.apply(templateVariables);
-        String cypherQuery = chatModel.chat(cypherPrompt.text());
+        String cypherQuery = chatModel.chat(messages).aiMessage().text();
         Matcher matcher = BACKTICKS_PATTERN.matcher(cypherQuery);
         if (matcher.find()) {
             cypherQuery = matcher.group(1);
