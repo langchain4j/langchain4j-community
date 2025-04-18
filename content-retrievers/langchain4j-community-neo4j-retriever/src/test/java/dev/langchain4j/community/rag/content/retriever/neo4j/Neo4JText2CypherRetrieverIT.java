@@ -3,7 +3,8 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.internal.RetryUtils;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
@@ -16,7 +17,7 @@ import org.neo4j.driver.Session;
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
 
-    private static final ChatLanguageModel OPEN_AI_CHAT_MODEL = OpenAiChatModel.builder()
+    private static final ChatModel OPEN_AI_CHAT_MODEL = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
             .apiKey(System.getenv("OPENAI_API_KEY"))
             .organizationId(System.getenv("OPENAI_ORGANIZATION_ID"))
@@ -31,7 +32,7 @@ class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
         // With
         Neo4jText2CypherRetriever neo4jContentRetriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
-                .chatLanguageModel(OPEN_AI_CHAT_MODEL)
+                .chatModel(OPEN_AI_CHAT_MODEL)
                 .build();
 
         // Given
@@ -45,26 +46,73 @@ class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
     }
 
     @Test
-    void shouldRetrieveContentWhenQueryIsValidAndOpenAiChatModelIsUsed1() {
+    void shouldRetrieveContentWhenQueryIsValidAndOpenAiChatModelIsUsedWithExamples() {
         try (Session session = driver.session()) {
             createConstraints(session);
             loadCSVData(session);
         }
 
         // With
-        Neo4jText2CypherRetriever neo4jContentRetriever = Neo4jText2CypherRetriever.builder()
-                .graph(graph)
-                .chatLanguageModel(OPEN_AI_CHAT_MODEL)
+        ChatModel openAiChatModel = OpenAiChatModel.builder()
+                .baseUrl(System.getenv("OPENAI_BASE_URL"))
+                .apiKey(System.getenv("OPENAI_API_KEY"))
+                .organizationId(System.getenv("OPENAI_ORGANIZATION_ID"))
+                .modelName(GPT_4_O_MINI)
+                .logRequests(true)
+                .logResponses(true)
                 .build();
 
-        // Given
-        Query query = new Query("Which customers are from Germany?");
+        List<String> examples = List.of(
+                """
+            # Which streamer has the most followers?
+            MATCH (s:Stream)
+            RETURN s.name AS streamer
+            ORDER BY s.followers DESC LIMIT 1
+            """,
+                """
+            # How many streamers are from Norway?
+            MATCH (s:Stream)-[:HAS_LANGUAGE]->(:Language {{name: 'Norwegian'}})
+            RETURN count(s) AS streamers
+            Note: Do not include any explanations or apologies in your responses.
+            Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
+            Do not include any text except the generated Cypher statement.
+            """);
+        final String textQuery = "Which streamer from Italy has the most followers?";
+        Query query = new Query(textQuery);
+
+        Neo4jText2CypherRetriever neo4jContentRetrieverWithoutExample = Neo4jText2CypherRetriever.builder()
+                .graph(graph)
+                .chatModel(openAiChatModel)
+                .build();
+        List<Content> contentsWithoutExample = neo4jContentRetrieverWithoutExample.retrieve(query);
+        assertThat(contentsWithoutExample).isEmpty();
 
         // When
-        List<Content> contents = neo4jContentRetriever.retrieve(query);
+        Neo4jText2CypherRetriever neo4jContentRetriever = Neo4jText2CypherRetriever.builder()
+                .graph(graph)
+                .chatModel(OPEN_AI_CHAT_MODEL)
+                .examples(examples)
+                .build();
 
         // Then
-        assertThat(contents).hasSize(1);
+        // retry mechanism since the result is not deterministic
+        final String text = RetryUtils.withRetry(
+                () -> {
+                    List<Content> contents = neo4jContentRetriever.retrieve(query);
+                    assertThat(contents).hasSize(1);
+                    return contents.get(0).textSegment().text();
+                },
+                5);
+
+        // check validity of the response
+        final String name = driver.session()
+                .run(
+                        "MATCH (s:Stream)-[:HAS_LANGUAGE]->(l:Language {name: 'Italian'}) RETURN s.name ORDER BY s.followers DESC LIMIT 1")
+                .single()
+                .values()
+                .get(0)
+                .toString();
+        assertThat(text).isEqualTo(name);
     }
 
     private static void createConstraints(Session session) {

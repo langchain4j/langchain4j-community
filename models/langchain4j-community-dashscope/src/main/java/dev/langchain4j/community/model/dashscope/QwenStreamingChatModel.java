@@ -29,7 +29,7 @@ import com.alibaba.dashscope.protocol.Protocol;
 import dev.langchain4j.community.model.dashscope.spi.QwenStreamingChatModelBuilderFactory;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -45,7 +45,7 @@ import java.util.function.Consumer;
  * <br>
  * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details">here</a>
  */
-public class QwenStreamingChatModel implements StreamingChatLanguageModel {
+public class QwenStreamingChatModel implements StreamingChatModel {
     private final QwenChatRequestParameters defaultRequestParameters;
     private final String apiKey;
     private final Generation generation;
