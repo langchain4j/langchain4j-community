@@ -1,5 +1,30 @@
 package dev.langchain4j.community.model.dashscope;
 
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.common.AbstractChatModelIT;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.TokenUsage;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
@@ -17,30 +42,6 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.common.AbstractChatModelIT;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.output.TokenUsage;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenChatModelIT extends AbstractChatModelIT {
@@ -67,7 +68,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         ChatResponse response = model.chat(QwenTestHelper.chatMessages());
 
         // it should generate "rain" but is stopped
-        assertThat(response.aiMessage().text()).doesNotContain("rain");
+        assertThat(response.aiMessage().text()).doesNotContainIgnoringCase("rain");
     }
 
     @ParameterizedTest
@@ -319,14 +320,13 @@ class QwenChatModelIT extends AbstractChatModelIT {
         // current round.
 
         messages.add(SystemMessage.from("System message 1, which should be discarded"));
-        messages.add(UserMessage.from("User message 1, which should be discarded"));
         messages.add(SystemMessage.from("System message 2"));
 
         messages.add(AiMessage.from("AI message 1, which should be discarded"));
         messages.add(ToolExecutionResultMessage.from(
                 toolExecutionRequest, "Tool execution result 1, which should be discards"));
-        messages.add(UserMessage.from("User message 2, which should be discarded"));
-        messages.add(UserMessage.from("User message 3"));
+        messages.add(UserMessage.from("User message 1, which should be discarded"));
+        messages.add(UserMessage.from("User message 2"));
 
         messages.add(AiMessage.from("AI message 2, which should be discarded"));
         messages.add(AiMessage.from(
@@ -361,7 +361,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(((SystemMessage) sanitizedMessages.get(0)).text()).isEqualTo("System message 2");
 
         assertThat(sanitizedMessages.get(1)).isInstanceOf(UserMessage.class);
-        assertThat(((UserMessage) sanitizedMessages.get(1)).singleText()).isEqualTo("User message 3");
+        assertThat(((UserMessage) sanitizedMessages.get(1)).singleText()).isEqualTo("User message 2");
 
         assertThat(sanitizedMessages.get(2)).isInstanceOf(AiMessage.class);
         assertThat(((AiMessage) sanitizedMessages.get(2)).text()).isEqualTo("AI message 3, a tool execution request");

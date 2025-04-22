@@ -1,22 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
-import static dev.langchain4j.data.message.ChatMessageType.AI;
-import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
-import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
-import static dev.langchain4j.data.message.ChatMessageType.USER;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
-import static dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper.toMap;
-import static dev.langchain4j.model.output.FinishReason.LENGTH;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.Objects.isNull;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-
 import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationOutput.Choice;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
@@ -59,6 +42,9 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,8 +55,23 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.data.message.ChatMessageType.AI;
+import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
+import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
+import static dev.langchain4j.data.message.ChatMessageType.USER;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
+import static dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper.toMap;
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.Objects.isNull;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 class QwenHelper {
 
@@ -438,9 +439,11 @@ class QwenHelper {
             }
 
             if (type == SYSTEM) {
-                log.warn("The system message should be the first message. Drop existed messages: {}", acc);
-                acc.clear();
-                acc.add(message);
+                if (acc.getFirst().type() == SYSTEM) {
+                    log.warn("Drop existed system message: {}", acc);
+                    acc.removeFirst();
+                }
+                acc.addFirst(message);
                 return acc;
             }
 

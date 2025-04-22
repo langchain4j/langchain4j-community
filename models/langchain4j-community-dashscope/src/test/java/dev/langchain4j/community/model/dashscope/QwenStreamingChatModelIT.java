@@ -78,7 +78,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         ChatResponse response = handler.get();
 
         // it should chat "rain" but is stopped
-        assertThat(response.aiMessage().text()).doesNotContain("rain");
+        assertThat(response.aiMessage().text()).doesNotContainIgnoringCase("rain");
     }
 
     @ParameterizedTest
