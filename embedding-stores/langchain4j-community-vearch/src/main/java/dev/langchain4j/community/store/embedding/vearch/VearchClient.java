@@ -55,7 +55,7 @@ class VearchClient {
 
         HttpRequest httpRequest = HttpRequest.builder()
                 .method(GET)
-                .url(baseUrl + "dbs")
+                .url(baseUrl, "dbs")
                 .addHeader("Content-Type", "application/json")
                 .addHeaders(defaultHeaders)
                 .build();
@@ -75,7 +75,7 @@ class VearchClient {
 
         HttpRequest httpRequest = HttpRequest.builder()
                 .method(POST)
-                .url(baseUrl + String.format("dbs/%s", databaseName))
+                .url(baseUrl, String.format("dbs/%s", databaseName))
                 .addHeader("Content-Type", "application/json")
                 .addHeaders(defaultHeaders)
                 .build();
@@ -95,7 +95,7 @@ class VearchClient {
 
         HttpRequest httpRequest = HttpRequest.builder()
                 .method(GET)
-                .url(baseUrl + String.format("dbs/%s/spaces", dbName))
+                .url(baseUrl, String.format("dbs/%s/spaces", dbName))
                 .addHeader("Content-Type", "application/json")
                 .addHeaders(defaultHeaders)
                 .build();
@@ -115,7 +115,7 @@ class VearchClient {
 
         HttpRequest httpRequest = HttpRequest.builder()
                 .method(POST)
-                .url(baseUrl + String.format("dbs/%s/spaces", dbName))
+                .url(baseUrl, String.format("dbs/%s/spaces", dbName))
                 .body(toJson(request))
                 .addHeader("Content-Type", "application/json")
                 .addHeaders(defaultHeaders)
@@ -136,7 +136,7 @@ class VearchClient {
 
         HttpRequest httpRequest = HttpRequest.builder()
                 .method(POST)
-                .url(baseUrl + "document/upsert")
+                .url(baseUrl, "document/upsert")
                 .body(toJson(request))
                 .addHeader("Content-Type", "application/json")
                 .addHeaders(defaultHeaders)
@@ -155,7 +155,7 @@ class VearchClient {
 
         HttpRequest httpRequest = HttpRequest.builder()
                 .method(POST)
-                .url(baseUrl + "document/search")
+                .url(baseUrl, "document/search")
                 .body(toJson(request))
                 .addHeader("Content-Type", "application/json")
                 .addHeaders(defaultHeaders)
@@ -175,7 +175,7 @@ class VearchClient {
     public void deleteSpace(String databaseName, String spaceName) {
         HttpRequest httpRequest = HttpRequest.builder()
                 .method(DELETE)
-                .url(baseUrl + String.format("dbs/%s/spaces/%s", databaseName, spaceName))
+                .url(baseUrl, String.format("dbs/%s/spaces/%s", databaseName, spaceName))
                 .addHeaders(defaultHeaders)
                 .build();
 
