@@ -1,44 +1,47 @@
 package dev.langchain4j.community.web.search.searxng;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.web.search.WebSearchRequest;
-import okhttp3.OkHttpClient;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.jackson.JacksonConverterFactory;
+import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
+import static dev.langchain4j.http.client.HttpMethod.GET;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.exception.HttpException;
+import dev.langchain4j.http.client.HttpClient;
+import dev.langchain4j.http.client.HttpClientBuilder;
+import dev.langchain4j.http.client.HttpClientBuilderLoader;
+import dev.langchain4j.http.client.HttpRequest;
+import dev.langchain4j.http.client.SuccessfulHttpResponse;
+import dev.langchain4j.http.client.log.LoggingHttpClient;
+import dev.langchain4j.web.search.WebSearchRequest;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
-
 class SearXNGClient {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
-    private final SearXNGApi api;
     private final Map<String, Object> optionalParams;
 
-    public SearXNGClient(String baseUrl, Duration timeout, boolean logRequests, boolean logResponses, Map<String, Object> optionalParams) {
+    private final HttpClient httpClient;
+
+    private final String baseUrl;
+
+    public SearXNGClient(
+            String baseUrl,
+            Duration timeout,
+            boolean logRequests,
+            boolean logResponses,
+            Map<String, Object> optionalParams) {
         this.optionalParams = optionalParams;
-        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout);
-        if (logRequests) {
-            okHttpClientBuilder.addInterceptor(new SearXNGRequestLoggingInterceptor());
+        this.baseUrl = baseUrl;
+        HttpClientBuilder httpClientBuilder = HttpClientBuilderLoader.loadHttpClientBuilder();
+        HttpClient client =
+                httpClientBuilder.connectTimeout(timeout).readTimeout(timeout).build();
+        if (logRequests || logResponses) {
+            this.httpClient = new LoggingHttpClient(client, logRequests, logResponses);
+        } else {
+            this.httpClient = client;
         }
-        if (logResponses) {
-            okHttpClientBuilder.addInterceptor(new SearXNGResponseLoggingInterceptor());
-        }
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .client(okHttpClientBuilder.build())
-                .addConverterFactory(JacksonConverterFactory.create(OBJECT_MAPPER))
-                .build();
-        this.api = retrofit.create(SearXNGApi.class);
     }
 
     SearXNGResponse search(WebSearchRequest request) {
@@ -67,9 +70,14 @@ class SearXNGClient {
             if (request.language() != null) {
                 args.put("language", request.language());
             }
-            final Response<SearXNGResponse> response = api.search(args).execute();
-            return response.body();
-        } catch (IOException e) {
+            HttpRequest httpRequest = HttpRequest.builder()
+                    .method(GET)
+                    .url(baseUrl, Utils.pathWithQuery("search", args))
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+            SuccessfulHttpResponse response = httpClient.execute(httpRequest);
+            return OBJECT_MAPPER.readValue(response.body(), SearXNGResponse.class);
+        } catch (IOException | HttpException e) {
             throw new RuntimeException(e);
         }
     }
