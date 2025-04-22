@@ -20,7 +20,53 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-class LLMGraphTransformerIT {
+public class LLMGraphTransformerIT {
+
+    public static final String EXAMPLES_PROMPT =
+            """
+            [
+               {
+                  "tail":"Microsoft",
+                  "head":"Adam",
+                  "head_type":"Person",
+                  "text":"Adam is a software engineer in Microsoft since 2009, and last year he got an award as the Best Talent",
+                  "relation":"WORKS_FOR",
+                  "tail_type":"Company"
+               },
+               {
+                  "tail":"Best Talent",
+                  "head":"Adam",
+                  "head_type":"Person",
+                  "text":"Adam is a software engineer in Microsoft since 2009, and last year he got an award as the Best Talent",
+                  "relation":"HAS_AWARD",
+                  "tail_type":"Award"
+               },
+               {
+                  "tail":"Microsoft",
+                  "head":"Microsoft Word",
+                  "head_type":"Product",
+                  "text":"Microsoft is a tech company that provide several products such as Microsoft Word",
+                  "relation":"PRODUCED_BY",
+                  "tail_type":"Company"
+               },
+               {
+                  "tail":"lightweight app",
+                  "head":"Microsoft Word",
+                  "head_type":"Product",
+                  "text":"Microsoft Word is a lightweight app that accessible offline",
+                  "relation":"HAS_CHARACTERISTIC",
+                  "tail_type":"Characteristic"
+               },
+               {
+                  "tail":"accessible offline",
+                  "head":"Microsoft Word",
+                  "head_type":"Product",
+                  "text":"Microsoft Word is a lightweight app that accessible offline",
+                  "relation":"HAS_CHARACTERISTIC",
+                  "tail_type":"Characteristic"
+               }
+            ]
+            """;
 
     private static ChatModel model;
 
@@ -47,12 +93,25 @@ class LLMGraphTransformerIT {
     }
 
     @Test
+    void testAddGraphDocumentsWithMissingExamples() {
+        try {
+            LLMGraphTransformer.builder().model(model).build();
+            fail();
+        } catch (Exception e) {
+            assertThat(e.getMessage()).contains("examples cannot be null");
+        }
+    }
+
+    @Test
     void testAddGraphDocumentsWithCustomPrompt() {
         final List<ChatMessage> prompt =
                 List.of(new UserMessage("just return a null value, don't add any explanation or extra text."));
 
-        final LLMGraphTransformer transformer =
-                LLMGraphTransformer.builder().model(model).prompt(prompt).build();
+        final LLMGraphTransformer transformer = LLMGraphTransformer.builder()
+                .model(model)
+                .examples(EXAMPLES_PROMPT)
+                .prompt(prompt)
+                .build();
 
         Document doc3 = new DefaultDocument(
                 "Keanu Reeves acted in Matrix. Keanu was born in Beirut", Metadata.from("key3", "value3"));
@@ -82,21 +141,24 @@ class LLMGraphTransformerIT {
 
         final List<Document> docs = List.of(docCat, docKeanu, docLino, docGoku, docHajime);
 
-        final LLMGraphTransformer build2 =
-                LLMGraphTransformer.builder().model(model).build();
+        final LLMGraphTransformer build2 = LLMGraphTransformer.builder()
+                .model(model)
+                .examples(EXAMPLES_PROMPT)
+                .build();
         final List<GraphDocument> documents2 = build2.convertToGraphDocuments(docs);
         final Stream<String> expectedNodes =
                 Stream.of(cat, keanu, lino, goku, hajime, levi, table, matrix, vac, db, aot);
         Assertions.assertThat(documents2).hasSize(5);
         graphDocsAssertions(documents2, expectedNodes, Stream.of("acted", "acted", "acted", "acted", "wr.", "on"));
 
-        final LLMGraphTransformer build = LLMGraphTransformer.builder()
+        final LLMGraphTransformer transformer = LLMGraphTransformer.builder()
                 .model(model)
+                .examples(EXAMPLES_PROMPT)
                 .allowedNodes(List.of("Person"))
                 .allowedRelationships(List.of("Acted_in"))
                 .build();
 
-        final List<GraphDocument> documents = build.convertToGraphDocuments(docs);
+        final List<GraphDocument> documents = transformer.convertToGraphDocuments(docs);
         System.out.println("documents = " + documents);
         Assertions.assertThat(documents).hasSize(4);
         final String[] strings = {keanu, lino, goku, levi, matrix, vac, db, aot};
@@ -104,6 +166,7 @@ class LLMGraphTransformerIT {
 
         final LLMGraphTransformer build3 = LLMGraphTransformer.builder()
                 .model(model)
+                .examples(EXAMPLES_PROMPT)
                 .allowedNodes(List.of("Person"))
                 .allowedRelationships(List.of("Writes", "Acted_in"))
                 .build();
@@ -117,8 +180,10 @@ class LLMGraphTransformerIT {
 
     @Test
     void testAddGraphDocumentsWithDeDuplication() {
-        final LLMGraphTransformer transformer =
-                LLMGraphTransformer.builder().model(model).build();
+        final LLMGraphTransformer transformer = LLMGraphTransformer.builder()
+                .model(model)
+                .examples(EXAMPLES_PROMPT)
+                .build();
 
         Document doc3 = new DefaultDocument(
                 "Keanu Reeves acted in Matrix. Keanu was born in Beirut", Metadata.from("key3", "value3"));

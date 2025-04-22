@@ -2,8 +2,6 @@ package dev.langchain4j.community.rag.transformer;
 
 import static dev.langchain4j.community.rag.transformer.GraphDocument.Edge;
 import static dev.langchain4j.community.rag.transformer.GraphDocument.Node;
-import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.EXAMPLES_PROMPT;
-import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.getStringFromListOfMaps;
 import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.parseJson;
 import static dev.langchain4j.community.rag.transformer.Neo4jUtils.getBacktickText;
 import static dev.langchain4j.internal.Utils.getOrDefault;
@@ -30,9 +28,9 @@ public class LLMGraphTransformer {
     private final List<String> allowedNodes;
     private final List<String> allowedRelationships;
     private final List<ChatMessage> prompt;
+    private final String examples;
     private final String additionalInstructions;
     private final ChatModel model;
-    private final List<Map<String, String>> examples;
     private final Integer maxAttempts;
 
     /**
@@ -44,7 +42,6 @@ public class LLMGraphTransformer {
      * @param allowedRelationships Specifies which relationship types are allowed in the graph. If null or empty allows all relationship types (default: [])
      * @param prompt The chat messages to pass to the LLM with additional instructions. (optional)
      * @param additionalInstructions Allows you to add additional instructions to the prompt without having to change the whole prompt (default: '')
-     * @param examples Allows you to add additional instructions to the prompt without having to change the whole prompt (default: {@link LLMGraphTransformerUtils#EXAMPLES_PROMPT})
      * @param maxAttempts Retry N times the transformation if it fails (default: 1)
      */
     public LLMGraphTransformer(
@@ -53,10 +50,11 @@ public class LLMGraphTransformer {
             List<String> allowedRelationships,
             List<ChatMessage> prompt,
             String additionalInstructions,
-            List<Map<String, String>> examples,
+            String examples,
             Integer maxAttempts) {
 
         this.model = ensureNotNull(model, "model");
+        this.examples = ensureNotNull(examples, "examples");
 
         this.allowedNodes = getOrDefault(allowedNodes, List.of());
         this.allowedRelationships = getOrDefault(allowedRelationships, List.of());
@@ -64,8 +62,6 @@ public class LLMGraphTransformer {
 
         this.maxAttempts = getOrDefault(maxAttempts, 1);
         this.additionalInstructions = getOrDefault(additionalInstructions, "");
-
-        this.examples = getOrDefault(examples, EXAMPLES_PROMPT);
     }
 
     public static Builder builder() {
@@ -101,16 +97,12 @@ public class LLMGraphTransformer {
         final SystemMessage systemMessage = systemTemplate
                 .apply(Map.of(
                         "nodes",
-                        withAllowedNodes
-                                ? "The 'head_type' and 'tail_type' must be one of: " + allowedNodes
-                                : "",
+                        withAllowedNodes ? "The 'head_type' and 'tail_type' must be one of: " + allowedNodes : "",
                         "rels",
                         withAllowedRels ? "The 'relation' must be one of: " + allowedRelationships : "",
                         "additional",
                         additionalInstructions))
                 .toSystemMessage();
-
-        final String examplesString = getStringFromListOfMaps(examples);
 
         final PromptTemplate humanTemplate = PromptTemplate.from(
                 """
@@ -128,7 +120,7 @@ public class LLMGraphTransformer {
                 .apply(Map.of(
                         "nodes", withAllowedNodes ? "# ENTITY TYPES:\n" + allowedNodes : "",
                         "rels", withAllowedRels ? "# RELATION TYPES:\n" + allowedRelationships : "",
-                        "examples", examplesString,
+                        "examples", examples,
                         "additional", additionalInstructions,
                         "input", text))
                 .toUserMessage();
@@ -196,7 +188,7 @@ public class LLMGraphTransformer {
         private List<String> allowedRelationships;
         private List<ChatMessage> prompt;
         private String additionalInstructions = ""; // Default: empty string
-        private List<Map<String, String>> examples = EXAMPLES_PROMPT; // Default examples
+        private String examples; // Default examples
         private Integer maxAttempts = 1; // Default: 1 attempt
 
         /**
@@ -207,6 +199,17 @@ public class LLMGraphTransformer {
          */
         public Builder model(ChatModel model) {
             this.model = model;
+            return this;
+        }
+
+        /**
+         * Sets example instructions for the LLM.
+         *
+         * @param examples additional example instructions (required)
+         * @return the Builder instance
+         */
+        public Builder examples(String examples) {
+            this.examples = examples;
             return this;
         }
 
@@ -251,17 +254,6 @@ public class LLMGraphTransformer {
          */
         public Builder additionalInstructions(String additionalInstructions) {
             this.additionalInstructions = additionalInstructions;
-            return this;
-        }
-
-        /**
-         * Sets example instructions for the LLM.
-         *
-         * @param examples additional example instructions (default: {@link LLMGraphTransformerUtils#EXAMPLES_PROMPT})
-         * @return the Builder instance
-         */
-        public Builder examples(List<Map<String, String>> examples) {
-            this.examples = examples;
             return this;
         }
 

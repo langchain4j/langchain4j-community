@@ -130,7 +130,8 @@ public class KnowledgeGraphWriter {
         if (!includeSource) {
             return "";
         }
-        return String.format("""
+        return String.format(
+                """
                 MERGE (d:Document {%1$s: $document.metadata.%1$s})
                 SET d.%2$s = $document.text
                 SET d += $document.metadata
@@ -141,7 +142,8 @@ public class KnowledgeGraphWriter {
 
     private String getRelImportQuery() {
 
-        return String.format("""
+        return String.format(
+                """
                 UNWIND $data AS row
                 MERGE (source:%1$s {%2$s: row.source})
                 MERGE (target:%1$s {%2$s: row.target})

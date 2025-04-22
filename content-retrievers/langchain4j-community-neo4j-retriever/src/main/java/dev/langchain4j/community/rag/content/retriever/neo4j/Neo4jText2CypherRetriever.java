@@ -47,10 +47,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private final List<String> examples;
 
     public Neo4jText2CypherRetriever(
-            Neo4jGraph graph,
-            ChatModel chatModel,
-            PromptTemplate promptTemplate,
-            List<String> examples) {
+            Neo4jGraph graph, ChatModel chatModel, PromptTemplate promptTemplate, List<String> examples) {
 
         this.graph = ensureNotNull(graph, "graph");
         this.chatModel = ensureNotNull(chatModel, "chatModel");

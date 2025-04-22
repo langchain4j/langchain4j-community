@@ -4,6 +4,7 @@ import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGra
 import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_LABEL;
 import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_REL_TYPE;
 import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_TEXT_PROP;
+import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerIT.EXAMPLES_PROMPT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.community.rag.transformer.GraphDocument;
@@ -72,7 +73,10 @@ public abstract class Neo4jGraphConverterBaseTest {
     void beforeAll() {
         ChatModel model = getModel();
 
-        graphTransformer = LLMGraphTransformer.builder().model(model).build();
+        graphTransformer = LLMGraphTransformer.builder()
+                .model(model)
+                .examples(EXAMPLES_PROMPT)
+                .build();
         neo4jGraph = Neo4jGraph.builder()
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .build();
