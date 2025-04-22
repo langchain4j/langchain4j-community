@@ -1,5 +1,7 @@
 package dev.langchain4j.community.web.search.searxng;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.Map;
@@ -9,17 +11,10 @@ import java.util.regex.Pattern;
 public class Utils {
     private Utils() {}
 
-    public static String makeUrl(String baseUrl, String path, Map<String, Object> params) {
+    public static String pathWithQuery(String path, Map<String, Object> params) {
+        ensureNotNull(params, "params");
         StringBuilder builder = new StringBuilder();
-        builder.append(baseUrl);
-        if (!baseUrl.endsWith("/")) {
-            builder.append("/");
-        }
-        if (path.startsWith("/")) {
-            builder.append(path, 1, path.length());
-        } else {
-            builder.append(path);
-        }
+        builder.append(path);
         boolean isFirstParam = true;
 
         // for process space.

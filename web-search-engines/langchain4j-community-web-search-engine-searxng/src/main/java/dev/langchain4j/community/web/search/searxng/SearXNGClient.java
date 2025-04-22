@@ -72,7 +72,7 @@ class SearXNGClient {
             }
             HttpRequest httpRequest = HttpRequest.builder()
                     .method(GET)
-                    .url(Utils.makeUrl(baseUrl, "search", args))
+                    .url(baseUrl, Utils.pathWithQuery("search", args))
                     .addHeader("Content-Type", "application/json")
                     .build();
             SuccessfulHttpResponse response = httpClient.execute(httpRequest);
