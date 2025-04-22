@@ -3,14 +3,14 @@ package dev.langchain4j.community.model.xinference;
 import static java.util.Collections.singletonList;
 
 import dev.langchain4j.community.model.xinference.client.XinferenceHttpException;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.ChatModelListenerIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 
 class XinferenceChatModelListenerIT extends ChatModelListenerIT {
 
     @Override
-    protected ChatLanguageModel createModel(ChatModelListener listener) {
+    protected ChatModel createModel(ChatModelListener listener) {
         return XinferenceChatModel.builder()
                 .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
                 .apiKey(AbstractInferenceChatModelInfrastructure.apiKey())
@@ -30,7 +30,7 @@ class XinferenceChatModelListenerIT extends ChatModelListenerIT {
     }
 
     @Override
-    protected ChatLanguageModel createFailingModel(ChatModelListener listener) {
+    protected ChatModel createFailingModel(ChatModelListener listener) {
         return XinferenceChatModel.builder()
                 .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
                 .modelName("llama3.1")

@@ -16,7 +16,7 @@ import dev.langchain4j.community.model.xinference.client.chat.Delta;
 import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
 import dev.langchain4j.community.model.xinference.spi.XinferenceStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class XinferenceStreamingChatModel implements StreamingChatLanguageModel {
+public class XinferenceStreamingChatModel implements StreamingChatModel {
 
     private static final Logger log = LoggerFactory.getLogger(XinferenceStreamingChatModel.class);
 

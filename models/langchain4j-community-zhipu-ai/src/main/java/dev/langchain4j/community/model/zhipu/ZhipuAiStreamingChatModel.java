@@ -15,7 +15,7 @@ import dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode;
 import dev.langchain4j.community.model.zhipu.spi.ZhipuAiStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.internal.ValidationUtils;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZhipuAiStreamingChatModel implements StreamingChatLanguageModel {
+public class ZhipuAiStreamingChatModel implements StreamingChatModel {
 
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiStreamingChatModel.class);
 

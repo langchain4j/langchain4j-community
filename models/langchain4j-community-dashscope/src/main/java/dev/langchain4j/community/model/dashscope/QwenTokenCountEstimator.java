@@ -15,19 +15,19 @@ import com.alibaba.dashscope.tokenizers.Tokenization;
 import com.alibaba.dashscope.tokenizers.TokenizationResult;
 import dev.langchain4j.community.model.dashscope.spi.QwenTokenizerBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.Tokenizer;
+import dev.langchain4j.model.TokenCountEstimator;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class QwenTokenizer implements Tokenizer {
+public class QwenTokenCountEstimator implements TokenCountEstimator {
 
     private final String apiKey;
     private final String modelName;
     private final Tokenization tokenizer;
     private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
 
-    public QwenTokenizer(String apiKey, String modelName) {
+    public QwenTokenCountEstimator(String apiKey, String modelName) {
         if (isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
                     "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
@@ -118,8 +118,8 @@ public class QwenTokenizer implements Tokenizer {
             return this;
         }
 
-        public QwenTokenizer build() {
-            return new QwenTokenizer(apiKey, modelName);
+        public QwenTokenCountEstimator build() {
+            return new QwenTokenCountEstimator(apiKey, modelName);
         }
     }
 }

@@ -19,8 +19,8 @@ import dev.langchain4j.community.model.xinference.XinferenceStreamingChatModel;
 import dev.langchain4j.community.model.xinference.XinferenceStreamingLanguageModel;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -61,11 +61,11 @@ class AutoConfigIT {
                         ChatModelProperties.PREFIX + ".logRequests=true",
                         ChatModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
-                    ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
-                    assertThat(chatLanguageModel).isInstanceOf(XinferenceChatModel.class);
-                    assertThat(chatLanguageModel.chat("What is the capital of Germany?"))
+                    ChatModel chatModel = context.getBean(ChatModel.class);
+                    assertThat(chatModel).isInstanceOf(XinferenceChatModel.class);
+                    assertThat(chatModel.chat("What is the capital of Germany?"))
                             .contains("Berlin");
-                    assertThat(context.getBean(XinferenceChatModel.class)).isSameAs(chatLanguageModel);
+                    assertThat(context.getBean(XinferenceChatModel.class)).isSameAs(chatModel);
                 });
     }
 
@@ -79,27 +79,25 @@ class AutoConfigIT {
                         StreamingChatModelProperties.PREFIX + ".logRequests=true",
                         StreamingChatModelProperties.PREFIX + ".logResponses=true")
                 .run(context -> {
-                    StreamingChatLanguageModel streamingChatLanguageModel =
-                            context.getBean(StreamingChatLanguageModel.class);
-                    assertThat(streamingChatLanguageModel).isInstanceOf(XinferenceStreamingChatModel.class);
+                    StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
+                    assertThat(streamingChatModel).isInstanceOf(XinferenceStreamingChatModel.class);
                     CompletableFuture<ChatResponse> future = new CompletableFuture<>();
-                    streamingChatLanguageModel.chat(
-                            "What is the capital of Germany?", new StreamingChatResponseHandler() {
-                                @Override
-                                public void onPartialResponse(String token) {}
+                    streamingChatModel.chat("What is the capital of Germany?", new StreamingChatResponseHandler() {
+                        @Override
+                        public void onPartialResponse(String token) {}
 
-                                @Override
-                                public void onCompleteResponse(ChatResponse response) {
-                                    future.complete(response);
-                                }
+                        @Override
+                        public void onCompleteResponse(ChatResponse response) {
+                            future.complete(response);
+                        }
 
-                                @Override
-                                public void onError(Throwable error) {}
-                            });
+                        @Override
+                        public void onError(Throwable error) {}
+                    });
                     ChatResponse response = future.get(60, SECONDS);
                     assertThat(response.aiMessage().text()).contains("Berlin");
                     assertThat(context.getBean(XinferenceStreamingChatModel.class))
-                            .isSameAs(streamingChatLanguageModel);
+                            .isSameAs(streamingChatModel);
                 });
     }
 
