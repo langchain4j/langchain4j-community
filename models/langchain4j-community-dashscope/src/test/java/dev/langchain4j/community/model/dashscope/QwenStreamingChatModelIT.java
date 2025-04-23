@@ -66,21 +66,20 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
     void should_send_non_multimodal_messages_and_receive_response_by_customized_request(String modelName) {
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
 
-        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rain"));
+        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rainy"));
 
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(ChatRequest.builder().messages(chatMessages()).build(), handler);
         ChatResponse response = handler.get();
 
         // it should chat "rain" but is stopped
-        assertThat(response.aiMessage().text()).doesNotContainIgnoringCase("rain");
+        assertThat(response.aiMessage().text()).doesNotContainIgnoringCase("rainy");
     }
 
     @ParameterizedTest

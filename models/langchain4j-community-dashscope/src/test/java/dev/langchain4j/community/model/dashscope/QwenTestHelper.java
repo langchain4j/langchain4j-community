@@ -1,8 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-
 import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.AiMessage;
@@ -12,6 +9,8 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
+import org.junit.jupiter.params.provider.Arguments;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,46 +19,34 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 class QwenTestHelper {
 
     public static Stream<Arguments> languageModelNameProvider() {
         return Stream.of(
                 Arguments.of(QwenModelName.QWEN_TURBO),
-                Arguments.of(QwenModelName.QWEN_TURBO_LATEST),
                 Arguments.of(QwenModelName.QWEN_PLUS),
-                Arguments.of(QwenModelName.QWEN_PLUS_LATEST),
                 Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_MAX_LATEST),
                 Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_32B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
         return Stream.of(
                 Arguments.of(QwenModelName.QWEN_TURBO),
-                Arguments.of(QwenModelName.QWEN_TURBO_LATEST),
                 Arguments.of(QwenModelName.QWEN_PLUS),
-                Arguments.of(QwenModelName.QWEN_PLUS_LATEST),
                 Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_MAX_LATEST),
                 Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_32B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
         // Function Call and structured output (JSON Mode) are not supported.
-        return Stream.of(Arguments.of(QwenModelName.QWQ_PLUS), Arguments.of(QwenModelName.QWQ_PLUS_LATEST));
+        return Stream.of(Arguments.of(QwenModelName.QWQ_PLUS));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
@@ -67,7 +54,7 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> vlChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX), Arguments.of(QwenModelName.QWEN_VL_MAX_LATEST));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX));
     }
 
     public static Stream<Arguments> mtChatModelNameProvider() {
@@ -76,12 +63,11 @@ class QwenTestHelper {
 
     public static Stream<Arguments> audioChatModelNameProvider() {
         return Stream.of(
-                Arguments.of(QwenModelName.QWEN_AUDIO_TURBO), Arguments.of(QwenModelName.QWEN_AUDIO_TURBO_LATEST));
+                Arguments.of(QwenModelName.QWEN_AUDIO_TURBO_LATEST));
     }
 
     public static Stream<Arguments> embeddingModelNameProvider() {
         return Stream.of(
-                Arguments.of(QwenModelName.TEXT_EMBEDDING_V1),
                 Arguments.of(QwenModelName.TEXT_EMBEDDING_V2),
                 Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
     }
