@@ -340,6 +340,19 @@ class QwenHelper {
         }
     }
 
+    static ChatResponse chatResponseFrom(String modelName, GenerationResult result) {
+        return ChatResponse.builder()
+                .aiMessage(aiMessageFrom(result))
+                .metadata(QwenChatResponseMetadata.builder()
+                        .id(result.getRequestId())
+                        .modelName(modelName)
+                        .tokenUsage(tokenUsageFrom(result))
+                        .finishReason(finishReasonFrom(result))
+                        .searchInfo(convertSearchInfo(result.getOutput().getSearchInfo()))
+                        .build())
+                .build();
+    }
+
     static AiMessage aiMessageFrom(GenerationResult result) {
         if (isFunctionToolCalls(result)) {
             String text = answerFrom(result);
@@ -396,6 +409,22 @@ class QwenHelper {
                 .map(Choice::getMessage)
                 .map(Message::getToolCalls);
         return toolCallBases.isPresent() && !isNullOrEmpty(toolCallBases.get());
+    }
+
+    static ChatResponse chatResponseFrom(String modelName, MultiModalConversationResult result) {
+        return ChatResponse.builder()
+                .aiMessage(aiMessageFrom(result))
+                .metadata(QwenChatResponseMetadata.builder()
+                        .id(result.getRequestId())
+                        .modelName(modelName)
+                        .tokenUsage(tokenUsageFrom(result))
+                        .finishReason(finishReasonFrom(result))
+                        .build())
+                .build();
+    }
+
+    static AiMessage aiMessageFrom(MultiModalConversationResult result) {
+        return new AiMessage(answerFrom(result));
     }
 
     private static List<ToolCallBase> toToolCalls(Collection<ToolExecutionRequest> toolExecutionRequests) {

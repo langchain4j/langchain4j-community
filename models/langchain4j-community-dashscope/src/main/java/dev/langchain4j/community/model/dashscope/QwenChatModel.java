@@ -1,23 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenHelper.aiMessageFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.convertSearchInfo;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.tokenUsageFrom;
-import static dev.langchain4j.internal.Utils.copyIfNotNull;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.quoted;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.emptyList;
-import static java.util.Objects.isNull;
-
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -29,16 +11,30 @@ import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.exception.UploadFileException;
 import com.alibaba.dashscope.protocol.Protocol;
 import dev.langchain4j.community.model.dashscope.spi.QwenChatModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+
+import static dev.langchain4j.community.model.dashscope.QwenHelper.chatResponseFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
+import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.quoted;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Collections.emptyList;
+import static java.util.Objects.isNull;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
@@ -135,16 +131,7 @@ public class QwenChatModel implements ChatModel {
         GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, false);
         try {
             GenerationResult result = generation.call(param);
-            return ChatResponse.builder()
-                    .aiMessage(aiMessageFrom(result))
-                    .metadata(QwenChatResponseMetadata.builder()
-                            .id(result.getRequestId())
-                            .modelName(param.getModel())
-                            .tokenUsage(tokenUsageFrom(result))
-                            .finishReason(finishReasonFrom(result))
-                            .searchInfo(convertSearchInfo(result.getOutput().getSearchInfo()))
-                            .build())
-                    .build();
+            return chatResponseFrom(param.getModel(), result);
         } catch (NoApiKeyException | InputRequiredException e) {
             throw new IllegalArgumentException(e);
         }
@@ -155,15 +142,7 @@ public class QwenChatModel implements ChatModel {
                 toMultiModalConversationParam(apiKey, chatRequest, multimodalConversationParamCustomizer, false);
         try {
             MultiModalConversationResult result = conv.call(param);
-            return ChatResponse.builder()
-                    .aiMessage(AiMessage.from(answerFrom(result)))
-                    .metadata(QwenChatResponseMetadata.builder()
-                            .id(result.getRequestId())
-                            .modelName(param.getModel())
-                            .tokenUsage(tokenUsageFrom(result))
-                            .finishReason(finishReasonFrom(result))
-                            .build())
-                    .build();
+            return chatResponseFrom(param.getModel(), result);
         } catch (NoApiKeyException e) {
             throw new IllegalArgumentException(e);
         } catch (UploadFileException e) {
