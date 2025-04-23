@@ -2,19 +2,27 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.community.store.embedding.ParentChildEmbeddingStoreIngestor;
+import dev.langchain4j.community.store.embedding.neo4j.HypotheticalQuestionGraphIngestor;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
+import dev.langchain4j.community.store.embedding.neo4j.ParentChildGraphIngestor;
+import dev.langchain4j.community.store.embedding.neo4j.SummaryGraphIngestor;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentByRegexSplitter;
+import dev.langchain4j.data.document.splitter.DocumentBySentenceSplitter;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
@@ -151,8 +159,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
         assertThat(results).hasSize(1);
     }
-
-    // TODO - change with cypher-dsl
+    
     @Test
     void testRetrieverWithCustomRetrievalAndEmbeddingCreationQueryMainDocIdAndParams() {
         String customCreationQuery =
@@ -240,5 +247,120 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
 
         assertTrue(parent.textSegment().text().contains("quantum physics"));
         assertEquals("science", parent.textSegment().metadata().getString("source"));
+    }
+
+    @Test
+    public void testSummaryGraphIngestor() {
+
+        when(chatLanguageModel.chat(anyList()))
+                .thenReturn(ChatResponse.builder()
+                        .aiMessage(AiMessage.aiMessage("Machine Learning (ML) is a subset of AI"))
+                        .build());
+
+        summaryGraphIngestorCommon(chatLanguageModel);
+    }
+    
+    @Test
+    public void testHypotheticalQuestionIngestor() {
+
+        when(chatLanguageModel.chat(anyList()))
+                .thenReturn(ChatResponse.builder()
+                        .aiMessage(AiMessage.aiMessage("What is the Machine learning?"))
+                        .build());
+        
+        hypotheticalQuestionIngestorCommon(chatLanguageModel);
+    }
+
+    @Test
+    public void testParentChildRetriever() {
+        EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
+
+        int maxSegmentSize = 250;
+
+        // Parent splitter: splits on paragraphs (double newlines)
+        final String expectedQuery = "\\n\\n";
+        DocumentSplitter parentSplitter = new DocumentByRegexSplitter(expectedQuery, expectedQuery, maxSegmentSize, 0);
+
+        // Child splitter: splits into sentences using OpenNLP
+        DocumentSplitter childSplitter = new DocumentBySentenceSplitter(maxSegmentSize, 0);
+
+        Neo4jEmbeddingStoreIngestor ingestor = ParentChildGraphIngestor.builder()
+                .embeddingModel(embeddingModel)
+                .driver(driver)
+                .documentSplitter(parentSplitter)
+                .documentChildSplitter(childSplitter)
+                .build();
+
+        Document doc = getDocumentAI();
+
+        ingestor.ingest(doc);
+
+        EmbeddingStoreContentRetriever retriever = getEmbeddingStoreContentRetriever(ingestor);
+        List<Content> results = retriever.retrieve(Query.from("What is Machine Learning?"));
+        commonResults(results, "machine learning");
+    }
+
+    protected static void summaryGraphIngestorCommon(ChatModel chatModel) {
+        int maxSegmentSize = 250;
+        DocumentSplitter parentSplitter = new DocumentBySentenceSplitter( maxSegmentSize, 0);
+
+        final Neo4jEmbeddingStoreIngestor ingestor = SummaryGraphIngestor.builder()
+                .driver(driver)
+                .embeddingModel(embeddingModel)
+                .questionModel(chatModel)
+                .documentSplitter(parentSplitter)
+                .build();
+
+        Document doc = getDocumentAI();
+
+        // Index the document into Neo4j as parent-child nodes
+        ingestor.ingest(doc);
+
+        final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
+                .embeddingModel(embeddingModel)
+                .maxResults(5)
+                .minScore(0.6)
+                .embeddingStore(ingestor.getEmbeddingStore())
+                .build();
+        // Query and validate results
+        List<Content> results = retriever.retrieve(Query.from("What is Machine Learning?"));
+
+        assertFalse(results.isEmpty(), "Should retrieve at least one parent document");
+
+        Content result = results.get(0);
+        assertTrue(result.textSegment().text().toLowerCase().contains("machine learning"));
+        assertThat(result.textSegment().metadata().getString("url")).isEqualTo("https://example.com/ai");
+    }
+
+    protected static void hypotheticalQuestionIngestorCommon(ChatModel chatModel) {
+        // Step 1: Document with metadata
+        Document parentDoc = getDocumentAI();
+
+        int maxSegmentSize = 250;
+
+        // Child splitter: splits into sentences using OpenNLP
+        DocumentSplitter splitter = new DocumentBySentenceSplitter(maxSegmentSize, 0);
+
+        // Index the document into Neo4j as parent-child nodes
+        Neo4jEmbeddingStoreIngestor ingestor = HypotheticalQuestionGraphIngestor.builder()
+                .embeddingModel(embeddingModel)
+                .driver(driver)
+                .documentSplitter(splitter)
+                .questionModel(chatModel)
+                .embeddingStore(embeddingStore)
+                .build();
+
+        ingestor.ingest(parentDoc);
+
+        final EmbeddingStoreContentRetriever retriever = getEmbeddingStoreContentRetriever(ingestor);
+        List<Content> results = retriever.retrieve(Query.from("Tell me about machine learning"));
+
+        assertFalse(results.isEmpty(), "Should retrieve at least one parent document");
+
+        Content result = results.get(0);
+
+        assertThat(result.textSegment().text().toLowerCase()).containsIgnoringWhitespaces("machine learning");
+        assertEquals("Wikipedia link", result.textSegment().metadata().getString("source"));
+        assertEquals("https://example.com/ai", result.textSegment().metadata().getString("url"));
     }
 }

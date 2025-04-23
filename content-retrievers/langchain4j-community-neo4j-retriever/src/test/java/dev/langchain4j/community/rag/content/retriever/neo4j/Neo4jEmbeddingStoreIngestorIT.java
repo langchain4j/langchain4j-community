@@ -1,5 +1,7 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jEmbeddingStoreIngestorTest.hypotheticalQuestionIngestorCommon;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jEmbeddingStoreIngestorTest.summaryGraphIngestorCommon;
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-public class Neo4jEmbeddingStoreIngestorQAChainIT extends Neo4jEmbeddingStoreIngestorBaseTest {
+public class Neo4jEmbeddingStoreIngestorIT extends Neo4jEmbeddingStoreIngestorBaseTest {
 
     ChatModel chatModel = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
@@ -127,5 +129,15 @@ public class Neo4jEmbeddingStoreIngestorQAChainIT extends Neo4jEmbeddingStoreIng
         final String chainResultWithPromptBuilder = chainWithPromptBuilder.execute(Query.from(retrieveQuery));
         assertThat(chainResultWithPromptBuilder).containsIgnoringCase("dattebayo");
         assertThat(chainResultWithPromptBuilder).containsIgnoringCase("super saiyan");
+    }
+    
+    @Test
+    public void testSummaryGraphIngestor() {
+        summaryGraphIngestorCommon(chatModel);
+    }
+
+    @Test
+    public void testHypotheticalQuestionIngestor() {
+        hypotheticalQuestionIngestorCommon(chatModel);
     }
 }

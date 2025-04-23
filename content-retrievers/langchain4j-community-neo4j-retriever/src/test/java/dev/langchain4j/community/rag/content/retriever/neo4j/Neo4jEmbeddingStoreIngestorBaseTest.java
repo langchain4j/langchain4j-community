@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
+import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -12,6 +13,8 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.rag.content.Content;
 import java.util.List;
 import java.util.Map;
+
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import org.junit.jupiter.api.BeforeAll;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
@@ -79,16 +82,6 @@ public class Neo4jEmbeddingStoreIngestorBaseTest extends Neo4jContainerBaseTest 
                 Map.of("title", "Quantum Mechanics", "source", "Wikipedia link", "url", "https://example.com/ai"));
     }
 
-    protected static void commonResults(List<Content> results, String retrieveQuery) {
-        assertThat(results).hasSize(1);
-
-        Content result = results.get(0);
-
-        assertTrue(result.textSegment().text().toLowerCase().contains(retrieveQuery));
-        assertEquals("Wikipedia link", result.textSegment().metadata().getString("source"));
-        assertEquals("https://example.com/ai", result.textSegment().metadata().getString("url"));
-    }
-
     protected static void seedMainDocAndChildData() {
         try (var session = driver.session()) {
             session.run("MATCH (n) DETACH DELETE n");
@@ -131,5 +124,24 @@ public class Neo4jEmbeddingStoreIngestorBaseTest extends Neo4jContainerBaseTest 
                             "embedding3",
                             embedding3));
         }
+    }
+
+    protected static void commonResults(List<Content> results, String... retrieveQuery) {
+        assertThat(results).hasSize(1);
+
+        Content result = results.get(0);
+
+        assertThat(result.textSegment().text().toLowerCase()).containsIgnoringWhitespaces(retrieveQuery);
+        assertEquals("Wikipedia link", result.textSegment().metadata().getString("source"));
+        assertEquals("https://example.com/ai", result.textSegment().metadata().getString("url"));
+    }
+
+    protected static EmbeddingStoreContentRetriever getEmbeddingStoreContentRetriever(Neo4jEmbeddingStoreIngestor ingestor) {
+        return EmbeddingStoreContentRetriever.builder()
+                .embeddingModel(embeddingModel)
+                .maxResults(2)
+                .minScore(0.5)
+                .embeddingStore(ingestor.getEmbeddingStore())
+                .build();
     }
 }
