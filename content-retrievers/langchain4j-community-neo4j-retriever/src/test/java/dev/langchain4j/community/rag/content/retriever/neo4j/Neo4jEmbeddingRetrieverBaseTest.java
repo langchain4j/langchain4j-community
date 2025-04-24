@@ -73,6 +73,8 @@ public class Neo4jEmbeddingRetrieverBaseTest extends Neo4jRetrieverBaseTest {
                         Gradient descent and backpropagation algorithms.
                                         
                         Spaghetti carbonara and Italian dishes.
+                        
+                        John Doe is a Super Saiyan.
                         """,
                 getMetadata()
         );
