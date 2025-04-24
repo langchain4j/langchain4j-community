@@ -1,17 +1,19 @@
-package dev.langchain4j.community.model.xinference;
+package dev.langchain4j.community.model.xinference.common;
 
 import static java.util.Collections.singletonList;
 
+import dev.langchain4j.community.model.xinference.AbstractInferenceChatModelInfrastructure;
+import dev.langchain4j.community.model.xinference.XinferenceStreamingChatModel;
 import dev.langchain4j.community.model.xinference.client.XinferenceHttpException;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.ChatModelListenerIT;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.common.AbstractStreamingChatModelListenerIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 
-class XinferenceChatModelListenerIT extends ChatModelListenerIT {
+class XinferenceStreamingChatModelListenerIT extends AbstractStreamingChatModelListenerIT {
 
     @Override
-    protected ChatModel createModel(ChatModelListener listener) {
-        return XinferenceChatModel.builder()
+    protected StreamingChatModel createModel(ChatModelListener listener) {
+        return XinferenceStreamingChatModel.builder()
                 .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
                 .apiKey(AbstractInferenceChatModelInfrastructure.apiKey())
                 .modelName(modelName())
@@ -24,17 +26,29 @@ class XinferenceChatModelListenerIT extends ChatModelListenerIT {
                 .build();
     }
 
+    /**
+     * Streaming support for tool calls is available only when using Qwen models with vLLM backend or
+     * GLM4-chat models without vLLM backend.
+     *
+     * @return
+     */
+    @Override
+    protected boolean supportsTools() {
+        return false;
+    }
+
     @Override
     protected String modelName() {
         return AbstractInferenceChatModelInfrastructure.modelName();
     }
 
     @Override
-    protected ChatModel createFailingModel(ChatModelListener listener) {
-        return XinferenceChatModel.builder()
+    protected StreamingChatModel createFailingModel(ChatModelListener listener) {
+        return XinferenceStreamingChatModel.builder()
                 .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
                 .modelName("llama3.1")
-                .maxRetries(1)
+                .logRequests(true)
+                .logResponses(true)
                 .listeners(singletonList(listener))
                 .build();
     }

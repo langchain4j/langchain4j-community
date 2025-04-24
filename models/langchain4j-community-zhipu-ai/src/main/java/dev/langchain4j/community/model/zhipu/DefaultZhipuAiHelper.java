@@ -1,8 +1,8 @@
 package dev.langchain4j.community.model.zhipu;
 
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper.toMap;
 import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.OTHER;
