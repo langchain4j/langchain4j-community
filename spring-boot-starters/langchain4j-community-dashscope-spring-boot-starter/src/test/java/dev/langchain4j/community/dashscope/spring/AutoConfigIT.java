@@ -1,8 +1,5 @@
 package dev.langchain4j.community.dashscope.spring;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenChatRequestParameters;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
@@ -21,11 +18,15 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+import java.util.concurrent.CompletableFuture;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 public class AutoConfigIT {
@@ -161,6 +162,8 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.chat-model.parameters.tool-choice=AUTO",
                         "langchain4j.community.dashscope.chat-model.parameters.response-format=TEXT",
                         "langchain4j.community.dashscope.chat-model.parameters.seed=42",
+                        "langchain4j.community.dashscope.chat-model.parameters.is-multimodal-model=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.support-incremental-output=true",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.enable-source=true",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.enable-citation=true",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.citation-format=[<number>]",
@@ -191,6 +194,8 @@ public class AutoConfigIT {
                     assertThat(defaultParameters.toolChoice()).isEqualTo(ToolChoice.AUTO);
                     assertThat(defaultParameters.responseFormat()).isEqualTo(ResponseFormat.TEXT);
                     assertThat(defaultParameters.seed()).isEqualTo(42);
+                    assertThat(defaultParameters.isMultimodalModel()).isTrue();
+                    assertThat(defaultParameters.supportIncrementalOutput()).isTrue();
                     assertThat(defaultParameters.searchOptions().enableSource()).isTrue();
                     assertThat(defaultParameters.searchOptions().enableCitation())
                             .isTrue();
@@ -250,6 +255,8 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.tool-choice=AUTO",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.response-format=TEXT",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.seed=42",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.is-multimodal-model=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.support-incremental-output=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.enable-source=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.enable-citation=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.citation-format=[<number>]",
@@ -281,6 +288,8 @@ public class AutoConfigIT {
                     assertThat(defaultParameters.toolChoice()).isEqualTo(ToolChoice.AUTO);
                     assertThat(defaultParameters.responseFormat()).isEqualTo(ResponseFormat.TEXT);
                     assertThat(defaultParameters.seed()).isEqualTo(42);
+                    assertThat(defaultParameters.isMultimodalModel()).isTrue();
+                    assertThat(defaultParameters.supportIncrementalOutput()).isTrue();
                     assertThat(defaultParameters.searchOptions().enableSource()).isTrue();
                     assertThat(defaultParameters.searchOptions().enableCitation())
                             .isTrue();

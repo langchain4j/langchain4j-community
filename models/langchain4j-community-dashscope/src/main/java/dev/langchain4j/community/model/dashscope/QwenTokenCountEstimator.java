@@ -30,7 +30,7 @@ public class QwenTokenCountEstimator implements TokenCountEstimator {
     public QwenTokenCountEstimator(String apiKey, String modelName) {
         if (isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
-                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+                    "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
         this.apiKey = apiKey;
         this.modelName = getOrDefault(modelName, QWEN_PLUS);

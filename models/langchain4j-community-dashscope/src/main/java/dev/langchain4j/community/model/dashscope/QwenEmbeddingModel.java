@@ -1,12 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
-import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-
 import com.alibaba.dashscope.embeddings.TextEmbedding;
 import com.alibaba.dashscope.embeddings.TextEmbeddingOutput;
 import com.alibaba.dashscope.embeddings.TextEmbeddingParam;
@@ -20,6 +13,7 @@ import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.embedding.DimensionAwareEmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -27,9 +21,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
+import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+
 /**
  * An implementation of an {@link dev.langchain4j.model.embedding.EmbeddingModel} that uses
- * <a href="https://help.aliyun.com/zh/dashscope/developer-reference/text-embedding-api-details">DashScope Embeddings API</a>.
+ * <a href="https://www.alibabacloud.com/help/en/model-studio/text-embedding-synchronous-api">DashScope Embeddings API</a>.
  */
 public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
 
@@ -46,7 +47,7 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
     public QwenEmbeddingModel(String baseUrl, String apiKey, String modelName) {
         if (Utils.isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
-                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+                    "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
         this.modelName = Utils.isNullOrBlank(modelName) ? QwenModelName.TEXT_EMBEDDING_V2 : modelName;
         this.apiKey = apiKey;

@@ -38,14 +38,13 @@ import static java.util.Objects.isNull;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
- * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details">here</a>.
+ * More details are available <a href="https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api">here</a>.
  */
 public class QwenChatModel implements ChatModel {
     private final QwenChatRequestParameters defaultRequestParameters;
     private final String apiKey;
     private final Generation generation;
     private final MultiModalConversation conv;
-    private final boolean isMultimodalModel;
     private final List<ChatModelListener> listeners;
     private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
     private Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>>
@@ -68,7 +67,7 @@ public class QwenChatModel implements ChatModel {
             Boolean isMultimodalModel) {
         if (isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
-                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+                    "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
 
         ChatRequestParameters commonParameters;
@@ -91,8 +90,6 @@ public class QwenChatModel implements ChatModel {
 
         this.apiKey = apiKey;
         this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
-        isMultimodalModel = getOrDefault(isMultimodalModel, isMultimodalModel(modelNameParameter));
-        this.isMultimodalModel = isMultimodalModel;
         this.defaultRequestParameters = QwenChatRequestParameters.builder()
                 // common parameters
                 .modelName(modelNameParameter)
@@ -112,18 +109,21 @@ public class QwenChatModel implements ChatModel {
                 .searchOptions(qwenParameters.searchOptions())
                 .translationOptions(qwenParameters.translationOptions())
                 .vlHighResolutionImages(qwenParameters.vlHighResolutionImages())
+                .isMultimodalModel(getOrDefault(isMultimodalModel, qwenParameters.isMultimodalModel()))
+                .supportIncrementalOutput(qwenParameters.supportIncrementalOutput())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 
         if (isNullOrBlank(baseUrl)) {
-            this.conv = isMultimodalModel ? new MultiModalConversation() : null;
-            this.generation = isMultimodalModel ? null : new Generation();
+            this.conv = new MultiModalConversation();
+            this.generation = new com.alibaba.dashscope.aigc.generation.Generation();
         } else if (baseUrl.startsWith("wss://")) {
-            this.conv = isMultimodalModel ? new MultiModalConversation(Protocol.WEBSOCKET.getValue(), baseUrl) : null;
-            this.generation = isMultimodalModel ? null : new Generation(Protocol.WEBSOCKET.getValue(), baseUrl);
+            this.conv = new MultiModalConversation(Protocol.WEBSOCKET.getValue(), baseUrl);
+            this.generation = new com.alibaba.dashscope.aigc.generation.Generation(Protocol.WEBSOCKET.getValue(),
+                    baseUrl);
         } else {
-            this.conv = isMultimodalModel ? new MultiModalConversation(Protocol.HTTP.getValue(), baseUrl) : null;
-            this.generation = isMultimodalModel ? null : new Generation(Protocol.HTTP.getValue(), baseUrl);
+            this.conv = new MultiModalConversation(Protocol.HTTP.getValue(), baseUrl);
+            this.generation = new com.alibaba.dashscope.aigc.generation.Generation(Protocol.HTTP.getValue(), baseUrl);
         }
     }
 
@@ -152,7 +152,7 @@ public class QwenChatModel implements ChatModel {
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
-        return isMultimodalModel ? generateByMultimodalModel(chatRequest) : generateByNonMultimodalModel(chatRequest);
+        return isMultimodalModel(chatRequest) ? generateByMultimodalModel(chatRequest) : generateByNonMultimodalModel(chatRequest);
     }
 
     @Override
