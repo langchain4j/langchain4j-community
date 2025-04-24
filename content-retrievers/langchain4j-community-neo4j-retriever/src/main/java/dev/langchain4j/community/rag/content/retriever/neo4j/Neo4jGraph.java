@@ -22,7 +22,7 @@ public class Neo4jGraph implements AutoCloseable {
         /**
          * @param driver the {@link Driver} (required)
          */
-        Builder driver(Driver driver) {
+        public Builder driver(Driver driver) {
             this.driver = driver;
             return this;
         }
@@ -30,7 +30,7 @@ public class Neo4jGraph implements AutoCloseable {
         /**
          * @param sample number of nodes to sample per label with the `apoc.meta.data` procedure (default: 1000)
          */
-        Builder sample(Long sample) {
+        public Builder sample(Long sample) {
             this.sample = sample;
             return this;
         }
@@ -38,7 +38,7 @@ public class Neo4jGraph implements AutoCloseable {
         /**
          * @param maxRels the maximum number of relationships to look at per Node Label with the `apoc.meta.data` procedure (default: 100)
          */
-        Builder maxRels(Long maxRels) {
+        public Builder maxRels(Long maxRels) {
             this.maxRels = maxRels;
             return this;
         }
@@ -74,7 +74,7 @@ public class Neo4jGraph implements AutoCloseable {
         return schema;
     }
 
-    static Builder builder() {
+    public static Builder builder() {
         return new Builder();
     }
 
