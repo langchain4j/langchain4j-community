@@ -76,7 +76,24 @@ public class PostgresEmbeddingStoreIT extends EmbeddingStoreIT {
     @Override
     protected EmbeddingStore<TextSegment> embeddingStore() {
         if (embeddingStore == null) {
-            ensureStoreIsReady();
+            final int MAX_ATTEMPTS = 3;
+            int attempt = 0;
+
+            while (attempt < MAX_ATTEMPTS) {
+                attempt++;
+                try {
+                    ensureStoreIsReady();
+                    break;
+                } catch (RuntimeException e) {
+                    System.err.println("Attempt " + attempt + ": RuntimeException caught: " + e.getMessage());
+                    try {
+                        Thread.sleep(1000); // Sleep for 1 second (1000 milliseconds)
+                    } catch (InterruptedException ie) {
+                        System.err.println("InterruptedException while sleeping: " + ie.getMessage());
+                        break; // Exit the loop if interrupted
+                    }
+                }
+            }
         }
         return embeddingStore;
     }
