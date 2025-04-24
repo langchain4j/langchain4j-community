@@ -9,7 +9,6 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -79,7 +78,7 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
                 .driver(driver)
                 .maxResults(2)
                 .minScore(0.4)
-                .chatModel(chatLanguageModel)
+                .questionModel(chatLanguageModel)
                 .query("CREATE (:MainDoc $metadata)")
                 .promptUser("mock prompt user")
                 .promptSystem("mock prompt system")
@@ -127,7 +126,7 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
                 .driver(driver)
                 .maxResults(2)
                 .minScore(0.4)
-                .chatModel(chatLanguageModel)
+                .questionModel(chatLanguageModel)
                 .answerModel(chatLanguageModel)
                 .query("CREATE (:MainDoc $metadata)")
                 .promptUser("mock prompt user")

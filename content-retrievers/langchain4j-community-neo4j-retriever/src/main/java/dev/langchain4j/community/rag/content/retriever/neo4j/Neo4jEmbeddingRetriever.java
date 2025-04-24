@@ -21,7 +21,6 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 
-import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +58,19 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
     /**
      * Creates an instance of Neo4jEmbeddingRetriever
      * 
-     * TODO
-     * 
+     * @param embeddingModel the embedding model used to embed the query and documents
+     * @param driver the Neo4j driver to connect to the database
+     * @param maxResults the maximum number of results to return
+     * @param minScore the minimum similarity score threshold for results
+     * @param query the Cypher query used to retrieve related documents
+     * @param params the parameters to be used with the Cypher query
+     * @param embeddingStore a custom Neo4jEmbeddingStore (optional)
+     * @param questionModel the language model used for the question prompt
+     * @param promptSystem the system prompt text
+     * @param promptUser the user prompt template
+     * @param answerModel the language model used to generate answers
+     * @param promptAnswer the prompt template used to generate the answer (optional)
+     * @param parentIdKey the key used to identify the parent document (optional)                      
      */
     public Neo4jEmbeddingRetriever(EmbeddingModel embeddingModel,
                                    Driver driver,
@@ -251,7 +261,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
                 .toList();
     }
 
-    public static class Builder<T extends Builder, V extends Neo4jEmbeddingRetriever> {
+    public static class Builder<T extends Builder> {
         protected EmbeddingModel embeddingModel;
         protected Driver driver;
         protected int maxResults = 10;
@@ -259,7 +269,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         protected String query;
         protected Map<String, Object> params = new HashMap<>();
         protected Neo4jEmbeddingStore embeddingStore;
-        protected ChatLanguageModel chatModel;
+        protected ChatLanguageModel questionModel;
         protected String promptSystem;
         protected String promptUser;
         protected ChatLanguageModel chatAnswerModel;
@@ -323,10 +333,10 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         }
 
         /**
-         * @param chatLanguageModel the language model used for the question prompt
+         * @param questionModel the language model used for the question prompt
          */
-        public T chatModel(ChatLanguageModel chatLanguageModel) {
-            this.chatModel = chatLanguageModel;
+        public T questionModel(ChatLanguageModel questionModel) {
+            this.questionModel = questionModel;
             return self();
         }
 
@@ -383,7 +393,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
                     query,
                     params,
                     embeddingStore,
-                    chatModel,
+                    questionModel,
                     promptSystem,
                     promptUser,
                     chatAnswerModel,

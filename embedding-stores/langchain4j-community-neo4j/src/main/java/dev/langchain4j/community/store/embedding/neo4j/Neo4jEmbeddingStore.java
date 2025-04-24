@@ -108,7 +108,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String label;
     private final String sanitizedLabel;
     private final String textProperty;
-    private String retrievalQuery;
+    private final String retrievalQuery;
     private final String entityCreationQuery;
     private final Set<String> notMetaKeys;
     private Map<String, Object> additionalParams;
@@ -138,8 +138,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param fullTextQuery          the optional full-text index query, required if we want to perform a hybrid search
      * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
      * @param autoCreateFullText     if true, it will auto create the full-text index if not exists (default: false)
-     * TODO -ENTITY CREATION QUERY
-     * TODO -ADDITIONAL PARAMS
+     * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
+     * @param additionalParams       the additional entity creation parameters (default: empty maps)
      */
     public Neo4jEmbeddingStore(
             SessionConfig config,
@@ -194,8 +194,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 "RETURN properties(node) AS metadata, node.%1$s AS %1$s, node.%2$s AS %2$s, node.%3$s AS %3$s, score",
                 this.sanitizedIdProperty, sanitizedText, sanitizedEmbeddingProperty);
         this.retrievalQuery = getOrDefault(retrievalQuery, defaultRetrievalQuery);
-        //        retrievalQuery = getOrDefault(retrievalQuery, defaultRetrievalQuery);
-        //        this.retrievalQuery = sanitizeOrThrows(retrievalQuery, "retrievalQuery");
 
         this.notMetaKeys = new HashSet<>(Arrays.asList(this.idProperty, this.embeddingProperty, this.textProperty));
 
@@ -660,7 +658,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param entityCreationQuery TODO
+         * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
          *                       
          */
         public Builder entityCreationQuery(String entityCreationQuery) {
@@ -733,7 +731,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param additionalParams TODO
+         * @param additionalParams the additional entity creation parameters (default: empty maps)
          */
         public Builder additionalParams(Map<String, Object> additionalParams) {
             this.additionalParams = additionalParams;
