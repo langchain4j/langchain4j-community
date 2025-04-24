@@ -91,6 +91,14 @@
                     </acceptableLicenses>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <skipTests>${skipXinferenceITs}</skipTests>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
@@ -22,7 +22,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     private Neo4jText2CypherRetriever retriever;
 
     @Mock
-    private ChatLanguageModel chatLanguageModel;
+    private ChatModel chatModel;
 
     @BeforeEach
     void beforeEach() {
@@ -30,7 +30,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
 
         retriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
-                .chatLanguageModel(chatLanguageModel)
+                .chatModel(chatModel)
                 .build();
     }
 
@@ -38,7 +38,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     void shouldRetrieveContentWhenQueryIsValid() {
         // Given
         Query query = new Query("Who is the author of the book 'Dune'?");
-        when(chatLanguageModel.chat(anyString()))
+        when(chatModel.chat(anyString()))
                 .thenReturn("MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output");
 
         // When
@@ -52,12 +52,12 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     void shouldRetrieveContentWhenQueryIsValidWithDeprecatedClass() {
         // Given
         Query query = new Query("Who is the author of the book 'Dune'?");
-        when(chatLanguageModel.chat(anyString()))
+        when(chatModel.chat(anyString()))
                 .thenReturn("MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output");
 
-        Neo4jContentRetriever retriever = Neo4jContentRetriever.builder()
+        Neo4jText2CypherRetriever retriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
-                .chatLanguageModel(chatLanguageModel)
+                .chatModel(chatModel)
                 .build();
 
         // When
@@ -71,7 +71,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     void shouldRetrieveContentWhenQueryIsValidAndResponseHasBackticks() {
         // Given
         Query query = new Query("Who is the author of the book 'Dune'?");
-        when(chatLanguageModel.chat(anyString()))
+        when(chatModel.chat(anyString()))
                 .thenReturn(
                         "```MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output```");
 
@@ -96,7 +96,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     void shouldReturnEmptyListWhenQueryIsInvalid() {
         // Given
         Query query = new Query("Who is the author of the movie 'Dune'?");
-        when(chatLanguageModel.chat(anyString()))
+        when(chatModel.chat(anyString()))
                 .thenReturn(
                         "MATCH(movie:Movie {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output");
 
@@ -128,14 +128,14 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     void shouldRetrieveContentWithExample() {
         // Given
         Query query = new Query("Who is the author of the book 'Dune'?");
-        when(chatLanguageModel.chat((String) argThat(arg -> {
+        when(chatModel.chat((String) argThat(arg -> {
                     final String argString = (String) arg;
                     return argString != null && argString.contains("Cypher examples:");
                 })))
                 .thenReturn(
                         "```MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output```");
 
-        when(chatLanguageModel.chat((String) argThat(arg -> {
+        when(chatModel.chat((String) argThat(arg -> {
                     final String argString = (String) arg;
                     return argString != null && !argString.contains("Cypher examples:");
                 })))
@@ -144,7 +144,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
         // When
         final Neo4jText2CypherRetriever retrieverWithoutExamples = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
-                .chatLanguageModel(chatLanguageModel)
+                .chatModel(chatModel)
                 .build();
 
         List<Content> contentsWithoutExamples = retrieverWithoutExamples.retrieve(query);
@@ -155,7 +155,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
         // When
         final Neo4jText2CypherRetriever retrieverWithExamples = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
-                .chatLanguageModel(chatLanguageModel)
+                .chatModel(chatModel)
                 .examples(List.of("Mock cypher examples.."))
                 .build();
 

@@ -7,7 +7,7 @@ import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERE
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.resolve;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
-class AbstractInferenceChatModelInfrastructure {
+public class AbstractInferenceChatModelInfrastructure {
 
     private static final String LOCAL_IMAGE = String.format("tc-%s-%s", XINFERENCE_IMAGE, modelName());
 

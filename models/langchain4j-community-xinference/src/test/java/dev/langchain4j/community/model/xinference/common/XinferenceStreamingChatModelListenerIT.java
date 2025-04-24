@@ -1,16 +1,18 @@
-package dev.langchain4j.community.model.xinference;
+package dev.langchain4j.community.model.xinference.common;
 
 import static java.util.Collections.singletonList;
 
+import dev.langchain4j.community.model.xinference.AbstractInferenceChatModelInfrastructure;
+import dev.langchain4j.community.model.xinference.XinferenceStreamingChatModel;
 import dev.langchain4j.community.model.xinference.client.XinferenceHttpException;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatModelListenerIT;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.common.AbstractStreamingChatModelListenerIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 
-class XinferenceStreamingChatModelListenerIT extends StreamingChatModelListenerIT {
+class XinferenceStreamingChatModelListenerIT extends AbstractStreamingChatModelListenerIT {
 
     @Override
-    protected StreamingChatLanguageModel createModel(ChatModelListener listener) {
+    protected StreamingChatModel createModel(ChatModelListener listener) {
         return XinferenceStreamingChatModel.builder()
                 .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
                 .apiKey(AbstractInferenceChatModelInfrastructure.apiKey())
@@ -41,7 +43,7 @@ class XinferenceStreamingChatModelListenerIT extends StreamingChatModelListenerI
     }
 
     @Override
-    protected StreamingChatLanguageModel createFailingModel(ChatModelListener listener) {
+    protected StreamingChatModel createFailingModel(ChatModelListener listener) {
         return XinferenceStreamingChatModel.builder()
                 .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
                 .modelName("llama3.1")

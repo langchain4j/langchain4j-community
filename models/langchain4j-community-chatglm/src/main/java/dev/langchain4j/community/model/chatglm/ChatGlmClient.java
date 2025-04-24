@@ -1,73 +1,68 @@
 package dev.langchain4j.community.model.chatglm;
 
-import dev.langchain4j.internal.Utils;
-import okhttp3.OkHttpClient;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.jackson.JacksonConverterFactory;
-
-import java.io.IOException;
-import java.time.Duration;
-
+import static dev.langchain4j.http.client.HttpMethod.POST;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static java.time.Duration.ofSeconds;
 
+import dev.langchain4j.exception.HttpException;
+import dev.langchain4j.http.client.HttpClient;
+import dev.langchain4j.http.client.HttpClientBuilder;
+import dev.langchain4j.http.client.HttpClientBuilderLoader;
+import dev.langchain4j.http.client.HttpRequest;
+import dev.langchain4j.http.client.SuccessfulHttpResponse;
+import dev.langchain4j.http.client.log.LoggingHttpClient;
+import dev.langchain4j.internal.Json;
+import java.time.Duration;
+
 class ChatGlmClient {
 
-    private final ChatGlmApi chatGLMApi;
+    private static final int statusCode = 200;
+    private final HttpClient httpClient;
+    private final String baseUrl;
 
-    public ChatGlmClient(String baseUrl,
-                         Duration timeout,
-                         boolean logRequests,
-                         boolean logResponses) {
-        baseUrl = ensureNotNull(baseUrl, "baseUrl");
-        timeout = getOrDefault(timeout, ofSeconds(60));
-
-        OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder()
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout);
-
-        if (logRequests) {
-            okHttpClientBuilder.addInterceptor(new ChatGlmRequestLoggingInterceptor());
-        }
-        if (logResponses) {
-            okHttpClientBuilder.addInterceptor(new ChatGlmResponseLoggingInterceptor());
-        }
-
-        OkHttpClient okHttpClient = okHttpClientBuilder.build();
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(Utils.ensureTrailingForwardSlash(baseUrl))
-                .client(okHttpClient)
-                .addConverterFactory(JacksonConverterFactory.create())
+    public ChatGlmClient(Builder builder) {
+        this.baseUrl = ensureNotNull(builder.baseUrl, "baseUrl");
+        builder.timeout = getOrDefault(builder.timeout, ofSeconds(60));
+        HttpClientBuilder httpClientBuilder =
+                getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader.loadHttpClientBuilder());
+        HttpClient httpClient = httpClientBuilder
+                .connectTimeout(
+                        getOrDefault(getOrDefault(builder.timeout, httpClientBuilder.connectTimeout()), ofSeconds(15)))
+                .readTimeout(
+                        getOrDefault(getOrDefault(builder.timeout, httpClientBuilder.readTimeout()), ofSeconds(60)))
                 .build();
 
-        chatGLMApi = retrofit.create(ChatGlmApi.class);
+        if (builder.logRequests || builder.logResponses) {
+            this.httpClient = new LoggingHttpClient(httpClient, builder.logRequests, builder.logResponses);
+        } else {
+            this.httpClient = httpClient;
+        }
     }
 
     public ChatCompletionResponse chatCompletion(ChatCompletionRequest request) {
         try {
-            Response<ChatCompletionResponse> retrofitResponse
-                    = chatGLMApi.chatCompletion(request).execute();
-
-            if (retrofitResponse.isSuccessful() && retrofitResponse.body() != null
-                    && retrofitResponse.body().getStatus() == ChatGlmApi.OK) {
-                return retrofitResponse.body();
-            } else {
-                throw toException(retrofitResponse);
+            HttpRequest httpRequest = HttpRequest.builder()
+                    .method(POST)
+                    .url(baseUrl)
+                    .body(Json.toJson(request))
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+            SuccessfulHttpResponse successfulHttpResponse = httpClient.execute(httpRequest);
+            ChatCompletionResponse response =
+                    Json.fromJson(successfulHttpResponse.body(), ChatCompletionResponse.class);
+            if (response == null || response.getStatus() != statusCode) {
+                throw toException(successfulHttpResponse);
             }
-        } catch (IOException e) {
+            return response;
+        } catch (HttpException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private RuntimeException toException(Response<?> response) throws IOException {
-        int code = response.code();
-        String body = response.errorBody().string();
-
+    private RuntimeException toException(SuccessfulHttpResponse response) {
+        String body = response.body();
+        int code = response.statusCode();
         String errorMessage = String.format("status code: %s; body: %s", code, body);
         return new RuntimeException(errorMessage);
     }
@@ -77,11 +72,16 @@ class ChatGlmClient {
     }
 
     static class Builder {
-
+        private HttpClientBuilder httpClientBuilder;
         private String baseUrl;
         private Duration timeout;
         private boolean logRequests;
         private boolean logResponses;
+
+        Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
+            this.httpClientBuilder = httpClientBuilder;
+            return this;
+        }
 
         Builder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
@@ -104,7 +104,7 @@ class ChatGlmClient {
         }
 
         ChatGlmClient build() {
-            return new ChatGlmClient(baseUrl, timeout, logRequests, logResponses);
+            return new ChatGlmClient(this);
         }
     }
 }

@@ -3,7 +3,7 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.content.Content;
@@ -21,20 +21,20 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     private static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
             """
-            Task:Generate Cypher statement to query a graph database.
-            Instructions
-            Use only the provided relationship types and properties in the schema.
-            Do not use any other relationship types or properties that are not provided.
+                    Task:Generate Cypher statement to query a graph database.
+                    Instructions
+                    Use only the provided relationship types and properties in the schema.
+                    Do not use any other relationship types or properties that are not provided.
 
-            Schema:
-            {{schema}}
+                    Schema:
+                    {{schema}}
 
-            {{examples}}
-            Note: Do not include any explanations or apologies in your responses.
-            Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
-            Do not include any text except the generated Cypher statement.
-            The question is: {{question}}
-            """);
+                    {{examples}}
+                    Note: Do not include any explanations or apologies in your responses.
+                    Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
+                    Do not include any text except the generated Cypher statement.
+                    The question is: {{question}}
+                    """);
 
     private static final Pattern BACKTICKS_PATTERN = Pattern.compile("```(.*?)```", Pattern.MULTILINE | Pattern.DOTALL);
     private static final Type NODE = TypeSystem.getDefault().NODE();
@@ -43,19 +43,16 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     private final Neo4jGraph graph;
 
-    private final ChatLanguageModel chatLanguageModel;
+    private final ChatModel chatModel;
 
     private final PromptTemplate promptTemplate;
     private final List<String> examples;
 
     public Neo4jText2CypherRetriever(
-            Neo4jGraph graph,
-            ChatLanguageModel chatLanguageModel,
-            PromptTemplate promptTemplate,
-            List<String> examples) {
+            Neo4jGraph graph, ChatModel ChatModel, PromptTemplate promptTemplate, List<String> examples) {
 
         this.graph = ensureNotNull(graph, "graph");
-        this.chatLanguageModel = ensureNotNull(chatLanguageModel, "chatLanguageModel");
+        this.chatModel = ensureNotNull(ChatModel, "chatModel");
         this.promptTemplate = getOrDefault(promptTemplate, DEFAULT_PROMPT_TEMPLATE);
         this.examples = getOrDefault(examples, List.of());
     }
@@ -71,8 +68,8 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         return graph;
     }
 
-    public ChatLanguageModel getChatLanguageModel() {
-        return chatLanguageModel;
+    public ChatModel getChatModel() {
+        return chatModel;
     }
 
     public PromptTemplate getPromptTemplate() {
@@ -99,7 +96,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         final Map<String, Object> templateVariables =
                 Map.of("schema", schema, "question", question, "examples", examplesString);
         Prompt cypherPrompt = promptTemplate.apply(templateVariables);
-        String cypherQuery = chatLanguageModel.chat(cypherPrompt.text());
+        String cypherQuery = chatModel.chat(cypherPrompt.text());
         Matcher matcher = BACKTICKS_PATTERN.matcher(cypherQuery);
         if (matcher.find()) {
             return matcher.group(1);
@@ -126,7 +123,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     public static class Builder<T extends Builder<T>> {
 
         protected Neo4jGraph graph;
-        protected ChatLanguageModel chatLanguageModel;
+        protected ChatModel chatModel;
         protected PromptTemplate promptTemplate;
         protected List<String> examples;
 
@@ -139,10 +136,10 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         /**
-         * @param chatLanguageModel the {@link ChatLanguageModel} (required)
+         * @param chatModel the {@link ChatModel} (required)
          */
-        public T chatLanguageModel(ChatLanguageModel chatLanguageModel) {
-            this.chatLanguageModel = chatLanguageModel;
+        public T chatModel(ChatModel chatModel) {
+            this.chatModel = chatModel;
             return self();
         }
 
@@ -167,7 +164,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         public Neo4jText2CypherRetriever build() {
-            return new Neo4jText2CypherRetriever(graph, chatLanguageModel, promptTemplate, examples);
+            return new Neo4jText2CypherRetriever(graph, chatModel, promptTemplate, examples);
         }
     }
 }

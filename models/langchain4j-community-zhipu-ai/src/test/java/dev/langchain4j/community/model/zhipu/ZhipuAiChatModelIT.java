@@ -20,7 +20,7 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -331,7 +331,7 @@ class ZhipuAiChatModelIT {
 
     @Test
     public void should_send_multimodal_image_data_and_receive_response() {
-        ChatLanguageModel model = ZhipuAiChatModel.builder()
+        ChatModel model = ZhipuAiChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)
                 .callTimeout(Duration.ofSeconds(60))
