@@ -200,6 +200,16 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     }
 
     @Test
+    void shouldReturnArithmeticException() {
+        try {
+            Neo4jGraph.builder().driver(driver).sample(0L).maxRels(0L).build();
+            fail("Should fail due to ArithmeticException");
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).contains("java.lang.ArithmeticException: / by zero");
+        }
+    }
+
+    @Test
     void shouldReturnEmptyListWhenQueryHasNoResults() {
         // Given
         Query query = new Query("Who is the author of the movie 'Dune'?");
@@ -230,6 +240,23 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
 
     private static ChatResponse getChatResponse(String text) {
         return ChatResponse.builder().aiMessage(AiMessage.from(text)).build();
+    }
+
+    @Test
+    void shouldThrowsErrorWhenNeo4jGraphQueryIsInvalid() {
+        final String invalidQuery = "MATCH(movie:Movie {title: 'Dune'}) RETURN author.name AS output";
+
+        try {
+            graph.executeRead(invalidQuery);
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).contains("Variable `author` not defined");
+        }
+
+        try {
+            graph.executeWrite(invalidQuery);
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("Variable `author` not defined");
+        }
     }
 
     @Test
