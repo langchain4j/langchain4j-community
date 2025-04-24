@@ -45,6 +45,8 @@
 
     <modules>
 
+        <module>langchain4j-community-core</module>
+
         <!-- LangChain4j Community Bill of Materials POM -->
         <module>langchain4j-community-bom</module>
 
