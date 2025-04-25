@@ -1,5 +1,14 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
+import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V1;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V2;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+
 import com.alibaba.dashscope.embeddings.TextEmbedding;
 import com.alibaba.dashscope.embeddings.TextEmbeddingOutput;
 import com.alibaba.dashscope.embeddings.TextEmbeddingParam;
@@ -13,22 +22,12 @@ import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.embedding.DimensionAwareEmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-
-import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
-import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V1;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V2;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 
 /**
  * An implementation of an {@link dev.langchain4j.model.embedding.EmbeddingModel} that uses

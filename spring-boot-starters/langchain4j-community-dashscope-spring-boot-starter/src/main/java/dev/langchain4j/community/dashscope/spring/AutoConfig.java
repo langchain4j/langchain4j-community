@@ -1,5 +1,8 @@
 package dev.langchain4j.community.dashscope.spring;
 
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static java.util.stream.Collectors.toList;
+
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenChatRequestParameters;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
@@ -9,16 +12,12 @@ import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenTokenCountEstimator;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
+import java.util.Collections;
+import java.util.List;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-
-import java.util.Collections;
-import java.util.List;
-
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static java.util.stream.Collectors.toList;
 
 @AutoConfiguration
 @EnableConfigurationProperties(Properties.class)

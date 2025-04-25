@@ -1,5 +1,13 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.chatResponseFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+
 import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.generation.GenerationUsage;
@@ -18,19 +26,10 @@ import com.alibaba.dashscope.tools.codeinterpretertool.ToolCallCodeInterpreter;
 import com.alibaba.dashscope.tools.search.ToolCallQuarkSearch;
 import com.google.gson.JsonObject;
 import dev.langchain4j.model.chat.response.ChatResponse;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.chatResponseFrom;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 public class QwenStreamingResponseBuilder {
     private final String modelName;
@@ -273,23 +272,21 @@ public class QwenStreamingResponseBuilder {
         if (previous instanceof ToolCallFunction previousToolCallFunction
                 && current instanceof ToolCallFunction currentToolCallFunction) {
             ToolCallFunction newToolCall = new ToolCallFunction();
-            ToolCallFunction.CallFunction callFunction = mergeToolCallFunction(newToolCall,
-                    previousToolCallFunction.getFunction(), currentToolCallFunction.getFunction());
+            ToolCallFunction.CallFunction callFunction = mergeToolCallFunction(
+                    newToolCall, previousToolCallFunction.getFunction(), currentToolCallFunction.getFunction());
             newToolCall.setFunction(callFunction);
             newToolCall.setId(id);
             newToolCall.setType(type);
             return newToolCall;
-        }
-        else if (current instanceof ToolCallCodeInterpreter) {
+        } else if (current instanceof ToolCallCodeInterpreter) {
             ToolCallCodeInterpreter newToolCall = new ToolCallCodeInterpreter();
             newToolCall.setId(id);
             newToolCall.setType(type);
             return newToolCall;
-        }
-        else if (previous instanceof ToolCallQuarkSearch previousQuarkToolCall
+        } else if (previous instanceof ToolCallQuarkSearch previousQuarkToolCall
                 && current instanceof ToolCallQuarkSearch currentQuarkToolCall) {
-            Map<String, String> quarkSearch = merge(previousQuarkToolCall.getQuarkSearch(),
-                    currentQuarkToolCall.getQuarkSearch());
+            Map<String, String> quarkSearch =
+                    merge(previousQuarkToolCall.getQuarkSearch(), currentQuarkToolCall.getQuarkSearch());
             ToolCallQuarkSearch newToolCall = new ToolCallQuarkSearch();
             newToolCall.setId(id);
             newToolCall.setType(type);
@@ -301,7 +298,9 @@ public class QwenStreamingResponseBuilder {
     }
 
     private ToolCallFunction.CallFunction mergeToolCallFunction(
-            ToolCallFunction toolCallFunction, ToolCallFunction.CallFunction previous, ToolCallFunction.CallFunction current) {
+            ToolCallFunction toolCallFunction,
+            ToolCallFunction.CallFunction previous,
+            ToolCallFunction.CallFunction current) {
         if (previous == null) {
             return current;
         }
@@ -333,7 +332,7 @@ public class QwenStreamingResponseBuilder {
 
     private MultiModalConversationOutput mergeOutput(
             MultiModalConversationOutput previous, MultiModalConversationOutput current) {
-        List<MultiModalConversationOutput.Choice> choices = mergeChoices( previous.getChoices(), current.getChoices());
+        List<MultiModalConversationOutput.Choice> choices = mergeChoices(previous.getChoices(), current.getChoices());
 
         MultiModalConversationOutput output = new MultiModalConversationOutput();
         output.setChoices(choices);
@@ -342,8 +341,7 @@ public class QwenStreamingResponseBuilder {
     }
 
     private List<MultiModalConversationOutput.Choice> mergeChoices(
-            List<MultiModalConversationOutput.Choice> previous,
-            List<MultiModalConversationOutput.Choice> current) {
+            List<MultiModalConversationOutput.Choice> previous, List<MultiModalConversationOutput.Choice> current) {
         // in most cases, there is only one.
         List<MultiModalConversationOutput.Choice> choices = new ArrayList<>(1);
         MultiModalConversationOutput.Choice lastPreviousChoice = null;
@@ -403,10 +401,7 @@ public class QwenStreamingResponseBuilder {
         String role = getOrDefault(current.getRole(), previous.getRole());
         role = getOrDefault(role, Role.ASSISTANT.getValue());
 
-        return MultiModalMessage.builder()
-                .content(contents)
-                .role(role)
-                .build();
+        return MultiModalMessage.builder().content(contents).role(role).build();
     }
 
     private List<Map<String, Object>> mergeContents(

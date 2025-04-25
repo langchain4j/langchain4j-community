@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.internal.Utils.quoted;
+
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import static dev.langchain4j.internal.Utils.quoted;
 
 @Experimental
 public class QwenChatResponseMetadata extends ChatResponseMetadata {
