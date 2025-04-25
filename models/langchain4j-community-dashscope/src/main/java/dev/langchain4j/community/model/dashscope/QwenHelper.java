@@ -509,7 +509,7 @@ class QwenHelper {
             }
 
             if (type == USER) {
-                while (acc.getLast().type() != SYSTEM && !isNormalAiType(acc.getLast())) {
+                while (!acc.isEmpty() && acc.getLast().type() != SYSTEM && !isNormalAiType(acc.getLast())) {
                     ChatMessage removedMessage = acc.removeLast();
                     log.warn(
                             "Tool execution result should follow a tool execution request message. Drop duplicated message: {}",
