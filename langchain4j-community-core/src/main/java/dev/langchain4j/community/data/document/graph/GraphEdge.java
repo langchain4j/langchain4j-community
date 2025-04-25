@@ -51,7 +51,7 @@ public class GraphEdge {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         GraphEdge graphEdge = (GraphEdge) o;
         return Objects.equals(sourceNode, graphEdge.sourceNode)

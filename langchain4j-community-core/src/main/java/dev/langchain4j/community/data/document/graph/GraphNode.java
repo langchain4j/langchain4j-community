@@ -45,7 +45,7 @@ public class GraphNode {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         GraphNode graphNode = (GraphNode) o;
         return Objects.equals(id, graphNode.id)
