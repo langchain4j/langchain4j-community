@@ -88,7 +88,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
         retriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
                 .chatModel(chatModel)
-                .maxRetries(1)
+                .maxRetries(0)
                 .build();
 
         // When
@@ -131,7 +131,7 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
         retriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)
                 .chatModel(chatModel)
-                .maxRetries(1)
+                .maxRetries(0)
                 .build();
 
         try {
