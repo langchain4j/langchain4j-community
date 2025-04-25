@@ -1,6 +1,7 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
@@ -82,6 +83,16 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
     }
 
     @Test
+    void shouldReturnArithmeticException() {
+        try {
+            Neo4jGraph.builder().driver(driver).sample(0L).maxRels(0L).build();
+            fail("Should fail due to ArithmeticException");
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).contains("java.lang.ArithmeticException: / by zero");
+        }
+    }
+
+    @Test
     void shouldReturnEmptyListWhenQueryIsInvalid() {
         // Given
         Query query = new Query("Who is the author of the movie 'Dune'?");
@@ -94,6 +105,23 @@ public class Neo4JText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBase
 
         // Then
         assertThat(contents).isEmpty();
+    }
+
+    @Test
+    void shouldThrowsErrorWhenNeo4jGraphQueryIsInvalid() {
+        final String invalidQuery = "MATCH(movie:Movie {title: 'Dune'}) RETURN author.name AS output";
+
+        try {
+            graph.executeRead(invalidQuery);
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage()).contains("Variable `author` not defined");
+        }
+
+        try {
+            graph.executeWrite(invalidQuery);
+        } catch (RuntimeException e) {
+            assertThat(e.getCause().getMessage()).contains("Variable `author` not defined");
+        }
     }
 
     @Test
