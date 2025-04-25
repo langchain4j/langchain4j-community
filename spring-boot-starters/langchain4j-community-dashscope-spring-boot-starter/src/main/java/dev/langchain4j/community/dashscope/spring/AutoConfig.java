@@ -213,6 +213,7 @@ public class AutoConfig {
                 .baseUrl(embeddingModelProperties.getBaseUrl())
                 .apiKey(embeddingModelProperties.getApiKey())
                 .modelName(embeddingModelProperties.getModelName())
+                .dimension(embeddingModelProperties.getDimension())
                 .build();
     }
 

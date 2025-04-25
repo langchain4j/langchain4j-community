@@ -25,6 +25,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import java.util.concurrent.CompletableFuture;
 
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V3;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -137,11 +138,15 @@ public class AutoConfigIT {
     @Test
     void should_provide_embedding_model() {
         contextRunner
-                .withPropertyValues("langchain4j.community.dashscope.embedding-model.api-key=" + API_KEY)
+                .withPropertyValues(
+                        "langchain4j.community.dashscope.embedding-model.api-key=" + API_KEY,
+                        "langchain4j.community.dashscope.embedding-model.model-name=" + TEXT_EMBEDDING_V3,
+                        "langchain4j.community.dashscope.embedding-model.dimension=512")
                 .run(context -> {
                     EmbeddingModel embeddingModel = context.getBean(EmbeddingModel.class);
                     assertThat(embeddingModel).isInstanceOf(QwenEmbeddingModel.class);
-                    assertThat(embeddingModel.embed("hi").content().dimension()).isEqualTo(1536);
+                    assertThat(embeddingModel.dimension()).isEqualTo(512);
+                    assertThat(embeddingModel.embed("hi").content().dimension()).isEqualTo(512);
 
                     assertThat(context.getBean(QwenEmbeddingModel.class)).isSameAs(embeddingModel);
                 });
