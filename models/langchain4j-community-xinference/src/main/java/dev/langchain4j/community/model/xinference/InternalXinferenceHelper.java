@@ -2,6 +2,7 @@ package dev.langchain4j.community.model.xinference;
 
 import static dev.langchain4j.community.model.xinference.ImageUtils.base64Image;
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
@@ -30,7 +31,6 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.VideoContent;
 import dev.langchain4j.data.video.Video;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import java.io.ByteArrayInputStream;
@@ -161,7 +161,7 @@ class InternalXinferenceHelper {
         if (toolSpecification.parameters() != null) {
             JsonObjectSchema parameters = toolSpecification.parameters();
             return Parameters.builder()
-                    .properties(JsonSchemaElementHelper.toMap(parameters.properties()))
+                    .properties(toMap(parameters.properties()))
                     .required(parameters.required())
                     .build();
         } else {
