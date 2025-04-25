@@ -62,7 +62,9 @@ public abstract class Neo4jEmbeddingStoreBaseTest extends EmbeddingStoreIT {
 
     @Override
     protected void clearStore() {
-        session.run("MATCH (n) DETACH DELETE n");
+        session.executeWriteWithoutResult(
+                tx -> tx.run("MATCH (n) DETACH DELETE n").consume());
+        session.run("CALL db.awaitIndexes()");
 
         embeddingStore = Neo4jEmbeddingStore.builder()
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
