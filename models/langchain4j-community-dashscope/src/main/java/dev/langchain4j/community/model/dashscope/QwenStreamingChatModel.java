@@ -121,14 +121,13 @@ public class QwenStreamingChatModel implements StreamingChatModel {
 
         if (isNullOrBlank(baseUrl)) {
             this.conv = new MultiModalConversation();
-            this.generation = new com.alibaba.dashscope.aigc.generation.Generation();
+            this.generation = new Generation();
         } else if (baseUrl.startsWith("wss://")) {
             this.conv = new MultiModalConversation(Protocol.WEBSOCKET.getValue(), baseUrl);
-            this.generation =
-                    new com.alibaba.dashscope.aigc.generation.Generation(Protocol.WEBSOCKET.getValue(), baseUrl);
+            this.generation = new Generation(Protocol.WEBSOCKET.getValue(), baseUrl);
         } else {
             this.conv = new MultiModalConversation(Protocol.HTTP.getValue(), baseUrl);
-            this.generation = new com.alibaba.dashscope.aigc.generation.Generation(Protocol.HTTP.getValue(), baseUrl);
+            this.generation = new Generation(Protocol.HTTP.getValue(), baseUrl);
         }
     }
 
