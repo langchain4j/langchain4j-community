@@ -7,7 +7,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-public class Neo4jGraphConverterIT extends Neo4jGraphConverterBaseTest {
+class Neo4JKnowledgeGraphWriterIT extends Neo4jKnowledgeGraphWriterBaseTest {
 
     @Override
     ChatModel getModel() {

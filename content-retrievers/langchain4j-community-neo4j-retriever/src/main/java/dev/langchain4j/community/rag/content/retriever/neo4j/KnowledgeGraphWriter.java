@@ -1,17 +1,18 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
-import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.generateMD5;
-import static dev.langchain4j.community.rag.transformer.Neo4jUtils.sanitizeOrThrows;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jUtils.generateMD5;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jUtils.sanitizeOrThrows;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
-import dev.langchain4j.community.rag.transformer.GraphDocument;
-import dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils;
+import dev.langchain4j.Experimental;
+import dev.langchain4j.community.data.document.graph.GraphDocument;
 import dev.langchain4j.data.document.Document;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Experimental
 public class KnowledgeGraphWriter {
 
     /* default configs */
@@ -73,15 +74,12 @@ public class KnowledgeGraphWriter {
     public void addGraphDocuments(List<GraphDocument> graphDocuments, boolean includeSource) {
 
         for (GraphDocument graphDoc : graphDocuments) {
-            final Document source = graphDoc.getSource();
+            Document source = graphDoc.source();
 
             // Import nodes
             Map<String, Object> nodeParams = new HashMap<>();
             nodeParams.put(
-                    "data",
-                    graphDoc.getNodes().stream()
-                            .map(LLMGraphTransformerUtils::toMap)
-                            .toList());
+                    "data", graphDoc.nodes().stream().map(Neo4jUtils::toMap).toList());
 
             if (includeSource) {
                 // create a copyOf metadata, not to update existing graphDoc,
@@ -99,13 +97,13 @@ public class KnowledgeGraphWriter {
             graph.executeWrite(nodeImportQuery, nodeParams);
 
             // Import relationships
-            List<Map<String, String>> relData = graphDoc.getRelationships().stream()
+            List<Map<String, String>> relData = graphDoc.relationships().stream()
                     .map(rel -> Map.of(
-                            "source", rel.getSourceNode().getId(),
-                            "source_label", rel.getSourceNode().getType(),
-                            "target", rel.getTargetNode().getId(),
-                            "target_label", rel.getTargetNode().getType(),
-                            "type", rel.getType().replace(" ", "_").toUpperCase()))
+                            "source", rel.sourceNode().id(),
+                            "source_label", rel.sourceNode().type(),
+                            "target", rel.targetNode().id(),
+                            "target_label", rel.targetNode().type(),
+                            "type", rel.type().replace(" ", "_").toUpperCase()))
                     .toList();
 
             String relImportQuery = getRelImportQuery();
@@ -132,11 +130,11 @@ public class KnowledgeGraphWriter {
         }
         return String.format(
                 """
-                MERGE (d:Document {%1$s: $document.metadata.%1$s})
-                SET d.%2$s = $document.text
-                SET d += $document.metadata
-                WITH d
-                """,
+                        MERGE (d:Document {%1$s: $document.metadata.%1$s})
+                        SET d.%2$s = $document.text
+                        SET d += $document.metadata
+                        WITH d
+                        """,
                 sanitizedIdProperty, sanitizedTextProperty);
     }
 
@@ -144,17 +142,18 @@ public class KnowledgeGraphWriter {
 
         return String.format(
                 """
-                UNWIND $data AS row
-                MERGE (source:%1$s {%2$s: row.source})
-                MERGE (target:%1$s {%2$s: row.target})
-                WITH source, target, row
-                MERGE (source)-[rel:$(toString(row.type) + '')]->(target)
-                RETURN distinct 'done'
-                """,
+                        UNWIND $data AS row
+                        MERGE (source:%1$s {%2$s: row.source})
+                        MERGE (target:%1$s {%2$s: row.target})
+                        WITH source, target, row
+                        MERGE (source)-[rel:$(toString(row.type) + '')]->(target)
+                        RETURN distinct 'done'
+                        """,
                 sanitizedLabel, sanitizedIdProperty);
     }
 
     public static class Builder {
+
         private String label;
         private String idProperty;
         private String textProperty;
@@ -189,7 +188,7 @@ public class KnowledgeGraphWriter {
 
         /**
          * @param label the entity label, to be used with {@link #addGraphDocuments(List, boolean)}
-         *             (default: "__Entity__")
+         *              (default: "__Entity__")
          */
         public Builder label(String label) {
             this.label = label;
@@ -198,7 +197,7 @@ public class KnowledgeGraphWriter {
 
         /**
          * @param relType the entity relationship types, to be used with {@link #addGraphDocuments(List, boolean)}
-         *               (default "HAS_ENTITY")
+         *                (default "HAS_ENTITY")
          */
         public Builder relType(String relType) {
             this.relType = relType;

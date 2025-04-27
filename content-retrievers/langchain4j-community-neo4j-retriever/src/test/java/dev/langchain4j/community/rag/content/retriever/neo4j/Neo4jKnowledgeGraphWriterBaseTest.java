@@ -4,11 +4,10 @@ import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGra
 import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_LABEL;
 import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_REL_TYPE;
 import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_TEXT_PROP;
-import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerIT.EXAMPLES_PROMPT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.community.rag.transformer.GraphDocument;
-import dev.langchain4j.community.rag.transformer.LLMGraphTransformer;
+import dev.langchain4j.community.data.document.graph.GraphDocument;
+import dev.langchain4j.community.data.document.transformer.graph.LLMGraphTransformer;
 import dev.langchain4j.data.document.DefaultDocument;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
@@ -33,7 +32,54 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
-public abstract class Neo4jGraphConverterBaseTest {
+abstract class Neo4jKnowledgeGraphWriterBaseTest {
+
+    private static final String EXAMPLES_PROMPT =
+            """
+                    [
+                       {
+                          "tail":"Microsoft",
+                          "head":"Adam",
+                          "head_type":"Person",
+                          "text":"Adam is a software engineer in Microsoft since 2009, and last year he got an award as the Best Talent",
+                          "relation":"WORKS_FOR",
+                          "tail_type":"Company"
+                       },
+                       {
+                          "tail":"Best Talent",
+                          "head":"Adam",
+                          "head_type":"Person",
+                          "text":"Adam is a software engineer in Microsoft since 2009, and last year he got an award as the Best Talent",
+                          "relation":"HAS_AWARD",
+                          "tail_type":"Award"
+                       },
+                       {
+                          "tail":"Microsoft",
+                          "head":"Microsoft Word",
+                          "head_type":"Product",
+                          "text":"Microsoft is a tech company that provide several products such as Microsoft Word",
+                          "relation":"PRODUCED_BY",
+                          "tail_type":"Company"
+                       },
+                       {
+                          "tail":"lightweight app",
+                          "head":"Microsoft Word",
+                          "head_type":"Product",
+                          "text":"Microsoft Word is a lightweight app that accessible offline",
+                          "relation":"HAS_CHARACTERISTIC",
+                          "tail_type":"Characteristic"
+                       },
+                       {
+                          "tail":"accessible offline",
+                          "head":"Microsoft Word",
+                          "head_type":"Product",
+                          "text":"Microsoft Word is a lightweight app that accessible offline",
+                          "relation":"HAS_CHARACTERISTIC",
+                          "tail_type":"Characteristic"
+                       }
+                    ]
+                    """;
+
     public static final String ON = "on";
     public static final String KEY_CAT = "key2";
     public static final String VALUE_CAT = "value2";
@@ -87,7 +133,7 @@ public abstract class Neo4jGraphConverterBaseTest {
         Document docCat = new DefaultDocument(CAT_ON_THE_TABLE, Metadata.from(KEY_CAT, VALUE_CAT));
         List<Document> documents = List.of(docCat, docKeanu);
 
-        graphDocs = graphTransformer.convertToGraphDocuments(documents);
+        graphDocs = graphTransformer.transformAll(documents);
         assertThat(graphDocs.size()).isEqualTo(2);
     }
 
@@ -154,7 +200,7 @@ public abstract class Neo4jGraphConverterBaseTest {
     void testAddGraphDocumentsWithIncludeSourceAndCustomIdTextAndLabel() {
 
         knowledgeGraphWriter = KnowledgeGraphWriter.builder()
-                .graph(Neo4jGraphConverterBaseTest.neo4jGraph)
+                .graph(Neo4jKnowledgeGraphWriterBaseTest.neo4jGraph)
                 .textProperty(CUSTOM_TEXT)
                 .idProperty(CUSTOM_ID)
                 .label(CUSTOM_LABEL)

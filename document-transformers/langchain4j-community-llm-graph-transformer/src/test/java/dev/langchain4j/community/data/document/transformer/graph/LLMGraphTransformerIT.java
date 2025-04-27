@@ -1,9 +1,12 @@
-package dev.langchain4j.community.rag.transformer;
+package dev.langchain4j.community.data.document.transformer.graph;
 
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import dev.langchain4j.community.data.document.graph.GraphDocument;
+import dev.langchain4j.community.data.document.graph.GraphEdge;
+import dev.langchain4j.community.data.document.graph.GraphNode;
 import dev.langchain4j.data.document.DefaultDocument;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
@@ -14,59 +17,58 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-public class LLMGraphTransformerIT {
+class LLMGraphTransformerIT {
 
-    public static final String EXAMPLES_PROMPT =
+    private static final String EXAMPLES_PROMPT =
             """
-            [
-               {
-                  "tail":"Microsoft",
-                  "head":"Adam",
-                  "head_type":"Person",
-                  "text":"Adam is a software engineer in Microsoft since 2009, and last year he got an award as the Best Talent",
-                  "relation":"WORKS_FOR",
-                  "tail_type":"Company"
-               },
-               {
-                  "tail":"Best Talent",
-                  "head":"Adam",
-                  "head_type":"Person",
-                  "text":"Adam is a software engineer in Microsoft since 2009, and last year he got an award as the Best Talent",
-                  "relation":"HAS_AWARD",
-                  "tail_type":"Award"
-               },
-               {
-                  "tail":"Microsoft",
-                  "head":"Microsoft Word",
-                  "head_type":"Product",
-                  "text":"Microsoft is a tech company that provide several products such as Microsoft Word",
-                  "relation":"PRODUCED_BY",
-                  "tail_type":"Company"
-               },
-               {
-                  "tail":"lightweight app",
-                  "head":"Microsoft Word",
-                  "head_type":"Product",
-                  "text":"Microsoft Word is a lightweight app that accessible offline",
-                  "relation":"HAS_CHARACTERISTIC",
-                  "tail_type":"Characteristic"
-               },
-               {
-                  "tail":"accessible offline",
-                  "head":"Microsoft Word",
-                  "head_type":"Product",
-                  "text":"Microsoft Word is a lightweight app that accessible offline",
-                  "relation":"HAS_CHARACTERISTIC",
-                  "tail_type":"Characteristic"
-               }
-            ]
-            """;
+                    [
+                       {
+                          "tail":"Microsoft",
+                          "head":"Adam",
+                          "head_type":"Person",
+                          "text":"Adam is a software engineer in Microsoft since 2009, and last year he got an award as the Best Talent",
+                          "relation":"WORKS_FOR",
+                          "tail_type":"Company"
+                       },
+                       {
+                          "tail":"Best Talent",
+                          "head":"Adam",
+                          "head_type":"Person",
+                          "text":"Adam is a software engineer in Microsoft since 2009, and last year he got an award as the Best Talent",
+                          "relation":"HAS_AWARD",
+                          "tail_type":"Award"
+                       },
+                       {
+                          "tail":"Microsoft",
+                          "head":"Microsoft Word",
+                          "head_type":"Product",
+                          "text":"Microsoft is a tech company that provide several products such as Microsoft Word",
+                          "relation":"PRODUCED_BY",
+                          "tail_type":"Company"
+                       },
+                       {
+                          "tail":"lightweight app",
+                          "head":"Microsoft Word",
+                          "head_type":"Product",
+                          "text":"Microsoft Word is a lightweight app that accessible offline",
+                          "relation":"HAS_CHARACTERISTIC",
+                          "tail_type":"Characteristic"
+                       },
+                       {
+                          "tail":"accessible offline",
+                          "head":"Microsoft Word",
+                          "head_type":"Product",
+                          "text":"Microsoft Word is a lightweight app that accessible offline",
+                          "relation":"HAS_CHARACTERISTIC",
+                          "tail_type":"Characteristic"
+                       }
+                    ]
+                    """;
 
     private static ChatModel model;
 
@@ -88,7 +90,7 @@ public class LLMGraphTransformerIT {
             LLMGraphTransformer.builder().build();
             fail();
         } catch (Exception e) {
-            assertThat(e.getMessage()).contains("ChatModel is required");
+            assertThat(e.getMessage()).contains("chatModel cannot be null");
         }
     }
 
@@ -104,10 +106,10 @@ public class LLMGraphTransformerIT {
 
     @Test
     void testAddGraphDocumentsWithCustomPrompt() {
-        final List<ChatMessage> prompt =
+        List<ChatMessage> prompt =
                 List.of(new UserMessage("just return a null value, don't add any explanation or extra text."));
 
-        final LLMGraphTransformer transformer = LLMGraphTransformer.builder()
+        LLMGraphTransformer transformer = LLMGraphTransformer.builder()
                 .model(model)
                 .examples(EXAMPLES_PROMPT)
                 .prompt(prompt)
@@ -115,8 +117,8 @@ public class LLMGraphTransformerIT {
 
         Document doc3 = new DefaultDocument(
                 "Keanu Reeves acted in Matrix. Keanu was born in Beirut", Metadata.from("key3", "value3"));
-        final List<GraphDocument> documents = transformer.convertToGraphDocuments(List.of(doc3));
-        Assertions.assertThat(documents).isEmpty();
+        List<GraphDocument> documents = transformer.transformAll(List.of(doc3));
+        assertThat(documents).isEmpty();
     }
 
     @Test
@@ -139,48 +141,47 @@ public class LLMGraphTransformerIT {
         Document docGoku = Document.from("%s acted in %s".formatted(goku, db));
         Document docHajime = Document.from("%s wrote %s. %s acted in %s".formatted(hajime, aot, levi, aot));
 
-        final List<Document> docs = List.of(docCat, docKeanu, docLino, docGoku, docHajime);
+        List<Document> docs = List.of(docCat, docKeanu, docLino, docGoku, docHajime);
 
-        final LLMGraphTransformer build2 = LLMGraphTransformer.builder()
+        LLMGraphTransformer build2 = LLMGraphTransformer.builder()
                 .model(model)
                 .examples(EXAMPLES_PROMPT)
                 .build();
-        final List<GraphDocument> documents2 = build2.convertToGraphDocuments(docs);
-        final Stream<String> expectedNodes =
-                Stream.of(cat, keanu, lino, goku, hajime, levi, table, matrix, vac, db, aot);
-        Assertions.assertThat(documents2).hasSize(5);
+        List<GraphDocument> documents2 = build2.transformAll(docs);
+        Stream<String> expectedNodes = Stream.of(cat, keanu, lino, goku, hajime, levi, table, matrix, vac, db, aot);
+        assertThat(documents2).hasSize(5);
         graphDocsAssertions(documents2, expectedNodes, Stream.of("acted", "acted", "acted", "acted", "wr.", "on"));
 
-        final LLMGraphTransformer transformer = LLMGraphTransformer.builder()
+        LLMGraphTransformer transformer = LLMGraphTransformer.builder()
                 .model(model)
                 .examples(EXAMPLES_PROMPT)
                 .allowedNodes(List.of("Person"))
                 .allowedRelationships(List.of("Acted_in"))
                 .build();
 
-        final List<GraphDocument> documents = transformer.convertToGraphDocuments(docs);
+        List<GraphDocument> documents = transformer.transformAll(docs);
         System.out.println("documents = " + documents);
-        Assertions.assertThat(documents).hasSize(4);
-        final String[] strings = {keanu, lino, goku, levi, matrix, vac, db, aot};
+        assertThat(documents).hasSize(4);
+        String[] strings = {keanu, lino, goku, levi, matrix, vac, db, aot};
         graphDocsAssertions(documents, Stream.of(strings), Stream.of("acted", "acted", "acted", "acted"));
 
-        final LLMGraphTransformer build3 = LLMGraphTransformer.builder()
+        LLMGraphTransformer build3 = LLMGraphTransformer.builder()
                 .model(model)
                 .examples(EXAMPLES_PROMPT)
                 .allowedNodes(List.of("Person"))
                 .allowedRelationships(List.of("Writes", "Acted_in"))
                 .build();
 
-        final List<GraphDocument> documents3 = build3.convertToGraphDocuments(docs);
-        Assertions.assertThat(documents).hasSize(4);
-        final String[] elements3 = {keanu, lino, goku, hajime, levi, matrix, vac, db, aot};
+        List<GraphDocument> documents3 = build3.transformAll(docs);
+        assertThat(documents).hasSize(4);
+        String[] elements3 = {keanu, lino, goku, hajime, levi, matrix, vac, db, aot};
 
         graphDocsAssertions(documents3, Stream.of(elements3), Stream.of("acted", "acted", "acted", "acted", "wr."));
     }
 
     @Test
     void testAddGraphDocumentsWithDeDuplication() {
-        final LLMGraphTransformer transformer = LLMGraphTransformer.builder()
+        LLMGraphTransformer transformer = LLMGraphTransformer.builder()
                 .model(model)
                 .examples(EXAMPLES_PROMPT)
                 .build();
@@ -188,27 +189,27 @@ public class LLMGraphTransformerIT {
         Document doc3 = new DefaultDocument(
                 "Keanu Reeves acted in Matrix. Keanu was born in Beirut", Metadata.from("key3", "value3"));
 
-        final List<Document> documents = List.of(doc3);
-        List<GraphDocument> graphDocs = transformer.convertToGraphDocuments(documents);
+        List<Document> documents = List.of(doc3);
+        List<GraphDocument> graphDocs = transformer.transformAll(documents);
 
-        Assertions.assertThat(graphDocs).hasSize(1);
-        final Stream<String> expectedNodeElements = Stream.of("matrix", "keanu", "beirut");
-        final Stream<String> expectedEdgeElements = Stream.of("acted", "born");
+        assertThat(graphDocs).hasSize(1);
+        Stream<String> expectedNodeElements = Stream.of("matrix", "keanu", "beirut");
+        Stream<String> expectedEdgeElements = Stream.of("acted", "born");
         graphDocsAssertions(graphDocs, expectedNodeElements, expectedEdgeElements);
     }
 
     private static void graphDocsAssertions(
             List<GraphDocument> documents, Stream<String> expectedNodeElements, Stream<String> expectedEdgeElements) {
-        final List<String> actualNodes = getNodeIds(documents);
-        final List<String> actualRelationships = getRelationshipIds(documents);
+        List<String> actualNodes = getNodeIds(documents);
+        List<String> actualRelationships = getRelationshipIds(documents);
         entitiesAssertions(expectedNodeElements, actualNodes);
 
         entitiesAssertions(expectedEdgeElements, actualRelationships);
     }
 
     private static void entitiesAssertions(Stream<String> expectedNodeElements, List<String> actualNodes) {
-        final List<String> expectedNodes = expectedNodeElements.sorted().toList();
-        assertThat(actualNodes.size()).isEqualTo(expectedNodes.size());
+        List<String> expectedNodes = expectedNodeElements.sorted().toList();
+        assertThat(actualNodes).hasSameSizeAs(expectedNodes);
         for (int i = 0; i < actualNodes.size(); i++) {
             assertThat(actualNodes.get(i).toLowerCase()).containsPattern("(?i)" + expectedNodes.get(i));
         }
@@ -216,14 +217,14 @@ public class LLMGraphTransformerIT {
 
     private static List<String> getNodeIds(List<GraphDocument> documents2) {
         return documents2.stream()
-                .flatMap(i -> i.getNodes().stream().map(GraphDocument.Node::getId))
+                .flatMap(i -> i.nodes().stream().map(GraphNode::id))
                 .sorted()
                 .collect(Collectors.toList());
     }
 
     private static List<String> getRelationshipIds(List<GraphDocument> documents2) {
         return documents2.stream()
-                .flatMap(i -> i.getRelationships().stream().map(GraphDocument.Edge::getType))
+                .flatMap(i -> i.relationships().stream().map(GraphEdge::type))
                 .sorted()
                 .collect(Collectors.toList());
     }

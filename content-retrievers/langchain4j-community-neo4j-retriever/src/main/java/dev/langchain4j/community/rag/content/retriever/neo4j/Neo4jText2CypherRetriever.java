@@ -1,6 +1,6 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
-import static dev.langchain4j.community.rag.transformer.Neo4jUtils.getBacktickText;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jUtils.getBacktickText;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
@@ -114,7 +114,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                 .toList();
     }
 
-    public static class Builder<T extends Builder<T>> {
+    public static class Builder {
 
         protected Neo4jGraph graph;
         protected ChatModel chatModel;
@@ -124,37 +124,33 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         /**
          * @param graph the {@link Neo4jGraph} (required)
          */
-        public T graph(Neo4jGraph graph) {
+        public Builder graph(Neo4jGraph graph) {
             this.graph = graph;
-            return self();
+            return this;
         }
 
         /**
          * @param chatModel the {@link ChatModel} (required)
          */
-        public T chatModel(ChatModel chatModel) {
+        public Builder chatModel(ChatModel chatModel) {
             this.chatModel = chatModel;
-            return self();
+            return this;
         }
 
         /**
          * @param promptTemplate the {@link PromptTemplate} (optional, default is {@link Neo4jText2CypherRetriever#DEFAULT_PROMPT_TEMPLATE})
          */
-        public T promptTemplate(PromptTemplate promptTemplate) {
+        public Builder promptTemplate(PromptTemplate promptTemplate) {
             this.promptTemplate = promptTemplate;
-            return self();
+            return this;
         }
 
         /**
          * @param examples the few-shot examples to improve retrieving (optional, default is "")
          */
-        public T examples(List<String> examples) {
+        public Builder examples(List<String> examples) {
             this.examples = examples;
-            return self();
-        }
-
-        protected T self() {
-            return (T) this;
+            return this;
         }
 
         public Neo4jText2CypherRetriever build() {

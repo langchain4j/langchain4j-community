@@ -1,12 +1,14 @@
-package dev.langchain4j.community.rag.transformer;
+package dev.langchain4j.community.data.document.transformer.graph;
 
-import static dev.langchain4j.community.rag.transformer.GraphDocument.Edge;
-import static dev.langchain4j.community.rag.transformer.GraphDocument.Node;
-import static dev.langchain4j.community.rag.transformer.LLMGraphTransformerUtils.parseJson;
-import static dev.langchain4j.community.rag.transformer.Neo4jUtils.getBacktickText;
+import static dev.langchain4j.community.data.document.transformer.graph.LLMGraphTransformerUtils.getBacktickText;
+import static dev.langchain4j.community.data.document.transformer.graph.LLMGraphTransformerUtils.parseJson;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import dev.langchain4j.Experimental;
+import dev.langchain4j.community.data.document.graph.GraphDocument;
+import dev.langchain4j.community.data.document.graph.GraphEdge;
+import dev.langchain4j.community.data.document.graph.GraphNode;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -18,34 +20,55 @@ import dev.langchain4j.model.input.PromptTemplate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-public class LLMGraphTransformer {
+@Experimental
+public class LLMGraphTransformer implements GraphTransformer {
 
-    public static final String DEFAULT_NODE_TYPE = "Node";
+    private static final String DEFAULT_NODE_TYPE = "Node";
+    private static final PromptTemplate SYSTEM_TEMPLATE = PromptTemplate.from(
+            """
+                    You are a top-tier algorithm designed for extracting information in structured formats to build a knowledge graph.
+                    Your task is to identify entities and relations from a given text and generate output in JSON format.
+                    Each object should have keys: 'head', 'head_type', 'relation', 'tail', and 'tail_type'.
+                    {{nodes}}
+                    {{rels}}
+                    IMPORTANT NOTES:\n- Don't add any explanation or extra text.
+                    {{additional}}
+                    """);
+    private static final PromptTemplate USER_TEMPLATE = PromptTemplate.from(
+            """
+                    Based on the following example, extract entities and relations from the provided text.
+                    {{nodes}}
+                    {{rels}}
+                    Below are a number of examples of text and their extracted entities and relationships.
+                    {{examples}}
+                    {{additional}}
+                    For the following text, extract entities and relations as in the provided example.
+                    Text: {{input}}
+                    """);
+
     private final List<String> allowedNodes;
     private final List<String> allowedRelationships;
     private final List<ChatMessage> prompt;
     private final String examples;
     private final String additionalInstructions;
-    private final ChatModel model;
+    private final ChatModel chatModel;
     private final Integer maxAttempts;
 
     /**
      * It allows specifying constraints on the types of nodes and relationships to include in the output graph.
      * The class supports extracting properties for both nodes and relationships.
      *
-     * @param model the {@link ChatModel} (required)
-     * @param allowedNodes Specifies which node types are allowed in the graph. If null or empty allows all node types (default: [])
-     * @param allowedRelationships Specifies which relationship types are allowed in the graph. If null or empty allows all relationship types (default: [])
-     * @param prompt The chat messages to pass to the LLM with additional instructions. (optional)
+     * @param chatModel                  the {@link ChatModel} (required)
+     * @param allowedNodes           Specifies which node types are allowed in the graph. If null or empty allows all node types (default: [])
+     * @param allowedRelationships   Specifies which relationship types are allowed in the graph. If null or empty allows all relationship types (default: [])
+     * @param prompt                 The chat messages to pass to the LLM with additional instructions. (optional)
      * @param additionalInstructions Allows you to add additional instructions to the prompt without having to change the whole prompt (default: '')
-     * @param maxAttempts Retry N times the transformation if it fails (default: 1)
+     * @param maxAttempts            Retry N times the transformation if it fails (default: 1)
      */
     public LLMGraphTransformer(
-            ChatModel model,
+            ChatModel chatModel,
             List<String> allowedNodes,
             List<String> allowedRelationships,
             List<ChatMessage> prompt,
@@ -53,7 +76,7 @@ public class LLMGraphTransformer {
             String examples,
             Integer maxAttempts) {
 
-        this.model = ensureNotNull(model, "model");
+        this.chatModel = ensureNotNull(chatModel, "chatModel");
         this.examples = ensureNotNull(examples, "examples");
 
         this.allowedNodes = getOrDefault(allowedNodes, List.of());
@@ -68,33 +91,15 @@ public class LLMGraphTransformer {
         return new Builder();
     }
 
-    public List<GraphDocument> convertToGraphDocuments(List<Document> documents) {
-        return documents.stream()
-                .map(this::processResponse)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-    }
-
     public List<ChatMessage> createUnstructuredPrompt(String text) {
         if (prompt != null && !prompt.isEmpty()) {
             return prompt;
         }
 
-        final boolean withAllowedNodes = allowedNodes != null && !allowedNodes.isEmpty();
-        final boolean withAllowedRels = allowedRelationships != null && !allowedRelationships.isEmpty();
+        boolean withAllowedNodes = allowedNodes != null && !allowedNodes.isEmpty();
+        boolean withAllowedRels = allowedRelationships != null && !allowedRelationships.isEmpty();
 
-        final PromptTemplate systemTemplate = PromptTemplate.from(
-                """
-                        You are a top-tier algorithm designed for extracting information in structured formats to build a knowledge graph.
-                        Your task is to identify entities and relations from a given text and generate output in JSON format.
-                        Each object should have keys: 'head', 'head_type', 'relation', 'tail', and 'tail_type'.
-                        {{nodes}}
-                        {{rels}}
-                        IMPORTANT NOTES:\n- Don't add any explanation or extra text.
-                        {{additional}}
-                        """);
-
-        final SystemMessage systemMessage = systemTemplate
+        SystemMessage systemMessage = SYSTEM_TEMPLATE
                 .apply(Map.of(
                         "nodes",
                         withAllowedNodes ? "The 'head_type' and 'tail_type' must be one of: " + allowedNodes : "",
@@ -103,20 +108,7 @@ public class LLMGraphTransformer {
                         "additional",
                         additionalInstructions))
                 .toSystemMessage();
-
-        final PromptTemplate humanTemplate = PromptTemplate.from(
-                """
-                Based on the following example, extract entities and relations from the provided text.
-                {{nodes}}
-                {{rels}}
-                Below are a number of examples of text and their extracted entities and relationships.
-                {{examples}}
-                {{additional}}
-                For the following text, extract entities and relations as in the provided example.
-                Text: {{input}}
-                """);
-
-        final UserMessage userMessage = humanTemplate
+        UserMessage userMessage = USER_TEMPLATE
                 .apply(Map.of(
                         "nodes", withAllowedNodes ? "# ENTITY TYPES:\n" + allowedNodes : "",
                         "rels", withAllowedRels ? "# RELATION TYPES:\n" + allowedRelationships : "",
@@ -128,14 +120,14 @@ public class LLMGraphTransformer {
         return List.of(systemMessage, userMessage);
     }
 
-    private GraphDocument processResponse(Document document) {
+    @Override
+    public GraphDocument transform(Document document) {
 
-        final String text = document.text();
+        String text = document.text();
+        List<ChatMessage> messages = createUnstructuredPrompt(text);
 
-        final List<ChatMessage> messages = createUnstructuredPrompt(text);
-
-        Set<GraphDocument.Node> nodesSet = new HashSet<>();
-        Set<GraphDocument.Edge> relationships = new HashSet<>();
+        Set<GraphNode> nodesSet = new HashSet<>();
+        Set<GraphEdge> relationships = new HashSet<>();
 
         List<Map<String, String>> parsedJson = getJsonResult(messages);
         if (parsedJson == null || parsedJson.isEmpty()) {
@@ -147,14 +139,14 @@ public class LLMGraphTransformer {
                 continue;
             }
 
-            Node sourceNode = new Node(rel.get("head"), rel.getOrDefault("head_type", DEFAULT_NODE_TYPE));
-            Node targetNode = new Node(rel.get("tail"), rel.getOrDefault("tail_type", DEFAULT_NODE_TYPE));
+            GraphNode sourceNode = GraphNode.from(rel.get("head"), rel.getOrDefault("head_type", DEFAULT_NODE_TYPE));
+            GraphNode targetNode = GraphNode.from(rel.get("tail"), rel.getOrDefault("tail_type", DEFAULT_NODE_TYPE));
 
             nodesSet.add(sourceNode);
             nodesSet.add(targetNode);
 
-            final String relation = rel.get("relation");
-            final Edge edge = new Edge(sourceNode, targetNode, relation);
+            String relation = rel.get("relation");
+            GraphEdge edge = GraphEdge.from(sourceNode, targetNode, relation);
             relationships.add(edge);
         }
 
@@ -169,12 +161,8 @@ public class LLMGraphTransformer {
 
         return RetryUtils.withRetry(
                 () -> {
-                    final ChatResponse chat = model.chat(messages);
-                    String rawSchema = chat.aiMessage().text();
-
-                    rawSchema = getBacktickText(rawSchema);
-
-                    return parseJson(rawSchema);
+                    ChatResponse chat = chatModel.chat(messages);
+                    return parseJson(getBacktickText(chat.aiMessage().text()));
                 },
                 maxAttempts);
     }
@@ -183,6 +171,7 @@ public class LLMGraphTransformer {
      * Builder class for LLMGraphTransformer.
      */
     public static class Builder {
+
         private ChatModel model;
         private List<String> allowedNodes;
         private List<String> allowedRelationships;
@@ -275,9 +264,6 @@ public class LLMGraphTransformer {
          * @throws IllegalArgumentException if required parameters are missing
          */
         public LLMGraphTransformer build() {
-            if (model == null) {
-                throw new IllegalArgumentException("ChatModel is required");
-            }
             return new LLMGraphTransformer(
                     model, allowedNodes, allowedRelationships, prompt, additionalInstructions, examples, maxAttempts);
         }

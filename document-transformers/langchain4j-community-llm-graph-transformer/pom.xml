@@ -8,9 +8,9 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>langchain4j-community-neo4j-retriever</artifactId>
+    <artifactId>langchain4j-community-llm-graph-transformer</artifactId>
     <packaging>jar</packaging>
-    <name>LangChain4j :: Community :: Content Retriever :: Neo4j</name>
+    <name>LangChain4j :: Community :: Graph Transformer :: LLM</name>
 
     <dependencies>
 
@@ -25,27 +25,9 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.neo4j.driver</groupId>
-            <artifactId>neo4j-java-driver</artifactId>
-            <version>5.26.0</version>
-        </dependency>
-
         <!-- test dependencies -->
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>neo4j</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
@@ -65,20 +47,6 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- graph transformer dependencies -->
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-cypher-dsl-schema-name-support</artifactId>
-            <version>2023.7.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-community-llm-graph-transformer</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

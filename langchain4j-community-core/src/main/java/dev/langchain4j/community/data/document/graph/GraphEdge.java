@@ -2,6 +2,7 @@ package dev.langchain4j.community.data.document.graph;
 
 import static dev.langchain4j.internal.Utils.copyIfNotNull;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.langchain4j.Experimental;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,18 +28,22 @@ public class GraphEdge {
         this.properties = copyIfNotNull(properties);
     }
 
+    @JsonProperty
     public GraphNode sourceNode() {
         return sourceNode;
     }
 
+    @JsonProperty
     public GraphNode targetNode() {
         return targetNode;
     }
 
+    @JsonProperty
     public String type() {
         return type;
     }
 
+    @JsonProperty
     public Map<String, String> properties() {
         return properties;
     }

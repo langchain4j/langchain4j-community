@@ -16,7 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class Neo4jGraphConverterTest extends Neo4jGraphConverterBaseTest {
+class Neo4JKnowledgeGraphWriterTest extends Neo4jKnowledgeGraphWriterBaseTest {
 
     @Mock
     private static ChatModel model;
