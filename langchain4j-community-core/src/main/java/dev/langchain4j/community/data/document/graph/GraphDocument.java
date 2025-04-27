@@ -3,6 +3,7 @@ package dev.langchain4j.community.data.document.graph;
 import static dev.langchain4j.internal.Utils.copyIfNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import dev.langchain4j.Experimental;
 import dev.langchain4j.data.document.Document;
 import java.util.HashSet;
 import java.util.Objects;
@@ -13,6 +14,7 @@ import java.util.Set;
  *
  * @since 1.0.0-beta4
  */
+@Experimental
 public class GraphDocument {
 
     private final Set<GraphNode> nodes;

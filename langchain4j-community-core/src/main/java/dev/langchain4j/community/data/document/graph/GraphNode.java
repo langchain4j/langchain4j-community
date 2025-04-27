@@ -3,6 +3,7 @@ package dev.langchain4j.community.data.document.graph;
 import static dev.langchain4j.internal.Utils.copyIfNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
+import dev.langchain4j.Experimental;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -12,6 +13,7 @@ import java.util.Objects;
  *
  * @since 1.0.0-beta4
  */
+@Experimental
 public class GraphNode {
 
     private final String id;

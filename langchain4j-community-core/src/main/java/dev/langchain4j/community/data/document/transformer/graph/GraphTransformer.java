@@ -3,6 +3,7 @@ package dev.langchain4j.community.data.document.transformer.graph;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static java.util.stream.Collectors.toList;
 
+import dev.langchain4j.Experimental;
 import dev.langchain4j.community.data.document.graph.GraphDocument;
 import dev.langchain4j.data.document.Document;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import java.util.Objects;
  *
  * @since 1.0.0-beta4
  */
+@Experimental
 public interface GraphTransformer {
 
     /**
