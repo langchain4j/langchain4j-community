@@ -144,6 +144,7 @@ class QwenEmbeddingModelIT {
     void should_embed_one_text_by_customized_dimension() {
         assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V1, 512)).isExactlyInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V2, 512)).isExactlyInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V3, 510)).isExactlyInstanceOf(IllegalArgumentException.class);
 
         QwenEmbeddingModel model = getModel(TEXT_EMBEDDING_V3, 512);
         assertThat(model.dimension()).isEqualTo(512);
