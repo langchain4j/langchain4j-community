@@ -2,6 +2,8 @@ package dev.langchain4j.community.model.dashscope;
 
 import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
 import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V1;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V2;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Collections.singletonList;
@@ -29,27 +31,30 @@ import java.util.function.Consumer;
 
 /**
  * An implementation of an {@link dev.langchain4j.model.embedding.EmbeddingModel} that uses
- * <a href="https://help.aliyun.com/zh/dashscope/developer-reference/text-embedding-api-details">DashScope Embeddings API</a>.
+ * <a href="https://www.alibabacloud.com/help/en/model-studio/text-embedding-synchronous-api">DashScope Embeddings API</a>.
  */
 public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
 
     public static final String TYPE_KEY = "type";
     public static final String TYPE_QUERY = "query";
     public static final String TYPE_DOCUMENT = "document";
-    private static final int BATCH_SIZE = 6;
+    private static final int BATCH_SIZE = 10;
+    // https://www.alibabacloud.com/help/en/model-studio/text-embedding-synchronous-api#853dfeccb97cd
+    private static final List<Integer> SUPPORTED_DIMENSIONS = List.of(1024, 768, 512);
 
     private final String apiKey;
     private final String modelName;
     private final TextEmbedding embedding;
     private Consumer<TextEmbeddingParam.TextEmbeddingParamBuilder<?, ?>> textEmbeddingParamCustomizer = p -> {};
 
-    public QwenEmbeddingModel(String baseUrl, String apiKey, String modelName) {
+    public QwenEmbeddingModel(String baseUrl, String apiKey, String modelName, Integer dimension) {
         if (Utils.isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
-                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+                    "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
-        this.modelName = Utils.isNullOrBlank(modelName) ? QwenModelName.TEXT_EMBEDDING_V2 : modelName;
+        this.modelName = Utils.isNullOrBlank(modelName) ? QwenModelName.TEXT_EMBEDDING_V3 : modelName;
         this.apiKey = apiKey;
+        this.dimension = ensureDimension(this.modelName, dimension);
         this.embedding = Utils.isNullOrBlank(baseUrl) ? new TextEmbedding() : new TextEmbedding(baseUrl);
     }
 
@@ -92,6 +97,10 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .model(modelName)
                 .textType(textType)
                 .texts(textSegments.stream().map(TextSegment::text).collect(toList()));
+
+        if (dimension != null) {
+            builder.parameter("dimension", dimension);
+        }
 
         try {
             textEmbeddingParamCustomizer.accept(builder);
@@ -157,6 +166,18 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
         this.textEmbeddingParamCustomizer = ensureNotNull(textEmbeddingParamCustomizer, "textEmbeddingParamCustomizer");
     }
 
+    private static Integer ensureDimension(String modelName, Integer dimension) {
+        if (dimension == null) {
+            return null;
+        }
+        if (TEXT_EMBEDDING_V1.equals(modelName)
+                || TEXT_EMBEDDING_V2.equals(modelName)
+                || !SUPPORTED_DIMENSIONS.contains(dimension)) {
+            throw new IllegalArgumentException("dimension '" + dimension + "' is not supported by " + modelName);
+        }
+        return dimension;
+    }
+
     public static QwenEmbeddingModelBuilder builder() {
         for (QwenEmbeddingModelBuilderFactory factory : loadFactories(QwenEmbeddingModelBuilderFactory.class)) {
             return factory.get();
@@ -169,6 +190,7 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
         private String baseUrl;
         private String apiKey;
         private String modelName;
+        private Integer dimension;
 
         public QwenEmbeddingModelBuilder() {
             // This is public so it can be extended
@@ -190,8 +212,13 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
             return this;
         }
 
+        public QwenEmbeddingModelBuilder dimension(Integer dimension) {
+            this.dimension = dimension;
+            return this;
+        }
+
         public QwenEmbeddingModel build() {
-            return new QwenEmbeddingModel(baseUrl, apiKey, modelName);
+            return new QwenEmbeddingModel(baseUrl, apiKey, modelName, dimension);
         }
     }
 }
