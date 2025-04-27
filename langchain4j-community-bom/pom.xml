@@ -111,6 +111,13 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- document transformer -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-llm-graph-transformer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- web search engines -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>

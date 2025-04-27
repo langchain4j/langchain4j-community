@@ -22,6 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * A llm-based graph transformer which transforms documents into graph-based documents using a LLM.
+ *
+ * @since 1.0.0-beta4
+ */
 @Experimental
 public class LLMGraphTransformer implements GraphTransformer {
 
@@ -60,7 +65,7 @@ public class LLMGraphTransformer implements GraphTransformer {
      * It allows specifying constraints on the types of nodes and relationships to include in the output graph.
      * The class supports extracting properties for both nodes and relationships.
      *
-     * @param chatModel                  the {@link ChatModel} (required)
+     * @param chatModel              the {@link ChatModel} (required)
      * @param allowedNodes           Specifies which node types are allowed in the graph. If null or empty allows all node types (default: [])
      * @param allowedRelationships   Specifies which relationship types are allowed in the graph. If null or empty allows all relationship types (default: [])
      * @param prompt                 The chat messages to pass to the LLM with additional instructions. (optional)
