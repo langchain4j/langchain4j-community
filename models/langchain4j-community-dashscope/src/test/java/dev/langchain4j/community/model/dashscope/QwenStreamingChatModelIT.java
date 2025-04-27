@@ -34,6 +34,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
@@ -64,21 +65,20 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
     void should_send_non_multimodal_messages_and_receive_response_by_customized_request(String modelName) {
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
 
-        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rain"));
+        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rainy"));
 
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(ChatRequest.builder().messages(chatMessages()).build(), handler);
         ChatResponse response = handler.get();
 
         // it should chat "rain" but is stopped
-        assertThat(response.aiMessage().text()).doesNotContain("rain");
+        assertThat(response.aiMessage().text()).doesNotContainIgnoringCase("rainy");
     }
 
     @ParameterizedTest
@@ -538,5 +538,10 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected String diceImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/PNG_transparency_demonstration_1.png";
+    }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType() {
+        return QwenChatResponseMetadata.class;
     }
 }

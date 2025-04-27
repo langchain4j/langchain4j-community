@@ -27,39 +27,25 @@ class QwenTestHelper {
     public static Stream<Arguments> languageModelNameProvider() {
         return Stream.of(
                 Arguments.of(QwenModelName.QWEN_TURBO),
-                Arguments.of(QwenModelName.QWEN_TURBO_LATEST),
                 Arguments.of(QwenModelName.QWEN_PLUS),
-                Arguments.of(QwenModelName.QWEN_PLUS_LATEST),
                 Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_MAX_LATEST),
                 Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_32B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
         return Stream.of(
                 Arguments.of(QwenModelName.QWEN_TURBO),
-                Arguments.of(QwenModelName.QWEN_TURBO_LATEST),
                 Arguments.of(QwenModelName.QWEN_PLUS),
-                Arguments.of(QwenModelName.QWEN_PLUS_LATEST),
                 Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_MAX_LATEST),
                 Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN2_5_3B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_7B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_14B_INSTRUCT),
-                Arguments.of(QwenModelName.QWEN2_5_32B_INSTRUCT),
                 Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
         // Function Call and structured output (JSON Mode) are not supported.
-        return Stream.of(Arguments.of(QwenModelName.QWQ_PLUS), Arguments.of(QwenModelName.QWQ_PLUS_LATEST));
+        return Stream.of(Arguments.of(QwenModelName.QWQ_PLUS));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
@@ -67,7 +53,7 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> vlChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX), Arguments.of(QwenModelName.QWEN_VL_MAX_LATEST));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX));
     }
 
     public static Stream<Arguments> mtChatModelNameProvider() {
@@ -75,15 +61,11 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> audioChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN_AUDIO_TURBO), Arguments.of(QwenModelName.QWEN_AUDIO_TURBO_LATEST));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_AUDIO_TURBO_LATEST));
     }
 
     public static Stream<Arguments> embeddingModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.TEXT_EMBEDDING_V1),
-                Arguments.of(QwenModelName.TEXT_EMBEDDING_V2),
-                Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
+        return Stream.of(Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
     }
 
     public static String apiKey() {

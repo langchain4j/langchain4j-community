@@ -83,6 +83,12 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
         }
     }
 
+    /**
+     * The information searched on the Internet will be returned after the search_options
+     * parameter is set.
+     *
+     * @param searchResults a list of results from online searches
+     */
     public record SearchInfo(List<SearchResult> searchResults) {
         public static Builder builder() {
             return new Builder();
@@ -102,6 +108,17 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
         }
     }
 
+    /**
+     * Results from online searches.
+     *
+     * @param siteName the name of the website from which the search results came
+     * @param icon the URL of the icon from the source website, or an empty string if there is
+     * no icon
+     * @param index the sequence number of the search result, indicating the index of the
+     * search result in search_results
+     * @param title the title of the search result
+     * @param url the URL of the search result
+     */
     public record SearchResult(String siteName, String icon, Integer index, String title, String url) {
         public static Builder builder() {
             return new Builder();

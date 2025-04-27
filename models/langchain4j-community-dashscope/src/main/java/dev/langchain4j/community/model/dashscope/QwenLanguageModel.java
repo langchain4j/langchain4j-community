@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 
 /**
  * Represents a Qwen language model with a text interface.
- * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details">here</a>.
+ * More details are available <a href="https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api">here</a>.
  */
 public class QwenLanguageModel implements LanguageModel {
     private final String apiKey;
@@ -54,7 +54,7 @@ public class QwenLanguageModel implements LanguageModel {
             Integer maxTokens) {
         if (isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
-                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+                    "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
         this.modelName = isNullOrBlank(modelName) ? QWEN_PLUS : modelName;
         this.enableSearch = enableSearch != null && enableSearch;
