@@ -65,8 +65,12 @@ public class QwenModelName {
     public static final String QWQ_PLUS_LATEST = "qwq-plus-latest"; // Qwen reasoning model, latest version
 
     // Use with QwenEmbeddingModel
+    @Deprecated
     public static final String TEXT_EMBEDDING_V1 = "text-embedding-v1"; // Support: en, zh, es, fr, pt, id
+
+    @Deprecated
     public static final String TEXT_EMBEDDING_V2 =
             "text-embedding-v2"; // Support: en, zh, es, fr, pt, id, ja, ko, de, ru
+
     public static final String TEXT_EMBEDDING_V3 = "text-embedding-v3"; // Support 50+ languages
 }
