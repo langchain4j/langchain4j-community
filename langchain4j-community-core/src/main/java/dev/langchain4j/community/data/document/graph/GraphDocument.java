@@ -3,6 +3,7 @@ package dev.langchain4j.community.data.document.graph;
 import static dev.langchain4j.internal.Utils.copyIfNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.langchain4j.Experimental;
 import dev.langchain4j.data.document.Document;
 import java.util.HashSet;
@@ -27,14 +28,17 @@ public class GraphDocument {
         this.source = ensureNotNull(source, "source");
     }
 
+    @JsonProperty
     public Set<GraphNode> nodes() {
         return nodes;
     }
 
+    @JsonProperty
     public Set<GraphEdge> relationships() {
         return relationships;
     }
 
+    @JsonProperty
     public Document source() {
         return source;
     }
