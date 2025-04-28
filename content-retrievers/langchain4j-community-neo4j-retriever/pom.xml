@@ -8,13 +8,14 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <properties>
-        <neo4j.cypher.dsl.version>2023.7.0</neo4j.cypher.dsl.version>
-    </properties>
-
     <artifactId>langchain4j-community-neo4j-retriever</artifactId>
     <packaging>jar</packaging>
     <name>LangChain4j :: Community :: Content Retriever :: Neo4j</name>
+
+    <properties>
+        <neo4j.cypher.dsl.version>2023.7.0</neo4j.cypher.dsl.version>
+        <neo4j.version>5.26.0</neo4j.version>
+    </properties>
 
     <dependencies>
 
@@ -32,7 +33,7 @@
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>5.26.0</version>
+            <version>${neo4j.version}</version>
         </dependency>
 
         <!-- test dependencies -->
