@@ -18,7 +18,7 @@ import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionRequ
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.xinference.spi.XinferenceChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class XinferenceChatModel implements ChatLanguageModel {
+public class XinferenceChatModel implements ChatModel {
 
     private static final Logger log = LoggerFactory.getLogger(XinferenceChatModel.class);
 

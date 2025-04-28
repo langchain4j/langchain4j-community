@@ -1,8 +1,8 @@
 package dev.langchain4j.community.model.zhipu;
 
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper.toMap;
 import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.OTHER;
@@ -35,15 +35,15 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.exception.HttpException;
+import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import okhttp3.ResponseBody;
 
 class DefaultZhipuAiHelper {
 
@@ -187,35 +187,25 @@ class DefaultZhipuAiHelper {
                 zhipuUsage.getPromptTokens(), zhipuUsage.getCompletionTokens(), zhipuUsage.getTotalTokens());
     }
 
-    static ChatCompletionResponse toChatErrorResponse(Object object) {
+    static ChatCompletionResponse toChatErrorResponse(Throwable throwable) {
         return ChatCompletionResponse.builder()
-                .choices(Collections.singletonList(toChatErrorChoice(object)))
+                .choices(Collections.singletonList(toChatErrorChoice(throwable)))
                 .usage(Usage.builder().build())
                 .build();
     }
 
     /**
-     * error code see <a href="https://open.bigmodel.cn/dev/api#error-code-v3">error codes document</a>
+     * error code see <a href="https://open.bigmodel.cn/dev/api/error-code/error-code-v4">error codes document</a>
      */
-    private static ChatCompletionChoice toChatErrorChoice(Object object) {
-        if (object instanceof final Throwable throwable) {
-            return ChatCompletionChoice.builder()
-                    .message(AssistantMessage.builder()
-                            .content(throwable.getMessage())
-                            .build())
-                    .finishReason(FINISH_REASON_OTHER)
-                    .build();
-        }
-        ResponseBody errorBody = ((retrofit2.Response<?>) object).errorBody();
-
-        try (errorBody) {
-            if (errorBody == null) {
+    private static ChatCompletionChoice toChatErrorChoice(Throwable throwable) {
+        if (throwable instanceof final HttpException httpException) {
+            String message = httpException.getMessage();
+            if (Utils.isNullOrBlank(message)) {
                 return ChatCompletionChoice.builder()
                         .finishReason(FINISH_REASON_OTHER)
                         .build();
             }
-            ErrorResponse errorResponse;
-            errorResponse = Json.fromJson(errorBody.string(), ErrorResponse.class);
+            ErrorResponse errorResponse = Json.fromJson(message, ErrorResponse.class);
             String code = errorResponse.getError().get("code");
             return ChatCompletionChoice.builder()
                     .message(AssistantMessage.builder()
@@ -223,12 +213,13 @@ class DefaultZhipuAiHelper {
                             .build())
                     .finishReason(getFinishReason(code))
                     .build();
-        } catch (IOException e) {
-            return ChatCompletionChoice.builder()
-                    .message(AssistantMessage.builder().content(e.getMessage()).build())
-                    .finishReason(FINISH_REASON_OTHER)
-                    .build();
         }
+        return ChatCompletionChoice.builder()
+                .message(AssistantMessage.builder()
+                        .content(throwable.getMessage())
+                        .build())
+                .finishReason(FINISH_REASON_OTHER)
+                .build();
     }
 
     static String getFinishReason(Object o) {

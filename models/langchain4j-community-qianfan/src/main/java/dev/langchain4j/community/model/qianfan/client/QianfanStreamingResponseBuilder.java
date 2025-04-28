@@ -10,7 +10,7 @@ import dev.langchain4j.community.model.qianfan.client.chat.FunctionCall;
 import dev.langchain4j.community.model.qianfan.client.completion.CompletionResponse;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.internal.Utils;
-import dev.langchain4j.model.Tokenizer;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
@@ -99,13 +99,13 @@ public class QianfanStreamingResponseBuilder {
         }
     }
 
-    public ChatResponse build(Tokenizer tokenizer, boolean forcefulToolExecution) {
+    public ChatResponse build(TokenCountEstimator TokenCountEstimator, boolean forcefulToolExecution) {
 
         String content = contentBuilder.toString();
         if (!content.isEmpty()) {
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(content))
-                    .tokenUsage(tokenUsage(content, tokenizer))
+                    .tokenUsage(tokenUsage(content, TokenCountEstimator))
                     .finishReason(finishReasonFrom(finishReason))
                     .build();
         }
@@ -118,7 +118,8 @@ public class QianfanStreamingResponseBuilder {
                     .build();
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(toolExecutionRequest))
-                    .tokenUsage(tokenUsage(singletonList(toolExecutionRequest), tokenizer, forcefulToolExecution))
+                    .tokenUsage(
+                            tokenUsage(singletonList(toolExecutionRequest), TokenCountEstimator, forcefulToolExecution))
                     .finishReason(finishReasonFrom(finishReason))
                     .build();
         }
@@ -133,7 +134,7 @@ public class QianfanStreamingResponseBuilder {
                     .collect(toList());
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(toolExecutionRequests))
-                    .tokenUsage(tokenUsage(toolExecutionRequests, tokenizer, forcefulToolExecution))
+                    .tokenUsage(tokenUsage(toolExecutionRequests, TokenCountEstimator, forcefulToolExecution))
                     .finishReason(finishReasonFrom(finishReason))
                     .build();
         }
@@ -141,26 +142,28 @@ public class QianfanStreamingResponseBuilder {
         return null;
     }
 
-    public Response<String> build(Tokenizer tokenizer) {
+    public Response<String> build(TokenCountEstimator TokenCountEstimator) {
 
         String content = contentBuilder.toString();
         if (!content.isEmpty()) {
-            return Response.from(content, tokenUsage(content, tokenizer), finishReasonFrom(finishReason));
+            return Response.from(content, tokenUsage(content, TokenCountEstimator), finishReasonFrom(finishReason));
         }
         return null;
     }
 
-    private TokenUsage tokenUsage(String content, Tokenizer tokenizer) {
-        if (tokenizer == null) {
+    private TokenUsage tokenUsage(String content, TokenCountEstimator TokenCountEstimator) {
+        if (TokenCountEstimator == null) {
             return null;
         }
-        int outputTokenCount = tokenizer.estimateTokenCountInText(content);
+        int outputTokenCount = TokenCountEstimator.estimateTokenCountInText(content);
         return new TokenUsage(inputTokenCount, outputTokenCount);
     }
 
     private TokenUsage tokenUsage(
-            List<ToolExecutionRequest> toolExecutionRequests, Tokenizer tokenizer, boolean forcefulToolExecution) {
-        if (tokenizer == null) {
+            List<ToolExecutionRequest> toolExecutionRequests,
+            TokenCountEstimator TokenCountEstimator,
+            boolean forcefulToolExecution) {
+        if (TokenCountEstimator == null) {
             return null;
         }
 

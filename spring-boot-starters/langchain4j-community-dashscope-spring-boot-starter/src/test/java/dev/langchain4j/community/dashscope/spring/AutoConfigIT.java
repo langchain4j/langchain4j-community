@@ -1,5 +1,6 @@
 package dev.langchain4j.community.dashscope.spring;
 
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V3;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,8 +12,8 @@ import dev.langchain4j.community.model.dashscope.QwenModelName;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -43,12 +44,12 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.chat-model.model-name=" + CHAT_MODEL,
                         "langchain4j.community.dashscope.chat-model.max-tokens=20")
                 .run(context -> {
-                    ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
-                    assertThat(chatLanguageModel).isInstanceOf(QwenChatModel.class);
-                    assertThat(chatLanguageModel.chat("What is the capital of Germany?"))
+                    ChatModel chatModel = context.getBean(ChatModel.class);
+                    assertThat(chatModel).isInstanceOf(QwenChatModel.class);
+                    assertThat(chatModel.chat("What is the capital of Germany?"))
                             .contains("Berlin");
 
-                    assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatLanguageModel);
+                    assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatModel);
                 });
     }
 
@@ -60,28 +61,26 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.streaming-chat-model.model-name=" + CHAT_MODEL,
                         "langchain4j.community.dashscope.streaming-chat-model.max-tokens=20")
                 .run(context -> {
-                    StreamingChatLanguageModel streamingChatLanguageModel =
-                            context.getBean(StreamingChatLanguageModel.class);
-                    assertThat(streamingChatLanguageModel).isInstanceOf(QwenStreamingChatModel.class);
+                    StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
+                    assertThat(streamingChatModel).isInstanceOf(QwenStreamingChatModel.class);
                     CompletableFuture<ChatResponse> future = new CompletableFuture<>();
-                    streamingChatLanguageModel.chat(
-                            "What is the capital of Germany?", new StreamingChatResponseHandler() {
+                    streamingChatModel.chat("What is the capital of Germany?", new StreamingChatResponseHandler() {
 
-                                @Override
-                                public void onPartialResponse(String token) {}
+                        @Override
+                        public void onPartialResponse(String token) {}
 
-                                @Override
-                                public void onCompleteResponse(ChatResponse response) {
-                                    future.complete(response);
-                                }
+                        @Override
+                        public void onCompleteResponse(ChatResponse response) {
+                            future.complete(response);
+                        }
 
-                                @Override
-                                public void onError(Throwable error) {}
-                            });
+                        @Override
+                        public void onError(Throwable error) {}
+                    });
                     ChatResponse response = future.get(60, SECONDS);
                     assertThat(response.aiMessage().text()).contains("Berlin");
 
-                    assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatLanguageModel);
+                    assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatModel);
                 });
     }
 
@@ -138,11 +137,15 @@ public class AutoConfigIT {
     @Test
     void should_provide_embedding_model() {
         contextRunner
-                .withPropertyValues("langchain4j.community.dashscope.embedding-model.api-key=" + API_KEY)
+                .withPropertyValues(
+                        "langchain4j.community.dashscope.embedding-model.api-key=" + API_KEY,
+                        "langchain4j.community.dashscope.embedding-model.model-name=" + TEXT_EMBEDDING_V3,
+                        "langchain4j.community.dashscope.embedding-model.dimension=512")
                 .run(context -> {
                     EmbeddingModel embeddingModel = context.getBean(EmbeddingModel.class);
                     assertThat(embeddingModel).isInstanceOf(QwenEmbeddingModel.class);
-                    assertThat(embeddingModel.embed("hi").content().dimension()).isEqualTo(1536);
+                    assertThat(embeddingModel.dimension()).isEqualTo(512);
+                    assertThat(embeddingModel.embed("hi").content().dimension()).isEqualTo(512);
 
                     assertThat(context.getBean(QwenEmbeddingModel.class)).isSameAs(embeddingModel);
                 });
@@ -163,6 +166,8 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.chat-model.parameters.tool-choice=AUTO",
                         "langchain4j.community.dashscope.chat-model.parameters.response-format=TEXT",
                         "langchain4j.community.dashscope.chat-model.parameters.seed=42",
+                        "langchain4j.community.dashscope.chat-model.parameters.is-multimodal-model=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.support-incremental-output=true",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.enable-source=true",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.enable-citation=true",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.citation-format=[<number>]",
@@ -177,14 +182,13 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.tm-list[0].target=内存",
                         "langchain4j.community.dashscope.chat-model.parameters.vl-high-resolution-images=false")
                 .run(context -> {
-                    ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
-                    assertThat(chatLanguageModel).isInstanceOf(QwenChatModel.class);
-                    assertThat(chatLanguageModel.defaultRequestParameters()).isNotNull();
-                    assertThat(chatLanguageModel.defaultRequestParameters())
-                            .isInstanceOf(QwenChatRequestParameters.class);
+                    ChatModel chatModel = context.getBean(ChatModel.class);
+                    assertThat(chatModel).isInstanceOf(QwenChatModel.class);
+                    assertThat(chatModel.defaultRequestParameters()).isNotNull();
+                    assertThat(chatModel.defaultRequestParameters()).isInstanceOf(QwenChatRequestParameters.class);
 
                     QwenChatRequestParameters defaultParameters =
-                            (QwenChatRequestParameters) chatLanguageModel.defaultRequestParameters();
+                            (QwenChatRequestParameters) chatModel.defaultRequestParameters();
                     assertThat(defaultParameters.enableSearch()).isTrue();
                     assertThat(defaultParameters.topK()).isEqualTo(50);
                     assertThat(defaultParameters.temperature()).isEqualTo(0.7);
@@ -194,6 +198,8 @@ public class AutoConfigIT {
                     assertThat(defaultParameters.toolChoice()).isEqualTo(ToolChoice.AUTO);
                     assertThat(defaultParameters.responseFormat()).isEqualTo(ResponseFormat.TEXT);
                     assertThat(defaultParameters.seed()).isEqualTo(42);
+                    assertThat(defaultParameters.isMultimodalModel()).isTrue();
+                    assertThat(defaultParameters.supportIncrementalOutput()).isTrue();
                     assertThat(defaultParameters.searchOptions().enableSource()).isTrue();
                     assertThat(defaultParameters.searchOptions().enableCitation())
                             .isTrue();
@@ -234,7 +240,7 @@ public class AutoConfigIT {
                             .isEqualTo("内存");
                     assertThat(defaultParameters.vlHighResolutionImages()).isFalse();
 
-                    assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatLanguageModel);
+                    assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatModel);
                 });
     }
 
@@ -253,6 +259,8 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.tool-choice=AUTO",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.response-format=TEXT",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.seed=42",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.is-multimodal-model=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.support-incremental-output=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.enable-source=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.enable-citation=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.citation-format=[<number>]",
@@ -267,16 +275,14 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.tm-list[0].target=内存",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.vl-high-resolution-images=false")
                 .run(context -> {
-                    StreamingChatLanguageModel streamingChatLanguageModel =
-                            context.getBean(StreamingChatLanguageModel.class);
-                    assertThat(streamingChatLanguageModel).isInstanceOf(QwenStreamingChatModel.class);
-                    assertThat(streamingChatLanguageModel.defaultRequestParameters())
-                            .isNotNull();
-                    assertThat(streamingChatLanguageModel.defaultRequestParameters())
+                    StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
+                    assertThat(streamingChatModel).isInstanceOf(QwenStreamingChatModel.class);
+                    assertThat(streamingChatModel.defaultRequestParameters()).isNotNull();
+                    assertThat(streamingChatModel.defaultRequestParameters())
                             .isInstanceOf(QwenChatRequestParameters.class);
 
                     QwenChatRequestParameters defaultParameters =
-                            (QwenChatRequestParameters) streamingChatLanguageModel.defaultRequestParameters();
+                            (QwenChatRequestParameters) streamingChatModel.defaultRequestParameters();
                     assertThat(defaultParameters.enableSearch()).isTrue();
                     assertThat(defaultParameters.topK()).isEqualTo(50);
                     assertThat(defaultParameters.temperature()).isEqualTo(0.7);
@@ -286,6 +292,8 @@ public class AutoConfigIT {
                     assertThat(defaultParameters.toolChoice()).isEqualTo(ToolChoice.AUTO);
                     assertThat(defaultParameters.responseFormat()).isEqualTo(ResponseFormat.TEXT);
                     assertThat(defaultParameters.seed()).isEqualTo(42);
+                    assertThat(defaultParameters.isMultimodalModel()).isTrue();
+                    assertThat(defaultParameters.supportIncrementalOutput()).isTrue();
                     assertThat(defaultParameters.searchOptions().enableSource()).isTrue();
                     assertThat(defaultParameters.searchOptions().enableCitation())
                             .isTrue();
@@ -326,7 +334,7 @@ public class AutoConfigIT {
                             .isEqualTo("内存");
                     assertThat(defaultParameters.vlHighResolutionImages()).isFalse();
 
-                    assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatLanguageModel);
+                    assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatModel);
                 });
     }
 }

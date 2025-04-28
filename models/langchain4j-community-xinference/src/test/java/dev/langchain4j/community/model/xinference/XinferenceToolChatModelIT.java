@@ -14,7 +14,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -40,7 +40,7 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
             .description("Get the current time")
             .build();
 
-    ChatLanguageModel chatModel = XinferenceChatModel.builder()
+    ChatModel chatModel = XinferenceChatModel.builder()
             .baseUrl(baseUrl())
             .modelName(modelName())
             .apiKey(apiKey())
@@ -50,7 +50,7 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
             .build();
 
     @Override
-    protected List<ChatLanguageModel> models() {
+    protected List<ChatModel> models() {
         return singletonList(chatModel);
     }
 

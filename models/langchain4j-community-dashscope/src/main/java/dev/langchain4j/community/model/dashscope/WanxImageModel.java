@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 
 /**
  * Represents a Wanx models to generate artistic images.
- * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details-9">here</a>.
+ * More details are available <a href="https://www.alibabacloud.com/help/en/model-studio/video-generation-api">here</a>.
  */
 public class WanxImageModel implements ImageModel {
 
@@ -70,7 +70,7 @@ public class WanxImageModel implements ImageModel {
             Boolean watermark) {
         if (Utils.isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
-                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+                    "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
         this.modelName = Utils.isNullOrBlank(modelName) ? WanxModelName.WANX_V1 : modelName;
         this.apiKey = apiKey;

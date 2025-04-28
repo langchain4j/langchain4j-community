@@ -2,10 +2,14 @@ package dev.langchain4j.community.model.dashscope;
 
 import static dev.langchain4j.community.model.dashscope.QwenEmbeddingModel.TYPE_KEY;
 import static dev.langchain4j.community.model.dashscope.QwenEmbeddingModel.TYPE_QUERY;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V1;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V2;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V3;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.data.segment.TextSegment.textSegment;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -14,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,9 +27,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 class QwenEmbeddingModelIT {
 
     private QwenEmbeddingModel getModel(String modelName) {
+        return getModel(modelName, null);
+    }
+
+    private QwenEmbeddingModel getModel(String modelName, Integer dimension) {
         return QwenEmbeddingModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
+                .dimension(dimension)
                 .build();
     }
 
@@ -128,5 +138,18 @@ class QwenEmbeddingModelIT {
                 .content();
 
         assertThat(embeddings).hasSize(100);
+    }
+
+    @Test
+    void should_embed_one_text_by_customized_dimension() {
+        assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V1, 512)).isExactlyInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V2, 512)).isExactlyInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V3, 510)).isExactlyInstanceOf(IllegalArgumentException.class);
+
+        QwenEmbeddingModel model = getModel(TEXT_EMBEDDING_V3, 512);
+        assertThat(model.dimension()).isEqualTo(512);
+
+        Embedding embedding = model.embed("hello").content();
+        assertThat(embedding.dimension()).isEqualTo(512);
     }
 }
