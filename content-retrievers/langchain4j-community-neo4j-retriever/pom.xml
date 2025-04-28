@@ -13,7 +13,7 @@
     <name>LangChain4j :: Community :: Content Retriever :: Neo4j</name>
 
     <properties>
-        <neo4j.cypher.dsl.version>2023.7.0</neo4j.cypher.dsl.version>
+        <neo4j.cypher.dsl.version>2024.5.1</neo4j.cypher.dsl.version>
         <neo4j.version>5.26.0</neo4j.version>
     </properties>
 
@@ -39,13 +39,13 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-dsl-parser</artifactId>
-            <version>2024.5.1</version>
+            <version>${neo4j.cypher.dsl.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-dsl</artifactId>
-            <version>2024.5.1</version>
+            <version>${neo4j.cypher.dsl.version}</version>
         </dependency>
 
         <!-- test dependencies -->
