@@ -156,7 +156,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
             throw e;
         }
     }
-    
+
     /**
      * To fixed e.g. wrong relationship directions
      *
@@ -278,7 +278,8 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         public Neo4jText2CypherRetriever build() {
-            return new Neo4jText2CypherRetriever(graph, chatModel, promptTemplate, examples, maxRetries, relationships, dialect);
+            return new Neo4jText2CypherRetriever(
+                    graph, chatModel, promptTemplate, examples, maxRetries, relationships, dialect);
         }
     }
 }

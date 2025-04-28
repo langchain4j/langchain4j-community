@@ -56,6 +56,7 @@ import org.neo4j.cypherdsl.core.Expression;
 import org.neo4j.cypherdsl.core.FunctionInvocation;
 import org.neo4j.cypherdsl.core.Node;
 import org.neo4j.cypherdsl.core.Statement;
+import org.neo4j.cypherdsl.core.SymbolicName;
 import org.neo4j.cypherdsl.core.renderer.Renderer;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
@@ -307,7 +308,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         try (var session = session()) {
             // build an `UNWIND $ids AS id MATCH (n:<label> {<idProperty>: idVar}) DETACH DELETE n`
-            var idVar = name("id");
+            final SymbolicName idVar = name("id");
 
             // MATCH (n:Label {idProp: id})
             var node = node(label).named("n");
