@@ -15,7 +15,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.neo4j.driver.Session;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-class Neo4JText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
+class Neo4jText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
 
     private static final ChatModel OPEN_AI_CHAT_MODEL = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))

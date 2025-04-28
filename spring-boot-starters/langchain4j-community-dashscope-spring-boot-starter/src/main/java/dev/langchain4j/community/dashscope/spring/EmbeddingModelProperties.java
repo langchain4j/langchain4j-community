@@ -5,6 +5,7 @@ public class EmbeddingModelProperties {
     private String baseUrl;
     private String apiKey;
     private String modelName;
+    private Integer dimension;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -28,5 +29,13 @@ public class EmbeddingModelProperties {
 
     public void setModelName(String modelName) {
         this.modelName = modelName;
+    }
+
+    public Integer getDimension() {
+        return dimension;
+    }
+
+    public void setDimension(Integer dimension) {
+        this.dimension = dimension;
     }
 }

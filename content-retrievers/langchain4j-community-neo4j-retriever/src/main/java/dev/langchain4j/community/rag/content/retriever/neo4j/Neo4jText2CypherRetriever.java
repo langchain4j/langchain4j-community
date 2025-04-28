@@ -1,5 +1,6 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jUtils.getBacktickText;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
@@ -14,8 +15,6 @@ import dev.langchain4j.rag.query.Query;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.types.Type;
 import org.neo4j.driver.types.TypeSystem;
@@ -39,7 +38,6 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                     The question is: {{question}}
                     """);
 
-    private static final Pattern BACKTICKS_PATTERN = Pattern.compile("```(.*?)```", Pattern.MULTILINE | Pattern.DOTALL);
     private static final Type NODE = TypeSystem.getDefault().NODE();
     private static final Type RELATIONSHIP = TypeSystem.getDefault().RELATIONSHIP();
     private static final Type PATH = TypeSystem.getDefault().PATH();
@@ -51,11 +49,6 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private final PromptTemplate promptTemplate;
     private final int maxRetries;
     private final List<String> examples;
-
-    public Neo4jText2CypherRetriever(
-            Neo4jGraph graph, ChatModel chatModel, PromptTemplate promptTemplate, List<String> examples) {
-        this(graph, chatModel, promptTemplate, examples, 3);
-    }
 
     public Neo4jText2CypherRetriever(
             Neo4jGraph graph,
@@ -157,23 +150,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private String generateCypherQuery(List<ChatMessage> messages) {
 
         String cypherQuery = chatModel.chat(messages).aiMessage().text();
-        Matcher matcher = BACKTICKS_PATTERN.matcher(cypherQuery);
-        if (matcher.find()) {
-            cypherQuery = matcher.group(1);
-        }
-
-        /*
-        Sometimes, `cypher` is generated as a prefix, e.g.
-        ```
-        cypher
-        MATCH (p:Person)-[:WROTE]->(b:Book {title: 'Dune'}) RETURN p.name AS author
-        ```
-         */
-        if (cypherQuery.startsWith("cypher\n")) {
-            cypherQuery = cypherQuery.replaceFirst("cypher\n", "");
-        }
-
-        return cypherQuery;
+        return getBacktickText(cypherQuery);
     }
 
     private List<String> executeQuery(String cypherQuery) {
@@ -192,7 +169,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                 .toList();
     }
 
-    public static class Builder<T extends Builder<T>> {
+    public static class Builder {
 
         protected Neo4jGraph graph;
         protected ChatModel chatModel;
@@ -203,45 +180,41 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         /**
          * @param graph the {@link Neo4jGraph} (required)
          */
-        public T graph(Neo4jGraph graph) {
+        public Builder graph(Neo4jGraph graph) {
             this.graph = graph;
-            return self();
+            return this;
         }
 
         /**
          * @param chatModel the {@link ChatModel} (required)
          */
-        public T chatModel(ChatModel chatModel) {
+        public Builder chatModel(ChatModel chatModel) {
             this.chatModel = chatModel;
-            return self();
+            return this;
         }
 
         /**
          * @param promptTemplate the {@link PromptTemplate} (optional, default is {@link Neo4jText2CypherRetriever#DEFAULT_PROMPT_TEMPLATE})
          */
-        public T promptTemplate(PromptTemplate promptTemplate) {
+        public Builder promptTemplate(PromptTemplate promptTemplate) {
             this.promptTemplate = promptTemplate;
-            return self();
+            return this;
         }
 
         /**
          * @param maxRetries The maximum number of attempts to re-run the generated failed queries (default: 3)
          */
-        public T maxRetries(int maxRetries) {
+        public Builder maxRetries(int maxRetries) {
             this.maxRetries = maxRetries;
-            return self();
+            return this;
         }
 
         /**
          * @param examples the few-shot examples to improve retrieving (optional, default is "")
          */
-        public T examples(List<String> examples) {
+        public Builder examples(List<String> examples) {
             this.examples = examples;
-            return self();
-        }
-
-        protected T self() {
-            return (T) this;
+            return this;
         }
 
         public Neo4jText2CypherRetriever build() {

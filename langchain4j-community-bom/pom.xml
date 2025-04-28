@@ -17,6 +17,12 @@
     <dependencyManagement>
         <dependencies>
 
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- models -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
@@ -102,6 +108,13 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-document-parser-llamaparse</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- document transformer -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-llm-graph-transformer</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
