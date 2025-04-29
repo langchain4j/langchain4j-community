@@ -1,18 +1,17 @@
 package dev.langchain4j.community.model.zhipu;
 
+import static dev.langchain4j.community.model.zhipu.embedding.EmbeddingModel.EMBEDDING_3;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-
-import static dev.langchain4j.community.model.zhipu.embedding.EmbeddingModel.EMBEDDING_3;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
 public class ZhipuAiEmbeddingModelIT {
@@ -23,10 +22,6 @@ public class ZhipuAiEmbeddingModelIT {
             .logRequests(true)
             .logResponses(true)
             .maxRetries(1)
-            .callTimeout(Duration.ofSeconds(60))
-            .connectTimeout(Duration.ofSeconds(60))
-            .writeTimeout(Duration.ofSeconds(60))
-            .readTimeout(Duration.ofSeconds(60))
             .build();
 
     @Test

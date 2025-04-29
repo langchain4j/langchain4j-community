@@ -47,7 +47,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZhipuAiClient {
+class ZhipuAiClient {
 
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiClient.class);
     private final Boolean logResponses;
@@ -56,7 +56,7 @@ public class ZhipuAiClient {
     private final String baseUrl;
     private final HttpClient httpClient;
 
-    public ZhipuAiClient(Builder builder) {
+    ZhipuAiClient(Builder builder) {
         this.logResponses = builder.logResponses;
         this.apiKey = builder.apiKey;
         this.baseUrl = builder.baseUrl;
@@ -73,11 +73,11 @@ public class ZhipuAiClient {
         }
     }
 
-    public static Builder builder() {
+    static Builder builder() {
         return new Builder();
     }
 
-    public ChatCompletionResponse chatCompletion(ChatCompletionRequest request) {
+    ChatCompletionResponse chatCompletion(ChatCompletionRequest request) {
         HttpRequest httpRequest = HttpRequest.builder()
                 .url(baseUrl, "api/paas/v4/chat/completions")
                 .method(POST)
@@ -94,7 +94,7 @@ public class ZhipuAiClient {
         }
     }
 
-    public EmbeddingResponse embedAll(EmbeddingRequest request) {
+    EmbeddingResponse embedAll(EmbeddingRequest request) {
         HttpRequest httpRequest = HttpRequest.builder()
                 .url(baseUrl, "api/paas/v4/embeddings")
                 .method(POST)
@@ -263,7 +263,7 @@ public class ZhipuAiClient {
         }
     }
 
-    public ImageResponse imagesGeneration(ImageRequest request) {
+    ImageResponse imagesGeneration(ImageRequest request) {
         HttpRequest httpRequest = HttpRequest.builder()
                 .url(baseUrl, "api/paas/v4/images/generations")
                 .method(POST)
@@ -280,7 +280,7 @@ public class ZhipuAiClient {
         }
     }
 
-    public static class Builder {
+    static class Builder {
 
         private String baseUrl;
         private String apiKey;
@@ -299,7 +299,7 @@ public class ZhipuAiClient {
             this.writeTimeout = Duration.ofSeconds(60L);
         }
 
-        public Builder baseUrl(String baseUrl) {
+        Builder baseUrl(String baseUrl) {
             if (baseUrl != null && !baseUrl.trim().isEmpty()) {
                 this.baseUrl = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
                 return this;
@@ -308,7 +308,7 @@ public class ZhipuAiClient {
             }
         }
 
-        public Builder apiKey(String apiKey) {
+        Builder apiKey(String apiKey) {
             if (apiKey != null && !apiKey.trim().isEmpty()) {
                 this.apiKey = apiKey;
                 return this;
@@ -317,47 +317,31 @@ public class ZhipuAiClient {
             }
         }
 
-        public Builder callTimeout(Duration callTimeout) {
-            if (callTimeout == null) {
-                throw new IllegalArgumentException("callTimeout cannot be null");
-            } else {
-                this.callTimeout = callTimeout;
-                return this;
-            }
+        Builder callTimeout(Duration callTimeout) {
+            this.callTimeout = callTimeout;
+            return this;
         }
 
-        public Builder connectTimeout(Duration connectTimeout) {
-            if (connectTimeout == null) {
-                throw new IllegalArgumentException("connectTimeout cannot be null");
-            } else {
-                this.connectTimeout = connectTimeout;
-                return this;
-            }
+        Builder connectTimeout(Duration connectTimeout) {
+            this.connectTimeout = connectTimeout;
+            return this;
         }
 
-        public Builder readTimeout(Duration readTimeout) {
-            if (readTimeout == null) {
-                throw new IllegalArgumentException("readTimeout cannot be null");
-            } else {
-                this.readTimeout = readTimeout;
-                return this;
-            }
+        Builder readTimeout(Duration readTimeout) {
+            this.readTimeout = readTimeout;
+            return this;
         }
 
-        public Builder writeTimeout(Duration writeTimeout) {
-            if (writeTimeout == null) {
-                throw new IllegalArgumentException("writeTimeout cannot be null");
-            } else {
-                this.writeTimeout = writeTimeout;
-                return this;
-            }
+        Builder writeTimeout(Duration writeTimeout) {
+            this.writeTimeout = writeTimeout;
+            return this;
         }
 
-        public Builder logRequests() {
+        Builder logRequests() {
             return this.logRequests(true);
         }
 
-        public Builder logRequests(Boolean logRequests) {
+        Builder logRequests(Boolean logRequests) {
             if (logRequests == null) {
                 logRequests = false;
             }
@@ -366,11 +350,11 @@ public class ZhipuAiClient {
             return this;
         }
 
-        public Builder logResponses() {
+        Builder logResponses() {
             return this.logResponses(true);
         }
 
-        public Builder logResponses(Boolean logResponses) {
+        Builder logResponses(Boolean logResponses) {
             if (logResponses == null) {
                 logResponses = false;
             }
@@ -379,7 +363,7 @@ public class ZhipuAiClient {
             return this;
         }
 
-        public ZhipuAiClient build() {
+        ZhipuAiClient build() {
             return new ZhipuAiClient(this);
         }
     }

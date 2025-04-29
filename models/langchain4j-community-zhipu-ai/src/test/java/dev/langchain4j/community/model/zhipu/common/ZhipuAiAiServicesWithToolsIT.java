@@ -1,11 +1,11 @@
-package dev.langchain4j.community.model.zhipu;
+package dev.langchain4j.community.model.zhipu.common;
 
-import static java.time.Duration.ofSeconds;
+import static java.util.Collections.singletonList;
 
+import dev.langchain4j.community.model.zhipu.ZhipuAiChatModel;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.common.AbstractAiServiceWithToolsIT;
-import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
@@ -14,14 +14,10 @@ class ZhipuAiAiServicesWithToolsIT extends AbstractAiServiceWithToolsIT {
 
     @Override
     protected List<ChatModel> models() {
-        return Collections.singletonList(ZhipuAiChatModel.builder()
+        return singletonList(ZhipuAiChatModel.builder()
                 .apiKey(System.getenv("ZHIPU_API_KEY"))
-                .model(ChatCompletionModel.GLM_4_AIR)
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .temperature(0.0)
-                .callTimeout(ofSeconds(60))
-                .connectTimeout(ofSeconds(60))
-                .readTimeout(ofSeconds(60))
-                .writeTimeout(ofSeconds(60))
                 .logRequests(true)
                 .logResponses(true)
                 .build());
