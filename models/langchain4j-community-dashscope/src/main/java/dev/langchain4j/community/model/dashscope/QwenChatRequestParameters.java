@@ -11,15 +11,52 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Parameter details are available <a href="https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api#2ed5ee7377fum">here</a>.
+ * Parameter details are available <a href="https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api#2ed5ee7377fum">here</a>.
  */
 @Experimental
 public class QwenChatRequestParameters extends DefaultChatRequestParameters {
+    /**
+     * If specified, it will make a best effort to sample deterministically, such that
+     * repeated requests with the same seed and parameters should return the same
+     * result.
+     */
     private final Integer seed;
+    /**
+     * Whether the model should use internet search results for reference when generating
+     * text.
+     */
     private final Boolean enableSearch;
+    /**
+     * The strategy for network search. Only takes effect when enableSearch is true.
+     */
     private final SearchOptions searchOptions;
+    /**
+     * The translation parameters you need to configure when you use the translation
+     * models.
+     */
     private final TranslationOptions translationOptions;
+    /**
+     * Whether to increase the default token limit for input images. The default token
+     * limit for input images is 1280. When configured to true, the token limit for input
+     * images is 16384. Default value is false.
+     */
     private final Boolean vlHighResolutionImages;
+    /**
+     * Whether the model is a multimodal model (whether it supports multimodal input). If
+     * not specified, it will be judged based on the model name when called, but these
+     * judgments may not keep up with the latest situation.
+     */
+    private final Boolean isMultimodalModel;
+    /**
+     * Whether the model supports incremental output in the streaming output mode. This
+     * parameter is used to assist QwenStreamingChatModel in providing incremental output
+     * in stream mode. If not specified, it will be judged based on the model name when
+     * called, but these judgments may not keep up with the latest situation.
+     */
+    private final Boolean supportIncrementalOutput;
+    /**
+     * User-defined parameters. They may have special effects on some special models.
+     */
     private final Map<String, Object> custom;
 
     protected QwenChatRequestParameters(Builder builder) {
@@ -29,6 +66,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.searchOptions = builder.searchOptions;
         this.translationOptions = builder.translationOptions;
         this.vlHighResolutionImages = builder.vlHighResolutionImages;
+        this.isMultimodalModel = builder.isMultimodalModel;
+        this.supportIncrementalOutput = builder.supportIncrementalOutput;
         this.custom = builder.custom;
     }
 
@@ -50,6 +89,14 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
     public Boolean vlHighResolutionImages() {
         return vlHighResolutionImages;
+    }
+
+    public Boolean isMultimodalModel() {
+        return isMultimodalModel;
+    }
+
+    public Boolean supportIncrementalOutput() {
+        return supportIncrementalOutput;
     }
 
     public Map<String, Object> custom() {
@@ -121,6 +168,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private SearchOptions searchOptions;
         private TranslationOptions translationOptions;
         private Boolean vlHighResolutionImages;
+        private Boolean isMultimodalModel;
+        private Boolean supportIncrementalOutput;
         private Map<String, Object> custom;
 
         @Override
@@ -162,6 +211,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
             return this;
         }
 
+        public Builder isMultimodalModel(Boolean isMultimodalModel) {
+            this.isMultimodalModel = isMultimodalModel;
+            return this;
+        }
+
+        public Builder supportIncrementalOutput(Boolean supportIncrementalOutput) {
+            this.supportIncrementalOutput = supportIncrementalOutput;
+            return this;
+        }
+
         public Builder custom(Map<String, Object> custom) {
             this.custom = custom;
             return this;
@@ -173,6 +232,20 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         }
     }
 
+    /**
+     * The strategy for network search.
+     *
+     * @param enableSource Whether to display the searched information in the returned
+     * results. Default value is false.
+     * @param enableCitation Whether to enable the [1] or [ref_1] style superscript
+     * annotation function. This function takes effect only when enable_source is true.
+     * Default value is false.
+     * @param citationFormat Subscript style. Only available when enable_citation is true.
+     * Supported styles: “[1]” and “[ref_1]”. Default value is “[1]”.
+     * @param forcedSearch Whether to force search to start.
+     * @param searchStrategy The amount of Internet information searched. Supported
+     * values: “standard” and “pro”. Default value is “standard”.
+     */
     public record SearchOptions(
             Boolean enableSource,
             Boolean enableCitation,
@@ -221,6 +294,26 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         }
     }
 
+    /**
+     * The translation parameters you need to configure when you use the translation
+     * models.
+     *
+     * @param sourceLang The full English name of the source language.For more
+     * information, see <a href=
+     * "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
+     * Languages</a>. You can set source_lang to "auto" and the model will automatically
+     * determine the language of the input text.
+     * @param targetLang The full English name of the target language.For more
+     * information, see <a href=
+     * "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
+     * Languages</a>.
+     * @param terms An array of terms that needs to be set when using the
+     * term-intervention-translation feature.
+     * @param tmList The translation memory array that needs to be set when using the
+     * translation-memory feature.
+     * @param domains The domain prompt statement needs to be set when using the
+     * domain-prompt feature.
+     */
     public record TranslationOptions(
             String sourceLang,
             String targetLang,
@@ -269,6 +362,12 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         }
     }
 
+    /**
+     * The term.
+     *
+     * @param source The term in the source language.
+     * @param target The term in the target language.
+     */
     public record TranslationOptionTerm(String source, String target) {
         public static Builder builder() {
             return new Builder();

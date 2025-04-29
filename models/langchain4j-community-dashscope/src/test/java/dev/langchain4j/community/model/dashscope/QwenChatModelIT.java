@@ -31,6 +31,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -67,7 +68,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         ChatResponse response = model.chat(QwenTestHelper.chatMessages());
 
         // it should generate "rain" but is stopped
-        assertThat(response.aiMessage().text()).doesNotContain("rain");
+        assertThat(response.aiMessage().text()).doesNotContainIgnoringCase("rain");
     }
 
     @ParameterizedTest
@@ -319,14 +320,13 @@ class QwenChatModelIT extends AbstractChatModelIT {
         // current round.
 
         messages.add(SystemMessage.from("System message 1, which should be discarded"));
-        messages.add(UserMessage.from("User message 1, which should be discarded"));
         messages.add(SystemMessage.from("System message 2"));
 
         messages.add(AiMessage.from("AI message 1, which should be discarded"));
         messages.add(ToolExecutionResultMessage.from(
                 toolExecutionRequest, "Tool execution result 1, which should be discards"));
-        messages.add(UserMessage.from("User message 2, which should be discarded"));
-        messages.add(UserMessage.from("User message 3"));
+        messages.add(UserMessage.from("User message 1, which should be discarded"));
+        messages.add(UserMessage.from("User message 2"));
 
         messages.add(AiMessage.from("AI message 2, which should be discarded"));
         messages.add(AiMessage.from(
@@ -361,7 +361,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(((SystemMessage) sanitizedMessages.get(0)).text()).isEqualTo("System message 2");
 
         assertThat(sanitizedMessages.get(1)).isInstanceOf(UserMessage.class);
-        assertThat(((UserMessage) sanitizedMessages.get(1)).singleText()).isEqualTo("User message 3");
+        assertThat(((UserMessage) sanitizedMessages.get(1)).singleText()).isEqualTo("User message 2");
 
         assertThat(sanitizedMessages.get(2)).isInstanceOf(AiMessage.class);
         assertThat(((AiMessage) sanitizedMessages.get(2)).text()).isEqualTo("AI message 3, a tool execution request");
@@ -525,5 +525,10 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @Override
     protected String diceImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/PNG_transparency_demonstration_1.png";
+    }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType() {
+        return QwenChatResponseMetadata.class;
     }
 }

@@ -5,11 +5,11 @@ import static dev.langchain4j.data.message.ChatMessageType.AI;
 import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
 import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
 import static dev.langchain4j.data.message.ChatMessageType.USER;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
-import static dev.langchain4j.model.chat.request.json.JsonSchemaElementHelper.toMap;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
@@ -306,12 +306,39 @@ class QwenHelper {
         };
     }
 
-    public static boolean isMultimodalModel(String modelName) {
+    static boolean isMultimodalModelName(String modelName) {
+        // rough judgment
         return modelName.contains("-vl-") || modelName.contains("-audio-");
     }
 
-    public static boolean supportIncrementalOutput(String modelName) {
-        return !(modelName.contains("-vl-") || modelName.contains("-audio-") || modelName.contains("-mt-"));
+    static boolean isSupportingIncrementalOutputModelName(String modelName) {
+        // rough judgment
+        return !(modelName.contains("-audio-") || modelName.contains("-mt-"));
+    }
+
+    static boolean isMultimodalModel(ChatRequest chatRequest) {
+        if (!(chatRequest.parameters() instanceof QwenChatRequestParameters qwenParameters)) {
+            throw new IllegalArgumentException("parameters should be an instance of QwenChatRequestParameters");
+        }
+
+        String modelName = qwenParameters.modelName();
+        Boolean isMultimodalModel = qwenParameters.isMultimodalModel();
+        isMultimodalModel = getOrDefault(isMultimodalModel, isMultimodalModelName(modelName));
+
+        return Boolean.TRUE.equals(isMultimodalModel);
+    }
+
+    static boolean supportIncrementalOutput(ChatRequest chatRequest) {
+        if (!(chatRequest.parameters() instanceof QwenChatRequestParameters qwenParameters)) {
+            throw new IllegalArgumentException("parameters should be an instance of QwenChatRequestParameters");
+        }
+
+        String modelName = qwenParameters.modelName();
+        Boolean supportIncrementalOutput = qwenParameters.supportIncrementalOutput();
+        supportIncrementalOutput =
+                getOrDefault(supportIncrementalOutput, isSupportingIncrementalOutputModelName(modelName));
+
+        return Boolean.TRUE.equals(supportIncrementalOutput);
     }
 
     static List<ToolBase> toToolFunctions(Collection<ToolSpecification> toolSpecifications) {
@@ -337,6 +364,19 @@ class QwenHelper {
         } else {
             return JsonUtils.toJsonObject(Collections.emptyMap());
         }
+    }
+
+    static ChatResponse chatResponseFrom(String modelName, GenerationResult result) {
+        return ChatResponse.builder()
+                .aiMessage(aiMessageFrom(result))
+                .metadata(QwenChatResponseMetadata.builder()
+                        .id(result.getRequestId())
+                        .modelName(modelName)
+                        .tokenUsage(tokenUsageFrom(result))
+                        .finishReason(finishReasonFrom(result))
+                        .searchInfo(convertSearchInfo(result.getOutput().getSearchInfo()))
+                        .build())
+                .build();
     }
 
     static AiMessage aiMessageFrom(GenerationResult result) {
@@ -397,6 +437,22 @@ class QwenHelper {
         return toolCallBases.isPresent() && !isNullOrEmpty(toolCallBases.get());
     }
 
+    static ChatResponse chatResponseFrom(String modelName, MultiModalConversationResult result) {
+        return ChatResponse.builder()
+                .aiMessage(aiMessageFrom(result))
+                .metadata(QwenChatResponseMetadata.builder()
+                        .id(result.getRequestId())
+                        .modelName(modelName)
+                        .tokenUsage(tokenUsageFrom(result))
+                        .finishReason(finishReasonFrom(result))
+                        .build())
+                .build();
+    }
+
+    static AiMessage aiMessageFrom(MultiModalConversationResult result) {
+        return new AiMessage(answerFrom(result));
+    }
+
     private static List<ToolCallBase> toToolCalls(Collection<ToolExecutionRequest> toolExecutionRequests) {
         return toolExecutionRequests.stream().map(QwenHelper::toToolCall).collect(toList());
     }
@@ -438,9 +494,11 @@ class QwenHelper {
             }
 
             if (type == SYSTEM) {
-                log.warn("The system message should be the first message. Drop existed messages: {}", acc);
-                acc.clear();
-                acc.add(message);
+                if (acc.getFirst().type() == SYSTEM) {
+                    log.warn("Drop existed system message: {}", acc);
+                    acc.removeFirst();
+                }
+                acc.addFirst(message);
                 return acc;
             }
 
@@ -451,7 +509,7 @@ class QwenHelper {
             }
 
             if (type == USER) {
-                while (acc.getLast().type() != SYSTEM && !isNormalAiType(acc.getLast())) {
+                while (!acc.isEmpty() && acc.getLast().type() != SYSTEM && !isNormalAiType(acc.getLast())) {
                     ChatMessage removedMessage = acc.removeLast();
                     log.warn(
                             "Tool execution result should follow a tool execution request message. Drop duplicated message: {}",
@@ -748,8 +806,7 @@ class QwenHelper {
     }
 
     static Float frequencyPenaltyToRepetitionPenalty(Double frequencyPenalty) {
-        // repetitionPenalty:
-        // https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api#2ed5ee7377fum
+        // repetitionPenalty: https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api#2ed5ee7377fum
         // frequencyPenalty: https://platform.openai.com/docs/api-reference/chat/create#chat-create-frequency_penalty
         // map: [-2, 2] -> (0, ∞), and 0 -> 1
         // use logit function (https://en.wikipedia.org/wiki/Logit)
@@ -771,8 +828,7 @@ class QwenHelper {
     }
 
     static Double repetitionPenaltyToFrequencyPenalty(Float repetitionPenalty) {
-        // repetitionPenalty:
-        // https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api#2ed5ee7377fum
+        // repetitionPenalty: https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api#2ed5ee7377fum
         // frequencyPenalty: https://platform.openai.com/docs/api-reference/chat/create#chat-create-frequency_penalty
         // map: (0, ∞) -> [-2, 2], and 1 -> 0
         // use sigmoid function (https://en.wikipedia.org/wiki/Sigmoid_function)

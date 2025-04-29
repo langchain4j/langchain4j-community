@@ -1,7 +1,7 @@
 package dev.langchain4j.community.model.dashscope;
 
 import static com.alibaba.dashscope.aigc.generation.GenerationParam.ResultFormat.MESSAGE;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.isSupportingIncrementalOutputModelName;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  * Represents a Qwen language model with a text interface.
  * The model's response is streamed token by token and should be handled with {@link StreamingResponseHandler}.
  * <br>
- * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details">here</a>.
+ * More details are available <a href="https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api">here</a>.
  */
 public class QwenStreamingLanguageModel implements StreamingLanguageModel {
 
@@ -58,7 +58,7 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
             Integer maxTokens) {
         if (isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
-                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+                    "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
         this.modelName = isNullOrBlank(modelName) ? QWEN_PLUS : modelName;
         this.enableSearch = enableSearch != null && enableSearch;
@@ -82,7 +82,7 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
 
     @Override
     public void generate(String prompt, StreamingResponseHandler<String> handler) {
-        boolean incrementalOutput = supportIncrementalOutput(modelName);
+        boolean incrementalOutput = isSupportingIncrementalOutputModelName(modelName);
         try {
             GenerationParam.GenerationParamBuilder<?, ?> builder = GenerationParam.builder()
                     .apiKey(apiKey)

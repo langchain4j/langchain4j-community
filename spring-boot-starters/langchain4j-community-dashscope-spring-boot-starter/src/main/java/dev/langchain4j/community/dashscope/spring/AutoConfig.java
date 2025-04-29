@@ -115,6 +115,8 @@ public class AutoConfig {
                 .searchOptions(getSearchOption(parameters))
                 .translationOptions(getTranslationOptions(parameters))
                 .vlHighResolutionImages(parameters.getVlHighResolutionImages())
+                .isMultimodalModel(parameters.getIsMultimodalModel())
+                .supportIncrementalOutput(parameters.getSupportIncrementalOutput())
                 .build();
     }
 
@@ -210,6 +212,7 @@ public class AutoConfig {
                 .baseUrl(embeddingModelProperties.getBaseUrl())
                 .apiKey(embeddingModelProperties.getApiKey())
                 .modelName(embeddingModelProperties.getModelName())
+                .dimension(embeddingModelProperties.getDimension())
                 .build();
     }
 

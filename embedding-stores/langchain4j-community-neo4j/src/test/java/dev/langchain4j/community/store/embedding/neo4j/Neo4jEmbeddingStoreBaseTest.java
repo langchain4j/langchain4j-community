@@ -6,9 +6,7 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIT;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.neo4j.cypherdsl.support.schema_name.SchemaNames;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
@@ -52,13 +50,6 @@ public abstract class Neo4jEmbeddingStoreBaseTest extends EmbeddingStoreIT {
         neo4jContainer.stop();
     }
 
-    @AfterEach
-    void afterEach() {
-        session.run("MATCH (n) DETACH DELETE n");
-        String indexName = ((Neo4jEmbeddingStore) embeddingStore()).getIndexName();
-        session.run("DROP INDEX " + SchemaNames.sanitize(indexName).get());
-    }
-
     @Override
     protected EmbeddingStore<TextSegment> embeddingStore() {
         return embeddingStore;
@@ -71,6 +62,10 @@ public abstract class Neo4jEmbeddingStoreBaseTest extends EmbeddingStoreIT {
 
     @Override
     protected void clearStore() {
+        session.executeWriteWithoutResult(
+                tx -> tx.run("MATCH (n) DETACH DELETE n").consume());
+        session.run("CALL db.awaitIndexes()");
+
         embeddingStore = Neo4jEmbeddingStore.builder()
                 .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
                 .dimension(384)
