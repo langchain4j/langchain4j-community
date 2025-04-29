@@ -19,7 +19,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class AlloyDBLoaderIT {
+class AlloyDBLoaderIT {
 
     @Container
     static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
@@ -28,7 +28,7 @@ public class AlloyDBLoaderIT {
     private static Connection connection;
 
     @BeforeAll
-    public static void beforeAll() throws SQLException {
+    static void beforeAll() throws SQLException {
         engine = new AlloyDBEngine.Builder()
                 .host(pgVector.getHost())
                 .port(pgVector.getFirstMappedPort())
@@ -40,7 +40,7 @@ public class AlloyDBLoaderIT {
     }
 
     @BeforeEach
-    public void setUp() throws SQLException {
+    void setUp() throws SQLException {
         createTableAndInsertData();
     }
 
@@ -56,17 +56,17 @@ public class AlloyDBLoaderIT {
     }
 
     @AfterEach
-    public void afterEach() throws SQLException {
+    void afterEach() throws SQLException {
         connection.createStatement().executeUpdate("DROP TABLE IF EXISTS test_table");
     }
 
     @AfterAll
-    public static void afterAll() throws SQLException {
+    static void afterAll() throws SQLException {
         engine.close();
     }
 
     @Test
-    public void testLoadDocumentsFromDatabase() throws SQLException {
+    void testLoadDocumentsFromDatabase() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -89,7 +89,7 @@ public class AlloyDBLoaderIT {
     }
 
     @Test
-    public void testLoadDocumentsWithCustomQuery() throws SQLException {
+    void testLoadDocumentsWithCustomQuery() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .query("SELECT content, metadata, langchain_metadata FROM test_table WHERE id = 1")
                 .contentColumns(List.of("content"))
@@ -108,7 +108,7 @@ public class AlloyDBLoaderIT {
     }
 
     @Test
-    public void testLoadDocumentsWithTextFormatter() throws SQLException {
+    void testLoadDocumentsWithTextFormatter() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -124,7 +124,7 @@ public class AlloyDBLoaderIT {
     }
 
     @Test
-    public void testLoadDocumentsWithCsvFormatter() throws SQLException {
+    void testLoadDocumentsWithCsvFormatter() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -140,7 +140,7 @@ public class AlloyDBLoaderIT {
     }
 
     @Test
-    public void testLoadDocumentsWithYamlFormatter() throws SQLException {
+    void testLoadDocumentsWithYamlFormatter() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -156,7 +156,7 @@ public class AlloyDBLoaderIT {
     }
 
     @Test
-    public void testLoadDocumentsWithJsonFormatter() throws SQLException {
+    void testLoadDocumentsWithJsonFormatter() throws SQLException {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))

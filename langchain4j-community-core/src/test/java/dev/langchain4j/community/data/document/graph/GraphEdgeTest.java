@@ -37,7 +37,7 @@ class GraphEdgeTest {
         GraphEdge edge = new GraphEdge(source, target, type, null);
 
         // then
-        assertThat(edge.properties()).isNull();
+        assertThat(edge.properties()).isEmpty();
     }
 
     @Test

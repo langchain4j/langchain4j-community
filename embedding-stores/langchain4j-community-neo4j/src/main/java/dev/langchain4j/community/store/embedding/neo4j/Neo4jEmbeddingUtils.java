@@ -18,23 +18,27 @@ import org.neo4j.driver.Values;
 
 class Neo4jEmbeddingUtils {
 
+    private Neo4jEmbeddingUtils() throws InstantiationException {
+        throw new InstantiationException("Can not instantiate utility class");
+    }
+
     /* not-configurable strings, just used under-the-hood in `UNWIND $rows ...` statement */
-    public static final String EMBEDDINGS_ROW_KEY = "embeddingRow";
+    static final String EMBEDDINGS_ROW_KEY = "embeddingRow";
 
     /* default configs */
-    public static final String DEFAULT_ID_PROP = "id";
-    public static final String DEFAULT_DATABASE_NAME = "neo4j";
-    public static final String DEFAULT_EMBEDDING_PROP = "embedding";
-    public static final String PROPS = "props";
-    public static final String DEFAULT_IDX_NAME = "vector";
-    public static final String DEFAULT_FULLTEXT_IDX_NAME = "fulltext";
-    public static final String DEFAULT_LABEL = "Document";
-    public static final String DEFAULT_TEXT_PROP = "text";
-    public static final long DEFAULT_AWAIT_INDEX_TIMEOUT = 60L;
-    public static final String METADATA = "metadata";
-    public static final String SCORE = "score";
+    static final String DEFAULT_ID_PROP = "id";
+    static final String DEFAULT_DATABASE_NAME = "neo4j";
+    static final String DEFAULT_EMBEDDING_PROP = "embedding";
+    static final String PROPS = "props";
+    static final String DEFAULT_IDX_NAME = "vector";
+    static final String DEFAULT_FULLTEXT_IDX_NAME = "fulltext";
+    static final String DEFAULT_LABEL = "Document";
+    static final String DEFAULT_TEXT_PROP = "text";
+    static final long DEFAULT_AWAIT_INDEX_TIMEOUT = 60L;
+    static final String METADATA = "metadata";
+    static final String SCORE = "score";
 
-    public static EmbeddingMatch<TextSegment> toEmbeddingMatch(Neo4jEmbeddingStore store, Record neo4jRecord) {
+    static EmbeddingMatch<TextSegment> toEmbeddingMatch(Neo4jEmbeddingStore store, Record neo4jRecord) {
         Map<String, String> metaData = new HashMap<>();
         neo4jRecord.get(METADATA).asMap().forEach((key, value) -> {
             if (!store.getNotMetaKeys().contains(key)) {
@@ -62,7 +66,7 @@ class Neo4jEmbeddingUtils {
                 textSegment);
     }
 
-    public static Map<String, Object> toRecord(
+    static Map<String, Object> toRecord(
             Neo4jEmbeddingStore store,
             int idx,
             List<String> ids,
@@ -91,7 +95,7 @@ class Neo4jEmbeddingUtils {
         return row;
     }
 
-    public static Stream<List<Map<String, Object>>> getRowsBatched(
+    static Stream<List<Map<String, Object>>> getRowsBatched(
             Neo4jEmbeddingStore store, List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
         int batchSize = 10_000;
         AtomicInteger batchCounter = new AtomicInteger();
@@ -106,7 +110,7 @@ class Neo4jEmbeddingUtils {
         });
     }
 
-    public static String sanitizeOrThrows(String value, String config) {
+    static String sanitizeOrThrows(String value, String config) {
         return sanitize(value).orElseThrow(() -> {
             String invalidSanitizeValue = String.format(
                     "The value %s, to assign to configuration %s, cannot be safely quoted", value, config);

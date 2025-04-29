@@ -1,11 +1,10 @@
 package dev.langchain4j.community.data.document.graph;
 
-import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.langchain4j.Experimental;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,7 +23,7 @@ public class GraphNode {
     public GraphNode(String id, String type, Map<String, String> properties) {
         this.id = id;
         this.type = getOrDefault(type, "Node");
-        this.properties = copyIfNotNull(properties);
+        this.properties = copy(properties);
     }
 
     @JsonProperty
@@ -47,11 +46,11 @@ public class GraphNode {
     }
 
     public static GraphNode from(String id, String type) {
-        return new GraphNode(id, type, new HashMap<>());
+        return new GraphNode(id, type, Map.of());
     }
 
     public static GraphNode from(String id) {
-        return new GraphNode(id, null, new HashMap<>());
+        return new GraphNode(id, null, Map.of());
     }
 
     @Override

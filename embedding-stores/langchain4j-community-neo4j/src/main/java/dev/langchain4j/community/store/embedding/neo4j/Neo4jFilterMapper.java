@@ -1,7 +1,12 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
-import static org.neo4j.cypherdsl.support.schema_name.SchemaNames.sanitize;
+import static org.neo4j.cypherdsl.core.Cypher.asExpression;
+import static org.neo4j.cypherdsl.core.Cypher.literalOf;
+import static org.neo4j.cypherdsl.core.Cypher.mapOf;
+import static org.neo4j.cypherdsl.core.Cypher.not;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
@@ -14,53 +19,85 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-import java.util.AbstractMap;
+import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.neo4j.cypherdsl.core.Condition;
+import org.neo4j.cypherdsl.core.Cypher;
+import org.neo4j.cypherdsl.core.Expression;
+import org.neo4j.cypherdsl.core.FunctionInvocation;
+import org.neo4j.cypherdsl.core.Node;
+import org.neo4j.driver.internal.value.ListValue;
+import org.neo4j.driver.internal.value.PointValue;
 
 public class Neo4jFilterMapper {
 
-    public static final String UNSUPPORTED_FILTER_TYPE_ERROR = "Unsupported filter type: ";
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    public static class IncrementalKeyMap {
-        private final Map<String, Object> map = new ConcurrentHashMap<>();
-
-        private final AtomicInteger integer = new AtomicInteger();
-
-        public String put(Object value) {
-            String key = "param_" + integer.incrementAndGet();
-            map.put(key, value);
-            return key;
-        }
-
-        public Map<String, Object> getMap() {
-            return map;
+    private static FunctionInvocation convertToPoint(PointValue value1) {
+        try {
+            String s = OBJECT_MAPPER.writeValueAsString(value1.asObject());
+            Map<String, Object> map = new JsonMapper().readValue(s, Map.class);
+            return Cypher.point(asExpression(map));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public Neo4jFilterMapper() {}
+    /**
+     * The {@link Cypher#literalOf(Object)} doesn't handle all data types,
+     * so we use this method to transform non-managed data
+     */
+    public static Expression toCypherLiteral(Object value) {
+        if (value instanceof OffsetDateTime) {
+            return Cypher.datetime(literalOf(value.toString()));
+        }
+        if (value instanceof PointValue pointValue) {
+            return convertToPoint(pointValue);
+        }
+        if (value instanceof Map) {
+            return mapOf(value);
+        }
+        if (value instanceof ListValue listValue) {
+            return literalOf(listValue.asList());
+        }
 
-    final IncrementalKeyMap map = new IncrementalKeyMap();
-
-    AbstractMap.SimpleEntry<String, Map<String, Object>> map(Filter filter) {
-        final String stringMapPair = getStringMapping(filter);
-        return new AbstractMap.SimpleEntry<>(stringMapPair, map.getMap());
+        // Other data types
+        return literalOf(value);
     }
 
-    private String getStringMapping(Filter filter) {
+    public static String UNSUPPORTED_FILTER_TYPE_ERROR = "Unsupported filter type: ";
+
+    private Node node;
+
+    public Neo4jFilterMapper(Node node) {
+        this.node = node;
+    }
+
+    public Condition getCondition(Filter filter) {
         if (filter instanceof IsEqualTo item) {
-            return getOperation(item.key(), "=", item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            return node.property(cypherLiteral).eq(cypherLiteral1);
         } else if (filter instanceof IsNotEqualTo item) {
-            return getOperation(item.key(), "<>", item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            return node.property(cypherLiteral).isNotEqualTo(cypherLiteral1);
         } else if (filter instanceof IsGreaterThan item) {
-            return getOperation(item.key(), ">", item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            return node.property(cypherLiteral).gt(cypherLiteral1);
         } else if (filter instanceof IsGreaterThanOrEqualTo item) {
-            return getOperation(item.key(), ">=", item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            return node.property(cypherLiteral).gte(cypherLiteral1);
         } else if (filter instanceof IsLessThan item) {
-            return getOperation(item.key(), "<", item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            return node.property(cypherLiteral).lt(cypherLiteral1);
         } else if (filter instanceof IsLessThanOrEqualTo item) {
-            return getOperation(item.key(), "<=", item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            return node.property(cypherLiteral).lte(cypherLiteral1);
         } else if (filter instanceof IsIn item) {
             return mapIn(item);
         } else if (filter instanceof IsNotIn item) {
@@ -77,38 +114,33 @@ public class Neo4jFilterMapper {
         }
     }
 
-    private String getOperation(String key, String operator, Object value) {
-        // put ($param_N, <value>) entry map
-        final String param = map.put(value);
-
-        String sanitizedKey = sanitize(key).orElseThrow(() -> {
-            String invalidSanitizeValue = String.format(
-                    "The key %s, to assign to the operator %s and value %s, cannot be safely quoted",
-                    key, operator, value);
-            return new RuntimeException(invalidSanitizeValue);
-        });
-
-        return String.format("n.%s %s $%s", sanitizedKey, operator, param);
+    public Condition mapIn(IsIn filter) {
+        Expression cypherLiteral = toCypherLiteral(filter.key());
+        Expression cypherLiteral1 = toCypherLiteral(filter.comparisonValues());
+        return Cypher.includesAny(node.property(cypherLiteral), cypherLiteral1);
     }
 
-    public String mapIn(IsIn filter) {
-        return getOperation(filter.key(), "IN", filter.comparisonValues());
+    public Condition mapNotIn(IsNotIn filter) {
+        Expression cypherLiteral = toCypherLiteral(filter.key());
+        Expression cypherLiteral1 = toCypherLiteral(filter.comparisonValues());
+        Condition condition1 = Cypher.includesAny(node.property(cypherLiteral), cypherLiteral1);
+        return not(condition1);
     }
 
-    public String mapNotIn(IsNotIn filter) {
-        final String inOperation = getOperation(filter.key(), "IN", filter.comparisonValues());
-        return String.format("NOT (%s)", inOperation);
+    private Condition mapAnd(And filter) {
+        Condition left = getCondition(filter.left());
+        Condition right = getCondition(filter.right());
+        return left.and(right);
     }
 
-    private String mapAnd(And filter) {
-        return String.format("(%s) AND (%s)", getStringMapping(filter.left()), getStringMapping(filter.right()));
+    private Condition mapOr(Or filter) {
+        Condition left = getCondition(filter.left());
+        Condition right = getCondition(filter.right());
+        return left.or(right);
     }
 
-    private String mapOr(Or filter) {
-        return String.format("(%s) OR (%s)", getStringMapping(filter.left()), getStringMapping(filter.right()));
-    }
-
-    private String mapNot(Not filter) {
-        return String.format("NOT (%s)", getStringMapping(filter.expression()));
+    private Condition mapNot(Not filter) {
+        Condition expression = getCondition(filter.expression());
+        return not(expression);
     }
 }

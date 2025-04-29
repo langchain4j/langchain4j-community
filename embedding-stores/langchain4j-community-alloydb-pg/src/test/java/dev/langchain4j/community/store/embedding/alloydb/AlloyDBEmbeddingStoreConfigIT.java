@@ -1,7 +1,7 @@
 package dev.langchain4j.community.store.embedding.alloydb;
 
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
-import static dev.langchain4j.community.store.embedding.alloydb.utils.AlloyDBTestUtils.randomPGvector;
+import static dev.langchain4j.community.store.embedding.alloydb.AlloyDBTestUtils.randomPGvector;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,7 +39,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class AlloyDBEmbeddingStoreConfigIT {
+class AlloyDBEmbeddingStoreConfigIT {
 
     @Container
     static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
@@ -54,7 +54,7 @@ public class AlloyDBEmbeddingStoreConfigIT {
     private static Connection defaultConnection;
 
     @BeforeAll
-    public static void beforeAll() throws SQLException {
+    static void beforeAll() throws SQLException {
         engine = new AlloyDBEngine.Builder()
                 .host(pgVector.getHost())
                 .port(pgVector.getFirstMappedPort())
@@ -92,12 +92,12 @@ public class AlloyDBEmbeddingStoreConfigIT {
     }
 
     @AfterEach
-    public void afterEach() throws SQLException {
+    void afterEach() throws SQLException {
         defaultConnection.createStatement().executeUpdate(String.format("TRUNCATE TABLE \"%s\"", TABLE_NAME));
     }
 
     @AfterAll
-    public static void afterAll() throws SQLException {
+    static void afterAll() throws SQLException {
         defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
         defaultConnection.close();
     }

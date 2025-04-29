@@ -4,7 +4,6 @@ import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import dev.langchain4j.community.store.embedding.alloydb.utils.AlloyDBTestUtils;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -22,7 +21,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class AlloyDBEngineIT {
+class AlloyDBEngineIT {
 
     @Container
     static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
@@ -43,7 +42,7 @@ public class AlloyDBEngineIT {
     private static Connection defaultConnection;
 
     @BeforeAll
-    public static void beforeAll() throws SQLException {
+    static void beforeAll() throws SQLException {
         if (engine == null) {
             engine = new AlloyDBEngine.Builder()
                     .host(pgVector.getHost())
@@ -63,7 +62,7 @@ public class AlloyDBEngineIT {
     }
 
     @AfterEach
-    public void afterEach() throws SQLException {
+    void afterEach() throws SQLException {
         defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
         defaultConnection
                 .createStatement()
@@ -77,7 +76,7 @@ public class AlloyDBEngineIT {
     }
 
     @AfterAll
-    public static void afterAll() throws SQLException {
+    static void afterAll() throws SQLException {
         engine.close();
     }
 
@@ -88,10 +87,10 @@ public class AlloyDBEngineIT {
 
         Set<String> expectedNames = new HashSet<>();
 
-        expectedNames.add("langchain_id");
+        expectedNames.add("langchain4j_id");
         expectedNames.add("content");
         expectedNames.add("embedding");
-        expectedNames.add("langchain_metadata");
+        expectedNames.add("langchain4j_metadata");
 
         AlloyDBTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedNames);
     }
@@ -108,10 +107,10 @@ public class AlloyDBEngineIT {
         engine.initVectorStoreTable(overwritten);
 
         Set<String> expectedColumns = new HashSet<>();
-        expectedColumns.add("langchain_id");
+        expectedColumns.add("langchain4j_id");
         expectedColumns.add("overwritten");
         expectedColumns.add("embedding");
-        expectedColumns.add("langchain_metadata");
+        expectedColumns.add("langchain4j_metadata");
 
         AlloyDBTestUtils.verifyColumns(defaultConnection, "public", TABLE_NAME, expectedColumns);
     }

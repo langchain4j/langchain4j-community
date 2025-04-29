@@ -15,6 +15,10 @@ import dev.langchain4j.rag.query.Query;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.neo4j.cypherdsl.core.renderer.Configuration;
+import org.neo4j.cypherdsl.core.renderer.Dialect;
+import org.neo4j.cypherdsl.core.renderer.Renderer;
+import org.neo4j.cypherdsl.parser.CypherParser;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.types.Type;
 import org.neo4j.driver.types.TypeSystem;
@@ -49,19 +53,25 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     private final PromptTemplate promptTemplate;
     private final int maxRetries;
     private final List<String> examples;
+    private final List<String> relationships;
+    private final String dialect;
 
     public Neo4jText2CypherRetriever(
             Neo4jGraph graph,
             ChatModel chatModel,
             PromptTemplate promptTemplate,
             List<String> examples,
-            int maxRetries) {
+            int maxRetries,
+            List<String> relationships,
+            String dialect) {
 
         this.graph = ensureNotNull(graph, "graph");
         this.chatModel = ensureNotNull(chatModel, "chatModel");
         this.promptTemplate = getOrDefault(promptTemplate, DEFAULT_PROMPT_TEMPLATE);
         this.examples = getOrDefault(examples, List.of());
         this.maxRetries = maxRetries;
+        this.relationships = getOrDefault(relationships, List.of());
+        this.dialect = getOrDefault(dialect, Dialect.NEO4J_5_26.name());
     }
 
     public static Builder builder() {
@@ -91,16 +101,16 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
         String examplesString = "";
         if (!this.examples.isEmpty()) {
-            final String exampleJoin = String.join("\n", this.examples);
+            String exampleJoin = String.join("\n", this.examples);
             examplesString = String.format("Cypher examples: \n%s\n", exampleJoin);
         }
-        final Map<String, Object> templateVariables =
+        Map<String, Object> templateVariables =
                 Map.of("schema", schema, "question", question, "examples", examplesString);
-        final String cypherPrompt = promptTemplate.apply(templateVariables).text();
+        String cypherPrompt = promptTemplate.apply(templateVariables).text();
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(UserMessage.from(cypherPrompt));
 
-        final String emptyResultMsg =
+        String emptyResultMsg =
                 "The query result is empty. If `maxRetries` number is not reached, the query will be re-generated";
         try {
             return withRetry(
@@ -111,28 +121,28 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                         try {
                             response = executeQuery(cypherQuery);
                         } catch (Exception e) {
-                            final String errorUserMsg = String.format(
+                            String errorUserMsg = String.format(
                                     """
-                            The previous Cypher Statement throws the following error, consider it to return the correct statement: `%s`.
-                            Please, try to return a valid query.
+                                            The previous Cypher Statement throws the following error, consider it to return the correct statement: `%s`.
+                                            Please, try to return a valid query.
 
-                            Cypher query:
-                            """,
+                                            Cypher query:
+                                            """,
                                     e.getMessage());
                             messages.add(UserMessage.from(errorUserMsg));
                             throw e;
                         }
 
-                        final List<Content> list =
+                        List<Content> list =
                                 response.stream().map(Content::from).toList();
                         if (list.isEmpty()) {
-                            final String errorUserMsg =
+                            String errorUserMsg =
                                     """
-                            The previous Cypher Statement returns no result, consider it to return the correct statement.
-                            Please, try to return a valid query.
+                                            The previous Cypher Statement returns no result, consider it to return the correct statement.
+                                            Please, try to return a valid query.
 
-                            Cypher query:
-                            """;
+                                            Cypher query:
+                                            """;
                             messages.add(UserMessage.from(errorUserMsg));
                             throw new RuntimeException(emptyResultMsg);
                         }
@@ -147,9 +157,35 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
     }
 
+    /**
+     * To fixed e.g. wrong relationship directions
+     *
+     * @param cypher the starting Cypher statement
+     * @return the fixed Cypher
+     */
+    private String getFixedCypherWithDSL(String cypher) {
+        if (relationships.isEmpty()) {
+            return cypher;
+        }
+        var statement = CypherParser.parse(cypher);
+
+        var configuration = Configuration.newConfig()
+                .withPrettyPrint(false)
+                .alwaysEscapeNames(false)
+                .withEnforceSchema(true)
+                .withDialect(Dialect.valueOf(dialect));
+
+        relationships.stream()
+                .map(Configuration::relationshipDefinition)
+                .forEach(configuration::withRelationshipDefinition);
+
+        return Renderer.getRenderer(configuration.build()).render(statement);
+    }
+
     private String generateCypherQuery(List<ChatMessage> messages) {
 
         String cypherQuery = chatModel.chat(messages).aiMessage().text();
+        cypherQuery = getFixedCypherWithDSL(cypherQuery);
         return getBacktickText(cypherQuery);
     }
 
@@ -159,8 +195,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         return records.stream()
                 .flatMap(r -> r.values().stream())
                 .map(value -> {
-                    final boolean isEntity =
-                            NODE.isTypeOf(value) || RELATIONSHIP.isTypeOf(value) || PATH.isTypeOf(value);
+                    boolean isEntity = NODE.isTypeOf(value) || RELATIONSHIP.isTypeOf(value) || PATH.isTypeOf(value);
                     if (isEntity) {
                         return value.asMap().toString();
                     }
@@ -174,6 +209,8 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         protected Neo4jGraph graph;
         protected ChatModel chatModel;
         protected PromptTemplate promptTemplate;
+        protected List<String> relationships;
+        protected String dialect;
         protected int maxRetries = 3;
         protected List<String> examples;
 
@@ -202,6 +239,28 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         /**
+         * @param relationships the list of relationships, if not null fix (if needed) the generated query via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withRelationshipDefinition(Configuration.RelationshipDefinition)}
+         *                      for example, a List.of( "(Foo, WROTE, Baz)", "(Jack, KNOWS, John)" ),
+         *                      will create configuration.withRelationshipDefinition(new RelationshipDefinition("Foo", "WROTE", "Baz"))
+         *                      .withRelationshipDefinition("Jack", "KNOWS", "John")
+         *                      (default is: empty list)
+         */
+        public Builder relationships(List<String> relationships) {
+            this.relationships = relationships;
+            return this;
+        }
+
+        /**
+         * @param dialect the string value of the {@link org.neo4j.cypherdsl.core.renderer},
+         *                to be used via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withDialect(Dialect)} , if {@param relationships} is not empty
+         *                (default is: "NEO4J_5_23")
+         */
+        public Builder dialect(String dialect) {
+            this.dialect = dialect;
+            return this;
+        }
+
+        /**
          * @param maxRetries The maximum number of attempts to re-run the generated failed queries (default: 3)
          */
         public Builder maxRetries(int maxRetries) {
@@ -218,7 +277,8 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         }
 
         public Neo4jText2CypherRetriever build() {
-            return new Neo4jText2CypherRetriever(graph, chatModel, promptTemplate, examples, maxRetries);
+            return new Neo4jText2CypherRetriever(
+                    graph, chatModel, promptTemplate, examples, maxRetries, relationships, dialect);
         }
     }
 }

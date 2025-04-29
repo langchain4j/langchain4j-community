@@ -45,14 +45,11 @@ class ZhipuAiChatModelIT {
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
 
     ZhipuAiChatModel chatModel = ZhipuAiChatModel.builder()
+            .model(ChatCompletionModel.GLM_4_FLASH)
             .apiKey(apiKey)
             .logRequests(true)
             .logResponses(true)
             .maxRetries(1)
-            .callTimeout(Duration.ofSeconds(60))
-            .connectTimeout(Duration.ofSeconds(60))
-            .writeTimeout(Duration.ofSeconds(60))
-            .readTimeout(Duration.ofSeconds(60))
             .build();
 
     ToolSpecification calculator = ToolSpecification.builder()
@@ -141,7 +138,7 @@ class ZhipuAiChatModelIT {
         // then
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("4");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.totalTokenCount())
@@ -158,7 +155,8 @@ class ZhipuAiChatModelIT {
     @Test
     void should_execute_get_current_time_tool_and_then_answer() {
         // given
-        UserMessage userMessage = userMessage("What's the time now?");
+        UserMessage userMessage =
+                userMessage("What's the time now? Please give the year and the exact time in seconds.");
         List<ToolSpecification> toolSpecifications = singletonList(currentTime);
 
         // when
@@ -192,7 +190,7 @@ class ZhipuAiChatModelIT {
         // then
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).containsAnyOf("12:00:20", "2024");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.totalTokenCount())

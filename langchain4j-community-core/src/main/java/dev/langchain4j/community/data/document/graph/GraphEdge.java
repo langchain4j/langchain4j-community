@@ -1,10 +1,10 @@
 package dev.langchain4j.community.data.document.graph;
 
-import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.langchain4j.Experimental;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -22,10 +22,10 @@ public class GraphEdge {
     private final Map<String, String> properties;
 
     public GraphEdge(GraphNode sourceNode, GraphNode targetNode, String type, Map<String, String> properties) {
-        this.sourceNode = sourceNode;
-        this.targetNode = targetNode;
+        this.sourceNode = ensureNotNull(sourceNode, "sourceNode");
+        this.targetNode = ensureNotNull(targetNode, "targetNode");
         this.type = type;
-        this.properties = copyIfNotNull(properties);
+        this.properties = copy(properties);
     }
 
     @JsonProperty
@@ -54,7 +54,7 @@ public class GraphEdge {
     }
 
     public static GraphEdge from(GraphNode sourceNode, GraphNode targetNode, String type) {
-        return new GraphEdge(sourceNode, targetNode, type, new HashMap<>());
+        return new GraphEdge(sourceNode, targetNode, type, Map.of());
     }
 
     @Override

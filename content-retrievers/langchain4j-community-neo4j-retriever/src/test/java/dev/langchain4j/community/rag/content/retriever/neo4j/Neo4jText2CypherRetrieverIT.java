@@ -15,7 +15,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.neo4j.driver.Session;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-class Neo4jText2CypherRetrieverIT extends Neo4jRetrieverBaseTest {
+class Neo4jText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
 
     private static final ChatModel OPEN_AI_CHAT_MODEL = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
@@ -25,13 +25,6 @@ class Neo4jText2CypherRetrieverIT extends Neo4jRetrieverBaseTest {
             .logRequests(true)
             .logResponses(true)
             .build();
-
-    @Override
-    public void initDb() {
-        try (Session session = driver.session()) {
-            session.run("CREATE (book:Book {title: 'Dune'})<-[:WROTE]-(author:Person {name: 'Frank Herbert'})");
-        }
-    }
 
     @Test
     void shouldRetrieveContentWhenQueryIsValidAndOpenAiChatModelIsUsed() {

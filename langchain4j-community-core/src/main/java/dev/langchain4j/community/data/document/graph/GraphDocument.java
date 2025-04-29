@@ -6,7 +6,6 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.langchain4j.Experimental;
 import dev.langchain4j.data.document.Document;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -48,7 +47,7 @@ public class GraphDocument {
     }
 
     public static GraphDocument from(Document source) {
-        return new GraphDocument(new HashSet<>(), new HashSet<>(), source);
+        return new GraphDocument(Set.of(), Set.of(), source);
     }
 
     @Override

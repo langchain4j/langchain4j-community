@@ -19,10 +19,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.neo4j.driver.Session;
 
 @ExtendWith(MockitoExtension.class)
-class Neo4jText2CypherRetrieverTest extends Neo4jRetrieverBaseTest {
+class Neo4jText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBaseTest {
 
     private Neo4jText2CypherRetriever retriever;
 
@@ -39,13 +38,6 @@ class Neo4jText2CypherRetrieverTest extends Neo4jRetrieverBaseTest {
                 .build();
     }
 
-    @Override
-    public void initDb() {
-        try (Session session = driver.session()) {
-            session.run("CREATE (book:Book {title: 'Dune'})<-[:WROTE]-(author:Person {name: 'Frank Herbert'})");
-        }
-    }
-
     @Test
     void shouldRetrieveContentWhenQueryIsValid() {
         // Given
@@ -59,6 +51,33 @@ class Neo4jText2CypherRetrieverTest extends Neo4jRetrieverBaseTest {
 
         // Then
         assertThat(contents).hasSize(1);
+    }
+
+    @Test
+    void shouldRetrieveContentWhenQueryIsValidWithCypherDSLFixing() {
+        // Given
+        Query query = new Query("Who is the author of the book 'Dune'?");
+        when(chatModel.chat(anyList()))
+                .thenReturn(getChatResponse(
+                        "MATCH(book:Book {title: 'Dune'})-[:WROTE]->(author:Person) RETURN author.name AS output"));
+
+        // When
+        List<Content> contents = retriever.retrieve(query);
+
+        // Then
+        assertThat(contents).hasSize(0);
+
+        retriever = Neo4jText2CypherRetriever.builder()
+                .graph(graph)
+                .chatModel(chatModel)
+                .relationships(List.of("(Person, WROTE, Book)"))
+                .build();
+
+        // When
+        List<Content> contentsWithCypherDSL = retriever.retrieve(query);
+
+        // Then
+        assertThat(contentsWithCypherDSL).hasSize(1);
     }
 
     @Test
