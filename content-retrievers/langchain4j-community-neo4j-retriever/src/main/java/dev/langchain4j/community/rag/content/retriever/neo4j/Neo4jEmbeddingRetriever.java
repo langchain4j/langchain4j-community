@@ -1,5 +1,9 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
@@ -9,7 +13,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -18,32 +22,27 @@ import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.Session;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
 
 public class Neo4jEmbeddingRetriever implements ContentRetriever {
-    public static final String DEFAULT_PROMPT_ANSWER = """
+    public static final String DEFAULT_PROMPT_ANSWER =
+            """
             You are an assistant that helps to form nice and human
             understandable answers based on the provided information from tools.
             Do not add any other information that wasn't present in the tools, and use
             very concise style in interpreting results.
-            
+
             If you don't know the answer, just say that you don't know, don't try to make up an answer.
             """;
     public static final String DEFAULT_PARENT_ID_KEY = "parentId";
     protected final EmbeddingModel embeddingModel;
-    protected final ChatLanguageModel questionModel;
-    protected final ChatLanguageModel answerModel;
+    protected final ChatModel questionModel;
+    protected final ChatModel answerModel;
     protected final String promptSystem;
     protected final String promptUser;
     protected final String promptAnswer;
@@ -57,7 +56,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
 
     /**
      * Creates an instance of Neo4jEmbeddingRetriever
-     * 
+     *
      * @param embeddingModel the embedding model used to embed the query and documents
      * @param driver the Neo4j driver to connect to the database
      * @param maxResults the maximum number of results to return
@@ -70,25 +69,26 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
      * @param promptUser the user prompt template
      * @param answerModel the language model used to generate answers
      * @param promptAnswer the prompt template used to generate the answer (optional)
-     * @param parentIdKey the key used to identify the parent document (optional)                      
+     * @param parentIdKey the key used to identify the parent document (optional)
      */
-    public Neo4jEmbeddingRetriever(EmbeddingModel embeddingModel,
-                                   Driver driver,
-                                   int maxResults,
-                                   double minScore,
-                                   String query,
-                                   Map<String, Object> params,
-                                   Neo4jEmbeddingStore embeddingStore,
-                                   ChatLanguageModel questionModel,
-                                   String promptSystem,
-                                   String promptUser,
-                                   ChatLanguageModel answerModel,
-                                   String promptAnswer,
-                                   String parentIdKey) {
+    public Neo4jEmbeddingRetriever(
+            EmbeddingModel embeddingModel,
+            Driver driver,
+            int maxResults,
+            double minScore,
+            String query,
+            Map<String, Object> params,
+            Neo4jEmbeddingStore embeddingStore,
+            ChatModel questionModel,
+            String promptSystem,
+            String promptUser,
+            ChatModel answerModel,
+            String promptAnswer,
+            String parentIdKey) {
         this.embeddingModel = ensureNotNull(embeddingModel, "embeddingModel");
         final Neo4jEmbeddingStore store = getOrDefault(embeddingStore, getDefaultEmbeddingStore(driver));
         this.embeddingStore = ensureNotNull(store, "embeddingStore");
-        
+
         this.driver = driver;
         this.maxResults = maxResults;
         this.minScore = minScore;
@@ -105,88 +105,87 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
     public static Builder builder() {
         return new Builder();
     }
-    
+
     public Neo4jEmbeddingStore getDefaultEmbeddingStore(Driver driver) {
         return null;
     }
 
-    public void index(Document document,
-                      DocumentSplitter parentSplitter) {
+    public void index(Document document, DocumentSplitter parentSplitter) {
         index(document, parentSplitter, null);
     }
 
     /**
-     * 
+     *
      * @param document the document to be split
      * @param parentSplitter main splitter
      * @param childSplitter sub-splitter to be used with ParentChildRetriever or with a custom retriever
      */
-    public void index(Document document,
-                      DocumentSplitter parentSplitter,
-                      DocumentSplitter childSplitter) {
+    public void index(Document document, DocumentSplitter parentSplitter, DocumentSplitter childSplitter) {
 
         List<TextSegment> parentSegments = parentSplitter.split(document);
 
-            for (int i = 0; i < parentSegments.size(); i++) {
+        for (int i = 0; i < parentSegments.size(); i++) {
 
-                TextSegment parentSegment = parentSegments.get(i);
-                String parentId = "parent_" + i;
-                parentSegment = getTextSegmentWithUniqueId(parentSegment, embeddingStore.getIdProperty(), null);
+            TextSegment parentSegment = parentSegments.get(i);
+            String parentId = "parent_" + i;
+            parentSegment = getTextSegmentWithUniqueId(parentSegment, embeddingStore.getIdProperty(), null);
 
-                // Store parent node
-                final Metadata metadata = document.metadata();
-                
-                if (this.query != null) {
-                    final Map<String, Object> metadataMap = metadata.toMap();
-                    metadataMap.put(parentIdKey, parentId);
-                    
-                    String textInput =  parentSegment.text();
-                    String text;
+            // Store parent node
+            final Metadata metadata = document.metadata();
 
-                    if (this.questionModel != null) {
-                        if (promptSystem == null || promptUser == null) {
-                            throw new RuntimeException("");
-                        }
-                        final SystemMessage systemMessage = Prompt.from(promptSystem).toSystemMessage();
+            if (this.query != null) {
+                final Map<String, Object> metadataMap = metadata.toMap();
+                metadataMap.put(parentIdKey, parentId);
 
-                        final PromptTemplate userTemplate = PromptTemplate.from(promptUser);
+                String textInput = parentSegment.text();
+                String text;
 
-                        final UserMessage userMessage = userTemplate.apply(Map.of("input", textInput)).toUserMessage();
-
-                        final List<ChatMessage> chatMessages = List.of(systemMessage, userMessage);
-
-                        text = this.questionModel.chat(chatMessages).aiMessage().text();
-                    } else {
-                        text = textInput;
+                if (this.questionModel != null) {
+                    if (promptSystem == null || promptUser == null) {
+                        throw new RuntimeException("");
                     }
-                    metadataMap.putIfAbsent("text", text);
-                    metadataMap.putIfAbsent("title", "Untitled");
-                    final Map<String, Object> params = Map.of("metadata", metadataMap);
-                    metadataMap.putAll(this.params);
-                    try (Session session = driver.session()) {
-                        session.run(this.query, params);
-                    }
+                    final SystemMessage systemMessage =
+                            Prompt.from(promptSystem).toSystemMessage();
+
+                    final PromptTemplate userTemplate = PromptTemplate.from(promptUser);
+
+                    final UserMessage userMessage =
+                            userTemplate.apply(Map.of("input", textInput)).toUserMessage();
+
+                    final List<ChatMessage> chatMessages = List.of(systemMessage, userMessage);
+
+                    text = this.questionModel.chat(chatMessages).aiMessage().text();
+                } else {
+                    text = textInput;
                 }
-
-                // Convert back to Document to apply DocumentSplitter
-                Document parentDoc = Document.from(parentSegment.text(), metadata);
-
-                if (childSplitter == null) {
-                    final Embedding content = embeddingModel.embed(parentSegment).content();
-                    getAdditionalParams(parentId);
-                    embeddingStore.add(content, parentSegment);
-                    continue;
+                metadataMap.putIfAbsent("text", text);
+                metadataMap.putIfAbsent("title", "Untitled");
+                final Map<String, Object> params = Map.of("metadata", metadataMap);
+                metadataMap.putAll(this.params);
+                try (Session session = driver.session()) {
+                    session.run(this.query, params);
                 }
+            }
 
-                final String idProperty = embeddingStore.getIdProperty();
-                List<TextSegment> childSegments = childSplitter.split(parentDoc)
-                        .stream()
-                        .map(segment -> getTextSegmentWithUniqueId(segment, idProperty, parentId))
-                        .toList();
+            // Convert back to Document to apply DocumentSplitter
+            Document parentDoc = Document.from(parentSegment.text(), metadata);
 
-                final List<Embedding> embeddings = embeddingModel.embedAll(childSegments).content();
+            if (childSplitter == null) {
+                final Embedding content = embeddingModel.embed(parentSegment).content();
                 getAdditionalParams(parentId);
-                embeddingStore.addAll(embeddings, childSegments);
+                embeddingStore.add(content, parentSegment);
+                continue;
+            }
+
+            final String idProperty = embeddingStore.getIdProperty();
+            List<TextSegment> childSegments = childSplitter.split(parentDoc).stream()
+                    .map(segment -> getTextSegmentWithUniqueId(segment, idProperty, parentId))
+                    .toList();
+
+            final List<Embedding> embeddings =
+                    embeddingModel.embedAll(childSegments).content();
+            getAdditionalParams(parentId);
+            embeddingStore.addAll(embeddings, childSegments);
         }
     }
 
@@ -195,7 +194,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         params.put(parentIdKey, parentId);
         embeddingStore.setAdditionalParams(params);
     }
-    
+
     /**
      * If `id` metadata is present, we create a new univocal one to prevent this error:
      * org.neo4j.driver.exceptions.ClientException: Node(1) already exists with label `Child` and property `id` = 'doc-ai'
@@ -203,9 +202,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
     public static TextSegment getTextSegmentWithUniqueId(TextSegment segment, String idProperty, String parentId) {
         final Metadata metadata1 = segment.metadata();
         final Object idMeta = metadata1.toMap().get(idProperty);
-        String value = parentId == null 
-                ? randomUUID() 
-                : parentId + "_" + randomUUID();
+        String value = parentId == null ? randomUUID() : parentId + "_" + randomUUID();
         if (idMeta != null) {
             value = idMeta + "_" + value;
         }
@@ -213,19 +210,19 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
 
         return segment;
     }
-    
+
     @Override
     public List<Content> retrieve(final Query query) {
 
         final String question = query.text();
         Embedding queryEmbedding = embeddingModel.embed(question).content();
-        
+
         final EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
                 .queryEmbedding(queryEmbedding)
                 .maxResults(maxResults)
                 .minScore(minScore)
                 .build();
-        
+
         if (answerModel == null) {
             final Function<EmbeddingMatch<TextSegment>, Content> embeddingMapFunction = i -> {
                 final TextSegment embedded = i.embedded();
@@ -234,10 +231,12 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
 
             return getList(request, embeddingMapFunction);
         } else {
-            final Function<EmbeddingMatch<TextSegment>, String> embeddingMapFunction = i -> i.embedded().text();
+            final Function<EmbeddingMatch<TextSegment>, String> embeddingMapFunction =
+                    i -> i.embedded().text();
             final List<String> context = getList(request, embeddingMapFunction);
 
-            final String prompt = promptAnswer + """
+            final String prompt = promptAnswer
+                    + """
                     Answer the question based only on the context provided.
 
                     Context: {{context}}
@@ -246,17 +245,17 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
 
                     Answer:
                     """;
-            final String text = PromptTemplate.from(prompt).apply(Map.of("question", question, "context", context))
+            final String text = PromptTemplate.from(prompt)
+                    .apply(Map.of("question", question, "context", context))
                     .text();
             final String chat = answerModel.chat(text);
             return List.of(Content.from(chat));
         }
     }
 
-    private <T> List<T> getList(EmbeddingSearchRequest request, Function<EmbeddingMatch<TextSegment>, T> embeddingMapFunction) {
-        return embeddingStore.search(request)
-                .matches()
-                .stream()
+    private <T> List<T> getList(
+            EmbeddingSearchRequest request, Function<EmbeddingMatch<TextSegment>, T> embeddingMapFunction) {
+        return embeddingStore.search(request).matches().stream()
                 .map(embeddingMapFunction)
                 .toList();
     }
@@ -269,10 +268,10 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         protected String query;
         protected Map<String, Object> params = new HashMap<>();
         protected Neo4jEmbeddingStore embeddingStore;
-        protected ChatLanguageModel questionModel;
+        protected ChatModel questionModel;
         protected String promptSystem;
         protected String promptUser;
-        protected ChatLanguageModel chatAnswerModel;
+        protected ChatModel chatAnswerModel;
         protected String promptAnswer;
         protected String parentIdKey;
 
@@ -335,7 +334,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         /**
          * @param questionModel the language model used for the question prompt
          */
-        public T questionModel(ChatLanguageModel questionModel) {
+        public T questionModel(ChatModel questionModel) {
             this.questionModel = questionModel;
             return self();
         }
@@ -359,7 +358,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         /**
          * @param answerModel the language model used to generate answers
          */
-        public T answerModel(ChatLanguageModel answerModel) {
+        public T answerModel(ChatModel answerModel) {
             this.chatAnswerModel = answerModel;
             return self();
         }
@@ -398,10 +397,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
                     promptUser,
                     chatAnswerModel,
                     promptAnswer,
-                    parentIdKey
-            );
+                    parentIdKey);
         }
     }
-
-
 }

@@ -201,7 +201,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.autoCreateFullText = autoCreateFullText;
         this.fullTextIndexName = getOrDefault(fullTextIndexName, DEFAULT_FULLTEXT_IDX_NAME);
         this.fullTextQuery = fullTextQuery;
-        
+
         this.entityCreationQuery = getOrDefault(entityCreationQuery, ENTITIES_CREATION);
 
         this.fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
@@ -262,7 +262,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void setAdditionalParams(final Map<String, Object> additionalParams) {
         this.additionalParams = additionalParams;
     }
-    
+
     /*
     Methods with `@Override`
     */
@@ -458,7 +458,11 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         try (var session = session()) {
             rowsBatched.forEach(rows -> {
                 String statement = String.format(
-                        this.entityCreationQuery, this.sanitizedLabel, this.sanitizedIdProperty, PROPS, EMBEDDINGS_ROW_KEY);
+                        this.entityCreationQuery,
+                        this.sanitizedLabel,
+                        this.sanitizedIdProperty,
+                        PROPS,
+                        EMBEDDINGS_ROW_KEY);
 
                 Map<String, Object> params = new HashMap<>();
                 params.put("rows", rows);
@@ -659,7 +663,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
-         *                       
+         *
          */
         public Builder entityCreationQuery(String entityCreationQuery) {
             this.entityCreationQuery = entityCreationQuery;
