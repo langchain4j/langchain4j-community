@@ -1,7 +1,6 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import dev.langchain4j.Internal;
-
 import java.util.List;
 import java.util.Map;
 import org.neo4j.driver.Record;
@@ -27,10 +26,10 @@ class Neo4jGraphSchemaUtils {
 
     static String getSchemaFromMetadata(Neo4jGraph graph, Long sample, Long maxRels) {
         final Record record = graph.executeRead(SCHEMA_FROM_META_DATA, Map.of("sample", sample, "maxRels", maxRels))
-                .get(0);        
-        final List<String> nodes = record.get("nodes").asList(Value::asString);
-        final List<String> relationships = record.get("relationships").asList(Value::asString);
-        final List<String> patterns = record.get("patterns").asList(Value::asString);
+                .get(0);
+        final List<String> nodes = record.get("nodes").asList(Value::asString, List.of());
+        final List<String> relationships = record.get("relationships").asList(Value::asString, List.of());
+        final List<String> patterns = record.get("patterns").asList(Value::asString, List.of());
 
         final Neo4jGraph.GraphSchema structuredSchema = new Neo4jGraph.GraphSchema(nodes, relationships, patterns);
         graph.setStructuredSchema(structuredSchema);
@@ -38,7 +37,7 @@ class Neo4jGraphSchemaUtils {
         final String nodesString = String.join(", ", nodes);
         final String relationshipsString = String.join(", ", relationships);
         final String patternsString = String.join(", ", patterns);
-        
+
         final String schema = "Node properties are the following:\n" + nodesString
                 + "\n\n" + "Relationship properties are the following:\n"
                 + relationshipsString
