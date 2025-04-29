@@ -29,7 +29,7 @@ import com.alibaba.dashscope.protocol.Protocol;
 import dev.langchain4j.community.model.dashscope.spi.QwenStreamingChatModelBuilderFactory;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -43,14 +43,13 @@ import java.util.function.Consumer;
  * Represents a Qwen language model with a chat completion interface.
  * The model's response is streamed token by token and should be handled with {@link StreamingResponseHandler}.
  * <br>
- * More details are available <a href="https://help.aliyun.com/zh/dashscope/developer-reference/api-details">here</a>
+ * More details are available <a href="https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api">here</a>
  */
-public class QwenStreamingChatModel implements StreamingChatLanguageModel {
+public class QwenStreamingChatModel implements StreamingChatModel {
     private final QwenChatRequestParameters defaultRequestParameters;
     private final String apiKey;
     private final Generation generation;
     private final MultiModalConversation conv;
-    private final boolean isMultimodalModel;
     private final List<ChatModelListener> listeners;
     private Consumer<GenerationParam.GenerationParamBuilder<?, ?>> generationParamCustomizer = p -> {};
     private Consumer<MultiModalConversationParam.MultiModalConversationParamBuilder<?, ?>>
@@ -69,10 +68,11 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
             List<String> stops,
             Integer maxTokens,
             List<ChatModelListener> listeners,
-            ChatRequestParameters defaultRequestParameters) {
+            ChatRequestParameters defaultRequestParameters,
+            Boolean isMultimodalModel) {
         if (Utils.isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
-                    "DashScope api key must be defined. It can be generated here: https://dashscope.console.aliyun.com/apiKey");
+                    "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
 
         ChatRequestParameters commonParameters;
@@ -95,7 +95,6 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
 
         this.apiKey = apiKey;
         this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
-        this.isMultimodalModel = isMultimodalModel(modelNameParameter);
         this.defaultRequestParameters = QwenChatRequestParameters.builder()
                 // common parameters
                 .modelName(modelNameParameter)
@@ -115,24 +114,25 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
                 .searchOptions(qwenParameters.searchOptions())
                 .translationOptions(qwenParameters.translationOptions())
                 .vlHighResolutionImages(qwenParameters.vlHighResolutionImages())
+                .isMultimodalModel(getOrDefault(isMultimodalModel, qwenParameters.isMultimodalModel()))
+                .supportIncrementalOutput(qwenParameters.supportIncrementalOutput())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 
         if (isNullOrBlank(baseUrl)) {
-            this.conv = isMultimodalModel ? new MultiModalConversation() : null;
-            this.generation = isMultimodalModel ? null : new Generation();
+            this.conv = new MultiModalConversation();
+            this.generation = new Generation();
         } else if (baseUrl.startsWith("wss://")) {
-            this.conv = isMultimodalModel ? new MultiModalConversation(Protocol.WEBSOCKET.getValue(), baseUrl) : null;
-            this.generation = isMultimodalModel ? null : new Generation(Protocol.WEBSOCKET.getValue(), baseUrl);
+            this.conv = new MultiModalConversation(Protocol.WEBSOCKET.getValue(), baseUrl);
+            this.generation = new Generation(Protocol.WEBSOCKET.getValue(), baseUrl);
         } else {
-            this.conv = isMultimodalModel ? new MultiModalConversation(Protocol.HTTP.getValue(), baseUrl) : null;
-            this.generation = isMultimodalModel ? null : new Generation(Protocol.HTTP.getValue(), baseUrl);
+            this.conv = new MultiModalConversation(Protocol.HTTP.getValue(), baseUrl);
+            this.generation = new Generation(Protocol.HTTP.getValue(), baseUrl);
         }
     }
 
     private void generateByNonMultimodalModel(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        boolean incrementalOutput =
-                supportIncrementalOutput(chatRequest.parameters().modelName());
+        boolean incrementalOutput = supportIncrementalOutput(chatRequest);
         GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, incrementalOutput);
         QwenStreamingResponseBuilder responseBuilder =
                 new QwenStreamingResponseBuilder(param.getModel(), incrementalOutput);
@@ -162,8 +162,7 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
     }
 
     private void generateByMultimodalModel(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        boolean incrementalOutput =
-                supportIncrementalOutput(chatRequest.parameters().modelName());
+        boolean incrementalOutput = supportIncrementalOutput(chatRequest);
         MultiModalConversationParam param = toMultiModalConversationParam(
                 apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
         QwenStreamingResponseBuilder responseBuilder =
@@ -197,7 +196,7 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
 
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        if (isMultimodalModel) {
+        if (isMultimodalModel(chatRequest)) {
             generateByMultimodalModel(chatRequest, handler);
         } else {
             generateByNonMultimodalModel(chatRequest, handler);
@@ -247,6 +246,7 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
         private Integer maxTokens;
         private List<ChatModelListener> listeners;
         private ChatRequestParameters defaultRequestParameters;
+        private Boolean isMultimodalModel;
 
         public QwenStreamingChatModelBuilder() {
             // This is public so it can be extended
@@ -318,6 +318,11 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
             return this;
         }
 
+        public QwenStreamingChatModelBuilder isMultimodalModel(Boolean isMultimodalModel) {
+            this.isMultimodalModel = isMultimodalModel;
+            return this;
+        }
+
         public QwenStreamingChatModel build() {
             return new QwenStreamingChatModel(
                     baseUrl,
@@ -332,7 +337,8 @@ public class QwenStreamingChatModel implements StreamingChatLanguageModel {
                     stops,
                     maxTokens,
                     listeners,
-                    defaultRequestParameters);
+                    defaultRequestParameters,
+                    isMultimodalModel);
         }
 
         @Override

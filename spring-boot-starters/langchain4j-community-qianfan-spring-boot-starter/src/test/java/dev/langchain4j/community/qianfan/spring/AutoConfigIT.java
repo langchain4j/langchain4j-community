@@ -9,8 +9,8 @@ import dev.langchain4j.community.model.qianfan.QianfanLanguageModel;
 import dev.langchain4j.community.model.qianfan.QianfanStreamingChatModel;
 import dev.langchain4j.community.model.qianfan.QianfanStreamingLanguageModel;
 import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -46,12 +46,12 @@ class AutoConfigIT {
                         "langchain4j.community.qianfan.chat-model.secret-key=" + SECRET_KEY,
                         "langchain4j.community.qianfan.chat-model.model-name=ERNIE-Bot")
                 .run(context -> {
-                    ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
-                    assertThat(chatLanguageModel).isInstanceOf(QianfanChatModel.class);
-                    assertThat(chatLanguageModel.chat("What is the capital of Germany?"))
+                    ChatModel chatModel = context.getBean(ChatModel.class);
+                    assertThat(chatModel).isInstanceOf(QianfanChatModel.class);
+                    assertThat(chatModel.chat("What is the capital of Germany?"))
                             .contains("Berlin");
 
-                    assertThat(context.getBean(QianfanChatModel.class)).isSameAs(chatLanguageModel);
+                    assertThat(context.getBean(QianfanChatModel.class)).isSameAs(chatModel);
                 });
     }
 
@@ -63,11 +63,10 @@ class AutoConfigIT {
                         "langchain4j.community.qianfan.streamingChatModel.secret-key=" + SECRET_KEY,
                         "langchain4j.community.qianfan.streamingChatModel.model-name=ERNIE-Bot")
                 .run(context -> {
-                    StreamingChatLanguageModel streamingChatLanguageModel =
-                            context.getBean(StreamingChatLanguageModel.class);
-                    assertThat(streamingChatLanguageModel).isInstanceOf(QianfanStreamingChatModel.class);
+                    StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
+                    assertThat(streamingChatModel).isInstanceOf(QianfanStreamingChatModel.class);
                     CompletableFuture<ChatResponse> future = new CompletableFuture<>();
-                    streamingChatLanguageModel.chat("德国的首都是哪里?", new StreamingChatResponseHandler() {
+                    streamingChatModel.chat("德国的首都是哪里?", new StreamingChatResponseHandler() {
 
                         @Override
                         public void onPartialResponse(String token) {}
@@ -83,7 +82,7 @@ class AutoConfigIT {
                     ChatResponse response = future.get(60, SECONDS);
                     assertThat(response.aiMessage().text()).isNotNull();
 
-                    assertThat(context.getBean(QianfanStreamingChatModel.class)).isSameAs(streamingChatLanguageModel);
+                    assertThat(context.getBean(QianfanStreamingChatModel.class)).isSameAs(streamingChatModel);
                 });
     }
 

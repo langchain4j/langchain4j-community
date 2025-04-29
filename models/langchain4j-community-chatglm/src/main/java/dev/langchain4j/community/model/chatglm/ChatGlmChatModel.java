@@ -12,7 +12,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import java.time.Duration;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * Support <a href="https://github.com/THUDM/ChatGLM-6B">ChatGLM</a>,
  * ChatGLM2 and ChatGLM3 api are compatible with OpenAI API
  */
-public class ChatGlmChatModel implements ChatLanguageModel {
+public class ChatGlmChatModel implements ChatModel {
 
     private final ChatGlmClient client;
     private final Double temperature;

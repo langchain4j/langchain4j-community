@@ -9,7 +9,7 @@ import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.community.model.dashscope.QwenLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
-import dev.langchain4j.community.model.dashscope.QwenTokenizer;
+import dev.langchain4j.community.model.dashscope.QwenTokenCountEstimator;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import java.util.Collections;
@@ -115,6 +115,8 @@ public class AutoConfig {
                 .searchOptions(getSearchOption(parameters))
                 .translationOptions(getTranslationOptions(parameters))
                 .vlHighResolutionImages(parameters.getVlHighResolutionImages())
+                .isMultimodalModel(parameters.getIsMultimodalModel())
+                .supportIncrementalOutput(parameters.getSupportIncrementalOutput())
                 .build();
     }
 
@@ -136,6 +138,7 @@ public class AutoConfig {
                 .stops(chatModelProperties.getStops())
                 .maxTokens(chatModelProperties.getMaxTokens())
                 .defaultRequestParameters(getParameters(chatModelProperties))
+                .isMultimodalModel(chatModelProperties.getIsMultimodalModel())
                 .build();
     }
 
@@ -157,6 +160,7 @@ public class AutoConfig {
                 .stops(chatModelProperties.getStops())
                 .maxTokens(chatModelProperties.getMaxTokens())
                 .defaultRequestParameters(getParameters(chatModelProperties))
+                .isMultimodalModel(chatModelProperties.getIsMultimodalModel())
                 .build();
     }
 
@@ -208,14 +212,15 @@ public class AutoConfig {
                 .baseUrl(embeddingModelProperties.getBaseUrl())
                 .apiKey(embeddingModelProperties.getApiKey())
                 .modelName(embeddingModelProperties.getModelName())
+                .dimension(embeddingModelProperties.getDimension())
                 .build();
     }
 
     @Bean
     @ConditionalOnProperty(Properties.PREFIX + ".tokenizer.api-key")
-    QwenTokenizer qwenTokenizer(Properties properties) {
+    QwenTokenCountEstimator qwenTokenizer(Properties properties) {
         TokenizerProperties tokenizerProperties = properties.getTokenizer();
-        return QwenTokenizer.builder()
+        return QwenTokenCountEstimator.builder()
                 .apiKey(tokenizerProperties.getApiKey())
                 .modelName(tokenizerProperties.getModelName())
                 .build();

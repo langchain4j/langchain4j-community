@@ -1,7 +1,7 @@
 # Google AlloyDB for PostgreSQL
 
 The **AlloyDB for PostgreSQL for LangChain4J** package provides a first class experience for connecting to
-AlloyDB instances from the LangChain ecosystem while providing the following benefits:
+AlloyDB instances from the LangChain4j ecosystem while providing the following benefits:
 
 - **Simplified & Secure Connections**: easily and securely create shared connection pools to connect to Google Cloud databases utilizing IAM for authorization and database authentication without needing to manage SSL certificates, configure firewall rules, or enable authorized networks.
 - **Improved performance & Simplified management**: use a single-table schema can lead to faster query execution, especially for large collections.
@@ -28,7 +28,7 @@ steps:
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artificatId>langchain4j-community-alloydb-pg</artificatId>
-    <version>1.0.0-beta3</version>
+    <version>1.0.0-beta4-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -61,15 +61,15 @@ Connect to an AlloyDB Omni instance by specifying the host:
  - password
 
 ```java
-import dev.langchain4j.engine.AlloyDBEngine;
+import dev.langchain4j.community.store.embedding.alloydb.AlloyDBEngine;
 
-    AlloyDBEngine engine = new AlloyDBEngine.Builder()
-                .projectId("my-projectId")
-                .region("my-region")
-                .cluster("my-cluster")
-                .instance("my-instance")
-                .database("my-database")
-                .build();
+AlloyDBEngine engine = new AlloyDBEngine.Builder()
+        .projectId("my-projectId")
+        .region("my-region")
+        .cluster("my-cluster")
+        .instance("my-instance")
+        .database("my-database")
+        .build();
 
 ```
 
@@ -81,17 +81,18 @@ import dev.langchain4j.engine.AlloyDBEngine;
 - schema name (optional, default: "public")
 - content column name (optional, default: "content")
 - embedding column name(optional, default:"embedding")
-- id column name (optional, default:"langchain_id")
+- id column name (optional, default:"langchain4j_id")
 - metadata columns (optional)
-- additional metadata Json Column name (optional, default: "langchain_metadata")
+- additional metadata Json Column name (optional, default: "langchain4j_metadata")
 - overwrite existing enabled(optional, default: false)
 - store metadata enabled (optional, default: false)
 
 example usage:
+
 ```java
 ...
-import dev.langchain4j.engine.EmbeddingStoreConfig;
-import dev.langchain4j.engine.MetadataColumn;
+import dev.langchain4j.community.store.embedding.alloydb.EmbeddingStoreConfig;
+import dev.langchain4j.community.store.embedding.alloydb.MetadataColumn;
 ...
         List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
@@ -114,25 +115,26 @@ Use a vector store to store text embedded data and perform vector search, instan
 - schema name (optional, default: "public")
 - content column (optional, default: "content")
 - embedding column (optional, default: "embedding")
-- id column (optional, default: "langchain_id")
+- id column (optional, default: "langchain4j_id")
 - metadata column names (optional)
-- additional metadata json column (optional, default: "langchain_metadata")
+- additional metadata json column (optional, default: "langchain4j_metadata")
 - ignored metadata column names (optional)
 - distance strategy (optional, default:DistanceStrategy.COSINE_DISTANCE)
 - query options (optional).
 
 example usage:
+
 ```java
 ...
-    import dev.langchain4j.store.embedding.alloydb.AlloyDBEmbeddingStore;
+import dev.langchain4j.community.store.embedding.alloydb.AlloyDBEmbeddingStore;
 ...
 
-    AlloyDBEmbeddingStore store = new AlloyDBEmbeddingStore.Builder(engine, TABLE_NAME)
+AlloyDBEmbeddingStore store = new AlloyDBEmbeddingStore.Builder(engine, TABLE_NAME)
         .build();
 
-    List<String> testTexts = Arrays.asList("cat", "dog", "car", "truck");
-    List<Embedding> embeddings = new ArrayList<>();
-    List<TextSegment> textSegments = new ArrayList<>();
+List<String> testTexts = Arrays.asList("cat", "dog", "car", "truck");
+List<Embedding> embeddings = new ArrayList<>();
+List<TextSegment> textSegments = new ArrayList<>();
 
     for (String text : testTexts) {
         Map<String, Object> metaMap = new HashMap<>();
@@ -161,8 +163,7 @@ Use a document loader to load data as LangChain4j `Document`.
 ```java
 
 import dev.langchain4j.data.document.Document;
-import dev.langchain4j.engine.AlloyDBEngine;
-import dev.langchain4j.engine.AlloyDBLoader;
+import dev.langchain4j.community.data.document.loader.alloydb.AlloyDBLoader;
 
 
    AlloyDBLoader loader = AlloyDBLoader.builder()

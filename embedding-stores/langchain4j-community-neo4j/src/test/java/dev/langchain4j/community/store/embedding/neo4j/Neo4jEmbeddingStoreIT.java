@@ -6,6 +6,7 @@ import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtil
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
@@ -67,9 +68,10 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
         Document textDocument = extractor.transform(document);
 
         session.executeWrite(tx -> {
-            final String s = "CREATE FULLTEXT INDEX elizabeth_text IF NOT EXISTS FOR (e:%s) ON EACH [e.%s]"
-                    .formatted(label, DEFAULT_ID_PROP);
-            tx.run(s).consume();
+            final String query = String.format(
+                    "CREATE FULLTEXT INDEX elizabeth_text IF NOT EXISTS FOR (e:%s) ON EACH [e.%s]",
+                    label, DEFAULT_ID_PROP);
+            tx.run(query).consume();
             return null;
         });
 
@@ -138,5 +140,36 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
         // `Elizabethan Religious Settlement`, ...
         assertThat(matchesWithFullText).hasSizeGreaterThanOrEqualTo(1);
         matchesWithFullText.forEach(i -> assertThat(i.embeddingId()).contains("Elizabeth"));
+    }
+
+    @Test
+    void should_throw_error_if_another_index_name_with_different_label_exists() {
+        String metadataPrefix = "metadata.";
+        String idxName = "WillFail";
+
+        embeddingStore = Neo4jEmbeddingStore.builder()
+                .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
+                .dimension(384)
+                .indexName(idxName)
+                .metadataPrefix(metadataPrefix)
+                .awaitIndexTimeout(20)
+                .build();
+
+        String secondLabel = "Second label";
+        try {
+            embeddingStore = Neo4jEmbeddingStore.builder()
+                    .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
+                    .dimension(384)
+                    .label(secondLabel)
+                    .indexName(idxName)
+                    .metadataPrefix(metadataPrefix)
+                    .build();
+            fail("Should fail due to idx conflict");
+        } catch (RuntimeException e) {
+            String errMsg = String.format(
+                    "It's not possible to create an index for the label `%s` and the property `%s`",
+                    secondLabel, DEFAULT_EMBEDDING_PROP);
+            assertThat(e.getMessage()).contains(errMsg);
+        }
     }
 }

@@ -66,6 +66,12 @@ import org.slf4j.LoggerFactory;
  * </p><p>
  * This embedding store requires a {@link ClickHouseSettings} to be configured
  * </p>
+ *
+ * <p>
+ * NOTE: Since clickhouse-server version 25.4.1.2934, the 'vector_similarity' index has some breaking change in parameters.
+ * If you encounter some problem like 'DB::Exception: Vector similarity index must have three or six arguments. (INCORRECT_QUERY)',
+ * please upgrade the version of clickhouse-server to the latest version.
+ * </p>
  */
 public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCloseable {
 
@@ -281,7 +287,7 @@ public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, Au
                         + "%s Array(Float64),"
                         + "%s"
                         + "CONSTRAINT cons_vec_len CHECK length(%s) = %d,"
-                        + "INDEX vec_idx %s TYPE vector_similarity('hnsw', 'cosineDistance') GRANULARITY 1000"
+                        + "INDEX vec_idx %s TYPE vector_similarity('hnsw', 'cosineDistance', %d) GRANULARITY 1000"
                         + ") ENGINE = MergeTree ORDER BY id SETTINGS index_granularity = 8192",
                 settings.getDatabase(),
                 settings.getTable(),
@@ -291,7 +297,8 @@ public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, Au
                 metadataCreateSql,
                 settings.getColumnMapping(EMBEDDING_MAPPING_KEY),
                 settings.getDimension(),
-                settings.getColumnMapping(EMBEDDING_MAPPING_KEY));
+                settings.getColumnMapping(EMBEDDING_MAPPING_KEY),
+                settings.getDimension());
 
         client.execute(createTableSql);
     }

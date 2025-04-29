@@ -18,6 +18,7 @@ public class ChatModelProperties {
     private List<String> stops;
     private Integer maxTokens;
     private Parameters parameters;
+    private Boolean isMultimodalModel;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -115,6 +116,14 @@ public class ChatModelProperties {
         this.parameters = parameters;
     }
 
+    public Boolean getIsMultimodalModel() {
+        return isMultimodalModel;
+    }
+
+    public void setIsMultimodalModel(Boolean isMultimodalModel) {
+        this.isMultimodalModel = isMultimodalModel;
+    }
+
     public static class Parameters {
         private String modelName;
         private Double temperature;
@@ -131,6 +140,8 @@ public class ChatModelProperties {
         private SearchOptions searchOptions;
         private TranslationOptions translationOptions;
         private Boolean vlHighResolutionImages;
+        private Boolean isMultimodalModel;
+        private Boolean supportIncrementalOutput;
 
         public String getModelName() {
             return modelName;
@@ -250,6 +261,22 @@ public class ChatModelProperties {
 
         public void setVlHighResolutionImages(Boolean vlHighResolutionImages) {
             this.vlHighResolutionImages = vlHighResolutionImages;
+        }
+
+        public Boolean getIsMultimodalModel() {
+            return isMultimodalModel;
+        }
+
+        public void setIsMultimodalModel(Boolean isMultimodalModel) {
+            this.isMultimodalModel = isMultimodalModel;
+        }
+
+        public Boolean getSupportIncrementalOutput() {
+            return supportIncrementalOutput;
+        }
+
+        public void setSupportIncrementalOutput(Boolean supportIncrementalOutput) {
+            this.supportIncrementalOutput = supportIncrementalOutput;
         }
     }
 

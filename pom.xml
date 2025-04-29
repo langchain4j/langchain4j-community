@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.0.0-beta3-SNAPSHOT</version>
+        <version>1.0.0-beta4-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -45,6 +45,8 @@
 
     <modules>
 
+        <module>langchain4j-community-core</module>
+
         <!-- LangChain4j Community Bill of Materials POM -->
         <module>langchain4j-community-bom</module>
 
@@ -61,6 +63,7 @@
         <module>embedding-stores/langchain4j-community-redis</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
         <module>embedding-stores/langchain4j-community-alloydb-pg</module>
+        <module>embedding-stores/langchain4j-community-cloud-sql-pg</module>
         <module>embedding-stores/langchain4j-community-neo4j</module>
 
         <!-- Integration of content retrievers -->
@@ -72,6 +75,12 @@
 
         <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
+
+        <!-- Integration of document parsers -->
+        <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
+
+        <!-- Integration of document transformers -->
+        <module>document-transformers/langchain4j-community-llm-graph-transformer</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
@@ -253,9 +262,9 @@
         </plugins>
         <extensions>
             <extension>
-                <groupId>com.vackosar.gitflowincrementalbuilder</groupId>
+                <groupId>io.github.gitflow-incremental-builder</groupId>
                 <artifactId>gitflow-incremental-builder</artifactId>
-                <version>3.15.0</version>
+                <version>4.5.4</version>
             </extension>
         </extensions>
     </build>
@@ -265,7 +274,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.11.2</version>
                 <reportSets>
                     <reportSet>
                         <id>aggregate</id>

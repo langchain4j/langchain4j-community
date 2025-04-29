@@ -15,6 +15,7 @@ import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtil
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.getRowsBatched;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.sanitizeOrThrows;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.toEmbeddingMatch;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jFilterMapper.toCypherLiteral;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
@@ -23,6 +24,15 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 import static java.util.Collections.singletonList;
+import static org.neo4j.cypherdsl.core.Cypher.call;
+import static org.neo4j.cypherdsl.core.Cypher.mapOf;
+import static org.neo4j.cypherdsl.core.Cypher.match;
+import static org.neo4j.cypherdsl.core.Cypher.name;
+import static org.neo4j.cypherdsl.core.Cypher.node;
+import static org.neo4j.cypherdsl.core.Cypher.parameter;
+import static org.neo4j.cypherdsl.core.Cypher.raw;
+import static org.neo4j.cypherdsl.core.Cypher.size;
+import static org.neo4j.cypherdsl.core.Cypher.unwind;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -30,6 +40,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.Filter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,9 +50,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.neo4j.cypherdsl.core.Condition;
+import org.neo4j.cypherdsl.core.Cypher;
+import org.neo4j.cypherdsl.core.Expression;
+import org.neo4j.cypherdsl.core.FunctionInvocation;
+import org.neo4j.cypherdsl.core.Node;
+import org.neo4j.cypherdsl.core.Parameter;
+import org.neo4j.cypherdsl.core.Statement;
+import org.neo4j.cypherdsl.core.SymbolicName;
+import org.neo4j.cypherdsl.core.renderer.Renderer;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.Value;
@@ -264,10 +286,22 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void removeAll() {
-        try (var session = session()) {
-            String statement =
-                    String.format("CALL { MATCH (n:%1$s) DETACH DELETE n } IN TRANSACTIONS", this.sanitizedLabel);
-            session.run(statement);
+        try (Session session = session()) {
+            // Build the MATCH and DETACH DELETE inside the subquery
+            Node node = node(label).named("n");
+
+            Statement innerQuery = match(node).detachDelete(node).build();
+
+            // Wrap it in a subquery with "CALL { ... } IN TRANSACTIONS"
+            Statement finalQuery =
+                    Statement.builder().callInTransactions(innerQuery).build();
+
+            // Render Cypher
+            String cypher = Renderer.getDefaultRenderer().render(finalQuery);
+            System.out.println("cypher = " + cypher);
+
+            // Execute using the Neo4j driver session
+            session.run(cypher);
         }
     }
 
@@ -275,82 +309,226 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(Collection<String> ids) {
         ensureNotEmpty(ids, "ids");
 
-        try (var session = session()) {
-            String statement = String.format(
-                    "CALL { UNWIND $ids AS id MATCH (n:%1$s {%2$s: id}) DETACH DELETE n } IN TRANSACTIONS ",
-                    this.sanitizedLabel, this.sanitizedIdProperty);
-            final Map<String, Object> params = Map.of("ids", ids);
-            session.run(statement, params);
+        try (Session session = session()) {
+            // build an `UNWIND $ids AS id MATCH (n:<label> {<idProperty>: idVar}) DETACH DELETE n`
+            SymbolicName idVar = name("id");
+
+            // MATCH (n:Label {idProp: id})
+            Node node = node(label).named("n");
+            Statement match = unwind(parameter("ids"))
+                    .as(idVar)
+                    .match(node)
+                    .where(node.property(idProperty).isEqualTo(idVar))
+                    .detachDelete(node)
+                    .build();
+
+            Statement full = Statement.builder().callInTransactions(match).build();
+
+            // Render Cypher
+            String cypher = Renderer.getDefaultRenderer().render(full);
+            Map<String, Object> params = Map.of("ids", ids);
+            session.run(cypher, params);
+        }
+    }
+
+    @Override
+    public void removeAll(Filter filter) {
+        ensureNotNull(filter, "filter");
+
+        try (Session session = session()) {
+
+            // Build a "CALL { MATCH (n:<label>) WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
+            // DETACH DELETE n } IN TRANSACTIONS ",
+            Node node = node(label).named("node");
+            Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
+
+            Statement match = match(node)
+                    .where(neo4jFilterMapper.getCondition(filter))
+                    .detachDelete(node)
+                    .build();
+
+            // Wrap all in subquery and use IN TRANSACTIONS
+            Statement full = Statement.builder().callInTransactions(match).build();
+
+            // Render Cypher
+            String cypher = Renderer.getDefaultRenderer().render(full);
+            session.run(cypher);
         }
     }
 
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
 
-        var embeddingValue = Values.value(request.queryEmbedding().vector());
+        Value embeddingValue = Values.value(request.queryEmbedding().vector());
 
-        try (var session = session()) {
-            Map<String, Object> params = new HashMap<>(Map.of(
-                    "indexName",
-                    indexName,
-                    "embeddingValue",
-                    embeddingValue,
-                    "minScore",
-                    request.minScore(),
-                    "maxResults",
-                    request.maxResults()));
-
-            String query =
-                    """
-                            CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue)
-                            YIELD node, score
-                            WHERE score >= $minScore
-                            """
-                            + retrievalQuery;
-
-            if (fullTextQuery != null) {
-
-                query +=
-                        """
-                                \nUNION
-                                CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
-                                YIELD node, score
-                                WHERE score >= $minScore
-                                """
-                                + fullTextRetrievalQuery;
-
-                params.putAll(Map.of(
-                        "fullTextIndexName", fullTextIndexName,
-                        "fullTextQuery", fullTextQuery));
+        try (Session session = session()) {
+            Filter filter = request.filter();
+            if (filter == null) {
+                return getSearchResUsingVectorIndex(request, embeddingValue, session);
             }
-
-            final String finalQuery = query;
-            final Set<String> columns = getColumnNames(session, query);
-            final Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
-
-            if (!allowedColumn.containsAll(columns) || columns.size() > allowedColumn.size()) {
-                throw new RuntimeException(COLUMNS_NOT_ALLOWED_ERR + columns);
-            }
-
-            List<EmbeddingMatch<TextSegment>> matches =
-                    session.executeRead(tx -> tx.run(finalQuery, params).list(item -> toEmbeddingMatch(this, item)));
-
-            return new EmbeddingSearchResult<>(matches);
+            return getSearchResUsingVectorSimilarity(request, filter, embeddingValue, session);
         }
-    }
-
-    private static Set<String> getColumnNames(Session session, String query) {
-        // retrieve column names
-        final List<String> keys = session.run("EXPLAIN " + query).keys();
-        // when there are multiple variables with the same name, e.g. within a "UNION ALL" Neo4j adds a suffix
-        // "@<number>" to distinguish them,
-        //  so to check the correctness of the output parameters we must first remove this suffix from the column names
-        return keys.stream().map(i -> i.replaceFirst("@[0-9]+", "").trim()).collect(Collectors.toSet());
     }
 
     /*
     Private methods
     */
+    private EmbeddingSearchResult getSearchResUsingVectorSimilarity(
+            EmbeddingSearchRequest request, Filter filter, Value embeddingValue, Session session) {
+        /* Build an
+            CYPHER runtime = parallel parallelRuntimeSupport=all
+            MATCH (n:%1$s)
+            WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
+            WITH n, vector.similarity.cosine(n.%2$s, %5$s) AS score
+            WHERE score >= $minScore
+            WITH n AS node, score
+            ORDER BY score DESC
+            LIMIT $maxResults
+        */
+
+        // Match Clause
+        Node node = node(this.label).named("node");
+
+        Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
+
+        // WHERE conditions
+        Condition condition = node.property(this.embeddingProperty)
+                .isNotNull()
+                .and(size(node.property(this.embeddingProperty)).eq(toCypherLiteral(this.dimension)))
+                .and(neo4jFilterMapper.getCondition(filter));
+
+        // Cosine similarity
+        Expression similarity = FunctionInvocation.create(
+                functionDefinition, node.property(this.embeddingProperty), toCypherLiteral(embeddingValue));
+
+        // Filtering by score
+        Condition scoreCondition = similarity.gte(parameter("minScore"));
+
+        // Final query construction
+        Statement statement = match(node)
+                .where(condition)
+                .with(node.as("node"), similarity.as("score"))
+                .where(scoreCondition)
+                .returning(getaReturn(retrievalQuery))
+                .orderBy(name("score"))
+                .descending()
+                .limit(parameter("maxResults"))
+                .build();
+
+        // Render the Cypher query
+        String cypherQuery = Renderer.getDefaultRenderer().render(statement);
+
+        Map<String, Object> params = new HashMap<>(); // entry.getValue();
+        params.put("minScore", request.minScore());
+        params.put("maxResults", request.maxResults());
+        return getEmbeddingSearchResult(session, cypherQuery, params);
+    }
+
+    private final FunctionInvocation.FunctionDefinition functionDefinition =
+            new FunctionInvocation.FunctionDefinition() {
+
+                @Override
+                public String getImplementationName() {
+                    return "vector.similarity.cosine";
+                }
+
+                @Override
+                public boolean isAggregate() {
+                    return false;
+                }
+            };
+
+    private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorIndex(
+            EmbeddingSearchRequest request, Value embeddingValue, Session session) {
+
+        Map<String, Object> params = new HashMap<>(Map.of(
+                "indexName",
+                indexName,
+                "embeddingValue",
+                embeddingValue,
+                "minScore",
+                request.minScore(),
+                "maxResults",
+                request.maxResults()));
+
+        Parameter<Object> indexNameParam = parameter("indexName");
+        Parameter<Object> maxResultsParam = parameter("maxResults");
+        Parameter<Object> embeddingValueParam = parameter("embeddingValue");
+        Parameter<Object> minScoreParam = parameter("minScore");
+
+        // Build a "CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue) YIELD node, score WHERE
+        // score >= $minScore <retrievalQuery>"
+        Statement vectorQuery = call("db.index.vector.queryNodes")
+                .withArgs(indexNameParam, maxResultsParam, embeddingValueParam)
+                .yield("node", "score")
+                .where(name("score").gte(minScoreParam))
+                .returning(getaReturn(retrievalQuery))
+                .build();
+
+        Statement statement;
+
+        // Full-text search condition
+        if (fullTextQuery != null) {
+            /* Build a
+            UNION
+            CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
+            YIELD node, score
+            WHERE score >= $minScore
+             */
+            Parameter<Object> fullTextIndexNameParam = parameter("fullTextIndexName");
+            Parameter<Object> fullTextQueryParam = parameter("fullTextQuery");
+
+            Statement fullTextSearch = call("db.index.fulltext.queryNodes")
+                    .withArgs(fullTextIndexNameParam, fullTextQueryParam, mapOf("limit", maxResultsParam))
+                    .yield("node", "score")
+                    .where(name("score").gte(minScoreParam))
+                    .returning(getaReturn(fullTextRetrievalQuery))
+                    .build();
+
+            // UNION with full-text search
+            statement = Cypher.union(vectorQuery, fullTextSearch);
+
+            params.putAll(Map.of(
+                    "fullTextIndexName", fullTextIndexName,
+                    "fullTextQuery", fullTextQuery));
+        } else {
+            statement = vectorQuery;
+        }
+
+        // Render the Cypher query
+        String cypherQuery = Renderer.getDefaultRenderer().render(statement);
+        System.out.println(cypherQuery);
+
+        Set<String> columns = getColumnNames(session, cypherQuery);
+        Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
+
+        if (!allowedColumn.containsAll(columns) || columns.size() > allowedColumn.size()) {
+            throw new RuntimeException(COLUMNS_NOT_ALLOWED_ERR + columns);
+        }
+
+        return getEmbeddingSearchResult(session, cypherQuery, params);
+    }
+
+    private static Expression getaReturn(String query) {
+        return raw(query.replaceFirst("RETURN", ""));
+    }
+
+    private EmbeddingSearchResult<TextSegment> getEmbeddingSearchResult(
+            Session session, String query, Map<String, Object> params) {
+        List<EmbeddingMatch<TextSegment>> matches =
+                session.executeRead(tx -> tx.run(query, params).list(item -> toEmbeddingMatch(this, item)));
+
+        return new EmbeddingSearchResult<>(matches);
+    }
+
+    private Set<String> getColumnNames(Session session, String query) {
+        // retrieve column names
+        List<String> keys = session.run("EXPLAIN " + query).keys();
+        // when there are multiple variables with the same name, e.g. within a "UNION ALL" Neo4j adds a suffix
+        // "@<number>" to distinguish them,
+        //  so to check the correctness of the output parameters we must first remove this suffix from the column names
+        return keys.stream().map(i -> i.replaceFirst("@[0-9]+", "").trim()).collect(Collectors.toSet());
+    }
 
     private void addInternal(String id, Embedding embedding, TextSegment embedded) {
         addAll(singletonList(id), singletonList(embedding), embedded == null ? null : singletonList(embedded));
@@ -373,7 +551,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private void bulk(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
         Stream<List<Map<String, Object>>> rowsBatched = getRowsBatched(this, ids, embeddings, embedded);
 
-        try (var session = session()) {
+        try (Session session = session()) {
             rowsBatched.forEach(rows -> {
                 String statement = String.format(
                         ENTITIES_CREATION, this.sanitizedLabel, this.sanitizedIdProperty, PROPS, EMBEDDINGS_ROW_KEY);
@@ -390,11 +568,28 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             createIndex();
         }
         createFullTextIndex();
-        createUniqueConstraint();
+        if (!constraintExist()) {
+            createUniqueConstraint();
+        }
+    }
+
+    private boolean constraintExist() {
+        try (Session session = session()) {
+            String query =
+                    """
+                            SHOW CONSTRAINTS
+                            WHERE $label IN labelsOrTypes
+                            AND $property IN properties
+                            AND type IN ['NODE_KEY', 'UNIQUENESS']
+                            """;
+            Result result = session.run(query, Map.of("label", this.label, "property", this.idProperty));
+
+            return !result.list().isEmpty();
+        }
     }
 
     private void createUniqueConstraint() {
-        try (var session = session()) {
+        try (Session session = session()) {
             String query = String.format(
                     "CREATE CONSTRAINT IF NOT EXISTS FOR (n:%s) REQUIRE n.%s IS UNIQUE",
                     this.sanitizedLabel, this.sanitizedIdProperty);
@@ -403,13 +598,13 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private boolean indexExists() {
-        try (var session = session()) {
+        try (Session session = session()) {
             Map<String, Object> params = Map.of("name", this.indexName);
-            var resIndex = session.run("SHOW VECTOR INDEX WHERE name = $name", params);
+            Result resIndex = session.run("SHOW VECTOR INDEX WHERE name = $name", params);
             if (!resIndex.hasNext()) {
                 return false;
             }
-            var record = resIndex.single();
+            Record record = resIndex.single();
             List<String> idxLabels = record.get("labelsOrTypes").asList(Value::asString);
             List<Object> idxProps = record.get("properties").asList();
 
@@ -434,10 +629,10 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             return;
         }
 
-        try (var session = session()) {
-
-            final String query = "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (n:%s) ON EACH [n.%s]"
-                    .formatted(this.fullTextIndexName, this.sanitizedLabel, this.sanitizedIdProperty);
+        try (Session session = session()) {
+            String query = String.format(
+                    "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (n:%s) ON EACH [n.%s]",
+                    this.fullTextIndexName, this.sanitizedLabel, this.sanitizedIdProperty);
             session.run(query).consume();
         }
     }
@@ -454,8 +649,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 this.dimension);
 
         // create vector index
-        try (var session = session()) {
-            final String createIndexQuery = String.format(
+        try (Session session = session()) {
+            String createIndexQuery = String.format(
                     CREATE_VECTOR_INDEX, indexName, sanitizedLabel, sanitizedEmbeddingProperty, dimension);
             session.run(createIndexQuery, params);
 

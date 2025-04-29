@@ -19,7 +19,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -43,13 +43,10 @@ public class ZhipuAiStreamingChatModelIT {
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
 
     private final ZhipuAiStreamingChatModel model = ZhipuAiStreamingChatModel.builder()
+            .model(ChatCompletionModel.GLM_4_FLASH)
             .apiKey(apiKey)
             .logRequests(true)
             .logResponses(true)
-            .callTimeout(Duration.ofSeconds(60))
-            .connectTimeout(Duration.ofSeconds(60))
-            .writeTimeout(Duration.ofSeconds(60))
-            .readTimeout(Duration.ofSeconds(60))
             .build();
 
     ToolSpecification calculator = ToolSpecification.builder()
@@ -99,7 +96,7 @@ public class ZhipuAiStreamingChatModelIT {
             }
         };
 
-        StreamingChatLanguageModel model = ZhipuAiStreamingChatModel.builder()
+        StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
@@ -168,7 +165,7 @@ public class ZhipuAiStreamingChatModelIT {
 
         // then
         assertThat(secondAiMessage.text()).contains("4");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.totalTokenCount())
@@ -185,7 +182,8 @@ public class ZhipuAiStreamingChatModelIT {
     @Test
     void should_execute_get_current_time_tool_and_then_answer() {
         // given
-        UserMessage userMessage = userMessage("What's the time now?");
+        UserMessage userMessage =
+                userMessage("What's the time now? Please give the year and the exact time in seconds.");
         List<ToolSpecification> toolSpecifications = singletonList(currentTime);
 
         // when
@@ -226,7 +224,7 @@ public class ZhipuAiStreamingChatModelIT {
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("12:00:20");
         assertThat(secondAiMessage.text()).contains("2024");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.totalTokenCount())
@@ -267,7 +265,7 @@ public class ZhipuAiStreamingChatModelIT {
         double topP = 0.7;
         int maxTokens = 7;
 
-        StreamingChatLanguageModel model = ZhipuAiStreamingChatModel.builder()
+        StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .temperature(temperature)
                 .topP(topP)
@@ -344,7 +342,7 @@ public class ZhipuAiStreamingChatModelIT {
             }
         };
 
-        StreamingChatLanguageModel model = ZhipuAiStreamingChatModel.builder()
+        StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
@@ -388,7 +386,7 @@ public class ZhipuAiStreamingChatModelIT {
 
     @Test
     public void should_send_multimodal_image_data_and_receive_response() {
-        StreamingChatLanguageModel model = ZhipuAiStreamingChatModel.builder()
+        StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)
                 .callTimeout(Duration.ofSeconds(60))

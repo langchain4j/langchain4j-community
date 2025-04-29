@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.0.0-beta3-SNAPSHOT</version>
+        <version>1.0.0-beta4-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-bom</artifactId>
@@ -16,6 +16,12 @@
 
     <dependencyManagement>
         <dependencies>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <!-- models -->
             <dependency>
@@ -85,15 +91,36 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-cloud-sql-pg</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- content retrievers -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-lucene</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-neo4j-retriever</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- document parsers -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-document-parser-llamaparse</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- document transformer -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-llm-graph-transformer</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

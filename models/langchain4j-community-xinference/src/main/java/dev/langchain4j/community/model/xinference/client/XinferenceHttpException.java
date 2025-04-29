@@ -1,6 +1,8 @@
 package dev.langchain4j.community.model.xinference.client;
 
-public class XinferenceHttpException extends RuntimeException {
+import dev.langchain4j.exception.LangChain4jException;
+
+public class XinferenceHttpException extends LangChain4jException {
     private final int code;
 
     public XinferenceHttpException(int code, String message) {
