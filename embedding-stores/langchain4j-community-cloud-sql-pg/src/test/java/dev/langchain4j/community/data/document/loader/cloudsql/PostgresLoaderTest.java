@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.community.engine.PostgresEngine;
+import dev.langchain4j.community.store.embedding.cloudsql.PostgresEngine;
 import dev.langchain4j.data.document.Document;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,7 +23,7 @@ import org.mockito.MockitoAnnotations;
 /**
  * This class represents unit tests for {@link PostgresLoader}.
  */
-public class PostgresLoaderTest {
+class PostgresLoaderTest {
 
     @Mock
     private PostgresEngine mockPostgresEngine;
@@ -43,7 +43,7 @@ public class PostgresLoaderTest {
     private PostgresLoader.Builder builder;
 
     @BeforeEach
-    public void setUp() throws SQLException {
+    void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
         when(mockPostgresEngine.getConnection()).thenReturn(mockConnection);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
@@ -54,7 +54,7 @@ public class PostgresLoaderTest {
     }
 
     @Test
-    public void testBuildWithQuery() throws SQLException {
+    void testBuildWithQuery() throws SQLException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(2);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("col2");
@@ -65,7 +65,7 @@ public class PostgresLoaderTest {
     }
 
     @Test
-    public void testBuildWithTableName() throws SQLException {
+    void testBuildWithTableName() throws SQLException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(2);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("col2");
@@ -76,7 +76,7 @@ public class PostgresLoaderTest {
     }
 
     @Test
-    public void testBuildWithInvalidColumns() throws SQLException {
+    void testBuildWithInvalidColumns() throws SQLException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
 
@@ -86,7 +86,7 @@ public class PostgresLoaderTest {
     }
 
     @Test
-    public void testBuildWithInvalidMetadataJsonColumn() throws SQLException {
+    void testBuildWithInvalidMetadataJsonColumn() throws SQLException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
 
@@ -96,7 +96,7 @@ public class PostgresLoaderTest {
     }
 
     @Test
-    public void testLoadDocuments() throws SQLException, ExecutionException, InterruptedException {
+    void testLoadDocuments() throws SQLException, ExecutionException, InterruptedException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(3);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("content");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("metadata");

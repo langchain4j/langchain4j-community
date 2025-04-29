@@ -2,7 +2,6 @@ package dev.langchain4j.community.store.embedding.cloudsql;
 
 import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
 
-import dev.langchain4j.community.engine.PostgresEngine;
 import dev.langchain4j.community.store.embedding.cloudsql.index.DistanceStrategy;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -16,7 +15,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class PostgresEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
+class PostgresEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     @Container
     static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
@@ -27,7 +26,7 @@ public class PostgresEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     @BeforeAll
-    public static void startEngine() {
+    static void startEngine() {
         if (engine == null) {
             engine = new PostgresEngine.Builder()
                     .host(pgVector.getHost())
@@ -40,7 +39,7 @@ public class PostgresEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT
     }
 
     @AfterAll
-    public static void stopEngine() {
+    static void stopEngine() {
         engine.close();
     }
 

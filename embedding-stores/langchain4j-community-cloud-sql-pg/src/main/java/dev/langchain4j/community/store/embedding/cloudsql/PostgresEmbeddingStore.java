@@ -12,7 +12,6 @@ import static java.util.stream.Collectors.toList;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pgvector.PGvector;
-import dev.langchain4j.community.engine.PostgresEngine;
 import dev.langchain4j.community.store.embedding.cloudsql.filter.PostgresFilterMapper;
 import dev.langchain4j.community.store.embedding.cloudsql.index.BaseIndex;
 import dev.langchain4j.community.store.embedding.cloudsql.index.DistanceStrategy;
@@ -53,7 +52,8 @@ import java.util.stream.Collectors;
 public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
-    private final PostgresFilterMapper FILTER_MAPPER = new PostgresFilterMapper();
+    private static final PostgresFilterMapper FILTER_MAPPER = new PostgresFilterMapper();
+
     private final PostgresEngine engine;
     private final String tableName;
     private final String schemaName;
@@ -541,9 +541,9 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         private String schemaName = "public";
         private String contentColumn = "content";
         private String embeddingColumn = "embedding";
-        private String idColumn = "langchain_id";
+        private String idColumn = "langchain4j_id";
         private List<String> metadataColumns = new ArrayList<>();
-        private String metadataJsonColumn = "langchain_metadata";
+        private String metadataJsonColumn = "langchain4j_metadata";
         private List<String> ignoreMetadataColumnNames = new ArrayList<>();
         private DistanceStrategy distanceStrategy = DistanceStrategy.COSINE_DISTANCE;
         private QueryOptions queryOptions;
@@ -597,7 +597,7 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * Id Column
          *
-         * @param idColumn (Optional, Default: "langchain_id") Column to store
+         * @param idColumn (Optional, Default: "langchain4j_id") Column to store
          *                 ids.
          * @return this builder
          */
@@ -621,7 +621,7 @@ public class PostgresEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * Metadata JSON Column
          *
-         * @param metadataJsonColumn (Default: "langchain_metadata") the column
+         * @param metadataJsonColumn (Default: "langchain4j_metadata") the column
          *                           to store extra metadata in
          * @return this builder
          */

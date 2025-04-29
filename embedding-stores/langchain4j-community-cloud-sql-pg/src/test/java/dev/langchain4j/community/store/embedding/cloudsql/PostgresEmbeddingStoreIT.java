@@ -2,8 +2,6 @@ package dev.langchain4j.community.store.embedding.cloudsql;
 
 import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
 
-import dev.langchain4j.community.engine.MetadataColumn;
-import dev.langchain4j.community.engine.PostgresEngine;
 import dev.langchain4j.community.store.embedding.cloudsql.index.DistanceStrategy;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -20,7 +18,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class PostgresEmbeddingStoreIT extends EmbeddingStoreIT {
+class PostgresEmbeddingStoreIT extends EmbeddingStoreIT {
 
     // Does support WithFilteringIT but can not handle different age data types.
 
@@ -34,7 +32,7 @@ public class PostgresEmbeddingStoreIT extends EmbeddingStoreIT {
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     @BeforeAll
-    public static void startEngine() {
+    static void startEngine() {
         if (engine == null) {
             engine = new PostgresEngine.Builder()
                     .host(pgVector.getHost())
@@ -47,7 +45,7 @@ public class PostgresEmbeddingStoreIT extends EmbeddingStoreIT {
     }
 
     @AfterAll
-    public static void stopEngine() {
+    static void stopEngine() {
         engine.close();
     }
 

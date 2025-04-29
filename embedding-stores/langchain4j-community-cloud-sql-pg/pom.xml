@@ -12,6 +12,7 @@
     <artifactId>langchain4j-community-cloud-sql-pg</artifactId>
     <name>LangChain4j :: Community :: Integration :: Cloud SQL for PostgreSQL</name>
     <description>Cloud SQL PG for Langchain4j</description>
+
     <licenses>
         <license>
             <name>Apache-2.0</name>
@@ -20,12 +21,20 @@
             <comments>A business-friendly OSS license</comments>
         </license>
     </licenses>
+
     <properties>
         <pgvector-java.version>0.1.6</pgvector-java.version>
         <postgres.version>42.7.5</postgres.version>
         <pg-socket.version>1.24.1</pg-socket.version>
         <jdbc-socket.version>1.24.0</jdbc-socket.version>
         <hikaricp.version>6.3.0</hikaricp.version>
+        <google.oauth.client.version>1.39.0</google.oauth.client.version>
+        <google.api.client.version>2.7.2</google.api.client.version>
+        <google.auth.library.http.version>1.27.0</google.auth.library.http.version>
+        <guava.version>33.1.0-jre</guava.version>
+        <google.http.client.version>1.46.3</google.http.client.version>
+        <opencensus.version>0.31.1</opencensus.version>
+        <truth.version>1.4.4</truth.version>
     </properties>
 
     <dependencies>
@@ -117,7 +126,7 @@
         <dependency>
             <groupId>com.google.oauth-client</groupId>
             <artifactId>google-oauth-client</artifactId>
-            <version>1.39.0</version>
+            <version>${google.oauth.client.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.http-client</groupId>
@@ -141,7 +150,7 @@
         <dependency>
             <groupId>com.google.api-client</groupId>
             <artifactId>google-api-client</artifactId>
-            <version>2.7.2</version>
+            <version>${google.api.client.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.auth</groupId>
@@ -177,7 +186,7 @@
         <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-oauth2-http</artifactId>
-            <version>1.27.0</version>
+            <version>${google.auth.library.http.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.http-client</groupId>
@@ -205,7 +214,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.1.0-jre</version>
+            <version>${guava.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.checkerframework</groupId>
@@ -225,7 +234,7 @@
         <dependency>
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client</artifactId>
-            <version>1.46.3</version>
+            <version>${google.http.client.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.errorprone</groupId>
@@ -250,7 +259,7 @@
         <dependency>
             <groupId>io.opencensus</groupId>
             <artifactId>opencensus-api</artifactId>
-            <version>0.31.1</version>
+            <version>${opencensus.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>io.grpc</groupId>
@@ -292,10 +301,11 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.google.truth</groupId>
             <artifactId>truth</artifactId>
-            <version>1.4.4</version>
+            <version>${truth.version}</version>
             <scope>test</scope>
         </dependency>
 

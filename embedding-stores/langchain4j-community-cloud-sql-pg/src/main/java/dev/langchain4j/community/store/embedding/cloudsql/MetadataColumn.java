@@ -1,4 +1,4 @@
-package dev.langchain4j.community.engine;
+package dev.langchain4j.community.store.embedding.cloudsql;
 
 /**
  * Metadata column information used to define a new table column

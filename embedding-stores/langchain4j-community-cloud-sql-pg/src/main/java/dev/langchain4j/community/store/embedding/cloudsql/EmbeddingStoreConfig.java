@@ -3,7 +3,6 @@ package dev.langchain4j.community.store.embedding.cloudsql;
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
-import dev.langchain4j.community.engine.MetadataColumn;
 import java.util.List;
 
 /**
@@ -151,9 +150,9 @@ public class EmbeddingStoreConfig {
         private String schemaName = "public";
         private String contentColumn = "content";
         private String embeddingColumn = "embedding";
-        private String idColumn = "langchain_id";
+        private String idColumn = "langchain4j_id";
         private List<MetadataColumn> metadataColumns;
-        private String metadataJsonColumn = "langchain_metadata";
+        private String metadataJsonColumn = "langchain4j_metadata";
         private Boolean overwriteExisting = false;
         private Boolean storeMetadata = true;
 
@@ -198,7 +197,7 @@ public class EmbeddingStoreConfig {
         }
 
         /**
-         * @param idColumn (Optional, Default: "langchain_id") Column to store
+         * @param idColumn (Optional, Default: "langchain4j_id") Column to store
          *                 ids.
          * @return this builder
          */
@@ -218,7 +217,7 @@ public class EmbeddingStoreConfig {
         }
 
         /**
-         * @param metadataJsonColumn (Default: "langchain_metadata") the column
+         * @param metadataJsonColumn (Default: "langchain4j_metadata") the column
          *                           to store extra metadata in
          * @return this builder
          */

@@ -1,4 +1,4 @@
-package dev.langchain4j.community.utils;
+package dev.langchain4j.community.store.embedding.cloudsql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,12 +11,11 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-public class PostgresTestUtils {
+class PostgresTestUtils {
 
     private static final Random RANDOM = new Random();
 
-    public static void verifyColumns(
-            Connection connection, String schemaName, String tableName, Set<String> expectedColumns)
+    static void verifyColumns(Connection connection, String schemaName, String tableName, Set<String> expectedColumns)
             throws SQLException {
         Set<String> actualNames = new HashSet<>();
 
@@ -31,8 +30,7 @@ public class PostgresTestUtils {
         assertThat(actualNames).isEqualTo(expectedColumns);
     }
 
-    public static void verifyIndex(Connection connection, String tableName, String type, String expected)
-            throws SQLException {
+    static void verifyIndex(Connection connection, String tableName, String type, String expected) throws SQLException {
         ResultSet indexes = connection
                 .createStatement()
                 .executeQuery(String.format(
@@ -43,7 +41,7 @@ public class PostgresTestUtils {
         }
     }
 
-    public static PGvector randomPGvector(int length) {
+    static PGvector randomPGvector(int length) {
         float[] vector = new float[length];
         for (int i = 0; i < vector.length; i++) {
             vector[i] = RANDOM.nextFloat() * 1000;

@@ -1,4 +1,4 @@
-package dev.langchain4j.community.engine;
+package dev.langchain4j.community.store.embedding.cloudsql;
 
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
@@ -13,7 +13,6 @@ import com.google.cloud.sql.ConnectorRegistry;
 import com.google.cloud.sql.RefreshStrategy;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import dev.langchain4j.community.store.embedding.cloudsql.EmbeddingStoreConfig;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;

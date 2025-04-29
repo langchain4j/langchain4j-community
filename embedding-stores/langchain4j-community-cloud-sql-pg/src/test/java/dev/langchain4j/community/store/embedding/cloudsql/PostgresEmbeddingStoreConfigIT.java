@@ -1,7 +1,7 @@
 package dev.langchain4j.community.store.embedding.cloudsql;
 
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
-import static dev.langchain4j.community.utils.PostgresTestUtils.randomPGvector;
+import static dev.langchain4j.community.store.embedding.cloudsql.PostgresTestUtils.randomPGvector;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -9,8 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pgvector.PGvector;
-import dev.langchain4j.community.engine.MetadataColumn;
-import dev.langchain4j.community.engine.PostgresEngine;
 import dev.langchain4j.community.store.embedding.cloudsql.index.DistanceStrategy;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -41,7 +39,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class PostgresEmbeddingStoreConfigIT {
+class PostgresEmbeddingStoreConfigIT {
 
     @Container
     static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
@@ -56,7 +54,7 @@ public class PostgresEmbeddingStoreConfigIT {
     private static Connection defaultConnection;
 
     @BeforeAll
-    public static void beforeAll() throws SQLException {
+    static void beforeAll() throws SQLException {
         engine = new PostgresEngine.Builder()
                 .host(pgVector.getHost())
                 .port(pgVector.getFirstMappedPort())
@@ -94,12 +92,12 @@ public class PostgresEmbeddingStoreConfigIT {
     }
 
     @AfterEach
-    public void afterEach() throws SQLException {
+    void afterEach() throws SQLException {
         defaultConnection.createStatement().executeUpdate(String.format("TRUNCATE TABLE \"%s\"", TABLE_NAME));
     }
 
     @AfterAll
-    public static void afterAll() throws SQLException {
+    static void afterAll() throws SQLException {
         defaultConnection.createStatement().executeUpdate(String.format("DROP TABLE IF EXISTS \"%s\"", TABLE_NAME));
         defaultConnection.close();
     }
