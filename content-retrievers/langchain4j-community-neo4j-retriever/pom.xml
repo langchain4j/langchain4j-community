@@ -13,8 +13,8 @@
     <name>LangChain4j :: Community :: Content Retriever :: Neo4j</name>
 
     <properties>
-        <neo4j.cypher.dsl.version>2023.7.0</neo4j.cypher.dsl.version>
         <neo4j.version>5.26.0</neo4j.version>
+        <neo4j.cypher.dsl.version>2024.5.1</neo4j.cypher.dsl.version>
     </properties>
 
     <dependencies>
@@ -26,6 +26,11 @@
         </dependency>
 
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
@@ -34,6 +39,18 @@
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
             <version>${neo4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-dsl-parser</artifactId>
+            <version>${neo4j.cypher.dsl.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-dsl</artifactId>
+            <version>${neo4j.cypher.dsl.version}</version>
         </dependency>
 
         <!-- test dependencies -->

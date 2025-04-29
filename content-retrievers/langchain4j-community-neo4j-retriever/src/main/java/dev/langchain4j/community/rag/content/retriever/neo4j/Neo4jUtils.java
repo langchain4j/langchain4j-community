@@ -2,13 +2,11 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import static org.neo4j.cypherdsl.support.schema_name.SchemaNames.sanitize;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.Internal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,14 +38,6 @@ class Neo4jUtils {
 
     static Map<String, Object> toMap(Object object) {
         return OBJECT_MAPPER.convertValue(object, new TypeReference<>() {});
-    }
-
-    static String getStringFromListOfMaps(List<Map<String, String>> list) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(list);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     static String generateMD5(String input) {
