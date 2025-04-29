@@ -15,7 +15,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
+class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     @Container
     static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
@@ -26,7 +26,7 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     @BeforeAll
-    public static void startEngine() {
+    static void startEngine() {
         if (engine == null) {
             engine = new AlloyDBEngine.Builder()
                     .host(pgVector.getHost())
@@ -39,7 +39,7 @@ public class AlloyDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT 
     }
 
     @AfterAll
-    public static void stopEngine() {
+    static void stopEngine() {
         engine.close();
     }
 

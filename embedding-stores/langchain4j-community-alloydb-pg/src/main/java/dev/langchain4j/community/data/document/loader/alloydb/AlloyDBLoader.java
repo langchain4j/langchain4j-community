@@ -54,6 +54,146 @@ public class AlloyDBLoader {
     }
 
     /**
+     * Formats the row data into a text string.
+     *
+     * @param row            The row data as a map of column names to values.
+     * @param contentColumns The list of columns to use for content.
+     * @return The formatted text string.
+     */
+    private static String textFormatter(Map<String, Object> row, List<String> contentColumns) {
+        StringBuilder sb = new StringBuilder();
+        for (String column : contentColumns) {
+            if (row.containsKey(column)) {
+                sb.append(row.get(column)).append(" ");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    /**
+     * Formats the row data into a CSV string.
+     *
+     * @param row            The row data as a map of column names to values.
+     * @param contentColumns The list of columns to use for content.
+     * @return The formatted CSV string.
+     */
+    private static String csvFormatter(Map<String, Object> row, List<String> contentColumns) {
+        StringBuilder sb = new StringBuilder();
+        for (String column : contentColumns) {
+            if (row.containsKey(column)) {
+                sb.append(row.get(column)).append(", ");
+            }
+        }
+        return sb.toString().trim().replaceAll(", $", ""); // Remove trailing comma
+    }
+
+    /**
+     * Formats the row data into a YAML string.
+     *
+     * @param row            The row data as a map of column names to values.
+     * @param contentColumns The list of columns to use for content.
+     * @return The formatted YAML string.
+     */
+    private static String yamlFormatter(Map<String, Object> row, List<String> contentColumns) {
+        StringBuilder sb = new StringBuilder();
+        for (String column : contentColumns) {
+            if (row.containsKey(column)) {
+                sb.append(column).append(": ").append(row.get(column)).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    /**
+     * Formats the row data into a JSON string.
+     *
+     * @param row            The row data as a map of column names to values.
+     * @param contentColumns The list of columns to use for content.
+     * @return The formatted JSON string.
+     */
+    private static String jsonFormatter(Map<String, Object> row, List<String> contentColumns) {
+        ObjectNode json = objectMapper.createObjectNode();
+        for (String column : contentColumns) {
+            if (row.containsKey(column)) {
+                json.put(column, (String) row.get(column));
+            }
+        }
+        return json.toString();
+    }
+
+    /**
+     * Executes the configured SQL query against the AlloyDB database and
+     * transforms the result set into a list of {@link Document} objects.
+     * <p>
+     * Each row in the result set is processed according to the configured
+     * content columns, metadata columns, and formatter. The content is
+     * extracted and formatted, and metadata is assembled from the specified
+     * columns or the JSON metadata column.
+     * </p>
+     *
+     * @return A list of {@link Document} objects, where each document
+     * represents a row from the database result set.
+     * @throws SQLException     If a database error occurs during the execution of
+     *                          the query or while processing the result set. This could include issues
+     *                          such as connection problems, SQL syntax errors, or data retrieval
+     *                          failures.
+     * @throws RuntimeException If there's an error parsing the JSON metadata
+     *                          column, indicating an issue with the JSON structure.
+     */
+    public List<Document> load() throws SQLException {
+        List<Document> documents = new ArrayList<>();
+        try (Connection pool = engine.getConnection();
+                PreparedStatement statement = pool.prepareStatement(query)) {
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                Map<String, Object> rowData = new HashMap<>();
+                for (String column : contentColumns) {
+                    rowData.put(column, resultSet.getString(column));
+                }
+                for (String column : metadataColumns) {
+                    rowData.put(column, resultSet.getObject(column));
+                }
+                if (metadataJsonColumn != null) {
+                    rowData.put(metadataJsonColumn, resultSet.getObject(metadataJsonColumn));
+                }
+                Document doc = parseDocFromRow(rowData);
+                documents.add(doc);
+            }
+        }
+        return documents;
+    }
+
+    /**
+     * Parses a {@link Document} from a row of data.
+     *
+     * @param row The row data as a map of column names to values.
+     * @return The parsed Document.
+     */
+    private Document parseDocFromRow(Map<String, Object> row) {
+        String pageContent = formatter.apply(row, contentColumns);
+        Map<String, Object> metaDataMap = new HashMap<>();
+        if (metadataJsonColumn != null && row.containsKey(metadataJsonColumn)) {
+            try {
+                metaDataMap.putAll(
+                        objectMapper.readValue(row.get(metadataJsonColumn).toString(), Map.class));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(
+                        "Failed to parse JSON: " + e.getMessage()
+                                + ". Ensure metadata JSON structure matches the expected format.",
+                        e);
+            }
+        }
+
+        for (String column : metadataColumns) {
+            if (row.containsKey(column) && !column.equals(metadataJsonColumn)) {
+                metaDataMap.put(column, row.get(column));
+            }
+        }
+        Metadata metadata = Metadata.from(metaDataMap);
+        return new DefaultDocument(pageContent, metadata);
+    }
+
+    /**
      * Create a new {@link Builder}.
      *
      * @param engine The AlloyDB Engine
@@ -258,145 +398,5 @@ public class AlloyDBLoader {
             }
             return new AlloyDBLoader(this);
         }
-    }
-
-    /**
-     * Formats the row data into a text string.
-     *
-     * @param row            The row data as a map of column names to values.
-     * @param contentColumns The list of columns to use for content.
-     * @return The formatted text string.
-     */
-    private static String textFormatter(Map<String, Object> row, List<String> contentColumns) {
-        StringBuilder sb = new StringBuilder();
-        for (String column : contentColumns) {
-            if (row.containsKey(column)) {
-                sb.append(row.get(column)).append(" ");
-            }
-        }
-        return sb.toString().trim();
-    }
-
-    /**
-     * Formats the row data into a CSV string.
-     *
-     * @param row            The row data as a map of column names to values.
-     * @param contentColumns The list of columns to use for content.
-     * @return The formatted CSV string.
-     */
-    private static String csvFormatter(Map<String, Object> row, List<String> contentColumns) {
-        StringBuilder sb = new StringBuilder();
-        for (String column : contentColumns) {
-            if (row.containsKey(column)) {
-                sb.append(row.get(column)).append(", ");
-            }
-        }
-        return sb.toString().trim().replaceAll(", $", ""); // Remove trailing comma
-    }
-
-    /**
-     * Formats the row data into a YAML string.
-     *
-     * @param row            The row data as a map of column names to values.
-     * @param contentColumns The list of columns to use for content.
-     * @return The formatted YAML string.
-     */
-    private static String yamlFormatter(Map<String, Object> row, List<String> contentColumns) {
-        StringBuilder sb = new StringBuilder();
-        for (String column : contentColumns) {
-            if (row.containsKey(column)) {
-                sb.append(column).append(": ").append(row.get(column)).append("\n");
-            }
-        }
-        return sb.toString().trim();
-    }
-
-    /**
-     * Formats the row data into a JSON string.
-     *
-     * @param row            The row data as a map of column names to values.
-     * @param contentColumns The list of columns to use for content.
-     * @return The formatted JSON string.
-     */
-    private static String jsonFormatter(Map<String, Object> row, List<String> contentColumns) {
-        ObjectNode json = objectMapper.createObjectNode();
-        for (String column : contentColumns) {
-            if (row.containsKey(column)) {
-                json.put(column, (String) row.get(column));
-            }
-        }
-        return json.toString();
-    }
-
-    /**
-     * Executes the configured SQL query against the AlloyDB database and
-     * transforms the result set into a list of {@link Document} objects.
-     * <p>
-     * Each row in the result set is processed according to the configured
-     * content columns, metadata columns, and formatter. The content is
-     * extracted and formatted, and metadata is assembled from the specified
-     * columns or the JSON metadata column.
-     * </p>
-     *
-     * @return A list of {@link Document} objects, where each document
-     * represents a row from the database result set.
-     * @throws SQLException     If a database error occurs during the execution of
-     *                          the query or while processing the result set. This could include issues
-     *                          such as connection problems, SQL syntax errors, or data retrieval
-     *                          failures.
-     * @throws RuntimeException If there's an error parsing the JSON metadata
-     *                          column, indicating an issue with the JSON structure.
-     */
-    public List<Document> load() throws SQLException {
-        List<Document> documents = new ArrayList<>();
-        try (Connection pool = engine.getConnection();
-                PreparedStatement statement = pool.prepareStatement(query)) {
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                Map<String, Object> rowData = new HashMap<>();
-                for (String column : contentColumns) {
-                    rowData.put(column, resultSet.getString(column));
-                }
-                for (String column : metadataColumns) {
-                    rowData.put(column, resultSet.getObject(column));
-                }
-                if (metadataJsonColumn != null) {
-                    rowData.put(metadataJsonColumn, resultSet.getObject(metadataJsonColumn));
-                }
-                Document doc = parseDocFromRow(rowData);
-                documents.add(doc);
-            }
-        }
-        return documents;
-    }
-
-    /**
-     * Parses a {@link Document} from a row of data.
-     *
-     * @param row The row data as a map of column names to values.
-     * @return The parsed Document.
-     */
-    private Document parseDocFromRow(Map<String, Object> row) {
-        String pageContent = formatter.apply(row, contentColumns);
-        Map<String, Object> metaDataMap = new HashMap<>();
-        if (metadataJsonColumn != null && row.containsKey(metadataJsonColumn)) {
-            try {
-                metaDataMap.putAll(
-                        objectMapper.readValue(row.get(metadataJsonColumn).toString(), Map.class));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(
-                        "Failed to parse JSON: " + e.getMessage()
-                                + ". Ensure metadata JSON structure matches the expected format.",
-                        e);
-            }
-        }
-
-        for (String column : metadataColumns) {
-            if (row.containsKey(column) && !column.equals(metadataJsonColumn)) {
-                metaDataMap.put(column, row.get(column));
-            }
-        }
-        Metadata metadata = Metadata.from(metaDataMap);
-        return new DefaultDocument(pageContent, metadata);
     }
 }

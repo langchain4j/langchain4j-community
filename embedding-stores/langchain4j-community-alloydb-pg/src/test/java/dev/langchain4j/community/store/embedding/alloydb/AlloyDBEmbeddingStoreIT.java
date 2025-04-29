@@ -18,7 +18,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
+class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
 
     // Does support WithFilteringIT but can not handle different age data types.
 
@@ -32,7 +32,7 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     @BeforeAll
-    public static void startEngine() {
+    static void startEngine() {
         if (engine == null) {
             engine = new AlloyDBEngine.Builder()
                     .host(pgVector.getHost())
@@ -45,7 +45,7 @@ public class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
     }
 
     @AfterAll
-    public static void stopEngine() {
+    static void stopEngine() {
         engine.close();
     }
 

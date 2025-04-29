@@ -23,7 +23,7 @@ import org.mockito.MockitoAnnotations;
 /**
  * This class represents unit tests for {@link AlloyDBLoader}.
  */
-public class AlloyDBLoaderTest {
+class AlloyDBLoaderTest {
 
     @Mock
     private AlloyDBEngine mockAlloyDBEngine;
@@ -43,7 +43,7 @@ public class AlloyDBLoaderTest {
     private AlloyDBLoader.Builder builder;
 
     @BeforeEach
-    public void setUp() throws SQLException {
+    void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
         when(mockAlloyDBEngine.getConnection()).thenReturn(mockConnection);
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockStatement);
@@ -54,7 +54,7 @@ public class AlloyDBLoaderTest {
     }
 
     @Test
-    public void testBuildWithQuery() throws SQLException {
+    void testBuildWithQuery() throws SQLException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(2);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("col2");
@@ -65,7 +65,7 @@ public class AlloyDBLoaderTest {
     }
 
     @Test
-    public void testBuildWithTableName() throws SQLException {
+    void testBuildWithTableName() throws SQLException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(2);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("col2");
@@ -76,7 +76,7 @@ public class AlloyDBLoaderTest {
     }
 
     @Test
-    public void testBuildWithInvalidColumns() throws SQLException {
+    void testBuildWithInvalidColumns() throws SQLException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
 
@@ -86,7 +86,7 @@ public class AlloyDBLoaderTest {
     }
 
     @Test
-    public void testBuildWithInvalidMetadataJsonColumn() throws SQLException {
+    void testBuildWithInvalidMetadataJsonColumn() throws SQLException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
 
@@ -96,7 +96,7 @@ public class AlloyDBLoaderTest {
     }
 
     @Test
-    public void testLoadDocuments() throws SQLException, ExecutionException, InterruptedException {
+    void testLoadDocuments() throws SQLException, ExecutionException, InterruptedException {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(3);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("content");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("metadata");
