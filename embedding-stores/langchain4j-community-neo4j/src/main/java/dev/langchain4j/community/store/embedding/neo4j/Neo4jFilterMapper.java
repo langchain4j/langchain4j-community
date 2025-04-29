@@ -51,7 +51,7 @@ public class Neo4jFilterMapper {
         if (value instanceof OffsetDateTime) {
             return Cypher.datetime(literalOf(value.toString()));
         }
-        if (value instanceof final PointValue pointValue) {
+        if (value instanceof PointValue pointValue) {
             return convertToPoint(pointValue);
         }
         if (value instanceof Map) {
@@ -65,38 +65,38 @@ public class Neo4jFilterMapper {
         return literalOf(value);
     }
 
-    public static final String UNSUPPORTED_FILTER_TYPE_ERROR = "Unsupported filter type: ";
+    public static String UNSUPPORTED_FILTER_TYPE_ERROR = "Unsupported filter type: ";
 
-    private final Node node;
+    private Node node;
 
-    public Neo4jFilterMapper(final Node node) {
+    public Neo4jFilterMapper(Node node) {
         this.node = node;
     }
 
     public Condition getCondition(Filter filter) {
         if (filter instanceof IsEqualTo item) {
-            final Expression cypherLiteral = toCypherLiteral(item.key());
-            final Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
             return node.property(cypherLiteral).eq(cypherLiteral1);
         } else if (filter instanceof IsNotEqualTo item) {
-            final Expression cypherLiteral = toCypherLiteral(item.key());
-            final Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
             return node.property(cypherLiteral).isNotEqualTo(cypherLiteral1);
         } else if (filter instanceof IsGreaterThan item) {
-            final Expression cypherLiteral = toCypherLiteral(item.key());
-            final Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
             return node.property(cypherLiteral).gt(cypherLiteral1);
         } else if (filter instanceof IsGreaterThanOrEqualTo item) {
-            final Expression cypherLiteral = toCypherLiteral(item.key());
-            final Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
             return node.property(cypherLiteral).gte(cypherLiteral1);
         } else if (filter instanceof IsLessThan item) {
-            final Expression cypherLiteral = toCypherLiteral(item.key());
-            final Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
             return node.property(cypherLiteral).lt(cypherLiteral1);
         } else if (filter instanceof IsLessThanOrEqualTo item) {
-            final Expression cypherLiteral = toCypherLiteral(item.key());
-            final Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
+            Expression cypherLiteral = toCypherLiteral(item.key());
+            Expression cypherLiteral1 = toCypherLiteral(item.comparisonValue());
             return node.property(cypherLiteral).lte(cypherLiteral1);
         } else if (filter instanceof IsIn item) {
             return mapIn(item);
@@ -115,32 +115,32 @@ public class Neo4jFilterMapper {
     }
 
     public Condition mapIn(IsIn filter) {
-        final Expression cypherLiteral = toCypherLiteral(filter.key());
-        final Expression cypherLiteral1 = toCypherLiteral(filter.comparisonValues());
+        Expression cypherLiteral = toCypherLiteral(filter.key());
+        Expression cypherLiteral1 = toCypherLiteral(filter.comparisonValues());
         return Cypher.includesAny(node.property(cypherLiteral), cypherLiteral1);
     }
 
     public Condition mapNotIn(IsNotIn filter) {
-        final Expression cypherLiteral = toCypherLiteral(filter.key());
-        final Expression cypherLiteral1 = toCypherLiteral(filter.comparisonValues());
-        final Condition condition1 = Cypher.includesAny(node.property(cypherLiteral), cypherLiteral1);
+        Expression cypherLiteral = toCypherLiteral(filter.key());
+        Expression cypherLiteral1 = toCypherLiteral(filter.comparisonValues());
+        Condition condition1 = Cypher.includesAny(node.property(cypherLiteral), cypherLiteral1);
         return not(condition1);
     }
 
     private Condition mapAnd(And filter) {
-        final Condition left = getCondition(filter.left());
-        final Condition right = getCondition(filter.right());
+        Condition left = getCondition(filter.left());
+        Condition right = getCondition(filter.right());
         return left.and(right);
     }
 
     private Condition mapOr(Or filter) {
-        final Condition left = getCondition(filter.left());
-        final Condition right = getCondition(filter.right());
+        Condition left = getCondition(filter.left());
+        Condition right = getCondition(filter.right());
         return left.or(right);
     }
 
     private Condition mapNot(Not filter) {
-        final Condition expression = getCondition(filter.expression());
+        Condition expression = getCondition(filter.expression());
         return not(expression);
     }
 }

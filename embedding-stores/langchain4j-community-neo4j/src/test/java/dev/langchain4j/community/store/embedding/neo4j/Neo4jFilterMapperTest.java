@@ -2,7 +2,7 @@ package dev.langchain4j.community.store.embedding.neo4j;
 
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jFilterMapper.UNSUPPORTED_FILTER_TYPE_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.neo4j.cypherdsl.core.Cypher.node;
 
 import dev.langchain4j.store.embedding.filter.Filter;

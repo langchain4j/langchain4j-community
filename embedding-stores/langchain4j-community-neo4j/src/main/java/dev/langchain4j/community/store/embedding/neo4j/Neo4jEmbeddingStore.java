@@ -55,12 +55,15 @@ import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.Expression;
 import org.neo4j.cypherdsl.core.FunctionInvocation;
 import org.neo4j.cypherdsl.core.Node;
+import org.neo4j.cypherdsl.core.Parameter;
 import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.SymbolicName;
 import org.neo4j.cypherdsl.core.renderer.Renderer;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.Value;
@@ -283,7 +286,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void removeAll() {
-        try (var session = session()) {
+        try (Session session = session()) {
             // Build the MATCH and DETACH DELETE inside the subquery
             Node node = node(label).named("n");
 
@@ -306,13 +309,13 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(Collection<String> ids) {
         ensureNotEmpty(ids, "ids");
 
-        try (var session = session()) {
+        try (Session session = session()) {
             // build an `UNWIND $ids AS id MATCH (n:<label> {<idProperty>: idVar}) DETACH DELETE n`
-            final SymbolicName idVar = name("id");
+            SymbolicName idVar = name("id");
 
             // MATCH (n:Label {idProp: id})
-            var node = node(label).named("n");
-            var match = unwind(parameter("ids"))
+            Node node = node(label).named("n");
+            Statement match = unwind(parameter("ids"))
                     .as(idVar)
                     .match(node)
                     .where(node.property(idProperty).isEqualTo(idVar))
@@ -323,7 +326,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             // Render Cypher
             String cypher = Renderer.getDefaultRenderer().render(full);
-            final Map<String, Object> params = Map.of("ids", ids);
+            Map<String, Object> params = Map.of("ids", ids);
             session.run(cypher, params);
         }
     }
@@ -332,14 +335,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(Filter filter) {
         ensureNotNull(filter, "filter");
 
-        try (var session = session()) {
+        try (Session session = session()) {
 
             // Build a "CALL { MATCH (n:<label>) WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
             // DETACH DELETE n } IN TRANSACTIONS ",
-            var node = node(label).named("node");
-            final Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
+            Node node = node(label).named("node");
+            Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
 
-            var match = match(node)
+            Statement match = match(node)
                     .where(neo4jFilterMapper.getCondition(filter))
                     .detachDelete(node)
                     .build();
@@ -356,10 +359,10 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
 
-        var embeddingValue = Values.value(request.queryEmbedding().vector());
+        Value embeddingValue = Values.value(request.queryEmbedding().vector());
 
-        try (var session = session()) {
-            final Filter filter = request.filter();
+        try (Session session = session()) {
+            Filter filter = request.filter();
             if (filter == null) {
                 return getSearchResUsingVectorIndex(request, embeddingValue, session);
             }
@@ -384,9 +387,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         */
 
         // Match Clause
-        var node = node(this.label).named("node");
+        Node node = node(this.label).named("node");
 
-        final Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
+        Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
 
         // WHERE conditions
         Condition condition = node.property(this.embeddingProperty)
@@ -415,7 +418,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         // Render the Cypher query
         String cypherQuery = Renderer.getDefaultRenderer().render(statement);
 
-        final Map<String, Object> params = new HashMap<>(); // entry.getValue();
+        Map<String, Object> params = new HashMap<>(); // entry.getValue();
         params.put("minScore", request.minScore());
         params.put("maxResults", request.maxResults());
         return getEmbeddingSearchResult(session, cypherQuery, params);
@@ -448,14 +451,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 "maxResults",
                 request.maxResults()));
 
-        var indexNameParam = parameter("indexName");
-        var maxResultsParam = parameter("maxResults");
-        var embeddingValueParam = parameter("embeddingValue");
-        var minScoreParam = parameter("minScore");
+        Parameter<Object> indexNameParam = parameter("indexName");
+        Parameter<Object> maxResultsParam = parameter("maxResults");
+        Parameter<Object> embeddingValueParam = parameter("embeddingValue");
+        Parameter<Object> minScoreParam = parameter("minScore");
 
         // Build a "CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue) YIELD node, score WHERE
         // score >= $minScore <retrievalQuery>"
-        var vectorQuery = call("db.index.vector.queryNodes")
+        Statement vectorQuery = call("db.index.vector.queryNodes")
                 .withArgs(indexNameParam, maxResultsParam, embeddingValueParam)
                 .yield("node", "score")
                 .where(name("score").gte(minScoreParam))
@@ -472,10 +475,10 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             YIELD node, score
             WHERE score >= $minScore
              */
-            var fullTextIndexNameParam = parameter("fullTextIndexName");
-            var fullTextQueryParam = parameter("fullTextQuery");
+            Parameter<Object> fullTextIndexNameParam = parameter("fullTextIndexName");
+            Parameter<Object> fullTextQueryParam = parameter("fullTextQuery");
 
-            var fullTextSearch = call("db.index.fulltext.queryNodes")
+            Statement fullTextSearch = call("db.index.fulltext.queryNodes")
                     .withArgs(fullTextIndexNameParam, fullTextQueryParam, mapOf("limit", maxResultsParam))
                     .yield("node", "score")
                     .where(name("score").gte(minScoreParam))
@@ -496,8 +499,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         String cypherQuery = Renderer.getDefaultRenderer().render(statement);
         System.out.println(cypherQuery);
 
-        final Set<String> columns = getColumnNames(session, cypherQuery);
-        final Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
+        Set<String> columns = getColumnNames(session, cypherQuery);
+        Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
 
         if (!allowedColumn.containsAll(columns) || columns.size() > allowedColumn.size()) {
             throw new RuntimeException(COLUMNS_NOT_ALLOWED_ERR + columns);
@@ -520,7 +523,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private Set<String> getColumnNames(Session session, String query) {
         // retrieve column names
-        final List<String> keys = session.run("EXPLAIN " + query).keys();
+        List<String> keys = session.run("EXPLAIN " + query).keys();
         // when there are multiple variables with the same name, e.g. within a "UNION ALL" Neo4j adds a suffix
         // "@<number>" to distinguish them,
         //  so to check the correctness of the output parameters we must first remove this suffix from the column names
@@ -548,7 +551,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private void bulk(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
         Stream<List<Map<String, Object>>> rowsBatched = getRowsBatched(this, ids, embeddings, embedded);
 
-        try (var session = session()) {
+        try (Session session = session()) {
             rowsBatched.forEach(rows -> {
                 String statement = String.format(
                         ENTITIES_CREATION, this.sanitizedLabel, this.sanitizedIdProperty, PROPS, EMBEDDINGS_ROW_KEY);
@@ -571,22 +574,22 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private boolean constraintExist() {
-        try (var session = session()) {
-            var query =
+        try (Session session = session()) {
+            String query =
                     """
-                    SHOW CONSTRAINTS
-                    WHERE $label IN labelsOrTypes
-                    AND $property IN properties
-                    AND type IN ['NODE_KEY', 'UNIQUENESS']
-                    """;
-            var result = session.run(query, Map.of("label", this.label, "property", this.idProperty));
+                            SHOW CONSTRAINTS
+                            WHERE $label IN labelsOrTypes
+                            AND $property IN properties
+                            AND type IN ['NODE_KEY', 'UNIQUENESS']
+                            """;
+            Result result = session.run(query, Map.of("label", this.label, "property", this.idProperty));
 
             return !result.list().isEmpty();
         }
     }
 
     private void createUniqueConstraint() {
-        try (var session = session()) {
+        try (Session session = session()) {
             String query = String.format(
                     "CREATE CONSTRAINT IF NOT EXISTS FOR (n:%s) REQUIRE n.%s IS UNIQUE",
                     this.sanitizedLabel, this.sanitizedIdProperty);
@@ -595,13 +598,13 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private boolean indexExists() {
-        try (var session = session()) {
+        try (Session session = session()) {
             Map<String, Object> params = Map.of("name", this.indexName);
-            var resIndex = session.run("SHOW VECTOR INDEX WHERE name = $name", params);
+            Result resIndex = session.run("SHOW VECTOR INDEX WHERE name = $name", params);
             if (!resIndex.hasNext()) {
                 return false;
             }
-            var record = resIndex.single();
+            Record record = resIndex.single();
             List<String> idxLabels = record.get("labelsOrTypes").asList(Value::asString);
             List<Object> idxProps = record.get("properties").asList();
 
@@ -626,9 +629,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             return;
         }
 
-        try (var session = session()) {
-
-            final String query = String.format(
+        try (Session session = session()) {
+            String query = String.format(
                     "CREATE FULLTEXT INDEX %s IF NOT EXISTS FOR (n:%s) ON EACH [n.%s]",
                     this.fullTextIndexName, this.sanitizedLabel, this.sanitizedIdProperty);
             session.run(query).consume();
@@ -647,8 +649,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 this.dimension);
 
         // create vector index
-        try (var session = session()) {
-            final String createIndexQuery = String.format(
+        try (Session session = session()) {
+            String createIndexQuery = String.format(
                     CREATE_VECTOR_INDEX, indexName, sanitizedLabel, sanitizedEmbeddingProperty, dimension);
             session.run(createIndexQuery, params);
 

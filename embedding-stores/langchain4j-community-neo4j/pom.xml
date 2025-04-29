@@ -12,8 +12,8 @@
     <name>LangChain4j :: Community :: Integration :: Neo4j</name>
 
     <properties>
-        <neo4j.version>1.2.0</neo4j.version>
-        <neo4j.cypher.dsl.version>2023.7.0</neo4j.cypher.dsl.version>
+        <neo4j.version>5.26.0</neo4j.version>
+        <neo4j.cypher.dsl.version>2024.5.1</neo4j.cypher.dsl.version>
     </properties>
 
     <dependencies>
@@ -24,9 +24,25 @@
         </dependency>
 
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>5.15.0</version>
+            <version>${neo4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-dsl</artifactId>
+            <version>${neo4j.cypher.dsl.version}</version>
         </dependency>
 
         <dependency>
@@ -121,12 +137,6 @@
             <artifactId>langchain4j-open-ai</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-cypher-dsl</artifactId>
-            <version>2024.5.1</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

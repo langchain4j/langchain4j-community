@@ -13,8 +13,8 @@
     <name>LangChain4j :: Community :: Content Retriever :: Neo4j</name>
 
     <properties>
-        <neo4j.cypher.dsl.version>2024.5.1</neo4j.cypher.dsl.version>
         <neo4j.version>5.26.0</neo4j.version>
+        <neo4j.cypher.dsl.version>2024.5.1</neo4j.cypher.dsl.version>
     </properties>
 
     <dependencies>
@@ -23,6 +23,11 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-core</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
 
         <dependency>

@@ -101,16 +101,16 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
         String examplesString = "";
         if (!this.examples.isEmpty()) {
-            final String exampleJoin = String.join("\n", this.examples);
+            String exampleJoin = String.join("\n", this.examples);
             examplesString = String.format("Cypher examples: \n%s\n", exampleJoin);
         }
-        final Map<String, Object> templateVariables =
+        Map<String, Object> templateVariables =
                 Map.of("schema", schema, "question", question, "examples", examplesString);
-        final String cypherPrompt = promptTemplate.apply(templateVariables).text();
+        String cypherPrompt = promptTemplate.apply(templateVariables).text();
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(UserMessage.from(cypherPrompt));
 
-        final String emptyResultMsg =
+        String emptyResultMsg =
                 "The query result is empty. If `maxRetries` number is not reached, the query will be re-generated";
         try {
             return withRetry(
@@ -121,28 +121,28 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                         try {
                             response = executeQuery(cypherQuery);
                         } catch (Exception e) {
-                            final String errorUserMsg = String.format(
+                            String errorUserMsg = String.format(
                                     """
-                            The previous Cypher Statement throws the following error, consider it to return the correct statement: `%s`.
-                            Please, try to return a valid query.
+                                            The previous Cypher Statement throws the following error, consider it to return the correct statement: `%s`.
+                                            Please, try to return a valid query.
 
-                            Cypher query:
-                            """,
+                                            Cypher query:
+                                            """,
                                     e.getMessage());
                             messages.add(UserMessage.from(errorUserMsg));
                             throw e;
                         }
 
-                        final List<Content> list =
+                        List<Content> list =
                                 response.stream().map(Content::from).toList();
                         if (list.isEmpty()) {
-                            final String errorUserMsg =
+                            String errorUserMsg =
                                     """
-                            The previous Cypher Statement returns no result, consider it to return the correct statement.
-                            Please, try to return a valid query.
+                                            The previous Cypher Statement returns no result, consider it to return the correct statement.
+                                            Please, try to return a valid query.
 
-                            Cypher query:
-                            """;
+                                            Cypher query:
+                                            """;
                             messages.add(UserMessage.from(errorUserMsg));
                             throw new RuntimeException(emptyResultMsg);
                         }
@@ -195,8 +195,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         return records.stream()
                 .flatMap(r -> r.values().stream())
                 .map(value -> {
-                    final boolean isEntity =
-                            NODE.isTypeOf(value) || RELATIONSHIP.isTypeOf(value) || PATH.isTypeOf(value);
+                    boolean isEntity = NODE.isTypeOf(value) || RELATIONSHIP.isTypeOf(value) || PATH.isTypeOf(value);
                     if (isEntity) {
                         return value.asMap().toString();
                     }
@@ -243,7 +242,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
          * @param relationships the list of relationships, if not null fix (if needed) the generated query via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withRelationshipDefinition(Configuration.RelationshipDefinition)}
          *                      for example, a List.of( "(Foo, WROTE, Baz)", "(Jack, KNOWS, John)" ),
          *                      will create configuration.withRelationshipDefinition(new RelationshipDefinition("Foo", "WROTE", "Baz"))
-         *                                  .withRelationshipDefinition("Jack", "KNOWS", "John")
+         *                      .withRelationshipDefinition("Jack", "KNOWS", "John")
          *                      (default is: empty list)
          */
         public Builder relationships(List<String> relationships) {
