@@ -34,7 +34,7 @@ class GraphNodeTest {
         // then
         assertThat(node.id()).isEqualTo(id);
         assertThat(node.type()).isEqualTo("Node");
-        assertThat(node.properties()).isNull();
+        assertThat(node.properties()).isEmpty();
     }
 
     @Test
