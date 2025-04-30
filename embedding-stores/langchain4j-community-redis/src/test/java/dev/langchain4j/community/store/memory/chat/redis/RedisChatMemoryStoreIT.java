@@ -83,6 +83,67 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
+    void should_set_messages_with_ttl_into_redis() {
+        RedisChatMemoryStore ttlMemoryStore = RedisChatMemoryStore.builder()
+                .port(redis.getFirstMappedPort())
+                .host(redis.getHost())
+                .ttl(3L) // 3 seconds
+                .build();
+
+        // given
+        List<ChatMessage> messages = ttlMemoryStore.getMessages(userId);
+        assertThat(messages).isEmpty();
+
+        // when
+        List<ChatMessage> chatMessages = new ArrayList<>();
+        chatMessages.add(new SystemMessage("You are a large language model working with Langchain4j"));
+        List<Content> userMsgContents = new ArrayList<>();
+        userMsgContents.add(new ImageContent("someCatImageUrl"));
+        chatMessages.add(new UserMessage("What do you see in this image?", userMsgContents));
+        ttlMemoryStore.updateMessages(userId, chatMessages);
+
+        // then
+        messages = ttlMemoryStore.getMessages(userId);
+        assertThat(messages).hasSize(2);
+
+        // wait for 4 seconds to check if the messages are deleted
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        // verify that messages
+        messages = ttlMemoryStore.getMessages(userId);
+        assertThat(messages).isEmpty();
+    }
+
+    @Test
+    void should_set_messages_with_prefix_into_redis() {
+        RedisChatMemoryStore prefixStore = RedisChatMemoryStore.builder()
+                .port(redis.getFirstMappedPort())
+                .host(redis.getHost())
+                .prefix("chat:")
+                .build();
+
+        // given
+        List<ChatMessage> messages = prefixStore.getMessages(userId);
+        assertThat(messages).isEmpty();
+
+        // when
+        List<ChatMessage> chatMessages = new ArrayList<>();
+        chatMessages.add(new SystemMessage("You are a large language model working with Langchain4j"));
+        List<Content> userMsgContents = new ArrayList<>();
+        userMsgContents.add(new ImageContent("someCatImageUrl"));
+        chatMessages.add(new UserMessage("What do you see in this image?", userMsgContents));
+        prefixStore.updateMessages(userId, chatMessages);
+
+        // then
+        messages = prefixStore.getMessages(userId);
+        assertThat(messages).hasSize(2);
+    }
+
+    @Test
     void getMessages_memoryId_null() {
         assertThatThrownBy(() -> memoryStore.getMessages(null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -171,6 +232,28 @@ class RedisChatMemoryStoreIT {
                         .build())
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("host cannot be null or blank");
+    }
+
+    @Test
+    void constructor_ttl_null() {
+        assertThatThrownBy(() -> RedisChatMemoryStore.builder()
+                        .port(redis.getFirstMappedPort())
+                        .host(redis.getHost())
+                        .ttl(null)
+                        .build())
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("ttl cannot be null");
+    }
+
+    @Test
+    void constructor_prefix_null() {
+        assertThatThrownBy(() -> RedisChatMemoryStore.builder()
+                        .port(redis.getFirstMappedPort())
+                        .host(redis.getHost())
+                        .prefix(null)
+                        .build())
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("prefix cannot be null");
     }
 
     @Test
