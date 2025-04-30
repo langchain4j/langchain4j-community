@@ -1,5 +1,6 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
+import static dev.langchain4j.community.store.Neo4jUtils.functionDef;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_AWAIT_INDEX_TIMEOUT;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_DATABASE_NAME;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_EMBEDDING_PROP;
@@ -399,7 +400,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         // Cosine similarity
         Expression similarity = FunctionInvocation.create(
-                functionDefinition, node.property(this.embeddingProperty), toCypherLiteral(embeddingValue));
+                functionDef("vector.similarity.cosine"),
+                node.property(this.embeddingProperty),
+                toCypherLiteral(embeddingValue));
 
         // Filtering by score
         Condition scoreCondition = similarity.gte(parameter("minScore"));
@@ -424,19 +427,19 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         return getEmbeddingSearchResult(session, cypherQuery, params);
     }
 
-    private final FunctionInvocation.FunctionDefinition functionDefinition =
-            new FunctionInvocation.FunctionDefinition() {
-
-                @Override
-                public String getImplementationName() {
-                    return "vector.similarity.cosine";
-                }
-
-                @Override
-                public boolean isAggregate() {
-                    return false;
-                }
-            };
+    //    private final FunctionInvocation.FunctionDefinition functionDefinition =
+    //            new FunctionInvocation.FunctionDefinition() {
+    //
+    //                @Override
+    //                public String getImplementationName() {
+    //                    return "vector.similarity.cosine";
+    //                }
+    //
+    //                @Override
+    //                public boolean isAggregate() {
+    //                    return false;
+    //                }
+    //            };
 
     private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorIndex(
             EmbeddingSearchRequest request, Value embeddingValue, Session session) {

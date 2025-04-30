@@ -1,11 +1,25 @@
 package dev.langchain4j.community.store.memory.chat.neo4j;
 
+import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_ID_PROP;
+import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_LAST_REL_TYPE;
+import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_MEMORY_LABEL;
+import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_MESSAGE_LABEL;
+import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_MESSAGE_PROP;
+import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_REL_TYPE_NEXT;
+import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_SIZE_VALUE;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,39 +37,22 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_ID_PROP;
-import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_MESSAGE_LABEL;
-import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_LAST_REL_TYPE;
-import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_MEMORY_LABEL;
-import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_MESSAGE_PROP;
-import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_REL_TYPE_NEXT;
-import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jChatMemoryStore.DEFAULT_WINDOW_VALUE;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 @Testcontainers
 public class Neo4jChatMemoryStoreIT {
 
     protected static final String USERNAME = "neo4j";
     protected static final String ADMIN_PASSWORD = "adminPass";
-    protected static final String LABEL_TO_SANITIZE = "Label ` to \\ sanitize";
-    protected static final String REL_TO_SANITIZE = "Rel ` to \\ sanitize";
     protected static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26");
-    
+
     protected static Driver driver;
     private Neo4jChatMemoryStore memoryStore;
     private final String messageId = "someUserId";
-    
+
     @Container
-    protected static Neo4jContainer<?> neo4jContainer =
-            new Neo4jContainer<>(DockerImageName.parse("neo4j:" + NEO4J_VERSION))
-                    .withPlugins("apoc")
-                    .withAdminPassword(ADMIN_PASSWORD);
+    protected static Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>(
+                    DockerImageName.parse("neo4j:" + NEO4J_VERSION))
+            .withPlugins("apoc")
+            .withAdminPassword(ADMIN_PASSWORD);
 
     @BeforeAll
     static void beforeAll() {
@@ -64,11 +61,9 @@ public class Neo4jChatMemoryStoreIT {
 
     @BeforeEach
     void setUp() {
-        memoryStore = Neo4jChatMemoryStore.builder()
-                .driver(driver)
-                .build();
+        memoryStore = Neo4jChatMemoryStore.builder().driver(driver).build();
     }
-    
+
     @AfterEach
     void afterEach() {
         memoryStore.deleteMessages(messageId);
@@ -78,29 +73,27 @@ public class Neo4jChatMemoryStoreIT {
         final List<Record> nodes = driver.session().run("MATCH (n) RETURN n").list();
         assertThat(nodes).isEmpty();
     }
-    
 
     @AfterAll
     static void afterAll() {
         driver.close();
     }
 
-
     @Test
-    void should_set_and_uptate_messages_into_neo4j() {
+    void should_set_and_update_messages_into_neo4j() {
         // given
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
         assertThat(messages).isEmpty();
 
-        
         List<ChatMessage> chatMessages = createChatMessages();
         memoryStore.updateMessages(messageId, chatMessages);
         messages = memoryStore.getMessages(messageId);
         assertThat(messages).hasSize(3);
         assertThat(messages).isEqualTo(chatMessages);
-        
+
         List<Content> userMsgContents = List.of(new ImageContent("someCatImageUrl"));
-        final List<ChatMessage> chatNewMessages = List.of(new UserMessage("What do you see in this image?", userMsgContents));
+        final List<ChatMessage> chatNewMessages =
+                List.of(new UserMessage("What do you see in this image?", userMsgContents));
         memoryStore.updateMessages(messageId, chatNewMessages);
 
         // then
@@ -122,10 +115,10 @@ public class Neo4jChatMemoryStoreIT {
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
         assertThat(messages).hasSize(3);
         assertThat(messages).isEqualTo(chatMessages);
-        
+
         // when
         memoryStore.deleteMessages(messageId);
-        
+
         // then
         messages = memoryStore.getMessages(messageId);
         assertThat(messages).isEmpty();
@@ -139,8 +132,13 @@ public class Neo4jChatMemoryStoreIT {
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
         assertThat(messages).hasSize(3);
         assertThat(messages).isEqualTo(chatMessages);
-        checkEntitiesCreated(DEFAULT_ID_PROP, DEFAULT_MESSAGE_PROP, DEFAULT_MEMORY_LABEL, DEFAULT_LAST_REL_TYPE, DEFAULT_MESSAGE_LABEL, DEFAULT_REL_TYPE_NEXT);
-
+        checkEntitiesCreated(
+                DEFAULT_ID_PROP,
+                DEFAULT_MESSAGE_PROP,
+                DEFAULT_MEMORY_LABEL,
+                DEFAULT_LAST_REL_TYPE,
+                DEFAULT_MESSAGE_LABEL,
+                DEFAULT_REL_TYPE_NEXT);
 
         // when
         memoryStore.deleteMessages(messageId);
@@ -149,7 +147,7 @@ public class Neo4jChatMemoryStoreIT {
         messages = memoryStore.getMessages(messageId);
         assertThat(messages).isEmpty();
     }
-    
+
     @Test
     void should_only_delete_messages_with_correct_memory_id() {
         final String anotherMessageId = "anotherId";
@@ -163,11 +161,9 @@ public class Neo4jChatMemoryStoreIT {
         assertThat(messagesBefore).hasSize(3);
         assertThat(messagesBefore).isEqualTo(chatMessages1);
 
-
         List<ChatMessage> messages2Before = memoryStore.getMessages(anotherMessageId);
         assertThat(messages2Before).hasSize(3);
         assertThat(messages2Before).isEqualTo(chatMessages2);
-
 
         memoryStore.deleteMessages(messageId);
 
@@ -185,19 +181,18 @@ public class Neo4jChatMemoryStoreIT {
 
     @Test
     void should_only_delete_messages_with_custom_labels_and_rel_type() {
-        // todo - change with LABEL_TO_SANITIZE and REL_TO_SANITIZE after cypher-dsl
-        final String labelCustom = "LABEL_CUSTOM";
-        final String relCustom = "REL_CUSTOM";
-        final String labelCustom2 = "LABEL_CUSTOM_2";
-        final String relCustom2 = "REL_CUSTOM_2";
+        final String memoryLabel = "Label ` to \\ sanitize";
+        final String lastMessageRel = "Rel ` to \\ sanitize";
+        final String messageLabel = "Second Label ` to  sanitize";
+        final String nextMessageRel = "Second Rel \\ to  sanitize";
         final String idPropCustom = "idPropCustom";
         final String msgPropCustom = "msgPropCustom";
         Neo4jChatMemoryStore memoryStore = Neo4jChatMemoryStore.builder()
                 .driver(driver)
-                .memoryLabel(labelCustom)
-                .messageLabel(labelCustom2)
-                .lastMessageRelType(relCustom)
-                .nextMessageRelType(relCustom2)
+                .memoryLabel(memoryLabel)
+                .messageLabel(messageLabel)
+                .lastMessageRelType(lastMessageRel)
+                .nextMessageRelType(nextMessageRel)
                 .idProperty(idPropCustom)
                 .messageProperty(msgPropCustom)
                 .build();
@@ -207,77 +202,83 @@ public class Neo4jChatMemoryStoreIT {
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
         assertThat(messages).hasSize(3);
         assertThat(messages).isEqualTo(chatMessages1);
-        final List<Record> list = driver.session().run("MATCH (n:Memory) RETURN n").list();
+        final List<Record> list =
+                driver.session().run("MATCH (n:Memory) RETURN n").list();
         assertThat(list).isEmpty();
-        final List<Record> list2 = driver.session().run("MATCH (n:Message) RETURN n").list();
+        final List<Record> list2 =
+                driver.session().run("MATCH (n:Message) RETURN n").list();
         assertThat(list2).isEmpty();
-        
-        checkEntitiesCreated(idPropCustom, msgPropCustom, labelCustom, relCustom, labelCustom2, relCustom2);
+
+        checkEntitiesCreated(idPropCustom, msgPropCustom, memoryLabel, lastMessageRel, messageLabel, nextMessageRel);
 
         memoryStore.deleteMessages(messageId);
         List<ChatMessage> messagesAfterDelete = memoryStore.getMessages(messageId);
         assertThat(messagesAfterDelete).isEmpty();
     }
 
-    private void checkEntitiesCreated(String idPropToSanitize, String msgPropToSanitize, String labelCustom, String relCustom, String labelCustom2, String relCustom2) {
+    private void checkEntitiesCreated(
+            String idPropToSanitize,
+            String msgPropToSanitize,
+            String memoryLabel,
+            String lastMessageRel,
+            String messageLabel,
+            String nextMessageRel) {
         // the single() method Throws `NoSuchRecordException`, if there is not exactly one record left in the stream
-        final Record record = driver.session().run("MATCH p=()-[]->()<-[]-()<-[]-() RETURN p")
-                .single();
+        final Record record =
+                driver.session().run("MATCH p=()-[]->()<-[]-()<-[]-() RETURN p").single();
         final Path path = record.get("p").asPath();
         final Iterator<Node> nodeIterator = path.nodes().iterator();
         Node node = nodeIterator.next();
         Map<String, Object> actualProps = node.asMap();
         assertThat(actualProps).isEqualTo(Map.of(idPropToSanitize, messageId));
-        assertThat(node.labels()).containsExactly(labelCustom);
-        
+        assertThat(node.labels()).containsExactly(memoryLabel);
+
         node = nodeIterator.next();
         actualProps = node.asMap();
         assertThat(actualProps).containsKey(msgPropToSanitize);
-        assertThat(node.labels()).containsExactly(labelCustom2);
-        
+        assertThat(node.labels()).containsExactly(messageLabel);
+
         node = nodeIterator.next();
         actualProps = node.asMap();
         assertThat(actualProps).containsKey(msgPropToSanitize);
-        assertThat(node.labels()).containsExactly(labelCustom2);
-        
+        assertThat(node.labels()).containsExactly(messageLabel);
+
         node = nodeIterator.next();
         actualProps = node.asMap();
         assertThat(actualProps).containsKey(msgPropToSanitize);
-        assertThat(node.labels()).containsExactly(labelCustom2);
-        
+        assertThat(node.labels()).containsExactly(messageLabel);
+
         assertThat(nodeIterator.hasNext()).isFalse();
 
         final Iterator<Relationship> relIterator = path.relationships().iterator();
         String relType = relIterator.next().type();
-        assertThat(relType).isEqualTo(relCustom);
-        
+        assertThat(relType).isEqualTo(lastMessageRel);
+
         relType = relIterator.next().type();
-        assertThat(relType).isEqualTo(relCustom2);
-        
+        assertThat(relType).isEqualTo(nextMessageRel);
+
         relType = relIterator.next().type();
-        assertThat(relType).isEqualTo(relCustom2);
-        
+        assertThat(relType).isEqualTo(nextMessageRel);
+
         assertThat(relIterator.hasNext()).isFalse();
     }
 
     @Test
     void should_only_search_first_three_messages_besides_last_message() {
-        final long size = 3L;
-        Neo4jChatMemoryStore memoryStore = Neo4jChatMemoryStore.builder()
-                .driver(driver)
-                .size(size)
-                .build();
-        
+        final int size = 3;
+        Neo4jChatMemoryStore memoryStore =
+                Neo4jChatMemoryStore.builder().driver(driver).size(size).build();
+
         final List<ChatMessage> chatMessages1 = new ArrayList<>();
         chatMessages1.addAll(createChatMessages());
         chatMessages1.addAll(createChatMessages());
         chatMessages1.addAll(createChatMessages());
         chatMessages1.addAll(createChatMessages());
         memoryStore.updateMessages(messageId, chatMessages1);
-        
+
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
         assertThat(messages).hasSize((int) (size + 1));
-        
+
         final List<ChatMessage> expectedChatMessages = new ArrayList<>();
         expectedChatMessages.add(new AiMessage("baz"));
         expectedChatMessages.addAll(createChatMessages());
@@ -286,9 +287,8 @@ public class Neo4jChatMemoryStoreIT {
 
     @Test
     void should_only_search_first_ten_messages_besides_last_message() {
-        Neo4jChatMemoryStore memoryStore = Neo4jChatMemoryStore.builder()
-                .driver(driver)
-                .build();
+        Neo4jChatMemoryStore memoryStore =
+                Neo4jChatMemoryStore.builder().driver(driver).build();
 
         final List<ChatMessage> chatMessages1 = new ArrayList<>();
         chatMessages1.addAll(createChatMessages());
@@ -296,10 +296,10 @@ public class Neo4jChatMemoryStoreIT {
         chatMessages1.addAll(createChatMessages());
         chatMessages1.addAll(createChatMessages());
         memoryStore.updateMessages(messageId, chatMessages1);
-        
+
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
-        assertThat(messages).hasSize((int) (DEFAULT_WINDOW_VALUE + 1));
-        
+        assertThat(messages).hasSize((int) (DEFAULT_SIZE_VALUE + 1));
+
         final List<ChatMessage> expectedChatMessages = new ArrayList<>();
         expectedChatMessages.add(new UserMessage("bar"));
         expectedChatMessages.add(new AiMessage("baz"));
@@ -311,10 +311,8 @@ public class Neo4jChatMemoryStoreIT {
 
     @Test
     void should_search_all_messages() {
-        Neo4jChatMemoryStore memoryStore = Neo4jChatMemoryStore.builder()
-                .driver(driver)
-                .size(0L)
-                .build();
+        Neo4jChatMemoryStore memoryStore =
+                Neo4jChatMemoryStore.builder().driver(driver).size(0).build();
 
         final List<ChatMessage> chatMessages1 = new ArrayList<>();
         chatMessages1.addAll(createChatMessages());
@@ -327,7 +325,7 @@ public class Neo4jChatMemoryStoreIT {
         assertThat(messages).hasSize(12);
         assertThat(messages).isEqualTo(chatMessages1);
     }
-    
+
     @Test
     void getMessages_memoryId_null() {
         assertThatThrownBy(() -> memoryStore.getMessages(null))
@@ -391,18 +389,12 @@ public class Neo4jChatMemoryStoreIT {
 
     @Test
     void constructor_driver_null() {
-        assertThatThrownBy(() -> Neo4jChatMemoryStore.builder()
-                .driver(null)
-                .build())
+        assertThatThrownBy(() -> Neo4jChatMemoryStore.builder().driver(null).build())
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("driver cannot be null");
     }
 
     private static List<ChatMessage> createChatMessages() {
-        return new ArrayList<>(List.of(
-                new SystemMessage("foo"), 
-                new UserMessage("bar"), 
-                new AiMessage("baz")
-        ));
+        return new ArrayList<>(List.of(new SystemMessage("foo"), new UserMessage("bar"), new AiMessage("baz")));
     }
 }
