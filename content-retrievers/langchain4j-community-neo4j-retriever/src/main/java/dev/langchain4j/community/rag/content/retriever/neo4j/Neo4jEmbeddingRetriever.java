@@ -30,7 +30,7 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 
 public class Neo4jEmbeddingRetriever implements ContentRetriever {
-    public static final String DEFAULT_PROMPT_ANSWER =
+    public static final String DEFAULT_ANSWER_PROMPT =
             """
             You are an assistant that helps to form nice and human
             understandable answers based on the provided information from tools.
@@ -43,9 +43,9 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
     protected final EmbeddingModel embeddingModel;
     protected final ChatModel questionModel;
     protected final ChatModel answerModel;
-    protected final String promptSystem;
-    protected final String promptUser;
-    protected final String promptAnswer;
+    protected final String systemPrompt;
+    protected final String userPrompt;
+    protected final String answerPrompt;
     protected final Driver driver;
     protected final Integer maxResults;
     protected final Double minScore;
@@ -64,11 +64,11 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
      * @param query the Cypher query used to retrieve related documents
      * @param params the parameters to be used with the Cypher query
      * @param embeddingStore a custom Neo4jEmbeddingStore (optional)
-     * @param questionModel the language model used for the question prompt
-     * @param promptSystem the system prompt text
-     * @param promptUser the user prompt template
+     * @param questionModel the chat model used for the question prompt
+     * @param systemPrompt the system prompt text
+     * @param userPrompt the user prompt template
      * @param answerModel the language model used to generate answers
-     * @param promptAnswer the prompt template used to generate the answer (optional)
+     * @param answerPrompt the prompt template used to generate the answer (optional)
      * @param parentIdKey the key used to identify the parent document (optional)
      */
     public Neo4jEmbeddingRetriever(
@@ -80,10 +80,10 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
             Map<String, Object> params,
             Neo4jEmbeddingStore embeddingStore,
             ChatModel questionModel,
-            String promptSystem,
-            String promptUser,
+            String systemPrompt,
+            String userPrompt,
             ChatModel answerModel,
-            String promptAnswer,
+            String answerPrompt,
             String parentIdKey) {
         this.embeddingModel = ensureNotNull(embeddingModel, "embeddingModel");
         final Neo4jEmbeddingStore store = getOrDefault(embeddingStore, getDefaultEmbeddingStore(driver));
@@ -96,10 +96,10 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         this.params = params;
         this.questionModel = questionModel;
         this.answerModel = answerModel;
-        this.promptSystem = promptSystem;
-        this.promptAnswer = getOrDefault(promptAnswer, DEFAULT_PROMPT_ANSWER);
+        this.systemPrompt = systemPrompt;
+        this.answerPrompt = getOrDefault(answerPrompt, DEFAULT_ANSWER_PROMPT);
         this.parentIdKey = getOrDefault(parentIdKey, DEFAULT_PARENT_ID_KEY);
-        this.promptUser = promptUser;
+        this.userPrompt = userPrompt;
     }
 
     public static Builder builder() {
@@ -141,13 +141,13 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
                 String text;
 
                 if (this.questionModel != null) {
-                    if (promptSystem == null || promptUser == null) {
+                    if (systemPrompt == null || userPrompt == null) {
                         throw new RuntimeException("");
                     }
                     final SystemMessage systemMessage =
-                            Prompt.from(promptSystem).toSystemMessage();
+                            Prompt.from(systemPrompt).toSystemMessage();
 
-                    final PromptTemplate userTemplate = PromptTemplate.from(promptUser);
+                    final PromptTemplate userTemplate = PromptTemplate.from(userPrompt);
 
                     final UserMessage userMessage =
                             userTemplate.apply(Map.of("input", textInput)).toUserMessage();
@@ -235,7 +235,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
                     i -> i.embedded().text();
             final List<String> context = getList(request, embeddingMapFunction);
 
-            final String prompt = promptAnswer
+            final String prompt = answerPrompt
                     + """
                     Answer the question based only on the context provided.
 
@@ -269,10 +269,10 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         protected Map<String, Object> params = new HashMap<>();
         protected Neo4jEmbeddingStore embeddingStore;
         protected ChatModel questionModel;
-        protected String promptSystem;
-        protected String promptUser;
+        protected String systemPrompt;
+        protected String userPrompt;
         protected ChatModel chatAnswerModel;
-        protected String promptAnswer;
+        protected String answerPrompt;
         protected String parentIdKey;
 
         /**
@@ -332,7 +332,7 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         }
 
         /**
-         * @param questionModel the language model used for the question prompt
+         * @param questionModel the chat model used for the question prompt
          */
         public T questionModel(ChatModel questionModel) {
             this.questionModel = questionModel;
@@ -340,18 +340,18 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         }
 
         /**
-         * @param promptSystem the system prompt text
+         * @param systemPrompt the system prompt text
          */
-        public T promptSystem(String promptSystem) {
-            this.promptSystem = promptSystem;
+        public T systemPrompt(String systemPrompt) {
+            this.systemPrompt = systemPrompt;
             return self();
         }
 
         /**
-         * @param promptUser the user prompt template
+         * @param userPrompt the user prompt template
          */
-        public T promptUser(String promptUser) {
-            this.promptUser = promptUser;
+        public T userPrompt(String userPrompt) {
+            this.userPrompt = userPrompt;
             return self();
         }
 
@@ -364,10 +364,10 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
         }
 
         /**
-         * @param promptAnswer the prompt template used to generate the answer (optional)
+         * @param answerPrompt the prompt template used to generate the answer (optional)
          */
-        public T promptAnswer(String promptAnswer) {
-            this.promptAnswer = promptAnswer;
+        public T answerPrompt(String answerPrompt) {
+            this.answerPrompt = answerPrompt;
             return self();
         }
 
@@ -393,10 +393,10 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
                     params,
                     embeddingStore,
                     questionModel,
-                    promptSystem,
-                    promptUser,
+                    systemPrompt,
+                    userPrompt,
                     chatAnswerModel,
-                    promptAnswer,
+                    answerPrompt,
                     parentIdKey);
         }
     }

@@ -79,9 +79,9 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
                 .minScore(0.4)
                 .questionModel(chatLanguageModel)
                 .query("CREATE (:MainDoc $metadata)")
-                .promptUser("mock prompt user")
-                .promptSystem("mock prompt system")
-                .promptAnswer("mock prompt anwser")
+                .userPrompt("mock prompt user")
+                .systemPrompt("mock prompt system")
+                .answerPrompt("mock prompt anwser")
                 .build();
 
         Document parentDoc = getDocumentMiscTopics();
@@ -127,9 +127,9 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
                 .questionModel(chatLanguageModel)
                 .answerModel(chatLanguageModel)
                 .query("CREATE (:MainDoc $metadata)")
-                .promptUser("mock prompt user")
-                .promptSystem("mock prompt system")
-                .promptAnswer("mock prompt anwser")
+                .userPrompt("mock prompt user")
+                .systemPrompt("mock prompt system")
+                .answerPrompt("mock prompt anwser")
                 .build();
 
         Document parentDoc = getDocumentMiscTopics();

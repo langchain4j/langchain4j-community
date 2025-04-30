@@ -53,7 +53,7 @@ public class Neo4jEmbeddingRetrieverIT extends Neo4jEmbeddingRetrieverBaseTest {
                 .driver(driver)
                 .query("CREATE (:MainDoc $metadata)")
                 .answerModel(chatModel)
-                .promptAnswer(promptAnswer)
+                .answerPrompt(promptAnswer)
                 .maxResults(5)
                 .minScore(0.4)
                 .embeddingStore(neo4jEmbeddingStore)
