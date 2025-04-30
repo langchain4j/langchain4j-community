@@ -3,6 +3,7 @@ package dev.langchain4j.community.model.zhipu;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toTools;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toZhipuAiMessages;
 import static dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel.GLM_4_FLASH;
+import static dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode.AUTO;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
@@ -11,20 +12,17 @@ import static java.util.Collections.emptyList;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
-import dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode;
 import dev.langchain4j.community.model.zhipu.spi.ZhipuAiStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +37,7 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
     private final Integer maxToken;
     private final ZhipuAiClient client;
     private final List<ChatModelListener> listeners;
+    private final ChatRequestParameters defaultRequestParameters;
 
     public ZhipuAiStreamingChatModel(
             String baseUrl,
@@ -71,6 +70,23 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
                 .logRequests(getOrDefault(logRequests, false))
                 .logResponses(getOrDefault(logResponses, false))
                 .build();
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .temperature(this.temperature)
+                .topP(topP)
+                .stopSequences(stops)
+                .modelName(this.model)
+                .maxOutputTokens(this.maxToken)
+                .build();
+    }
+
+    @Override
+    public ChatRequestParameters defaultRequestParameters() {
+        return defaultRequestParameters;
+    }
+
+    @Override
+    public List<ChatModelListener> listeners() {
+        return listeners;
     }
 
     @Override
@@ -78,30 +94,24 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
         List<ChatMessage> messages = request.messages();
         List<ToolSpecification> toolSpecifications = request.toolSpecifications();
 
-        ChatCompletionRequest.Builder requestBuilder =
-                ChatCompletionRequest.builder().model(this.model).maxTokens(this.maxToken).stream(true)
-                        .stop(stops)
-                        .topP(this.topP)
-                        .temperature(this.temperature)
-                        .toolChoice(ToolChoiceMode.AUTO)
-                        .messages(toZhipuAiMessages(messages));
+        ChatRequestParameters parameters = request.parameters();
+        ChatCompletionRequest.Builder requestBuilder = ChatCompletionRequest.builder()
+                .model(parameters.modelName())
+                .messages(toZhipuAiMessages(messages))
+                .maxTokens(parameters.maxOutputTokens())
+                .stop(parameters.stopSequences())
+                .stream(true)
+                .temperature(parameters.temperature())
+                .topP(parameters.topP())
+                .toolChoice(AUTO);
 
         if (!isNullOrEmpty(toolSpecifications)) {
             requestBuilder.tools(toTools(toolSpecifications));
         }
 
         ChatCompletionRequest completionRequest = requestBuilder.build();
-        Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
-        for (ChatModelListener chatModelListener : listeners) {
-            try {
-                chatModelListener.onRequest(requestContext);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        }
 
-        client.streamingChatCompletion(completionRequest, handler, listeners, requestContext, provider());
+        client.streamingChatCompletion(completionRequest, handler);
     }
 
     public static ZhipuAiStreamingChatModelBuilder builder() {
