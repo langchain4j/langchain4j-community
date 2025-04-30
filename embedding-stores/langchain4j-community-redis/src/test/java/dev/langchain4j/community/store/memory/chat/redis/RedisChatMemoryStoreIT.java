@@ -119,6 +119,31 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
+    void should_set_messages_with_prefix_into_redis() {
+        RedisChatMemoryStore prefixStore = RedisChatMemoryStore.builder()
+                .port(redis.getFirstMappedPort())
+                .host(redis.getHost())
+                .prefix("chat:")
+                .build();
+
+        // given
+        List<ChatMessage> messages = prefixStore.getMessages(userId);
+        assertThat(messages).isEmpty();
+
+        // when
+        List<ChatMessage> chatMessages = new ArrayList<>();
+        chatMessages.add(new SystemMessage("You are a large language model working with Langchain4j"));
+        List<Content> userMsgContents = new ArrayList<>();
+        userMsgContents.add(new ImageContent("someCatImageUrl"));
+        chatMessages.add(new UserMessage("What do you see in this image?", userMsgContents));
+        prefixStore.updateMessages(userId, chatMessages);
+
+        // then
+        messages = prefixStore.getMessages(userId);
+        assertThat(messages).hasSize(2);
+    }
+
+    @Test
     void getMessages_memoryId_null() {
         assertThatThrownBy(() -> memoryStore.getMessages(null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
