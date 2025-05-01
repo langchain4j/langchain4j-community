@@ -139,6 +139,38 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
         }
     }
 
+    /**
+     * Creates an instance of RedisEmbeddingStore with a pre-configured Redis client
+     *
+     * @param jedisClient    Pre-configured JedisPooled client
+     * @param indexName      The name of the index (optional). Default value: "embedding-index".
+     * @param prefix         The prefix of the key, should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
+     * @param dimension      Embedding vector dimension
+     * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
+     */
+    public RedisEmbeddingStore(
+            JedisPooled jedisClient,
+            String indexName,
+            String prefix,
+            Integer dimension,
+            Map<String, SchemaField> metadataConfig) {
+        ensureNotNull(jedisClient, "jedisClient");
+
+        this.client = jedisClient;
+        this.schema = RedisSchema.builder()
+                .indexName(getOrDefault(indexName, "embedding-index"))
+                .prefix(getOrDefault(prefix, "embedding:"))
+                .dimension(dimension)
+                .metadataConfig(copyIfNotNull(metadataConfig))
+                .build();
+        this.filterMapper = new RedisMetadataFilterMapper(metadataConfig);
+
+        if (!isIndexExist(schema.indexName())) {
+            ensureNotNull(dimension, "dimension");
+            createIndex(schema.indexName());
+        }
+    }
+
     @Override
     public String add(Embedding embedding) {
         String id = randomUUID();
@@ -347,6 +379,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
         private String indexName;
         private String prefix;
         private Integer dimension;
+        private JedisPooled jedisClient;
         private Map<String, SchemaField> metadataConfig = new HashMap<>();
 
         public Builder uri(String uri) {
@@ -414,6 +447,15 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
         }
 
         /**
+         * @param jedisClient Pre-configured Redis client (optional)
+         * @return builder
+         */
+        public Builder jedisClient(JedisPooled jedisClient) {
+            this.jedisClient = jedisClient;
+            return this;
+        }
+
+        /**
          * @param metadataFieldsName metadata fields names (optional)
          * @deprecated use {@link #metadataKeys(Collection)} instead
          */
@@ -446,7 +488,9 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
         }
 
         public RedisEmbeddingStore build() {
-            if (uri != null) {
+            if (jedisClient != null) {
+                return new RedisEmbeddingStore(jedisClient, indexName, prefix, dimension, metadataConfig);
+            } else if (uri != null) {
                 return new RedisEmbeddingStore(uri, indexName, prefix, dimension, metadataConfig);
             } else {
                 return new RedisEmbeddingStore(

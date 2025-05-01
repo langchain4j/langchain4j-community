@@ -1,0 +1,15 @@
+# Test configuration for langchain4j-community-redis
+#
+# This file is only for local test execution and should not be committed to Git
+# Add this file to .gitignore to prevent accidental check-in
+#
+# To run tests with real API keys, either:
+# 1. Set environment variables: OPENAI_API_KEY and/or ANTHROPIC_API_KEY
+# 2. Pass system properties via Maven: mvn test -Dopenai.api.key=your-key-here
+# 3. Fill in the values below (don't commit them to Git!)
+
+# OpenAI API key - uncomment and set your key for local testing
+openai.api.key=your-key-here
+
+# Anthropic API key - uncomment and set your key for local testing  
+anthropic.api.key=your-key-here
