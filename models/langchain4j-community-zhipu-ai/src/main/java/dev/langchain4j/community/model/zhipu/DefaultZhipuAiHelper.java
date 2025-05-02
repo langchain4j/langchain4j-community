@@ -222,6 +222,17 @@ class DefaultZhipuAiHelper {
                 .build();
     }
 
+    public static ZhipuAiException toZhipuAiException(HttpException httpException) {
+        String message = httpException.getMessage();
+        if (Utils.isNullOrBlank(message)) {
+            return new ZhipuAiException(httpException.getMessage());
+        }
+        ErrorResponse errorResponse = Json.fromJson(message, ErrorResponse.class);
+        String code = errorResponse.getError().get("code");
+        String errorMessage = errorResponse.getError().get("message");
+        return new ZhipuAiException(code, errorMessage);
+    }
+
     static String getFinishReason(Object o) {
         if (o instanceof String) {
             // 1301: 系统检测到输入或生成内容可能包含不安全或敏感内容，请您避免输入易产生敏感内容的提示语，感谢您的配合

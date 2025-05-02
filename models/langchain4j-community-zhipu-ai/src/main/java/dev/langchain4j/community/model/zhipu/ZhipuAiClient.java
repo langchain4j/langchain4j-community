@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model.zhipu;
 
 import static com.google.common.net.HttpHeaders.AUTHORIZATION;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.aiMessageFrom;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.getFinishReason;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.specificationsFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toChatErrorResponse;
+import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toZhipuAiException;
 import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.tokenUsageFrom;
 import static dev.langchain4j.community.model.zhipu.Json.OBJECT_MAPPER;
 import static dev.langchain4j.http.client.HttpMethod.POST;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -33,11 +32,6 @@ import dev.langchain4j.http.client.log.LoggingHttpClient;
 import dev.langchain4j.http.client.sse.ServerSentEvent;
 import dev.langchain4j.http.client.sse.ServerSentEventListener;
 import dev.langchain4j.internal.Utils;
-import dev.langchain4j.model.ModelProvider;
-import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
@@ -89,8 +83,10 @@ class ZhipuAiClient {
         try {
             SuccessfulHttpResponse successfulHttpResponse = httpClient.execute(httpRequest);
             return Json.fromJson(successfulHttpResponse.body(), ChatCompletionResponse.class);
-        } catch (RuntimeException e) {
-            return toChatErrorResponse(e);
+        } catch (HttpException e) {
+            throw toZhipuAiException(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -118,12 +114,7 @@ class ZhipuAiClient {
         log.error("Error response: {}", errorMessage);
     }
 
-    void streamingChatCompletion(
-            ChatCompletionRequest request,
-            StreamingChatResponseHandler handler,
-            List<ChatModelListener> listeners,
-            ChatModelRequestContext requestContext,
-            ModelProvider provider) {
+    void streamingChatCompletion(ChatCompletionRequest request, StreamingChatResponseHandler handler) {
 
         HttpRequest httpRequest = HttpRequest.builder()
                 .url(baseUrl, "api/paas/v4/chat/completions")
@@ -138,6 +129,8 @@ class ZhipuAiClient {
             TokenUsage tokenUsage;
             FinishReason finishReason;
             ChatCompletionResponse chatCompletionResponse;
+            String modelName = null;
+            String id = null;
 
             @Override
             public void onEvent(final ServerSentEvent event) {
@@ -153,17 +146,9 @@ class ZhipuAiClient {
                             .aiMessage(aiMessage)
                             .tokenUsage(tokenUsage)
                             .finishReason(finishReason)
+                            .id(id)
+                            .modelName(modelName)
                             .build();
-
-                    ChatModelResponseContext responseContext = new ChatModelResponseContext(
-                            response, requestContext.chatRequest(), provider, requestContext.attributes());
-                    for (ChatModelListener listener : listeners) {
-                        try {
-                            listener.onResponse(responseContext);
-                        } catch (Exception e) {
-                            log.warn("Exception while calling model listener", e);
-                        }
-                    }
 
                     handler.onCompleteResponse(response);
                 } else {
@@ -174,6 +159,13 @@ class ZhipuAiClient {
                         String chunk = zhipuChatCompletionChoice.getDelta().getContent();
                         contentBuilder.append(chunk);
                         handler.onPartialResponse(chunk);
+
+                        if (isNotNullOrBlank(chatCompletionResponse.getId())) {
+                            id = chatCompletionResponse.getId();
+                        }
+                        if (isNotNullOrBlank(chatCompletionResponse.getModel())) {
+                            modelName = chatCompletionResponse.getModel();
+                        }
                         Usage zhipuUsageInfo = chatCompletionResponse.getUsage();
                         if (zhipuUsageInfo != null) {
                             this.tokenUsage = tokenUsageFrom(zhipuUsageInfo);
@@ -190,7 +182,7 @@ class ZhipuAiClient {
                             this.specifications = specificationsFrom(toolCalls);
                         }
                     } catch (Exception exception) {
-                        handleResponseException(exception, handler, requestContext, provider, listeners);
+                        handleResponseException(exception, handler);
                     }
                 }
             }
@@ -200,27 +192,7 @@ class ZhipuAiClient {
                 if (logResponses) {
                     log.debug("onError()", t);
                 }
-                Throwable throwable;
-                if (t instanceof HttpException httpException) {
-                    if (Utils.isNullOrBlank(httpException.getMessage())) {
-                        throwable = new ZhipuAiException(String.valueOf(httpException.statusCode()), null);
-                    } else {
-                        try {
-                            ErrorResponse errorResponse =
-                                    Json.fromJson(httpException.getMessage(), ErrorResponse.class);
-                            throwable = Utils.getOrDefault(
-                                    new ZhipuAiException(
-                                            errorResponse.getError().get("code"),
-                                            errorResponse.getError().get("message")),
-                                    t);
-                        } catch (Exception ignored) {
-                            throwable = new ZhipuAiException(String.valueOf(httpException.statusCode()), null);
-                        }
-                    }
-                } else {
-                    throwable = t;
-                }
-                handleResponseException(throwable, handler, requestContext, provider, listeners);
+                handleResponseException(t, handler);
             }
 
             @Override
@@ -233,34 +205,27 @@ class ZhipuAiClient {
         httpClient.execute(httpRequest, eventListener);
     }
 
-    private void handleResponseException(
-            Throwable throwable,
-            StreamingChatResponseHandler handler,
-            ChatModelRequestContext requestContext,
-            ModelProvider provider,
-            List<ChatModelListener> listeners) {
-        ChatModelErrorContext errorContext = new ChatModelErrorContext(
-                throwable, requestContext.chatRequest(), provider, requestContext.attributes());
-
-        listeners.forEach(listener -> {
-            try {
-                listener.onError(errorContext);
-            } catch (Exception e2) {
-                log.warn("Exception while calling model listener", e2);
+    private void handleResponseException(Throwable t, StreamingChatResponseHandler handler) {
+        Throwable throwable;
+        if (t instanceof HttpException httpException) {
+            if (Utils.isNullOrBlank(httpException.getMessage())) {
+                throwable = new ZhipuAiException(String.valueOf(httpException.statusCode()), null);
+            } else {
+                try {
+                    ErrorResponse errorResponse = Json.fromJson(httpException.getMessage(), ErrorResponse.class);
+                    throwable = Utils.getOrDefault(
+                            new ZhipuAiException(
+                                    errorResponse.getError().get("code"),
+                                    errorResponse.getError().get("message")),
+                            t);
+                } catch (Exception ignored) {
+                    throwable = new ZhipuAiException(String.valueOf(httpException.statusCode()), null);
+                }
             }
-        });
-
-        if (throwable instanceof ZhipuAiException) {
-            ChatCompletionResponse errorResponse = toChatErrorResponse(throwable);
-            ChatResponse response = ChatResponse.builder()
-                    .aiMessage(aiMessageFrom(errorResponse))
-                    .tokenUsage(tokenUsageFrom(errorResponse.getUsage()))
-                    .finishReason(finishReasonFrom(getFinishReason(throwable)))
-                    .build();
-            handler.onCompleteResponse(response);
         } else {
-            handler.onError(throwable);
+            throwable = t;
         }
+        handler.onError(throwable);
     }
 
     ImageResponse imagesGeneration(ImageRequest request) {

@@ -22,18 +22,14 @@ import dev.langchain4j.community.model.zhipu.spi.ZhipuAiChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +49,8 @@ public class ZhipuAiChatModel implements ChatModel {
     private final List<String> stops;
     private final ZhipuAiClient client;
     private final List<ChatModelListener> listeners;
+
+    private final ChatRequestParameters defaultRequestParameters;
 
     public ZhipuAiChatModel(
             String baseUrl,
@@ -87,35 +85,45 @@ public class ZhipuAiChatModel implements ChatModel {
                 .logRequests(getOrDefault(logRequests, false))
                 .logResponses(getOrDefault(logResponses, false))
                 .build();
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .temperature(this.temperature)
+                .topP(topP)
+                .stopSequences(stops)
+                .modelName(this.model)
+                .maxOutputTokens(this.maxToken)
+                .build();
+    }
+
+    @Override
+    public ChatRequestParameters defaultRequestParameters() {
+        return defaultRequestParameters;
+    }
+
+    @Override
+    public List<ChatModelListener> listeners() {
+        return listeners;
     }
 
     @Override
     public ChatResponse doChat(ChatRequest request) {
         List<ChatMessage> messages = request.messages();
         List<ToolSpecification> toolSpecifications = request.toolSpecifications();
-
-        ChatCompletionRequest.Builder requestBuilder =
-                ChatCompletionRequest.builder().model(this.model).maxTokens(this.maxToken).stream(false)
-                        .topP(this.topP)
-                        .stop(this.stops)
-                        .temperature(this.temperature)
-                        .toolChoice(AUTO)
-                        .messages(toZhipuAiMessages(messages));
+        ChatRequestParameters parameters = request.parameters();
+        ChatCompletionRequest.Builder requestBuilder = ChatCompletionRequest.builder()
+                .model(parameters.modelName())
+                .messages(toZhipuAiMessages(messages))
+                .maxTokens(parameters.maxOutputTokens())
+                .stop(parameters.stopSequences())
+                .stream(false)
+                .temperature(parameters.temperature())
+                .topP(parameters.topP())
+                .toolChoice(AUTO);
 
         if (!isNullOrEmpty(toolSpecifications)) {
             requestBuilder.tools(toTools(toolSpecifications));
         }
 
         ChatCompletionRequest completionRequest = requestBuilder.build();
-        Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
-        for (ChatModelListener chatModelListener : listeners) {
-            try {
-                chatModelListener.onRequest(requestContext);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        }
 
         ChatCompletionResponse completionResponse =
                 withRetry(() -> client.chatCompletion(completionRequest), maxRetries);
@@ -127,20 +135,13 @@ public class ZhipuAiChatModel implements ChatModel {
                 .aiMessage(aiMessageFrom(completionResponse))
                 .tokenUsage(tokenUsageFrom(completionResponse.getUsage()))
                 .finishReason(finishReason)
+                .id(completionResponse.getId())
+                .modelName(completionResponse.getModel())
                 .build();
 
-        listeners.forEach(listener -> {
-            try {
-                if (isSuccessFinishReason(finishReason)) {
-                    listener.onResponse(new ChatModelResponseContext(response, request, provider(), attributes));
-                } else {
-                    listener.onError(new ChatModelErrorContext(
-                            new ZhipuAiException(response.aiMessage().text()), request, provider(), attributes));
-                }
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        });
+        if (!isSuccessFinishReason(finishReason)) {
+            throw new ZhipuAiException(response.aiMessage().text());
+        }
         return response;
     }
 
