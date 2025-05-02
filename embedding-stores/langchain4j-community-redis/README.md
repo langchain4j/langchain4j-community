@@ -48,6 +48,18 @@ The `RedisCache` class provides Redis-based caching for LLM responses using exac
 
 The `RedisSemanticCache` class provides semantic caching for LLM responses using vector similarity. This allows finding semantically similar prompts and reusing their responses.
 
+#### Redis LangCache Embedding Model
+
+The Redis integration now includes support for the `redis/langcache-embed-v1` embedding model, which is fine-tuned specifically for semantic caching applications. This model provides better performance for caching LLM responses by generating embeddings that are optimized for semantic similarity of prompts.
+
+Key features:
+- Specifically trained for semantic caching use cases
+- 768-dimensional embeddings (smaller than OpenAI models)
+- Available as a public model on Hugging Face
+- Can be enabled with just a simple `.useDefaultRedisModel()` setting
+
+For more information, see the [model page on Hugging Face](https://huggingface.co/redis/langcache-embed-v1) and the [research paper](https://arxiv.org/abs/2504.02268).
+
 ## Redis for Semantic Routing
 
 The `RedisSemanticRouter` class provides semantic routing capabilities, allowing you to direct queries to appropriate handlers based on semantic similarity.
@@ -99,6 +111,8 @@ langchain4j.community.redis.semantic-cache.enabled=true
 langchain4j.community.redis.semantic-cache.ttl=3600
 langchain4j.community.redis.semantic-cache.prefix=semantic-cache
 langchain4j.community.redis.semantic-cache.similarity-threshold=0.2
+langchain4j.community.redis.semantic-cache.use-default-redis-model=true
+langchain4j.community.redis.semantic-cache.hugging-face-access-token=your-optional-token
 ```
 
 #### Redis Semantic Router Properties
@@ -216,16 +230,26 @@ if (cachedResponse == null) {
 // Create Redis client
 JedisPooled jedis = new JedisPooled("localhost", 6379);
 
-// Create embedding model
+// Option 1: Use the Redis LangCache embedding model (redis/langcache-embed-v1)
+// This model is fine-tuned specifically for semantic caching
+RedisSemanticCache semanticCache = RedisSemanticCache.builder()
+    .redis(jedis)
+    .useDefaultRedisModel() // Uses redis/langcache-embed-v1 by default
+    .huggingFaceAccessToken("your-optional-hf-token") // Optional, public models don't require it
+    .ttl(3600) // 1 hour TTL
+    .prefix("semantic-cache")
+    .similarityThreshold(0.2f)
+    .build();
+
+// Option 2: Use a custom embedding model
 EmbeddingModel embeddingModel = new OpenAiEmbeddingModel.builder()
     .apiKey(System.getenv("OPENAI_API_KEY"))
     .modelName("text-embedding-ada-002")
     .build();
 
-// Create semantic cache
-RedisSemanticCache semanticCache = RedisSemanticCache.builder()
+RedisSemanticCache semanticCacheWithCustomModel = RedisSemanticCache.builder()
     .redis(jedis)
-    .embeddingModel(embeddingModel)
+    .embeddingModel(embeddingModel) // Provide your own model
     .ttl(3600) // 1 hour TTL
     .prefix("semantic-cache")
     .similarityThreshold(0.2f)
