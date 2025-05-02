@@ -1,16 +1,16 @@
 package dev.langchain4j.community.model.zhipu;
 
+import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import dev.langchain4j.community.model.zhipu.image.ImageModelName;
 import dev.langchain4j.community.model.zhipu.image.ImageRequest;
 import dev.langchain4j.community.model.zhipu.image.ImageResponse;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.time.Duration;
-
-import static dev.langchain4j.internal.RetryUtils.withRetry;
-import static dev.langchain4j.internal.Utils.getOrDefault;
 
 public class ZhipuAiImageModel implements ImageModel {
 
@@ -39,9 +39,8 @@ public class ZhipuAiImageModel implements ImageModel {
             Duration callTimeout,
             Duration connectTimeout,
             Duration readTimeout,
-            Duration writeTimeout
-    ) {
-        this.model = getOrDefault(model, ImageModelName.COGVIEW_3.toString());
+            Duration writeTimeout) {
+        this.model = ensureNotNull(model, "model");
         this.maxRetries = getOrDefault(maxRetries, 3);
         this.userId = userId;
         this.client = ZhipuAiClient.builder()
@@ -72,10 +71,7 @@ public class ZhipuAiImageModel implements ImageModel {
             return Response.from(Image.builder().build());
         }
         return Response.from(
-                Image.builder()
-                        .url(response.getData().get(0).getUrl())
-                        .build()
-        );
+                Image.builder().url(response.getData().get(0).getUrl()).build());
     }
 
     public static class ZhipuAiImageModelBuilder {
@@ -91,7 +87,9 @@ public class ZhipuAiImageModel implements ImageModel {
         private Duration readTimeout;
         private Duration writeTimeout;
 
-        ZhipuAiImageModelBuilder() {
+        public ZhipuAiImageModelBuilder model(ImageModelName model) {
+            this.model = model.toString();
+            return this;
         }
 
         public ZhipuAiImageModelBuilder model(String model) {
@@ -129,6 +127,10 @@ public class ZhipuAiImageModel implements ImageModel {
             return this;
         }
 
+        /**
+         * @deprecated This method is deprecated due to {@link ZhipuAiClient} use {@link dev.langchain4j.http.client.HttpClient} as an http client.
+         */
+        @Deprecated(since = "1.0.0-beta4", forRemoval = true)
         public ZhipuAiImageModelBuilder callTimeout(Duration callTimeout) {
             this.callTimeout = callTimeout;
             return this;
@@ -144,13 +146,28 @@ public class ZhipuAiImageModel implements ImageModel {
             return this;
         }
 
+        /**
+         * @deprecated This method is deprecated due to {@link ZhipuAiClient} use {@link dev.langchain4j.http.client.HttpClient} as an http client.
+         */
+        @Deprecated(since = "1.0.0-beta4", forRemoval = true)
         public ZhipuAiImageModelBuilder writeTimeout(Duration writeTimeout) {
             this.writeTimeout = writeTimeout;
             return this;
         }
 
         public ZhipuAiImageModel build() {
-            return new ZhipuAiImageModel(this.model, this.userId, this.apiKey, this.baseUrl, this.maxRetries, this.logRequests, this.logResponses, this.callTimeout, this.connectTimeout, this.readTimeout, this.writeTimeout);
+            return new ZhipuAiImageModel(
+                    this.model,
+                    this.userId,
+                    this.apiKey,
+                    this.baseUrl,
+                    this.maxRetries,
+                    this.logRequests,
+                    this.logResponses,
+                    this.callTimeout,
+                    this.connectTimeout,
+                    this.readTimeout,
+                    this.writeTimeout);
         }
     }
 }

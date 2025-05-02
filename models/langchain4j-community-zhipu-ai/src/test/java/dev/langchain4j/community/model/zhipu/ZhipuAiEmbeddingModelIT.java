@@ -1,13 +1,13 @@
 package dev.langchain4j.community.model.zhipu;
 
 import static dev.langchain4j.community.model.zhipu.embedding.EmbeddingModel.EMBEDDING_3;
+import static dev.langchain4j.community.model.zhipu.embedding.EmbeddingModel.TEXT_EMBEDDING;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -18,6 +18,7 @@ public class ZhipuAiEmbeddingModelIT {
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
 
     ZhipuAiEmbeddingModel model = ZhipuAiEmbeddingModel.builder()
+            .model(TEXT_EMBEDDING)
             .apiKey(apiKey)
             .logRequests(true)
             .logResponses(true)
@@ -70,15 +71,11 @@ public class ZhipuAiEmbeddingModelIT {
     @Test
     void should_embed_in_batches_by_dimensions() {
         ZhipuAiEmbeddingModel model_v3 = ZhipuAiEmbeddingModel.builder()
+                .model(EMBEDDING_3)
                 .apiKey(apiKey)
                 .logRequests(true)
                 .logResponses(true)
                 .maxRetries(1)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
-                .model(EMBEDDING_3.toString())
                 .dimensions(512)
                 .build();
 

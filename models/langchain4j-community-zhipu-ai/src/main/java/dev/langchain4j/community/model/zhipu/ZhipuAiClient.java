@@ -1,11 +1,11 @@
 package dev.langchain4j.community.model.zhipu;
 
-import static com.google.common.net.HttpHeaders.AUTHORIZATION;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.specificationsFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toZhipuAiException;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.tokenUsageFrom;
-import static dev.langchain4j.community.model.zhipu.Json.OBJECT_MAPPER;
+import static dev.langchain4j.community.model.zhipu.AuthorizationUtils.getToken;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.specificationsFrom;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toZhipuAiException;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.tokenUsageFrom;
+import static dev.langchain4j.community.model.zhipu.Json.fromJson;
 import static dev.langchain4j.http.client.HttpMethod.POST;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
@@ -76,7 +76,7 @@ class ZhipuAiClient {
                 .url(baseUrl, "api/paas/v4/chat/completions")
                 .method(POST)
                 .addHeader("Content-Type", "application/json")
-                .addHeader(AUTHORIZATION, AuthorizationUtils.getToken(apiKey))
+                .addHeader("Authorization", getToken(apiKey))
                 .body(Json.toJson(request))
                 .build();
 
@@ -95,7 +95,7 @@ class ZhipuAiClient {
                 .url(baseUrl, "api/paas/v4/embeddings")
                 .method(POST)
                 .addHeader("Content-Type", "application/json")
-                .addHeader(AUTHORIZATION, AuthorizationUtils.getToken(apiKey))
+                .addHeader("Authorization", getToken(apiKey))
                 .body(Json.toJson(request))
                 .build();
         try {
@@ -120,7 +120,7 @@ class ZhipuAiClient {
                 .url(baseUrl, "api/paas/v4/chat/completions")
                 .method(POST)
                 .addHeader("Content-Type", "application/json")
-                .addHeader(AUTHORIZATION, AuthorizationUtils.getToken(apiKey))
+                .addHeader("Authorization", getToken(apiKey))
                 .body(Json.toJson(request))
                 .build();
         ServerSentEventListener eventListener = new ServerSentEventListener() {
@@ -153,7 +153,7 @@ class ZhipuAiClient {
                     handler.onCompleteResponse(response);
                 } else {
                     try {
-                        chatCompletionResponse = OBJECT_MAPPER.readValue(data, ChatCompletionResponse.class);
+                        chatCompletionResponse = fromJson(data, ChatCompletionResponse.class);
                         ChatCompletionChoice zhipuChatCompletionChoice =
                                 chatCompletionResponse.getChoices().get(0);
                         String chunk = zhipuChatCompletionChoice.getDelta().getContent();
@@ -233,7 +233,7 @@ class ZhipuAiClient {
                 .url(baseUrl, "api/paas/v4/images/generations")
                 .method(POST)
                 .addHeader("Content-Type", "application/json")
-                .addHeader(AUTHORIZATION, AuthorizationUtils.getToken(apiKey))
+                .addHeader("Authorization", getToken(apiKey))
                 .body(Json.toJson(request))
                 .build();
         try {

@@ -1,18 +1,18 @@
 package dev.langchain4j.community.model.zhipu;
 
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.aiMessageFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.isSuccessFinishReason;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toTools;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toZhipuAiMessages;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.tokenUsageFrom;
-import static dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel.GLM_4_FLASH;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.aiMessageFrom;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.isSuccessFinishReason;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toTools;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toZhipuAiMessages;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.tokenUsageFrom;
 import static dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode.AUTO;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.emptyList;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
@@ -20,7 +20,6 @@ import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.zhipu.spi.ZhipuAiChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -28,10 +27,7 @@ import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Represents an ZhipuAi language model with a chat completion interface, such as glm-3-turbo and glm-4.
@@ -39,16 +35,9 @@ import org.slf4j.LoggerFactory;
  */
 public class ZhipuAiChatModel implements ChatModel {
 
-    private static final Logger log = LoggerFactory.getLogger(ZhipuAiChatModel.class);
-
-    private final Double temperature;
-    private final Double topP;
-    private final String model;
-    private final Integer maxRetries;
-    private final Integer maxToken;
-    private final List<String> stops;
     private final ZhipuAiClient client;
     private final List<ChatModelListener> listeners;
+    private final Integer maxRetries;
 
     private final ChatRequestParameters defaultRequestParameters;
 
@@ -68,13 +57,8 @@ public class ZhipuAiChatModel implements ChatModel {
             Duration connectTimeout,
             Duration readTimeout,
             Duration writeTimeout) {
-        this.temperature = getOrDefault(temperature, 0.7);
-        this.topP = topP;
-        this.stops = stops;
-        this.model = getOrDefault(model, GLM_4_FLASH.toString());
         this.maxRetries = getOrDefault(maxRetries, 3);
-        this.maxToken = getOrDefault(maxToken, 512);
-        this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
+        this.listeners = copy(listeners);
         this.client = ZhipuAiClient.builder()
                 .baseUrl(getOrDefault(baseUrl, "https://open.bigmodel.cn/"))
                 .apiKey(apiKey)
@@ -86,11 +70,11 @@ public class ZhipuAiChatModel implements ChatModel {
                 .logResponses(getOrDefault(logResponses, false))
                 .build();
         this.defaultRequestParameters = ChatRequestParameters.builder()
-                .temperature(this.temperature)
+                .temperature(getOrDefault(temperature, 0.7))
                 .topP(topP)
                 .stopSequences(stops)
-                .modelName(this.model)
-                .maxOutputTokens(this.maxToken)
+                .modelName(ensureNotNull(model, "model"))
+                .maxOutputTokens(getOrDefault(maxToken, 512))
                 .build();
     }
 
@@ -178,7 +162,6 @@ public class ZhipuAiChatModel implements ChatModel {
         }
 
         public ZhipuAiChatModelBuilder model(String model) {
-            ValidationUtils.ensureNotBlank(model, "model");
             this.model = model;
             return this;
         }
@@ -233,6 +216,10 @@ public class ZhipuAiChatModel implements ChatModel {
             return this;
         }
 
+        /**
+         * @deprecated This method is deprecated due to {@link ZhipuAiClient} use {@link dev.langchain4j.http.client.HttpClient} as an http client.
+         */
+        @Deprecated(since = "1.0.0-beta4", forRemoval = true)
         public ZhipuAiChatModelBuilder callTimeout(Duration callTimeout) {
             this.callTimeout = callTimeout;
             return this;
@@ -248,6 +235,10 @@ public class ZhipuAiChatModel implements ChatModel {
             return this;
         }
 
+        /**
+         * @deprecated This method is deprecated due to {@link ZhipuAiClient} use {@link dev.langchain4j.http.client.HttpClient} as an http client.
+         */
+        @Deprecated(since = "1.0.0-beta4", forRemoval = true)
         public ZhipuAiChatModelBuilder writeTimeout(Duration writeTimeout) {
             this.writeTimeout = writeTimeout;
             return this;

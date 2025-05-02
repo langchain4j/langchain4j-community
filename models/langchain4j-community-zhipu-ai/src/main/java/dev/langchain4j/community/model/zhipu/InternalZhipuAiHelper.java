@@ -9,6 +9,7 @@ import static dev.langchain4j.model.output.FinishReason.OTHER;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
+import dev.langchain4j.Internal;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.zhipu.chat.AssistantMessage;
@@ -45,10 +46,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class DefaultZhipuAiHelper {
+@Internal
+class InternalZhipuAiHelper {
 
-    static final String FINISH_REASON_SENSITIVE = "sensitive";
-    static final String FINISH_REASON_OTHER = "other";
+    private static final String FINISH_REASON_SENSITIVE = "sensitive";
+    private static final String FINISH_REASON_OTHER = "other";
 
     static List<Embedding> toEmbed(List<EmbeddingResponse> response) {
         return response.stream()
@@ -83,24 +85,24 @@ class DefaultZhipuAiHelper {
     }
 
     static List<Message> toZhipuAiMessages(List<ChatMessage> messages) {
-        return messages.stream().map(DefaultZhipuAiHelper::toZhipuAiMessage).collect(Collectors.toList());
+        return messages.stream().map(InternalZhipuAiHelper::toZhipuAiMessage).collect(Collectors.toList());
     }
 
     private static Message toZhipuAiMessage(ChatMessage message) {
 
-        if (message instanceof final SystemMessage systemMessage) {
+        if (message instanceof SystemMessage systemMessage) {
             return dev.langchain4j.community.model.zhipu.chat.SystemMessage.builder()
                     .content(systemMessage.text())
                     .build();
         }
 
-        if (message instanceof final UserMessage userMessage) {
+        if (message instanceof UserMessage userMessage) {
             if (userMessage.hasSingleText()) {
                 return dev.langchain4j.community.model.zhipu.chat.UserMessage.from(userMessage.singleText());
             }
             List<Content> contents = new ArrayList<>(userMessage.contents().size());
             userMessage.contents().forEach(content -> {
-                if (content instanceof final TextContent textContent) {
+                if (content instanceof TextContent textContent) {
                     contents.add(dev.langchain4j.community.model.zhipu.chat.TextContent.builder()
                             .text(textContent.text())
                             .build());
@@ -117,7 +119,7 @@ class DefaultZhipuAiHelper {
             return dev.langchain4j.community.model.zhipu.chat.UserMessage.from(contents);
         }
 
-        if (message instanceof final AiMessage aiMessage) {
+        if (message instanceof AiMessage aiMessage) {
             if (!aiMessage.hasToolExecutionRequests()) {
                 return AssistantMessage.builder().content(aiMessage.text()).build();
             }
@@ -138,7 +140,7 @@ class DefaultZhipuAiHelper {
                     .build();
         }
 
-        if (message instanceof final ToolExecutionResultMessage resultMessage) {
+        if (message instanceof ToolExecutionResultMessage resultMessage) {
             return ToolMessage.builder().content(resultMessage.text()).build();
         }
 
@@ -198,7 +200,7 @@ class DefaultZhipuAiHelper {
      * error code see <a href="https://open.bigmodel.cn/dev/api/error-code/error-code-v4">error codes document</a>
      */
     private static ChatCompletionChoice toChatErrorChoice(Throwable throwable) {
-        if (throwable instanceof final HttpException httpException) {
+        if (throwable instanceof HttpException httpException) {
             String message = httpException.getMessage();
             if (Utils.isNullOrBlank(message)) {
                 return ChatCompletionChoice.builder()
@@ -240,7 +242,7 @@ class DefaultZhipuAiHelper {
                 return FINISH_REASON_SENSITIVE;
             }
         }
-        if (o instanceof final ZhipuAiException exception) {
+        if (o instanceof ZhipuAiException exception) {
             if ("1301".equals(exception.getCode())) {
                 return FINISH_REASON_SENSITIVE;
             }

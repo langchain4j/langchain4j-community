@@ -29,7 +29,6 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.TokenUsage;
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -96,13 +95,10 @@ public class ZhipuAiStreamingChatModelIT {
         };
 
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
         model.chat("this message will fail", handler);
 
@@ -264,6 +260,7 @@ public class ZhipuAiStreamingChatModelIT {
         int maxTokens = 7;
 
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey)
                 .temperature(temperature)
                 .topP(topP)
@@ -271,10 +268,6 @@ public class ZhipuAiStreamingChatModelIT {
                 .logRequests(true)
                 .logResponses(true)
                 .listeners(singletonList(listener))
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         UserMessage userMessage = UserMessage.from("hello");
@@ -341,14 +334,11 @@ public class ZhipuAiStreamingChatModelIT {
         };
 
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
                 .listeners(singletonList(listener))
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         String userMessage = "this message will fail";
@@ -387,10 +377,6 @@ public class ZhipuAiStreamingChatModelIT {
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(multimodalChatMessagesWithImageData(), handler);

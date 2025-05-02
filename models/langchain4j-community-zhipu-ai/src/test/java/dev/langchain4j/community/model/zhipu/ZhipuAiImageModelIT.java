@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.zhipu;
 
+import static dev.langchain4j.community.model.zhipu.image.ImageModelName.COGVIEW_3;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.data.image.Image;
@@ -12,10 +13,12 @@ import org.slf4j.LoggerFactory;
 
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
 public class ZhipuAiImageModelIT {
+
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiImageModelIT.class);
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
 
     private final ZhipuAiImageModel model = ZhipuAiImageModel.builder()
+            .model(COGVIEW_3)
             .apiKey(apiKey)
             .logRequests(true)
             .logResponses(true)

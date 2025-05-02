@@ -32,7 +32,6 @@ import dev.langchain4j.model.output.TokenUsage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -79,14 +78,11 @@ class ZhipuAiChatModelIT {
     @Test
     void should_sensitive_words_answer() {
         ZhipuAiChatModel model = ZhipuAiChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
                 .maxRetries(1)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
         // given
         UserMessage userMessage = userMessage("this message will fail");
@@ -231,6 +227,7 @@ class ZhipuAiChatModelIT {
 
         ZhipuAiChatModel model = ZhipuAiChatModel.builder()
                 .apiKey(apiKey)
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .topP(topP)
                 .maxToken(maxTokens)
                 .temperature(temperature)
@@ -238,10 +235,6 @@ class ZhipuAiChatModelIT {
                 .logResponses(true)
                 .maxRetries(1)
                 .listeners(singletonList(listener))
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         UserMessage userMessage = UserMessage.from("hello");
@@ -305,15 +298,12 @@ class ZhipuAiChatModelIT {
         };
 
         ZhipuAiChatModel model = ZhipuAiChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
                 .maxRetries(1)
                 .listeners(singletonList(listener))
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         String userMessage = "this message will fail";
@@ -332,10 +322,6 @@ class ZhipuAiChatModelIT {
         ChatModel model = ZhipuAiChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         ChatResponse response = model.chat(multimodalChatMessagesWithImageData());
