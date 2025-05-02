@@ -8,6 +8,7 @@ This module provides Redis integration for LangChain4j, offering the following f
 - Redis-based semantic caching using vector similarity
 - Redis-based semantic routing for directing queries to appropriate handlers
 - Redis-based session management for tracking conversation state
+- Enhanced Redis filters for powerful, type-safe query expressions
 
 ## Redis as an Embedding Store
 
@@ -17,6 +18,7 @@ The `RedisEmbeddingStore` class provides Redis-based vector storage and retrieva
 
 - Support for exact match and vector similarity search
 - Support for metadata filtering using Redis JSON
+- Enhanced filter capabilities for complex queries (see section below)
 - Both FLAT and HNSW indexing algorithms
 - Configurable distance metrics (COSINE, IP, L2)
 
@@ -333,6 +335,139 @@ langchain4j.community.redis.cache.enabled=true
 langchain4j.community.redis.semantic-cache.enabled=true
 langchain4j.community.redis.semantic-router.enabled=true
 langchain4j.community.redis.session-manager.enabled=true
+```
+
+## Enhanced Redis Filters
+
+This module provides a comprehensive, type-safe API for creating complex filter expressions that leverage Redis' advanced search capabilities.
+
+### Filter Types
+
+#### Tag Filters
+
+```java
+// Equality
+RedisFilter.tag("category").equalTo("finance");
+
+// Inequality
+RedisFilter.tag("category").notEqualTo("finance");
+
+// In set
+RedisFilter.tag("category").in("finance", "economics", "investing");
+
+// Not in set
+RedisFilter.tag("category").notIn("sports", "entertainment");
+```
+
+#### Numeric Filters
+
+```java
+// Equality
+RedisFilter.numeric("rating").equalTo(5);
+
+// Comparisons
+RedisFilter.numeric("price").greaterThan(100);
+RedisFilter.numeric("price").greaterThanOrEqualTo(100);
+RedisFilter.numeric("price").lessThan(500);
+RedisFilter.numeric("price").lessThanOrEqualTo(500);
+
+// Range 
+RedisFilter.numeric("price").between(100, 500);
+
+// Range with inclusivity control
+RedisFilter.numeric("price").between(100, 500, RangeType.EXCLUSIVE);
+RedisFilter.numeric("price").between(100, 500, RangeType.LEFT_INCLUSIVE);
+RedisFilter.numeric("price").between(100, 500, RangeType.RIGHT_INCLUSIVE);
+```
+
+#### Text Filters
+
+```java
+// Exact match
+RedisFilter.text("title").exactMatch("Investment Guide");
+
+// Not exact match
+RedisFilter.text("title").notExactMatch("Investment Guide");
+
+// Contains (full-text search)
+RedisFilter.text("content").contains("stock market");
+
+// Pattern matching (with wildcards)
+RedisFilter.text("title").matchesPattern("invest*");
+
+// Fuzzy matching (with Levenshtein distance)
+RedisFilter.text("query").fuzzyMatch("investmnet", 2);  // Matches "investment" with typo
+```
+
+#### Timestamp Filters
+
+```java
+// On a specific date (all day)
+RedisFilter.timestamp("created_at").onDate(LocalDate.of(2023, 3, 17));
+
+// At a specific time
+RedisFilter.timestamp("updated_at").at(LocalDateTime.now().minusHours(1));
+
+// Before a specific time
+RedisFilter.timestamp("created_at").before(LocalDateTime.now());
+
+// After a specific time
+RedisFilter.timestamp("created_at").after(LocalDateTime.now().minusDays(7));
+
+// Between two times
+RedisFilter.timestamp("created_at").between(
+    LocalDateTime.now().minusDays(7), 
+    LocalDateTime.now()
+);
+```
+
+#### Geo Filters
+
+```java
+// Within radius
+RedisFilter.geo("location").withinRadius(-122.4194, 37.7749, 5, "km");
+
+// Outside radius
+RedisFilter.geo("location").outsideRadius(-122.4194, 37.7749, 5, "km");
+
+// Valid units: "m" (meters), "km" (kilometers), "mi" (miles), "ft" (feet)
+```
+
+### Combining Filters
+
+```java
+// Combining filters with logical operators
+FilterExpression combinedFilter = 
+    RedisFilter.tag("category").equalTo("finance")
+        .and(RedisFilter.numeric("rating").greaterThanOrEqualTo(4))
+        .and(RedisFilter.text("description").contains("investment"))
+        .and(RedisFilter.timestamp("created_at").after(LocalDateTime.now().minusDays(30)))
+        .and(RedisFilter.geo("location").withinRadius(-122.4194, 37.7749, 5, "km"));
+
+// Convert to LangChain4j Filter
+Filter filter = new RedisFilterExpression(combinedFilter);
+
+// Use with RedisEmbeddingStore
+List<EmbeddingMatch<TextSegment>> results = embeddingStore.findRelevant(
+    queryEmbedding, 
+    10,  // maxResults
+    filter,
+    0.7  // minScore 
+);
+```
+
+### Using with Redis Semantic Cache
+
+```java
+// Create a filter for recently created finance content
+FilterExpression filterExpr = RedisFilter.tag("category").equalTo("finance")
+    .and(RedisFilter.timestamp("created_at").after(LocalDateTime.now().minusDays(7)));
+
+// Convert to LangChain4j Filter
+Filter redisFilter = new RedisFilterExpression(filterExpr);
+
+// Look up in cache
+Response<?> response = semanticCache.lookup("Tell me about investment strategies", "gpt-4", redisFilter);
 ```
 
 ## Requirements

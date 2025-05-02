@@ -2,6 +2,7 @@ package dev.langchain4j.community.store.cache.redis;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.community.store.filter.FilterExpression;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
@@ -59,6 +60,7 @@ public class RedisSemanticCache implements AutoCloseable {
     private final String prefix;
     private final float similarityThreshold;
     private final String indexName;
+    private final boolean enableEnhancedFilters;
 
     /**
      * Creates a new RedisSemanticCache with the specified parameters.
@@ -71,12 +73,33 @@ public class RedisSemanticCache implements AutoCloseable {
      */
     public RedisSemanticCache(
             JedisPooled redis, EmbeddingModel embeddingModel, Integer ttl, String prefix, Float similarityThreshold) {
+        this(redis, embeddingModel, ttl, prefix, similarityThreshold, false);
+    }
+
+    /**
+     * Creates a new RedisSemanticCache with the specified parameters, including enhanced filter support.
+     *
+     * @param redis The Redis client
+     * @param embeddingModel The embedding model to use for vectorizing prompts
+     * @param ttl Time-to-live for cache entries in seconds (null means no expiration)
+     * @param prefix Prefix for all keys stored in Redis (default is "semantic-cache")
+     * @param similarityThreshold The threshold for semantic similarity (default is 0.2)
+     * @param enableEnhancedFilters Whether to enable the enhanced Redis filter capabilities
+     */
+    public RedisSemanticCache(
+            JedisPooled redis,
+            EmbeddingModel embeddingModel,
+            Integer ttl,
+            String prefix,
+            Float similarityThreshold,
+            boolean enableEnhancedFilters) {
         this.redis = redis;
         this.embeddingModel = embeddingModel;
         this.ttl = ttl;
         this.prefix = prefix != null ? prefix : "semantic-cache";
         this.similarityThreshold = similarityThreshold != null ? similarityThreshold : 0.2f;
         this.indexName = this.prefix + "-index";
+        this.enableEnhancedFilters = enableEnhancedFilters;
 
         // Check if the index exists, and create it if it doesn't
         ensureIndexExists();
@@ -91,9 +114,30 @@ public class RedisSemanticCache implements AutoCloseable {
      */
     // No test-specific lookup methods - integration tests should use real Redis
 
+    /**
+     * Looks up a cached response based on the prompt and LLM string using semantic similarity.
+     *
+     * @param prompt The prompt used for the LLM request
+     * @param llmString A string representing the LLM and its configuration
+     * @return The cached response for a semantically similar prompt, or null if not found
+     */
     public Response<?> lookup(String prompt, String llmString) {
+        return lookup(prompt, llmString, null);
+    }
+
+    /**
+     * Looks up a cached response based on the prompt and LLM string using semantic similarity.
+     *
+     * @param prompt The prompt used for the LLM request
+     * @param llmString A string representing the LLM and its configuration
+     * @param filter An optional filter to apply when searching for matches
+     * @return The cached response for a semantically similar prompt, or null if not found
+     */
+    public Response<?> lookup(String prompt, String llmString, FilterExpression filter) {
         System.out.println("[DEBUG] RedisSemanticCache.lookup - Prompt: " + prompt);
         System.out.println("[DEBUG] RedisSemanticCache.lookup - LLM String: " + llmString);
+        System.out.println("[DEBUG] RedisSemanticCache.lookup - Filter: "
+                + (filter != null ? filter.toRedisQueryString() : "null"));
 
         // Convert the prompt to a vector embedding
         System.out.println("[DEBUG] RedisSemanticCache.lookup - Getting embedding for prompt");
@@ -104,7 +148,7 @@ public class RedisSemanticCache implements AutoCloseable {
 
         // Create a vector similarity search query
         System.out.println("[DEBUG] RedisSemanticCache.lookup - Creating vector query");
-        Query query = createVectorQuery(promptEmbedding.vector(), llmString);
+        Query query = createVectorQuery(promptEmbedding.vector(), llmString, filter);
         System.out.println("[DEBUG] RedisSemanticCache.lookup - Using index: " + indexName);
 
         try {
@@ -385,11 +429,22 @@ public class RedisSemanticCache implements AutoCloseable {
      * @return A Query object for vector similarity search
      */
     private Query createVectorQuery(float[] vector, String llmString) {
+        return createVectorQuery(vector, llmString, null);
+    }
+
+    /**
+     * Creates a vector search query for finding semantically similar prompts with additional filtering.
+     *
+     * @param vector The vector to search for
+     * @param llmString The LLM string to match
+     * @param filter Additional filters to apply to the query
+     * @return A Query object for vector similarity search
+     */
+    private Query createVectorQuery(float[] vector, String llmString, FilterExpression filter) {
         // Format for Redis KNN search using vector similarity with LLM filtering
-        // First try with a filtering query that includes LLM string
         StringBuilder queryBuilder = new StringBuilder();
 
-        // Add LLM filter if provided
+        // Start with basic LLM filter
         if (llmString != null && !llmString.isEmpty()) {
             // Escape any special characters in the LLM string
             String escapedLlmString = escapeLlmString(llmString);
@@ -404,7 +459,18 @@ public class RedisSemanticCache implements AutoCloseable {
             queryBuilder.append("*");
         }
 
-        // Add the KNN vector search part
+        // Add custom filter if provided and enhanced filters are enabled
+        if (enableEnhancedFilters && filter != null) {
+            // If we already have an LLM filter, add the custom filter with an AND operator
+            if (llmString != null && !llmString.isEmpty()) {
+                queryBuilder.append(" ");
+            }
+
+            // Add the filter expression
+            queryBuilder.append(filter.toRedisQueryString());
+        }
+
+        // Add the KNN vector search part - always the last part of the query
         queryBuilder.append(" =>[KNN 5 @").append(VECTOR_FIELD_NAME).append(" $BLOB]");
 
         String queryString = queryBuilder.toString();
@@ -764,6 +830,7 @@ public class RedisSemanticCache implements AutoCloseable {
         private Integer ttl;
         private String prefix = "semantic-cache";
         private Float similarityThreshold = 0.2f;
+        private boolean enableEnhancedFilters = false;
 
         public Builder redis(JedisPooled redis) {
             this.redis = redis;
@@ -790,6 +857,17 @@ public class RedisSemanticCache implements AutoCloseable {
             return this;
         }
 
+        /**
+         * Enables enhanced filter support for the semantic cache.
+         * This allows the use of Redis-specific filter expressions.
+         *
+         * @return This builder for chaining
+         */
+        public Builder enableEnhancedFilters() {
+            this.enableEnhancedFilters = true;
+            return this;
+        }
+
         public RedisSemanticCache build() {
             if (redis == null) {
                 throw new IllegalArgumentException("Redis client is required");
@@ -798,7 +876,8 @@ public class RedisSemanticCache implements AutoCloseable {
                 throw new IllegalArgumentException("Embedding model is required");
             }
 
-            return new RedisSemanticCache(redis, embeddingModel, ttl, prefix, similarityThreshold);
+            return new RedisSemanticCache(
+                    redis, embeddingModel, ttl, prefix, similarityThreshold, enableEnhancedFilters);
         }
     }
 
