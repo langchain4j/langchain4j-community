@@ -1,10 +1,11 @@
-package dev.langchain4j.community.model.qianfan.client;
+package dev.langchain4j.community.model.qianfan;
 
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.finishReasonFrom;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.community.model.qianfan.client.Usage;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.qianfan.client.chat.FunctionCall;
 import dev.langchain4j.community.model.qianfan.client.completion.CompletionResponse;

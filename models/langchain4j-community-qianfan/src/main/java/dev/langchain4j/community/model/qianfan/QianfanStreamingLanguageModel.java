@@ -1,7 +1,9 @@
 package dev.langchain4j.community.model.qianfan;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import dev.langchain4j.community.model.qianfan.client.QianfanClient;
-import dev.langchain4j.community.model.qianfan.client.QianfanStreamingResponseBuilder;
 import dev.langchain4j.community.model.qianfan.client.SyncOrAsyncOrStreaming;
 import dev.langchain4j.community.model.qianfan.client.completion.CompletionRequest;
 import dev.langchain4j.community.model.qianfan.client.completion.CompletionResponse;
@@ -10,11 +12,7 @@ import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.net.Proxy;
-
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
@@ -30,28 +28,31 @@ public class QianfanStreamingLanguageModel implements StreamingLanguageModel {
     private final Integer topK;
     private final String endpoint;
 
-    public QianfanStreamingLanguageModel(String baseUrl,
-                                         String apiKey,
-                                         String secretKey,
-                                         Double temperature,
-                                         Integer topK,
-                                         Double topP,
-                                         String modelName,
-                                         String endpoint,
-                                         Double penaltyScore,
-                                         Boolean logRequests,
-                                         Boolean logResponses,
-                                         Proxy proxy
-    ) {
+    public QianfanStreamingLanguageModel(
+            String baseUrl,
+            String apiKey,
+            String secretKey,
+            Double temperature,
+            Integer topK,
+            Double topP,
+            String modelName,
+            String endpoint,
+            Double penaltyScore,
+            Boolean logRequests,
+            Boolean logResponses,
+            Proxy proxy) {
         if (Utils.isNullOrBlank(apiKey) || Utils.isNullOrBlank(secretKey)) {
-            throw new IllegalArgumentException(" api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
+            throw new IllegalArgumentException(
+                    " api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
         }
 
         this.modelName = modelName;
-        this.endpoint = Utils.isNullOrBlank(endpoint) ? QianfanLanguageModelNameEnum.fromModelName(modelName) : endpoint;
+        this.endpoint =
+                Utils.isNullOrBlank(endpoint) ? QianfanLanguageModelNameEnum.fromModelName(modelName) : endpoint;
 
         if (Utils.isNullOrBlank(this.endpoint)) {
-            throw new IllegalArgumentException("Qianfan is no such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
+            throw new IllegalArgumentException(
+                    "Qianfan is no such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
         }
 
         this.baseUrl = getOrDefault(baseUrl, "https://aip.baidubce.com");
@@ -96,8 +97,7 @@ public class QianfanStreamingLanguageModel implements StreamingLanguageModel {
                 .execute();
     }
 
-    private static void handle(CompletionResponse partialResponse,
-                               StreamingResponseHandler<String> handler) {
+    private static void handle(CompletionResponse partialResponse, StreamingResponseHandler<String> handler) {
         String result = partialResponse.getResult();
         if (Utils.isNullOrBlank(result)) {
             return;
@@ -106,7 +106,8 @@ public class QianfanStreamingLanguageModel implements StreamingLanguageModel {
     }
 
     public static QianfanStreamingLanguageModelBuilder builder() {
-        for (QianfanStreamingLanguageModelBuilderFactory factory : loadFactories(QianfanStreamingLanguageModelBuilderFactory.class)) {
+        for (QianfanStreamingLanguageModelBuilderFactory factory :
+                loadFactories(QianfanStreamingLanguageModelBuilderFactory.class)) {
             return factory.get();
         }
         return new QianfanStreamingLanguageModelBuilder();
@@ -205,8 +206,7 @@ public class QianfanStreamingLanguageModel implements StreamingLanguageModel {
                     penaltyScore,
                     logRequests,
                     logResponses,
-                    proxy
-            );
+                    proxy);
         }
     }
 }

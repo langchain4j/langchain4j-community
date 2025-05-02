@@ -10,6 +10,7 @@ import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.stream.Collectors.toList;
 
+import dev.langchain4j.Internal;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
@@ -33,35 +34,20 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public class InternalQianfanHelper {
+@Internal
+class InternalQianfanHelper {
 
-    public static List<Function> toFunctions(Collection<ToolSpecification> toolSpecifications) {
+    private InternalQianfanHelper() throws InstantiationException {
+        throw new InstantiationException("Can not instantiate utility class");
+    }
+
+    static List<Function> toFunctions(Collection<ToolSpecification> toolSpecifications) {
         return toolSpecifications.stream()
                 .map(InternalQianfanHelper::toFunction)
                 .collect(toList());
     }
 
-    private static Function toFunction(ToolSpecification toolSpecification) {
-        return Function.builder()
-                .name(toolSpecification.name())
-                .description(getOrDefault(toolSpecification.description(), toolSpecification.name()))
-                .parameters(toOpenAiParameters(toolSpecification))
-                .build();
-    }
-
-    private static Parameters toOpenAiParameters(ToolSpecification toolSpecification) {
-        if (toolSpecification.parameters() != null) {
-            JsonObjectSchema parameters = toolSpecification.parameters();
-            return Parameters.builder()
-                    .properties(toMap(parameters.properties()))
-                    .required(parameters.required())
-                    .build();
-        } else {
-            return Parameters.builder().build();
-        }
-    }
-
-    public static Message toQianfanMessage(ChatMessage message) {
+    static Message toQianfanMessage(ChatMessage message) {
 
         if (message instanceof final UserMessage userMessage) {
             return Message.builder()
@@ -135,7 +121,7 @@ public class InternalQianfanHelper {
                 .orElse(null);
     }
 
-    public static FinishReason finishReasonFrom(String finishReason) {
+    static FinishReason finishReasonFrom(String finishReason) {
 
         if (Utils.isNullOrBlank(finishReason)) {
             return null;
@@ -150,7 +136,7 @@ public class InternalQianfanHelper {
         };
     }
 
-    public static AiMessage aiMessageFrom(ChatCompletionResponse response) {
+    static AiMessage aiMessageFrom(ChatCompletionResponse response) {
 
         FunctionCall functionCall = response.getFunctionCall();
 
@@ -182,7 +168,7 @@ public class InternalQianfanHelper {
         return ((SystemMessage) systemMessages.get(0)).text();
     }
 
-    public static List<Message> toOpenAiMessages(List<ChatMessage> messages) {
+    static List<Message> toOpenAiMessages(List<ChatMessage> messages) {
         List<Message> aiMessages = messages.stream()
                 .filter(chatMessage -> !(chatMessage instanceof SystemMessage))
                 .map(InternalQianfanHelper::toQianfanMessage)
@@ -195,5 +181,25 @@ public class InternalQianfanHelper {
 
         aiMessages.remove(0);
         return aiMessages;
+    }
+
+    private static Function toFunction(ToolSpecification toolSpecification) {
+        return Function.builder()
+                .name(toolSpecification.name())
+                .description(getOrDefault(toolSpecification.description(), toolSpecification.name()))
+                .parameters(toOpenAiParameters(toolSpecification))
+                .build();
+    }
+
+    private static Parameters toOpenAiParameters(ToolSpecification toolSpecification) {
+        if (toolSpecification.parameters() != null) {
+            JsonObjectSchema parameters = toolSpecification.parameters();
+            return Parameters.builder()
+                    .properties(toMap(parameters.properties()))
+                    .required(parameters.required())
+                    .build();
+        } else {
+            return Parameters.builder().build();
+        }
     }
 }
