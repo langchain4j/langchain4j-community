@@ -12,7 +12,6 @@
     <name>LangChain4j :: Community :: Spring Boot starter :: Redis</name>
 
     <properties>
-        <jedis.version>5.2.0</jedis.version>
         <gson.version>2.11.0</gson.version>
     </properties>
 
@@ -34,11 +33,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <version>${jedis.version}</version>
-        </dependency>
+        <!-- Jedis is already included as a transitive dependency from langchain4j-community-redis -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

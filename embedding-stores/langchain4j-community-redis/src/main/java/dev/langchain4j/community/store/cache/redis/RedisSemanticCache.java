@@ -24,6 +24,7 @@ import redis.clients.jedis.search.Query;
 import redis.clients.jedis.search.RediSearchUtil;
 import redis.clients.jedis.search.SearchResult;
 import redis.clients.jedis.search.schemafields.SchemaField;
+import redis.clients.jedis.search.schemafields.TagField;
 import redis.clients.jedis.search.schemafields.TextField;
 import redis.clients.jedis.search.schemafields.VectorField;
 import redis.clients.jedis.search.schemafields.VectorField.VectorAlgorithm;
@@ -194,7 +195,25 @@ public class RedisSemanticCache implements AutoCloseable {
             // First try to find a document with matching LLM string
             for (Document doc : documents) {
                 try {
-                    String docLlmString = doc.getString(JSON_PATH_PREFIX + LLM_FIELD_NAME);
+                    // Try to extract the LLM string
+                    String docLlmString = null;
+                    try {
+                        docLlmString = doc.getString(JSON_PATH_PREFIX + LLM_FIELD_NAME);
+                    } catch (Exception e) {
+                        // If direct access fails, try alternative methods
+                        try {
+                            docLlmString = doc.getString(LLM_FIELD_NAME);
+                        } catch (Exception e2) {
+                            // Try looking at property keys
+                            for (Map.Entry<String, Object> entry : doc.getProperties()) {
+                                if (entry.getKey().endsWith(LLM_FIELD_NAME)) {
+                                    docLlmString = entry.getValue().toString();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
                     System.out.println("[DEBUG] RedisSemanticCache.lookup - Document LLM: " + docLlmString);
 
                     // If LLM strings match, this is a candidate
@@ -202,8 +221,22 @@ public class RedisSemanticCache implements AutoCloseable {
                         // Check if it meets our similarity threshold
                         double score = 1.0; // Default high score (less similar)
 
+                        // Extract the score - first try DISTANCE_FIELD_NAME directly
                         try {
-                            score = Double.parseDouble(doc.getString(DISTANCE_FIELD_NAME));
+                            Object scoreObj = doc.get(DISTANCE_FIELD_NAME);
+                            if (scoreObj != null) {
+                                score = Double.parseDouble(scoreObj.toString());
+                            } else {
+                                // Try to find it in properties
+                                for (Map.Entry<String, Object> entry : doc.getProperties()) {
+                                    if (entry.getKey().equals(DISTANCE_FIELD_NAME)) {
+                                        score = Double.parseDouble(
+                                                entry.getValue().toString());
+                                        break;
+                                    }
+                                }
+                            }
+
                             System.out.println("[DEBUG] RedisSemanticCache.lookup - Score: " + score + ", Threshold: "
                                     + similarityThreshold);
 
@@ -217,6 +250,7 @@ public class RedisSemanticCache implements AutoCloseable {
                         } catch (Exception e) {
                             System.out.println(
                                     "[DEBUG] RedisSemanticCache.lookup - Failed to extract score: " + e.getMessage());
+                            e.printStackTrace();
                             // Continue to next document
                         }
                     }
@@ -237,24 +271,42 @@ public class RedisSemanticCache implements AutoCloseable {
             try {
                 String responseJson = null;
 
-                // Try different ways to extract the response JSON
+                // Try multiple approaches to extract the response JSON
                 try {
+                    // First try using the JSON path
                     responseJson = bestMatch.getString(JSON_PATH_PREFIX + RESPONSE_FIELD_NAME);
                     System.out.println("[DEBUG] RedisSemanticCache.lookup - Got response JSON via direct path");
                 } catch (Exception e) {
                     System.out.println(
                             "[DEBUG] RedisSemanticCache.lookup - Direct JSON path failed: " + e.getMessage());
-                    // Try alternative field access methods
-                    System.out.println("[DEBUG] RedisSemanticCache.lookup - Attempting to access properties");
 
-                    for (Map.Entry<String, Object> entry : bestMatch.getProperties()) {
-                        System.out.println("[DEBUG] RedisSemanticCache.lookup - Property: " + entry.getKey() + " = "
-                                + entry.getValue());
-                        if (entry.getKey().endsWith(RESPONSE_FIELD_NAME)) {
-                            responseJson = entry.getValue().toString();
-                            System.out.println("[DEBUG] RedisSemanticCache.lookup - Found response JSON via property: "
-                                    + entry.getKey());
-                            break;
+                    // Try getting it without the JSON path prefix
+                    try {
+                        responseJson = bestMatch.getString(RESPONSE_FIELD_NAME);
+                        System.out.println("[DEBUG] RedisSemanticCache.lookup - Got response JSON via field name");
+                    } catch (Exception e2) {
+                        System.out.println(
+                                "[DEBUG] RedisSemanticCache.lookup - Field name access failed: " + e2.getMessage());
+
+                        // Try alternative field access methods by iterating through properties
+                        System.out.println("[DEBUG] RedisSemanticCache.lookup - Attempting to access properties");
+
+                        // Log all properties for debugging
+                        for (Map.Entry<String, Object> entry : bestMatch.getProperties()) {
+                            System.out.println("[DEBUG] RedisSemanticCache.lookup - Property: " + entry.getKey() + " = "
+                                    + entry.getValue());
+                        }
+
+                        // Look for any property containing "response" in the key
+                        for (Map.Entry<String, Object> entry : bestMatch.getProperties()) {
+                            if (entry.getKey().endsWith(RESPONSE_FIELD_NAME)
+                                    || entry.getKey().contains(RESPONSE_FIELD_NAME)) {
+                                responseJson = entry.getValue().toString();
+                                System.out.println(
+                                        "[DEBUG] RedisSemanticCache.lookup - Found response JSON via property: "
+                                                + entry.getKey());
+                                break;
+                            }
                         }
                     }
                 }
@@ -444,34 +496,47 @@ public class RedisSemanticCache implements AutoCloseable {
         // Format for Redis KNN search using vector similarity with LLM filtering
         StringBuilder queryBuilder = new StringBuilder();
 
-        // Start with basic LLM filter
+        boolean hasFilters = false;
+
+        // Start with basic LLM filter if provided
         if (llmString != null && !llmString.isEmpty()) {
-            // Escape any special characters in the LLM string
-            String escapedLlmString = escapeLlmString(llmString);
+            // Use proper tag syntax for exact matching, which is more reliable than text search
+            // This prevents syntax errors with special characters in LLM strings
+            String escapedLlmString = escapeLlmStringForTag(llmString);
             queryBuilder
                     .append("@")
                     .append(LLM_FIELD_NAME)
                     .append(":{")
                     .append(escapedLlmString)
                     .append("}");
-        } else {
-            // If no LLM string provided, match all documents
-            queryBuilder.append("*");
+            hasFilters = true;
         }
 
         // Add custom filter if provided and enhanced filters are enabled
         if (enableEnhancedFilters && filter != null) {
             // If we already have an LLM filter, add the custom filter with an AND operator
-            if (llmString != null && !llmString.isEmpty()) {
+            if (hasFilters) {
                 queryBuilder.append(" ");
             }
 
             // Add the filter expression
             queryBuilder.append(filter.toRedisQueryString());
+            hasFilters = true;
+        }
+
+        // If no filters applied, use wildcard to match all documents
+        if (!hasFilters) {
+            queryBuilder.append("*");
         }
 
         // Add the KNN vector search part - always the last part of the query
-        queryBuilder.append(" =>[KNN 5 @").append(VECTOR_FIELD_NAME).append(" $BLOB]");
+        // Use properly formatted KNN syntax, ensuring spaces are correct
+        queryBuilder
+                .append(" =>[KNN 5 @")
+                .append(VECTOR_FIELD_NAME)
+                .append(" $BLOB AS ")
+                .append(DISTANCE_FIELD_NAME)
+                .append("]");
 
         String queryString = queryBuilder.toString();
         System.out.println("[DEBUG] RedisSemanticCache - Query string: " + queryString);
@@ -480,9 +545,15 @@ public class RedisSemanticCache implements AutoCloseable {
         byte[] vectorBlob = RediSearchUtil.toByteArray(vector);
         System.out.println("[DEBUG] RedisSemanticCache - BLOB byte length: " + vectorBlob.length);
 
+        // Configure the query with proper parameters
         Query query = new Query(queryString)
                 .addParam("BLOB", vectorBlob)
-                .returnFields(PROMPT_FIELD_NAME, LLM_FIELD_NAME, RESPONSE_FIELD_NAME, DISTANCE_FIELD_NAME)
+                .returnFields(
+                        JSON_PATH_PREFIX + PROMPT_FIELD_NAME,
+                        JSON_PATH_PREFIX + LLM_FIELD_NAME,
+                        JSON_PATH_PREFIX + RESPONSE_FIELD_NAME,
+                        DISTANCE_FIELD_NAME)
+                .setSortBy(DISTANCE_FIELD_NAME, false) // Sort by distance (false = descending for better matches first)
                 .limit(0, 5) // Return up to 5 results
                 .dialect(2); // Use query dialect version 2 - required for vector search
 
@@ -491,6 +562,7 @@ public class RedisSemanticCache implements AutoCloseable {
 
     /**
      * Escapes special characters in the LLM string to prevent Redis search syntax errors.
+     * This is for general text search.
      *
      * @param llmString The LLM string to escape
      * @return The escaped LLM string
@@ -513,6 +585,40 @@ public class RedisSemanticCache implements AutoCloseable {
 
         System.out.println("[DEBUG] RedisSemanticCache - Original LLM string: " + llmString);
         System.out.println("[DEBUG] RedisSemanticCache - Escaped LLM string: " + escaped);
+
+        return escaped;
+    }
+
+    /**
+     * Escapes special characters in the LLM string for tag fields.
+     * Tag fields have different escaping requirements than text fields.
+     *
+     * @param llmString The LLM string to escape for use in tag fields
+     * @return The escaped LLM string for tag fields
+     */
+    private String escapeLlmStringForTag(String llmString) {
+        if (llmString == null || llmString.isEmpty()) {
+            return "";
+        }
+
+        // For tag fields in Redis, commas and spaces need special handling
+        // We need to escape commas, not escape spaces (spaces are used as separators in tags)
+        // The key troublemaker characters for tag fields are: , \
+
+        // First, replace backslashes with double backslashes
+        String escaped = llmString.replace("\\", "\\\\");
+
+        // Then escape the comma, which is a separator in tag syntax
+        escaped = escaped.replace(",", "\\,");
+
+        // Handle quotes properly since they might appear in model names or configurations
+        escaped = escaped.replace("\"", "\\\"");
+
+        // For tag fields, whitespace handling might require special attention
+        // Using the actual value is preferable for exact matching
+
+        System.out.println("[DEBUG] RedisSemanticCache - Original LLM string for tag: " + llmString);
+        System.out.println("[DEBUG] RedisSemanticCache - Escaped LLM string for tag: " + escaped);
 
         return escaped;
     }
@@ -644,18 +750,19 @@ public class RedisSemanticCache implements AutoCloseable {
         vectorAttrs.put("TYPE", "FLOAT32");
         vectorAttrs.put("INITIAL_CAP", 5);
 
-        // For simpler testing, only include essential fields
+        // Create schema fields for the index, with proper field types for each attribute
         SchemaField[] schemaFields = new SchemaField[] {
-            // Vector field is the essential component for search
+            // Vector field is the essential component for vector search
             VectorField.builder()
                     .fieldName(JSON_PATH_PREFIX + VECTOR_FIELD_NAME)
                     .algorithm(VectorAlgorithm.HNSW)
                     .attributes(vectorAttrs)
                     .as(VECTOR_FIELD_NAME)
                     .build(),
-            // Also include text fields for retrieval
+            // Use TagField for LLM field to enable exact matching with better performance
+            TagField.of(JSON_PATH_PREFIX + LLM_FIELD_NAME).as(LLM_FIELD_NAME),
+            // Use TextField for prompt and response to enable full-text search
             TextField.of(JSON_PATH_PREFIX + PROMPT_FIELD_NAME).as(PROMPT_FIELD_NAME),
-            TextField.of(JSON_PATH_PREFIX + LLM_FIELD_NAME).as(LLM_FIELD_NAME),
             TextField.of(JSON_PATH_PREFIX + RESPONSE_FIELD_NAME).as(RESPONSE_FIELD_NAME)
         };
 

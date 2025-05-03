@@ -9,6 +9,7 @@ This module provides Redis integration for LangChain4j, offering the following f
 - Redis-based semantic routing for directing queries to appropriate handlers
 - Redis-based session management for tracking conversation state
 - Enhanced Redis filters for powerful, type-safe query expressions
+- Redis-based embedding vector caching for high performance and cost efficiency
 
 ## Redis as an Embedding Store
 
@@ -28,7 +29,7 @@ The `RedisChatMemoryStore` class provides Redis-based storage for conversation h
 
 ## Redis for Session Management
 
-The Redis module now provides session managers for tracking and retrieving conversation state:
+The Redis module provides session managers for tracking and retrieving conversation state:
 
 ### Standard Session Manager
 
@@ -50,7 +51,7 @@ The `RedisSemanticCache` class provides semantic caching for LLM responses using
 
 #### Redis LangCache Embedding Model
 
-The Redis integration now includes support for the `redis/langcache-embed-v1` embedding model, which is fine-tuned specifically for semantic caching applications. This model provides better performance for caching LLM responses by generating embeddings that are optimized for semantic similarity of prompts.
+The Redis integration includes support for the `redis/langcache-embed-v1` embedding model, which is fine-tuned specifically for semantic caching applications. This model provides excellent performance for caching LLM responses by generating embeddings that are optimized for semantic similarity of prompts.
 
 Key features:
 - Specifically trained for semantic caching use cases
@@ -497,4 +498,274 @@ Response<?> response = semanticCache.lookup("Tell me about investment strategies
 ## Requirements
 
 - Redis Stack >= 6.2.0 with RediSearch and RedisJSON modules
-- Java 17 or higher
+- Java 17 or higher## Redis-Based Embedding Cache
+
+The Redis integration includes embedding caching capabilities, which can significantly improve performance and reduce costs when working with embedding models.
+
+### Why Use Embedding Caching?
+
+- **Cost Efficiency**: Reduce API calls to expensive embedding models
+- **Improved Performance**: Avoid recomputing embeddings for frequently used text
+- **Batch Optimization**: Only compute embeddings for cache misses in batch requests
+- **Testing Support**: Record/playback capability for testing without API calls
+
+### Features
+
+- Redis-backed persistent caching of embedding vectors
+- Redis JSON storage for efficient and structured data management
+- Flexible metadata storage and retrieval with each embedding
+- Powerful metadata filtering and search capabilities
+- Time-to-live (TTL) expiration support (global and per-entry)
+- Maximum cache size with LRU-like eviction policy
+- Efficient batch operations using Redis pipelining
+- Access statistics tracking (insertion time, last access, access count)
+- Transparent integration with any embedding model
+- Multi-level integration options (direct, builder, global)
+- Testing support with record/playback modes
+
+### Using Embedding Cache
+
+#### Basic Usage
+
+```java
+// Create Redis client
+JedisPooled jedis = new JedisPooled("localhost", 6379);
+
+// Create embedding cache
+RedisEmbeddingCache cache = RedisEmbeddingCacheBuilder.builder()
+    .jedisClient(jedis)
+    .keyPrefix("embedding-cache")
+    .ttl(3600) // 1 hour TTL
+    .maxCacheSize(10000) // Limit to 10k embeddings
+    .build();
+
+// Wrap your embedding model with cache
+EmbeddingModel originalModel = new OpenAiEmbeddingModel.builder()
+    .apiKey(System.getenv("OPENAI_API_KEY"))
+    .modelName("text-embedding-ada-002")
+    .build();
+
+EmbeddingModel cachedModel = CachedEmbeddingModelBuilder.builder()
+    .delegate(originalModel)
+    .cache(cache)
+    .build();
+
+// Use cached model just like regular model
+Response<Embedding> response = cachedModel.embed("This will be cached");
+```
+
+#### Batch Operations
+
+The embedding cache supports efficient batch operations using Redis pipelining:
+
+```java
+// Batch get multiple embeddings at once
+List<String> texts = List.of(
+    "First text to embed",
+    "Second text to embed",
+    "Third text to embed"
+);
+
+// Get all cached embeddings in a single network operation
+Map<String, Embedding> cachedEmbeddings = cache.mget(texts);
+
+// Check which texts are already cached
+Map<String, Boolean> existsMap = cache.mexists(texts);
+List<String> missingTexts = existsMap.entrySet().stream()
+    .filter(entry -> !entry.getValue())
+    .map(Map.Entry::getKey)
+    .collect(Collectors.toList());
+
+// Compute and store multiple embeddings at once
+Map<String, Embedding> newEmbeddings = computeEmbeddings(missingTexts);
+cache.mput(newEmbeddings);
+
+// Remove multiple embeddings at once
+List<String> textsToRemove = List.of("First text to embed", "Second text to embed");
+Map<String, Boolean> removeResults = cache.mremove(textsToRemove);
+```
+
+These batch operations are automatically used by the `CachedEmbeddingModel` when processing multiple texts, providing efficient handling for batch embedding operations.
+
+#### Redis JSON Implementation
+
+The Redis Embedding Cache utilizes Redis JSON capabilities for efficient and structured storage:
+
+- **Native JSON storage**: Uses Redis JSON (`jsonSet` and `jsonGet`) for storing embeddings and metadata
+- **Structured data**: Maintains relationships between embeddings, metadata, and statistics
+- **Efficient operations**: Redis JSON provides optimized storage and retrieval of structured data
+- **Rich data types**: Supports complex metadata types like nested objects, arrays, and timestamps
+
+The implementation uses a `CacheEntry` class that encapsulates:
+- Original text
+- Embedding vector
+- Metadata map 
+- Model name (if available)
+- Insertion timestamp
+- Last access timestamp
+- Access count
+
+This provides a comprehensive representation that preserves all relationships in a single Redis JSON document.
+
+### Working with Metadata
+
+The embedding cache supports storing and retrieving arbitrary metadata with each embedding:
+
+```java
+// Create a cache
+RedisEmbeddingCache cache = RedisEmbeddingCacheBuilder.builder()
+    .jedisClient(jedis)
+    .keyPrefix("embedding-cache")
+    .ttlSeconds(3600)
+    .build();
+
+// Store an embedding with metadata
+Map<String, Object> metadata = new HashMap<>();
+metadata.put("source", "news_article");
+metadata.put("category", "finance");
+metadata.put("created_at", Instant.now().toEpochMilli());
+metadata.put("importance", 8.5);
+metadata.put("tags", List.of("markets", "stocks", "economy"));
+
+// Metadata is stored as JSON structure alongside the embedding
+cache.put("News about the stock market", embedding, metadata);
+
+// Use a custom TTL for important embeddings
+cache.put("Critical financial news", embedding, metadata, 86400); // 24 hours TTL
+
+// Retrieve embedding with its metadata
+Optional<Map.Entry<Embedding, Map<String, Object>>> result = 
+    cache.getWithMetadata("News about the stock market");
+
+if (result.isPresent()) {
+    Embedding retrievedEmbedding = result.get().getKey();
+    Map<String, Object> retrievedMetadata = result.get().getValue();
+    
+    // Access metadata fields
+    String source = (String) retrievedMetadata.get("source");
+    List<String> tags = (List<String>) retrievedMetadata.get("tags");
+}
+
+// Search for embeddings by metadata
+Map<String, Object> filter = new HashMap<>();
+filter.put("category", "finance");
+filter.put("importance", 8.5);
+
+Map<String, Map.Entry<Embedding, Map<String, Object>>> matches = 
+    cache.findByMetadata(filter, 10); // Limit to 10 results
+
+// Batch operations with metadata
+Map<String, Map.Entry<Embedding, Map<String, Object>>> batchEntries = new HashMap<>();
+batchEntries.put("First text", Map.entry(embedding1, metadata1));
+batchEntries.put("Second text", Map.entry(embedding2, metadata2));
+
+cache.mputWithMetadata(batchEntries);
+
+// Retrieve multiple embeddings with their metadata
+List<String> textsToGet = List.of("First text", "Second text");
+Map<String, Map.Entry<Embedding, Map<String, Object>>> batchResults = 
+    cache.mgetWithMetadata(textsToGet);
+```
+
+The Redis JSON implementation preserves all complex types in metadata, including:
+- Nested objects and maps
+- Arrays and lists
+- Timestamps and date/time values
+- Numeric values (both integers and floating point)
+- Boolean values
+
+When using the embedding cache with a model, the model name is automatically stored as metadata:
+
+```java
+EmbeddingModel model = new OpenAiEmbeddingModel("text-embedding-ada-002");
+CachedEmbeddingModel cachedModel = CachedEmbeddingModelBuilder.builder()
+    .delegate(model)
+    .cache(cache)
+    .build();
+
+Response<Embedding> response = cachedModel.embed("This will be cached");
+
+// Later, retrieve the embedding with metadata
+Optional<Map.Entry<Embedding, Map<String, Object>>> result = 
+    cache.getWithMetadata("This will be cached");
+
+// The metadata will include "modelName": "text-embedding-ada-002"
+```
+
+#### Using Builder Extensions 
+
+Extension methods are available to simplify caching setup:
+
+```java
+// Create embedding model
+EmbeddingModel originalModel = new OpenAiEmbeddingModel.builder()
+    .apiKey(System.getenv("OPENAI_API_KEY"))
+    .modelName("text-embedding-ada-002")
+    .build();
+
+// Add caching with extension method
+EmbeddingModel cachedModel = CacheableEmbeddingModelBuilder.builder(originalModel)
+    .cacheWithRedis("localhost", 6379)
+    .ttl(3600) // Optional: 1 hour TTL
+    .maxCacheSize(10000) // Optional: 10k embeddings max
+    .keyPrefix("my-app-embeddings") // Optional: custom key prefix
+    .build();
+```
+
+#### Global Cache Configuration
+
+For application-wide caching, use global configuration:
+
+```java
+// Configure global cache once
+EmbeddingModelCache.configureGlobalRedisCache("localhost", 6379);
+
+// Wrap any model with the global cache
+EmbeddingModel model1 = new OpenAiEmbeddingModel.builder().build();
+EmbeddingModel cachedModel1 = EmbeddingModelCache.wrap(model1);
+
+EmbeddingModel model2 = new HuggingFaceEmbeddingModel.builder().build();
+EmbeddingModel cachedModel2 = EmbeddingModelCache.wrap(model2);
+```
+
+### Testing Support
+
+The embedding cache includes testing support that allows recording embeddings during development and playing them back during tests, eliminating the need for external API calls:
+
+```java
+// For test recording (development phase)
+EmbeddingModel model = new OpenAiEmbeddingModel.builder().build();
+EmbeddingModel recordingModel = EmbeddingCacheTestingSupport.recordMode(model, "test-user-classification");
+
+// In your code, use the recordingModel to compute & save embeddings
+
+// For test playback (test phase)
+EmbeddingModel playbackModel = EmbeddingCacheTestingSupport.playMode(model, "test-user-classification");
+
+// In your test, use playbackModel which will replay saved embeddings
+// without making real API calls
+```
+
+### Spring Boot Integration
+
+Embedding cache is automatically configured with Spring Boot:
+
+```properties
+# Enable embedding cache
+langchain4j.community.redis.embedding-cache.enabled=true
+langchain4j.community.redis.embedding-cache.ttl=3600
+langchain4j.community.redis.embedding-cache.max-cache-size=10000
+langchain4j.community.redis.embedding-cache.prefix=embedding-cache
+```
+
+```java
+@Service
+public class MyService {
+    // Automatically wrapped with cache if enabled
+    private final EmbeddingModel embeddingModel;
+
+    public MyService(EmbeddingModel embeddingModel) {
+        this.embeddingModel = embeddingModel;
+    }
+}
+```
