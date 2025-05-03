@@ -9,6 +9,14 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 public class EmbeddingCacheTestingSupport {
 
     /**
+     * Private constructor to prevent instantiation.
+     * This is a utility class with static methods only.
+     */
+    private EmbeddingCacheTestingSupport() {
+        // Utility class, no instances needed
+    }
+
+    /**
      * Creates a model that records all embeddings it generates.
      * The recordings are stored in a test-specific namespace in the cache.
      *

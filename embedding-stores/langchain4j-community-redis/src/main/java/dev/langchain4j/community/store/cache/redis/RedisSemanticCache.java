@@ -941,26 +941,69 @@ public class RedisSemanticCache implements AutoCloseable {
         private String huggingFaceAccessToken = null;
         private boolean useDefaultRedisModel = false;
 
+        /**
+         * Creates a new Builder with default values.
+         * The default prefix is "semantic-cache" and the default similarity threshold is 0.2.
+         */
+        public Builder() {
+            // Default constructor
+        }
+
+        /**
+         * Sets the Redis client to use for this cache.
+         *
+         * @param redis The Jedis client instance to use
+         * @return This builder for method chaining
+         */
         public Builder redis(JedisPooled redis) {
             this.redis = redis;
             return this;
         }
 
+        /**
+         * Sets the embedding model to use for this cache.
+         * The embedding model is used to convert text to vector embeddings.
+         *
+         * @param embeddingModel The embedding model to use
+         * @return This builder for method chaining
+         */
         public Builder embeddingModel(EmbeddingModel embeddingModel) {
             this.embeddingModel = embeddingModel;
             return this;
         }
 
+        /**
+         * Sets the time-to-live (TTL) in seconds for cache entries.
+         * If not specified, cache entries will not expire.
+         *
+         * @param ttl The TTL in seconds, or null for no expiration
+         * @return This builder for method chaining
+         */
         public Builder ttl(Integer ttl) {
             this.ttl = ttl;
             return this;
         }
 
+        /**
+         * Sets the prefix to use for Redis keys.
+         * Defaults to "semantic-cache" if not specified.
+         *
+         * @param prefix The prefix to use for Redis keys
+         * @return This builder for method chaining
+         */
         public Builder prefix(String prefix) {
             this.prefix = prefix;
             return this;
         }
 
+        /**
+         * Sets the similarity threshold for cache hits.
+         * Responses with similarity scores below this threshold will not be considered matches.
+         * Defaults to 0.2 if not specified.
+         *
+         * @param similarityThreshold The similarity threshold, values typically range from 0.0 to 1.0
+         * @return This builder for method chaining
+         */
         public Builder similarityThreshold(Float similarityThreshold) {
             this.similarityThreshold = similarityThreshold;
             return this;
@@ -1009,6 +1052,12 @@ public class RedisSemanticCache implements AutoCloseable {
             return this;
         }
 
+        /**
+         * Builds a new RedisSemanticCache with the configured settings.
+         *
+         * @return A new RedisSemanticCache instance
+         * @throws IllegalArgumentException if redis or embeddingModel is null
+         */
         public RedisSemanticCache build() {
             if (redis == null) {
                 throw new IllegalArgumentException("Redis client is required");
@@ -1049,6 +1098,11 @@ public class RedisSemanticCache implements AutoCloseable {
         }
     }
 
+    /**
+     * Creates a new builder for RedisSemanticCache.
+     *
+     * @return A new builder instance
+     */
     public static Builder builder() {
         return new Builder();
     }

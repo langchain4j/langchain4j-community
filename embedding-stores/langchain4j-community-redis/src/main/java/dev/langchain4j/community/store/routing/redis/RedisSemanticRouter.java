@@ -982,26 +982,67 @@ public class RedisSemanticRouter implements AutoCloseable {
         private String prefix = "semantic-router";
         private Integer maxResults = 5;
 
+        /**
+         * Creates a new instance of the Builder class.
+         * Use this to configure and create a RedisSemanticRouter.
+         */
+        public Builder() {
+            // Default constructor
+        }
+
+        /**
+         * Sets the Redis client to use for this router.
+         *
+         * @param redis The Jedis client instance to use
+         * @return This builder for method chaining
+         */
         public Builder redis(JedisPooled redis) {
             this.redis = redis;
             return this;
         }
 
+        /**
+         * Sets the embedding model to use for this router.
+         * The embedding model is used to convert text to vector embeddings.
+         *
+         * @param embeddingModel The embedding model to use
+         * @return This builder for method chaining
+         */
         public Builder embeddingModel(EmbeddingModel embeddingModel) {
             this.embeddingModel = embeddingModel;
             return this;
         }
 
+        /**
+         * Sets the prefix to use for Redis keys.
+         * Defaults to "semantic-router" if not specified.
+         *
+         * @param prefix The prefix to use for Redis keys
+         * @return This builder for method chaining
+         */
         public Builder prefix(String prefix) {
             this.prefix = prefix;
             return this;
         }
 
+        /**
+         * Sets the maximum number of results to return.
+         * Defaults to 5 if not specified.
+         *
+         * @param maxResults The maximum number of results to return
+         * @return This builder for method chaining
+         */
         public Builder maxResults(Integer maxResults) {
             this.maxResults = maxResults;
             return this;
         }
 
+        /**
+         * Builds a new RedisSemanticRouter with the configured settings.
+         *
+         * @return A new RedisSemanticRouter instance
+         * @throws IllegalArgumentException if redis or embeddingModel is null
+         */
         public RedisSemanticRouter build() {
             if (redis == null) {
                 throw new IllegalArgumentException("Redis client is required");
@@ -1014,6 +1055,11 @@ public class RedisSemanticRouter implements AutoCloseable {
         }
     }
 
+    /**
+     * Creates a new builder for RedisSemanticRouter.
+     *
+     * @return A new builder instance
+     */
     public static Builder builder() {
         return new Builder();
     }

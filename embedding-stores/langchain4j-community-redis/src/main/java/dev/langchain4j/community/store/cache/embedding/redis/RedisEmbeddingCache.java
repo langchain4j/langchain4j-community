@@ -832,7 +832,17 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
     /**
      * Generates an MD5 hash of the input string.
+     * This method is used to create deterministic and fixed-length keys
+     * from potentially long or variable-length text inputs. Using MD5 hash
+     * ensures consistent key length regardless of input size and avoids
+     * special characters that might cause issues in Redis keys.
+     *
+     * Note: This is NOT used for security purposes but for key generation.
      * This is publicly accessible for testing purposes.
+     *
+     * @param input The string to hash
+     * @return A 32-character hexadecimal MD5 hash of the input string
+     * @throws RedisEmbeddingCacheException If the MD5 algorithm is not available
      */
     public String md5(String input) {
         try {

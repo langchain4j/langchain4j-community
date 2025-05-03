@@ -216,6 +216,14 @@ public class RedisStandardSessionManager extends BaseRedisSessionManager {
         private String sessionTag;
 
         /**
+         * Creates a new Builder instance with default values.
+         * Use this builder to configure and create a RedisStandardSessionManager.
+         */
+        public Builder() {
+            // Default constructor
+        }
+
+        /**
          * Sets the Redis client.
          *
          * @param redis The Redis client

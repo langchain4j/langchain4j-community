@@ -6,6 +6,15 @@ package dev.langchain4j.community.store.filter;
  */
 public class TokenEscaper {
 
+    /**
+     * Creates a new instance of TokenEscaper.
+     * This class provides utility methods for properly escaping special characters
+     * in Redis query strings.
+     */
+    public TokenEscaper() {
+        // Default constructor
+    }
+
     // Characters that need to be escaped in Redis queries
     private static final char[] SPECIAL_CHARS = {
         ',', '.', '<', '>', '{', '}', '[', ']', '"', '\'', ':', ';', '!', '@',

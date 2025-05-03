@@ -6,6 +6,8 @@ import java.util.function.Consumer;
 /**
  * Interface for embedding model builders that support caching.
  * This provides a consistent way to add caching to any embedding model builder.
+ *
+ * @param <T> The concrete builder type, used for method chaining in builder implementations
  */
 public interface CacheableEmbeddingModelBuilder<T> {
 

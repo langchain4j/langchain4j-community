@@ -9,6 +9,14 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
  */
 public class EmbeddingModelCache {
 
+    /**
+     * Private constructor to prevent instantiation.
+     * This is a utility class with static methods only.
+     */
+    private EmbeddingModelCache() {
+        // Utility class, no instances needed
+    }
+
     private static EmbeddingCache defaultCache;
     private static boolean globalCachingEnabled = false;
 

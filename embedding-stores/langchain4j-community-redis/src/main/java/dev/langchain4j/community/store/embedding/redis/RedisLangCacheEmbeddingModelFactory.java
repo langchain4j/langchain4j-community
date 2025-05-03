@@ -13,6 +13,14 @@ import org.slf4j.LoggerFactory;
  */
 public class RedisLangCacheEmbeddingModelFactory {
 
+    /**
+     * Creates a new instance of RedisLangCacheEmbeddingModelFactory.
+     * This constructor is private because this is a utility class with static methods only.
+     */
+    private RedisLangCacheEmbeddingModelFactory() {
+        // Private constructor to prevent instantiation
+    }
+
     private static final Logger log = LoggerFactory.getLogger(RedisLangCacheEmbeddingModelFactory.class);
     private static final String HUGGING_FACE_MODEL_CLASS =
             "dev.langchain4j.model.huggingface.HuggingFaceEmbeddingModel";
@@ -67,6 +75,11 @@ public class RedisLangCacheEmbeddingModelFactory {
 
     /**
      * Helper method to find a method by name, ignoring case and handling variations.
+     *
+     * @param clazz The class to search for methods
+     * @param methodName The name of the method to find
+     * @return The found method
+     * @throws NoSuchMethodException if no method with the given name is found
      */
     private static java.lang.reflect.Method findMethod(Class<?> clazz, String methodName) throws NoSuchMethodException {
         for (java.lang.reflect.Method method : clazz.getMethods()) {

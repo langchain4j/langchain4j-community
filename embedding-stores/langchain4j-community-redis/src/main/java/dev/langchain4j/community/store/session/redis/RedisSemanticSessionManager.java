@@ -402,6 +402,14 @@ public class RedisSemanticSessionManager extends BaseRedisSessionManager {
         private Double distanceThreshold = 0.3;
 
         /**
+         * Creates a new Builder instance with default values.
+         * The default distance threshold is 0.3.
+         */
+        public Builder() {
+            // Default constructor
+        }
+
+        /**
          * Sets the Redis client.
          *
          * @param redis The Redis client

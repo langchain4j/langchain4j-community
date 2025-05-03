@@ -2,8 +2,17 @@ package dev.langchain4j.community.store.filter;
 
 /**
  * Abstract base class for filter expressions with common functionality.
+ * Provides implementations for logical operators (AND, OR, NOT) to combine filters.
  */
 public abstract class AbstractFilterExpression implements FilterExpression {
+
+    /**
+     * Protected default constructor.
+     * This class is meant to be extended by specific filter implementations.
+     */
+    protected AbstractFilterExpression() {
+        // Default constructor
+    }
 
     /**
      * Combines this filter with another using logical AND.
@@ -72,6 +81,12 @@ public abstract class AbstractFilterExpression implements FilterExpression {
         private final FilterExpression left;
         private final FilterExpression right;
 
+        /**
+         * Creates a new AND filter expression that combines two filter expressions.
+         *
+         * @param left The left-hand side filter expression
+         * @param right The right-hand side filter expression
+         */
         AndFilterExpression(FilterExpression left, FilterExpression right) {
             this.left = left;
             this.right = right;
@@ -106,6 +121,12 @@ public abstract class AbstractFilterExpression implements FilterExpression {
         private final FilterExpression left;
         private final FilterExpression right;
 
+        /**
+         * Creates a new OR filter expression that combines two filter expressions.
+         *
+         * @param left The left-hand side filter expression
+         * @param right The right-hand side filter expression
+         */
         OrFilterExpression(FilterExpression left, FilterExpression right) {
             this.left = left;
             this.right = right;
@@ -138,6 +159,11 @@ public abstract class AbstractFilterExpression implements FilterExpression {
     static class NotFilterExpression extends AbstractFilterExpression {
         private final FilterExpression expression;
 
+        /**
+         * Creates a new NOT filter expression that negates a filter expression.
+         *
+         * @param expression The filter expression to negate
+         */
         NotFilterExpression(FilterExpression expression) {
             this.expression = expression;
         }

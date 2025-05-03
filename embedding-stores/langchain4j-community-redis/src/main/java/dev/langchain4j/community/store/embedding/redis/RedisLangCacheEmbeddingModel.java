@@ -9,17 +9,15 @@ import java.util.List;
 
 /**
  * Embedding model that uses Redis's langcache-embed-v1 model.
- * <p>
- * This is a thin wrapper around the HuggingFaceEmbeddingModel that sets the model ID to
+ *
+ * <p>This is a thin wrapper around the HuggingFaceEmbeddingModel that sets the model ID to
  * "redis/langcache-embed-v1", which is a model fine-tuned specifically for semantic caching.
- * </p>
- * <p>
- * For more information about this model, see:
+ *
+ * <p>For more information about this model, see:
  * <ul>
  *   <li>Model page: <a href="https://huggingface.co/redis/langcache-embed-v1">https://huggingface.co/redis/langcache-embed-v1</a></li>
  *   <li>Research paper: <a href="https://arxiv.org/abs/2504.02268">https://arxiv.org/abs/2504.02268</a></li>
  * </ul>
- * </p>
  */
 public class RedisLangCacheEmbeddingModel implements EmbeddingModel {
 

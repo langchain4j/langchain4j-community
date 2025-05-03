@@ -4,8 +4,17 @@ import redis.clients.jedis.JedisPooled;
 
 /**
  * Builder for {@link RedisEmbeddingCache} to simplify configuration and creation.
+ * Provides a fluent API for configuring and instantiating Redis-based embedding caches.
  */
 public class RedisEmbeddingCacheBuilder {
+
+    /**
+     * Private constructor used by the static builder() method.
+     * Use RedisEmbeddingCacheBuilder.builder() to create instances.
+     */
+    private RedisEmbeddingCacheBuilder() {
+        // Private constructor
+    }
 
     private JedisPooled redis;
     private String host = "localhost";

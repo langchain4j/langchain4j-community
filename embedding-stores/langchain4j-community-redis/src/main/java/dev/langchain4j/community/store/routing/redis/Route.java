@@ -102,6 +102,14 @@ public class Route {
         private Map<String, Object> metadata = new HashMap<>();
 
         /**
+         * Creates a new Route.Builder with default values.
+         * The default distance threshold is 0.2.
+         */
+        public Builder() {
+            // Default constructor
+        }
+
+        /**
          * Sets the name of the route.
          *
          * @param name The route name

@@ -18,9 +18,16 @@ import redis.clients.jedis.JedisPooled;
  */
 public abstract class BaseRedisSessionManager implements SessionManager {
 
+    /** The Redis client used to store and retrieve session data. */
     protected final JedisPooled redis;
+
+    /** The unique identifier for this session. */
     protected final String sessionTag;
+
+    /** The name of the session manager, used as the index name. */
     protected final String name;
+
+    /** Prefix added to all Redis keys for this session manager. */
     protected final String prefix;
 
     /**
