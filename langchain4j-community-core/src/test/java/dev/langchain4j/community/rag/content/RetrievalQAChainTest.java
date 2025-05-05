@@ -1,6 +1,5 @@
 package dev.langchain4j.community.rag.content;
 
-// import dev.langchain4j.chain.RetrievalQAChain;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -104,6 +103,7 @@ public class RetrievalQAChainTest {
                     Answer:
                     """);
 
+        // -- PromptTemplate via contentInjector
         RetrievalQAChain chain = RetrievalQAChain.builder()
                 .chatModel(chatModel)
                 .retrievalAugmentor(DefaultRetrievalAugmentor.builder()
@@ -132,6 +132,21 @@ public class RetrievalQAChainTest {
                 query
                 Answer:
                 """;
+        assertThat(messagesCaptor.getValue()).isEqualToIgnoringWhitespace(expectedUserMessage);
+
+        // -- PromptTemplate via prompt builder
+        RetrievalQAChain chainViaPromptBuilder = RetrievalQAChain.builder()
+                .chatModel(chatModel)
+                .contentRetriever(contentRetriever)
+                .prompt(promptTemplate)
+                .build();
+
+        // when
+        String answerViaPromptBuilder = chainViaPromptBuilder.execute(QUERY);
+
+        // then
+        assertThat(answerViaPromptBuilder).isEqualTo(ANSWER);
+
         assertThat(messagesCaptor.getValue()).isEqualToIgnoringWhitespace(expectedUserMessage);
     }
 
@@ -186,6 +201,19 @@ public class RetrievalQAChainTest {
     void should_throws_exception_if_neither_retriever_nor_retrieval_augmentor_is_defined() {
         try {
             RetrievalQAChain.builder().chatModel(chatModel).build();
+            fail("Should fail due to missing builder configurations");
+        } catch (Exception e) {
+            assertThat(e.getMessage()).contains(RetrievalQAChain.Builder.CONTENT_RETRIEVER_NULL_ERROR);
+        }
+    }
+
+    @Test
+    void should_throws_exception_if_retriever_is_null() {
+        try {
+            RetrievalQAChain.builder()
+                    .chatModel(chatModel)
+                    .contentRetriever(null)
+                    .build();
             fail("Should fail due to missing builder configurations");
         } catch (Exception e) {
             assertThat(e.getMessage()).contains(RetrievalQAChain.Builder.CONTENT_RETRIEVER_NULL_ERROR);
