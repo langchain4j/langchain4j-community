@@ -3,20 +3,24 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.community.rag.content.RetrievalQAChain;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentByRegexSplitter;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.content.injector.DefaultContentInjector;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-public class Neo4jEmbeddingRetrieverIT extends Neo4jEmbeddingRetrieverBaseTest {
+public class Neo4jEmbeddingRetrieverQAChainIT extends Neo4jEmbeddingRetrieverBaseTest {
 
     ChatModel chatModel = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
@@ -37,6 +41,15 @@ public class Neo4jEmbeddingRetrieverIT extends Neo4jEmbeddingRetrieverBaseTest {
             very concise style in interpreting results!
 
             Answer like Naruto, saying his typical expression `dattebayo`.
+            Answer the question based only on the context provided.
+
+            Context:
+            {{contents}}
+
+            Question:
+            {{userMessage}}
+
+            Answer:
             """;
 
         final Neo4jEmbeddingStore neo4jEmbeddingStore = Neo4jEmbeddingStore.builder()
@@ -52,8 +65,6 @@ public class Neo4jEmbeddingRetrieverIT extends Neo4jEmbeddingRetrieverBaseTest {
                 .embeddingModel(embeddingModel)
                 .driver(driver)
                 .query("CREATE (:MainDoc $metadata)")
-                .answerModel(chatModel)
-                .answerPrompt(promptAnswer)
                 .maxResults(5)
                 .minScore(0.4)
                 .embeddingStore(neo4jEmbeddingStore)
@@ -79,7 +90,34 @@ public class Neo4jEmbeddingRetrieverIT extends Neo4jEmbeddingRetrieverBaseTest {
         assertThat(results).hasSize(1);
 
         Content result = results.get(0);
-        assertThat(result.textSegment().text()).containsIgnoringCase("dattebayo");
+        assertThat(result.textSegment().text()).doesNotContainIgnoringCase("dattebayo");
         assertThat(result.textSegment().text()).containsIgnoringCase("super saiyan");
+
+        // use retriever and chatModel to answer the question via RetrievalQAChain
+        PromptTemplate promptTemplate = PromptTemplate.from(promptAnswer);
+
+        RetrievalQAChain chain = RetrievalQAChain.builder()
+                .chatModel(chatModel)
+                .retrievalAugmentor(DefaultRetrievalAugmentor.builder()
+                        .contentRetriever(retriever)
+                        .contentInjector(DefaultContentInjector.builder()
+                                .promptTemplate(promptTemplate)
+                                .build())
+                        .build())
+                .build();
+
+        final String chainResult = chain.execute(Query.from(retrieveQuery));
+        assertThat(chainResult).containsIgnoringCase("dattebayo");
+        assertThat(chainResult).containsIgnoringCase("super saiyan");
+
+        RetrievalQAChain chainWithPromptBuilder = RetrievalQAChain.builder()
+                .chatModel(chatModel)
+                .contentRetriever(retriever)
+                .prompt(promptTemplate)
+                .build();
+
+        final String chainResultWithPromptBuilder = chainWithPromptBuilder.execute(Query.from(retrieveQuery));
+        assertThat(chainResultWithPromptBuilder).containsIgnoringCase("dattebayo");
+        assertThat(chainResultWithPromptBuilder).containsIgnoringCase("super saiyan");
     }
 }

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
@@ -95,57 +94,6 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
         final String retrieveQuery = "naruto";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
         commonResults(results, retrieveQuery);
-    }
-
-    // TODO - change with cypher-dsl
-    @Test
-    public void testBasicRetrieverWithChatQuestionAndAnswerModel() {
-
-        final Neo4jEmbeddingStore neo4jEmbeddingStore = Neo4jEmbeddingStore.builder()
-                .driver(driver)
-                .retrievalQuery(CUSTOM_RETRIEVAL)
-                .entityCreationQuery(CUSTOM_CREATION_QUERY)
-                .label("Chunk")
-                .indexName("chunk_embedding_index")
-                .dimension(384)
-                .build();
-
-        when(chatLanguageModel.chat(anyList()))
-                .thenReturn(ChatResponse.builder()
-                        .aiMessage(AiMessage.aiMessage("Naruto"))
-                        .build());
-
-        final String chatResponse = "dattebayo";
-        when(chatLanguageModel.chat(anyString())).thenReturn(chatResponse);
-
-        final Neo4jEmbeddingRetriever retriever = Neo4jEmbeddingRetriever.builder()
-                .embeddingModel(embeddingModel)
-                .embeddingStore(neo4jEmbeddingStore)
-                .driver(driver)
-                .maxResults(2)
-                .minScore(0.4)
-                .questionModel(chatLanguageModel)
-                .answerModel(chatLanguageModel)
-                .query("CREATE (:MainDoc $metadata)")
-                .userPrompt("mock prompt user")
-                .systemPrompt("mock prompt system")
-                .answerPrompt("mock prompt anwser")
-                .build();
-
-        Document parentDoc = getDocumentMiscTopics();
-
-        // Child splitter: splits into sentences using OpenNLP
-        final String expectedQuery = "\\n\\n";
-        int maxSegmentSize = 250;
-        DocumentSplitter splitter = new DocumentByRegexSplitter(expectedQuery, expectedQuery, maxSegmentSize, 0);
-
-        retriever.index(parentDoc, splitter);
-        final String retrieveQuery = "naruto";
-        List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
-        assertThat(results).hasSize(1);
-
-        Content result = results.get(0);
-        assertTrue(result.textSegment().text().toLowerCase().contains(chatResponse));
     }
 
     @Test

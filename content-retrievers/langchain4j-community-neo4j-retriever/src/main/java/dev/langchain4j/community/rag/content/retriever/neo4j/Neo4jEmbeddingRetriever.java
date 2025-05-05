@@ -223,38 +223,11 @@ public class Neo4jEmbeddingRetriever implements ContentRetriever {
                 .minScore(minScore)
                 .build();
 
-        if (answerModel == null) {
-            final Function<EmbeddingMatch<TextSegment>, Content> embeddingMapFunction = i -> {
-                final TextSegment embedded = i.embedded();
-                return Content.from(embedded);
-            };
+        final Function<EmbeddingMatch<TextSegment>, Content> embeddingMapFunction = i -> {
+            final TextSegment embedded = i.embedded();
+            return Content.from(embedded);
+        };
 
-            return getList(request, embeddingMapFunction);
-        } else {
-            final Function<EmbeddingMatch<TextSegment>, String> embeddingMapFunction =
-                    i -> i.embedded().text();
-            final List<String> context = getList(request, embeddingMapFunction);
-
-            final String prompt = answerPrompt
-                    + """
-                    Answer the question based only on the context provided.
-
-                    Context: {{context}}
-
-                    Question: {{question}}
-
-                    Answer:
-                    """;
-            final String text = PromptTemplate.from(prompt)
-                    .apply(Map.of("question", question, "context", context))
-                    .text();
-            final String chat = answerModel.chat(text);
-            return List.of(Content.from(chat));
-        }
-    }
-
-    private <T> List<T> getList(
-            EmbeddingSearchRequest request, Function<EmbeddingMatch<TextSegment>, T> embeddingMapFunction) {
         return embeddingStore.search(request).matches().stream()
                 .map(embeddingMapFunction)
                 .toList();
