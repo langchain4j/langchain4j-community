@@ -188,7 +188,7 @@ public class RetrievalQAChainTest {
             RetrievalQAChain.builder().chatModel(chatModel).build();
             fail("Should fail due to missing builder configurations");
         } catch (Exception e) {
-            assertThat(e.getMessage()).contains(RetrievalQAChain.Builder.TEST);
+            assertThat(e.getMessage()).contains(RetrievalQAChain.Builder.CONTENT_RETRIEVER_NULL_ERROR);
         }
     }
 }

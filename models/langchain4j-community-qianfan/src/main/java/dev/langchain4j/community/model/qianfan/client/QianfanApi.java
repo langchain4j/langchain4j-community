@@ -19,19 +19,29 @@ interface QianfanApi {
 
     @POST("rpc/2.0/ai_custom/v1/wenxinworkshop/chat/{endpoint}")
     @Headers({"Content-Type: application/json"})
-    Call<ChatCompletionResponse> chatCompletions(@Path(value = "endpoint", encoded = false) String endpoint, @Body ChatCompletionRequest request, @Query("access_token") String accessToken);
+    Call<ChatCompletionResponse> chatCompletions(
+            @Path(value = "endpoint") String endpoint,
+            @Body ChatCompletionRequest request,
+            @Query("access_token") String accessToken);
 
     @POST("rpc/2.0/ai_custom/v1/wenxinworkshop/completions/{endpoint}")
     @Headers({"Content-Type: application/json"})
-    Call<CompletionResponse> completions(@Path(value = "endpoint", encoded = false) String endpoint, @Body CompletionRequest request, @Query("access_token") String accessToken);
+    Call<CompletionResponse> completions(
+            @Path(value = "endpoint") String endpoint,
+            @Body CompletionRequest request,
+            @Query("access_token") String accessToken);
 
     @POST("rpc/2.0/ai_custom/v1/wenxinworkshop/embeddings/{endpoint}")
     @Headers({"Content-Type: application/json"})
-    Call<EmbeddingResponse> embeddings(@Path(value = "endpoint", encoded = false) String endpoint, @Body EmbeddingRequest request, @Query("access_token") String accessToken);
+    Call<EmbeddingResponse> embeddings(
+            @Path(value = "endpoint") String endpoint,
+            @Body EmbeddingRequest request,
+            @Query("access_token") String accessToken);
 
     @GET("oauth/2.0/token")
     @Headers({"Content-Type: application/json"})
-    Call<ChatTokenResponse> getToken(@Query("grant_type") String grantType, @Query("client_id") String clientId, @Query("client_secret") String clientSecret);
-
+    Call<ChatTokenResponse> getToken(
+            @Query("grant_type") String grantType,
+            @Query("client_id") String clientId,
+            @Query("client_secret") String clientSecret);
 }
-

@@ -44,7 +44,7 @@ public class RetrievalQAChain implements Chain<Query, String> {
     }
 
     public static class Builder {
-        public static final String TEST = "test";
+        public static final String CONTENT_RETRIEVER_NULL_ERROR = "contentRetriever cannot be null";
         private ChatModel chatModel;
         private final DefaultRetrievalAugmentor.DefaultRetrievalAugmentorBuilder augmentorBuilder =
                 DefaultRetrievalAugmentor.builder();
@@ -82,7 +82,7 @@ public class RetrievalQAChain implements Chain<Query, String> {
                 } catch (RuntimeException e) {
                     // we populate the `queryRouter` of the RetrievalQAChain.builder() via augmentorBuilder.contentRetriever(..)
                     if (e.getMessage().contains("queryRouter cannot be null")) {
-                        throw Exceptions.illegalArgument("contentRetriever cannot be null");
+                        throw Exceptions.illegalArgument(CONTENT_RETRIEVER_NULL_ERROR);
                     }
                     throw e;
                 }

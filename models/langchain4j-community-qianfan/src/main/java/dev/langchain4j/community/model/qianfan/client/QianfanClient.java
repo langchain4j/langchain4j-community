@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.qianfan.client;
 
+import static dev.langchain4j.internal.Utils.ensureTrailingForwardSlash;
+
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatTokenResponse;
@@ -7,18 +9,16 @@ import dev.langchain4j.community.model.qianfan.client.completion.CompletionReque
 import dev.langchain4j.community.model.qianfan.client.completion.CompletionResponse;
 import dev.langchain4j.community.model.qianfan.client.embedding.EmbeddingRequest;
 import dev.langchain4j.community.model.qianfan.client.embedding.EmbeddingResponse;
-import dev.langchain4j.internal.Utils;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.time.Duration;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.time.Duration;
 
 public class QianfanClient {
 
@@ -40,8 +40,10 @@ public class QianfanClient {
 
     private QianfanClient(Builder serviceBuilder) {
         this.baseUrl = serviceBuilder.baseUrl;
-        OkHttpClient.Builder okHttpClientBuilder = (new OkHttpClient.Builder()).callTimeout(serviceBuilder.callTimeout)
-                .connectTimeout(serviceBuilder.connectTimeout).readTimeout(serviceBuilder.readTimeout)
+        OkHttpClient.Builder okHttpClientBuilder = (new OkHttpClient.Builder())
+                .callTimeout(serviceBuilder.callTimeout)
+                .connectTimeout(serviceBuilder.connectTimeout)
+                .readTimeout(serviceBuilder.readTimeout)
                 .writeTimeout(serviceBuilder.writeTimeout);
         if (serviceBuilder.apiKey == null) {
             throw new IllegalArgumentException("apiKey must be defined");
@@ -66,8 +68,11 @@ public class QianfanClient {
             this.apiKey = serviceBuilder.apiKey;
             this.secretKey = serviceBuilder.secretKey;
             this.okHttpClient = okHttpClientBuilder.build();
-            Retrofit retrofit = (new Retrofit.Builder()).baseUrl(Utils.ensureTrailingForwardSlash(serviceBuilder.baseUrl)).client(this.okHttpClient)
-                    .addConverterFactory(JacksonConverterFactory.create(Json.OBJECT_MAPPER)).build();
+            Retrofit retrofit = new Retrofit.Builder()
+                    .baseUrl(ensureTrailingForwardSlash(serviceBuilder.baseUrl))
+                    .client(this.okHttpClient)
+                    .addConverterFactory(JacksonConverterFactory.create(Json.OBJECT_MAPPER))
+                    .build();
             this.qianfanApi = retrofit.create(QianfanApi.class);
         }
     }
@@ -83,14 +88,14 @@ public class QianfanClient {
                 log.error("Failed to close cache", var3);
             }
         }
-
     }
 
     public static Builder builder() {
         return new Builder();
     }
 
-    public SyncOrAsyncOrStreaming<ChatCompletionResponse> chatCompletion(ChatCompletionRequest request, String endpoint) {
+    public SyncOrAsyncOrStreaming<ChatCompletionResponse> chatCompletion(
+            ChatCompletionRequest request, String endpoint) {
         refreshToken();
 
         return new RequestExecutor<>(
@@ -106,36 +111,33 @@ public class QianfanClient {
                 () -> ChatCompletionRequest.builder().from(request).stream(true).build(),
                 ChatCompletionResponse.class,
                 r -> r,
-                this.logStreamingResponses
-        );
+                this.logStreamingResponses);
     }
 
-    public SyncOrAsyncOrStreaming<CompletionResponse> completion(CompletionRequest request, boolean stream, String endpoint) {
+    public SyncOrAsyncOrStreaming<CompletionResponse> completion(
+            CompletionRequest request, boolean stream, String endpoint) {
         refreshToken();
-        return new RequestExecutor<>(this.qianfanApi.completions(endpoint, request, this.token),
-                r -> r, this.okHttpClient,
-                this.formatUrl("rpc/2.0/ai_custom/v1/wenxinworkshop/completions/" + endpoint + "?access_token=" + this.token),
+        return new RequestExecutor<>(
+                this.qianfanApi.completions(endpoint, request, this.token),
+                r -> r,
+                this.okHttpClient,
+                this.formatUrl(
+                        "rpc/2.0/ai_custom/v1/wenxinworkshop/completions/" + endpoint + "?access_token=" + this.token),
                 () -> CompletionRequest.builder().from(request).stream(stream).build(),
                 CompletionResponse.class,
                 r -> r,
-                this.logStreamingResponses
-        );
+                this.logStreamingResponses);
     }
 
     public SyncOrAsync<EmbeddingResponse> embedding(EmbeddingRequest request, String serviceName) {
         refreshToken();
-        return new RequestExecutor<>(
-                this.qianfanApi.embeddings(serviceName, request, this.token),
-                r -> r
-        );
+        return new RequestExecutor<>(this.qianfanApi.embeddings(serviceName, request, this.token), r -> r);
     }
 
     private void refreshToken() {
         RequestExecutor<String, ChatTokenResponse, String> executor = new RequestExecutor<>(
-                this.qianfanApi.getToken(GRANT_TYPE, this.apiKey,
-                        this.secretKey), ChatTokenResponse::getAccessToken);
+                this.qianfanApi.getToken(GRANT_TYPE, this.apiKey, this.secretKey), ChatTokenResponse::getAccessToken);
         this.token = executor.execute();
-
     }
 
     private String formatUrl(String endpoint) {
@@ -173,7 +175,6 @@ public class QianfanClient {
             }
         }
 
-
         public Builder apiKey(String apiKey) {
             if (apiKey != null && !apiKey.trim().isEmpty()) {
                 this.apiKey = apiKey;
@@ -191,7 +192,6 @@ public class QianfanClient {
                 throw new IllegalArgumentException("secretKey cannot be null or empty. ");
             }
         }
-
 
         public Builder callTimeout(Duration callTimeout) {
             if (callTimeout == null) {

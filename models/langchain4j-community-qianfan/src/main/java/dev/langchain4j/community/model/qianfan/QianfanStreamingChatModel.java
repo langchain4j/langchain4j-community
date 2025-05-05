@@ -6,7 +6,6 @@ import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.qianfan.client.QianfanClient;
-import dev.langchain4j.community.model.qianfan.client.QianfanStreamingResponseBuilder;
 import dev.langchain4j.community.model.qianfan.client.SyncOrAsyncOrStreaming;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
