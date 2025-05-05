@@ -80,7 +80,8 @@ public class RetrievalQAChain implements Chain<Query, String> {
                 try {
                     return new RetrievalQAChain(chatModel, augmentorBuilder.build());
                 } catch (RuntimeException e) {
-                    // we populate the `queryRouter` of the RetrievalQAChain.builder() via augmentorBuilder.contentRetriever(..)
+                    // we populate the `queryRouter` of the RetrievalQAChain.builder() via
+                    // augmentorBuilder.contentRetriever(..)
                     if (e.getMessage().contains("queryRouter cannot be null")) {
                         throw Exceptions.illegalArgument(CONTENT_RETRIEVER_NULL_ERROR);
                     }

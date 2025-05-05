@@ -1,5 +1,9 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_ID_PROP;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_LABEL;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_REL_TYPE;
+import static dev.langchain4j.community.rag.content.retriever.neo4j.KnowledgeGraphWriter.DEFAULT_TEXT_PROP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.community.data.document.graph.GraphDocument;
@@ -172,10 +176,10 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
 
     @Test
     void testAddGraphDocumentsWithIncludeSource() {
-        testWithIncludeSourceCommon(KnowledgeGraphWriter.DEFAULT_REL_TYPE);
+        testWithIncludeSourceCommon(DEFAULT_REL_TYPE);
 
         // retry to check that merge works correctly
-        testWithIncludeSourceCommon(KnowledgeGraphWriter.DEFAULT_REL_TYPE);
+        testWithIncludeSourceCommon(DEFAULT_REL_TYPE);
     }
 
     @Test
@@ -202,10 +206,10 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
                 .label(CUSTOM_LABEL)
                 .build();
 
-        testWithIncludeSourceAndCustomIdTextAndLabelCommon(KnowledgeGraphWriter.DEFAULT_REL_TYPE);
+        testWithIncludeSourceAndCustomIdTextAndLabelCommon(DEFAULT_REL_TYPE);
 
         // retry to check that merge works correctly
-        testWithIncludeSourceAndCustomIdTextAndLabelCommon(KnowledgeGraphWriter.DEFAULT_REL_TYPE);
+        testWithIncludeSourceAndCustomIdTextAndLabelCommon(DEFAULT_REL_TYPE);
     }
 
     @Test
@@ -231,18 +235,17 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         knowledgeGraphWriter.addGraphDocuments(graphDocs, false);
 
         // then
-        List<Record> records =
-                neo4jGraph.executeRead(MATCH_AND_RETURN_NODE.formatted(KnowledgeGraphWriter.DEFAULT_ID_PROP));
+        List<Record> records = neo4jGraph.executeRead(MATCH_AND_RETURN_NODE.formatted(DEFAULT_ID_PROP));
         assertThat(records).hasSize(2);
         Record record = records.get(0);
         PathValue p = (PathValue) record.get("p");
         Path path = p.asPath();
         Node start = path.start();
-        assertNodeLabels(start, KnowledgeGraphWriter.DEFAULT_LABEL);
-        assertNodeProps(start, KEANU, KnowledgeGraphWriter.DEFAULT_ID_PROP);
+        assertNodeLabels(start, DEFAULT_LABEL);
+        assertNodeProps(start, KEANU, DEFAULT_ID_PROP);
         Node end = path.end();
-        assertNodeLabels(end, KnowledgeGraphWriter.DEFAULT_LABEL);
-        assertNodeProps(end, MATRIX, KnowledgeGraphWriter.DEFAULT_ID_PROP);
+        assertNodeLabels(end, DEFAULT_LABEL);
+        assertNodeProps(end, MATRIX, DEFAULT_ID_PROP);
         Relationship rel = Iterables.single(path.relationships());
         assertThat(rel.type()).containsIgnoringCase(ACTED);
 
@@ -250,11 +253,11 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         p = (PathValue) record.get("p");
         path = p.asPath();
         start = path.start();
-        assertNodeLabels(start, KnowledgeGraphWriter.DEFAULT_LABEL);
-        assertNodeProps(start, SYLVESTER, KnowledgeGraphWriter.DEFAULT_ID_PROP);
+        assertNodeLabels(start, DEFAULT_LABEL);
+        assertNodeProps(start, SYLVESTER, DEFAULT_ID_PROP);
         end = path.end();
-        assertNodeLabels(end, KnowledgeGraphWriter.DEFAULT_LABEL);
-        assertNodeProps(end, TABLE, KnowledgeGraphWriter.DEFAULT_ID_PROP);
+        assertNodeLabels(end, DEFAULT_LABEL);
+        assertNodeProps(end, TABLE, DEFAULT_ID_PROP);
         rel = Iterables.single(path.relationships());
         assertThat(rel.type()).containsIgnoringCase(ON);
     }
@@ -294,8 +297,7 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         knowledgeGraphWriter.addGraphDocuments(graphDocs, true);
 
         // then
-        List<Record> records =
-                neo4jGraph.executeRead(MATCH_WITH_DOCUMENT_RETURN_NODE.formatted(KnowledgeGraphWriter.DEFAULT_ID_PROP));
+        List<Record> records = neo4jGraph.executeRead(MATCH_WITH_DOCUMENT_RETURN_NODE.formatted(DEFAULT_ID_PROP));
         assertThat(records).hasSize(2);
         Record record = records.get(0);
         PathValue p = (PathValue) record.get("p");
@@ -303,21 +305,15 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         Iterator<Node> iterator = path.nodes().iterator();
         Node node = iterator.next();
         assertThat(node.labels()).hasSize(1);
-        assertionsDocument(
-                node,
-                KnowledgeGraphWriter.DEFAULT_ID_PROP,
-                KnowledgeGraphWriter.DEFAULT_TEXT_PROP,
-                KEANU_REEVES_ACTED,
-                KEY_KEANU,
-                VALUE_KEANU);
+        assertionsDocument(node, DEFAULT_ID_PROP, DEFAULT_TEXT_PROP, KEANU_REEVES_ACTED, KEY_KEANU, VALUE_KEANU);
 
         node = iterator.next();
-        assertNodeLabels(node, KnowledgeGraphWriter.DEFAULT_LABEL);
-        assertNodeProps(node, KEANU, KnowledgeGraphWriter.DEFAULT_ID_PROP);
+        assertNodeLabels(node, DEFAULT_LABEL);
+        assertNodeProps(node, KEANU, DEFAULT_ID_PROP);
 
         node = iterator.next();
-        assertNodeLabels(node, KnowledgeGraphWriter.DEFAULT_LABEL);
-        assertNodeProps(node, MATRIX, KnowledgeGraphWriter.DEFAULT_ID_PROP);
+        assertNodeLabels(node, DEFAULT_LABEL);
+        assertNodeProps(node, MATRIX, DEFAULT_ID_PROP);
         List<Relationship> rels = Iterables.asList(path.relationships());
         assertThat(rels).hasSize(2);
         assertThat(rels.get(0).type()).containsIgnoringCase(relType);
@@ -329,21 +325,15 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         iterator = path.nodes().iterator();
         node = iterator.next();
         assertThat(node.labels()).hasSize(1);
-        assertionsDocument(
-                node,
-                KnowledgeGraphWriter.DEFAULT_ID_PROP,
-                KnowledgeGraphWriter.DEFAULT_TEXT_PROP,
-                CAT_ON_THE_TABLE,
-                KEY_CAT,
-                VALUE_CAT);
+        assertionsDocument(node, DEFAULT_ID_PROP, DEFAULT_TEXT_PROP, CAT_ON_THE_TABLE, KEY_CAT, VALUE_CAT);
 
         node = iterator.next();
-        assertNodeLabels(node, KnowledgeGraphWriter.DEFAULT_LABEL);
-        assertNodeProps(node, SYLVESTER, KnowledgeGraphWriter.DEFAULT_ID_PROP);
+        assertNodeLabels(node, DEFAULT_LABEL);
+        assertNodeProps(node, SYLVESTER, DEFAULT_ID_PROP);
 
         node = iterator.next();
-        assertNodeLabels(node, KnowledgeGraphWriter.DEFAULT_LABEL);
-        assertNodeProps(node, TABLE, KnowledgeGraphWriter.DEFAULT_ID_PROP);
+        assertNodeLabels(node, DEFAULT_LABEL);
+        assertNodeProps(node, TABLE, DEFAULT_ID_PROP);
         rels = Iterables.asList(path.relationships());
         assertThat(rels).hasSize(2);
         assertThat(rels.get(0).type()).containsIgnoringCase(relType);
