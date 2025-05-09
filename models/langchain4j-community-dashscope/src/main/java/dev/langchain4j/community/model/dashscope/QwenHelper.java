@@ -49,6 +49,8 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.VideoContent;
+import dev.langchain4j.data.video.Video;
 import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.StreamingResponseHandler;
@@ -100,12 +102,13 @@ class QwenHelper {
 
     static String toSingleText(ChatMessage message) {
         return switch (message.type()) {
-            case USER -> ((UserMessage) message)
-                    .contents().stream()
-                            .filter(TextContent.class::isInstance)
-                            .map(TextContent.class::cast)
-                            .map(TextContent::text)
-                            .collect(joining("\n"));
+            case USER ->
+                ((UserMessage) message)
+                        .contents().stream()
+                                .filter(TextContent.class::isInstance)
+                                .map(TextContent.class::cast)
+                                .map(TextContent::text)
+                                .collect(joining("\n"));
             case AI -> ((AiMessage) message).text();
             case SYSTEM -> ((SystemMessage) message).text();
             case TOOL_EXECUTION_RESULT -> ((ToolExecutionResultMessage) message).text();
@@ -148,13 +151,17 @@ class QwenHelper {
 
     static List<Map<String, Object>> toMultiModalContents(ChatMessage message) {
         return switch (message.type()) {
-            case USER -> ((UserMessage) message)
-                    .contents().stream().map(QwenHelper::toMultiModalContent).collect(toList());
+            case USER ->
+                ((UserMessage) message)
+                        .contents().stream()
+                                .map(QwenHelper::toMultiModalContent)
+                                .collect(toList());
             case AI -> Collections.singletonList(Collections.singletonMap("text", ((AiMessage) message).text()));
-            case SYSTEM -> Collections.singletonList(
-                    Collections.singletonMap("text", ((SystemMessage) message).text()));
-            case TOOL_EXECUTION_RESULT -> Collections.singletonList(
-                    Collections.singletonMap("text", ((ToolExecutionResultMessage) message).text()));
+            case SYSTEM ->
+                Collections.singletonList(Collections.singletonMap("text", ((SystemMessage) message).text()));
+            case TOOL_EXECUTION_RESULT ->
+                Collections.singletonList(
+                        Collections.singletonMap("text", ((ToolExecutionResultMessage) message).text()));
             default -> Collections.emptyList();
         };
     }
@@ -182,6 +189,18 @@ class QwenHelper {
                 } else if (Utils.isNotNullOrBlank(audio.base64Data())) {
                     return Collections.singletonMap(
                             "audio", "data:%s;base64,%s".formatted(audio.mimeType(), audio.base64Data()));
+                } else {
+                    return Collections.emptyMap();
+                }
+            case VIDEO:
+                Video video = ((VideoContent) content).video();
+                String videoContent;
+                if (video.url() != null) {
+                    videoContent = video.url().toString();
+                    return Collections.singletonMap("video", videoContent);
+                } else if (Utils.isNotNullOrBlank(video.base64Data())) {
+                    return Collections.singletonMap(
+                            "video", "data:%s;base64,%s".formatted(video.mimeType(), video.base64Data()));
                 } else {
                     return Collections.emptyMap();
                 }
@@ -313,7 +332,7 @@ class QwenHelper {
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
         // rough judgment
-        return !(modelName.contains("-audio-") || modelName.contains("-mt-"));
+        return !modelName.contains("-mt-");
     }
 
     static boolean isMultimodalModel(ChatRequest chatRequest) {
@@ -758,10 +777,11 @@ class QwenHelper {
         }
 
         return switch (responseFormat.type()) {
-            case JSON -> com.alibaba.dashscope.common.ResponseFormat.from(
-                    com.alibaba.dashscope.common.ResponseFormat.JSON_OBJECT);
-            case TEXT -> com.alibaba.dashscope.common.ResponseFormat.from(
-                    com.alibaba.dashscope.common.ResponseFormat.TEXT);
+            case JSON ->
+                com.alibaba.dashscope.common.ResponseFormat.from(
+                        com.alibaba.dashscope.common.ResponseFormat.JSON_OBJECT);
+            case TEXT ->
+                com.alibaba.dashscope.common.ResponseFormat.from(com.alibaba.dashscope.common.ResponseFormat.TEXT);
         };
     }
 

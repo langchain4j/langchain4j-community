@@ -421,7 +421,7 @@ public class QwenStreamingResponseBuilder {
             var iterator = current.iterator();
             var firstContent = iterator.next();
             // the first one should be merged with previous last one
-            contents.add(merge(lastPreviousContent, firstContent));
+            contents.add(mergeContent(lastPreviousContent, firstContent));
             while (iterator.hasNext()) {
                 contents.add(iterator.next());
             }
@@ -432,6 +432,28 @@ public class QwenStreamingResponseBuilder {
         }
 
         return contents;
+    }
+
+    private Map<String, Object> mergeContent(Map<String, Object> previous, Map<String, Object> current) {
+        if (!incrementalOutput) {
+            return merge(previous, current);
+        }
+
+        if (previous == null) {
+            return current;
+        }
+        if (current == null) {
+            return previous;
+        }
+        Map<String, Object> merged = new HashMap<>(previous);
+        for (var key : current.keySet()) {
+            if (previous.get(key) instanceof String previousValue && current.get(key) instanceof String currentValue) {
+                merged.put(key, merge(previousValue, currentValue));
+            } else {
+                merged.put(key, current.get(key));
+            }
+        }
+        return merged;
     }
 
     private static GenerationResult newGenerationResult() {
