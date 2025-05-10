@@ -8,6 +8,7 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -40,6 +41,17 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                     Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
                     Do not include any text except the generated Cypher statement.
                     The question is: {{question}}
+                    """);
+
+    public static final PromptTemplate FROM_LLM_PROMPT_TEMPLATE = PromptTemplate.from(
+            """
+                    Based on the following context and the generated Cypher,
+                    write an answer in natural language to the provided user's question:
+                    Context: {{context}}
+
+                    Generated Cypher: {{cypher}}
+                    Question: {{question}}
+                    Cypher query:
                     """);
 
     private static final Type NODE = TypeSystem.getDefault().NODE();
@@ -93,9 +105,15 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
         return promptTemplate;
     }
 
+    private record RetrieveResult(String cypherQuery, List<Content> contents) {}
+
     @Override
     public List<Content> retrieve(Query query) {
+        RetrieveResult result = getRetrieveResult(query);
+        return result.contents();
+    }
 
+    private RetrieveResult getRetrieveResult(Query query) {
         String question = query.text();
         String schema = graph.getSchema();
 
@@ -146,15 +164,24 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                             messages.add(UserMessage.from(errorUserMsg));
                             throw new RuntimeException(emptyResultMsg);
                         }
-                        return list;
+                        return new RetrieveResult(cypherQuery, list);
                     },
                     maxRetries);
         } catch (Exception e) {
             if (e.getMessage().contains(emptyResultMsg)) {
-                return List.of();
+                return new RetrieveResult("", List.of());
             }
             throw e;
         }
+    }
+
+    public String fromLLM(Query query) {
+        RetrieveResult result = getRetrieveResult(query);
+
+        final Prompt prompt = FROM_LLM_PROMPT_TEMPLATE.apply(
+                Map.of("context", result.contents(), "cypher", result.cypherQuery(), "question", query.text()));
+        String cypherQuery = chatModel.chat(prompt.text());
+        return getBacktickText(cypherQuery);
     }
 
     /**
