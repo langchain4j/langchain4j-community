@@ -4,10 +4,9 @@ import dev.langchain4j.community.model.zhipu.ZhipuAiStreamingChatModel;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.common.AbstractStreamingAiServiceIT;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import java.util.Collections;
 import java.util.List;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
 public class ZhipuAiStreamingAiServicesIT extends AbstractStreamingAiServiceIT {

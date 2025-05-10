@@ -100,12 +100,13 @@ class QwenHelper {
 
     static String toSingleText(ChatMessage message) {
         return switch (message.type()) {
-            case USER -> ((UserMessage) message)
-                    .contents().stream()
-                            .filter(TextContent.class::isInstance)
-                            .map(TextContent.class::cast)
-                            .map(TextContent::text)
-                            .collect(joining("\n"));
+            case USER ->
+                ((UserMessage) message)
+                        .contents().stream()
+                                .filter(TextContent.class::isInstance)
+                                .map(TextContent.class::cast)
+                                .map(TextContent::text)
+                                .collect(joining("\n"));
             case AI -> ((AiMessage) message).text();
             case SYSTEM -> ((SystemMessage) message).text();
             case TOOL_EXECUTION_RESULT -> ((ToolExecutionResultMessage) message).text();
@@ -148,13 +149,17 @@ class QwenHelper {
 
     static List<Map<String, Object>> toMultiModalContents(ChatMessage message) {
         return switch (message.type()) {
-            case USER -> ((UserMessage) message)
-                    .contents().stream().map(QwenHelper::toMultiModalContent).collect(toList());
+            case USER ->
+                ((UserMessage) message)
+                        .contents().stream()
+                                .map(QwenHelper::toMultiModalContent)
+                                .collect(toList());
             case AI -> Collections.singletonList(Collections.singletonMap("text", ((AiMessage) message).text()));
-            case SYSTEM -> Collections.singletonList(
-                    Collections.singletonMap("text", ((SystemMessage) message).text()));
-            case TOOL_EXECUTION_RESULT -> Collections.singletonList(
-                    Collections.singletonMap("text", ((ToolExecutionResultMessage) message).text()));
+            case SYSTEM ->
+                Collections.singletonList(Collections.singletonMap("text", ((SystemMessage) message).text()));
+            case TOOL_EXECUTION_RESULT ->
+                Collections.singletonList(
+                        Collections.singletonMap("text", ((ToolExecutionResultMessage) message).text()));
             default -> Collections.emptyList();
         };
     }
@@ -758,10 +763,11 @@ class QwenHelper {
         }
 
         return switch (responseFormat.type()) {
-            case JSON -> com.alibaba.dashscope.common.ResponseFormat.from(
-                    com.alibaba.dashscope.common.ResponseFormat.JSON_OBJECT);
-            case TEXT -> com.alibaba.dashscope.common.ResponseFormat.from(
-                    com.alibaba.dashscope.common.ResponseFormat.TEXT);
+            case JSON ->
+                com.alibaba.dashscope.common.ResponseFormat.from(
+                        com.alibaba.dashscope.common.ResponseFormat.JSON_OBJECT);
+            case TEXT ->
+                com.alibaba.dashscope.common.ResponseFormat.from(com.alibaba.dashscope.common.ResponseFormat.TEXT);
         };
     }
 
