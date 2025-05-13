@@ -34,7 +34,6 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
@@ -538,10 +537,5 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected String diceImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/PNG_transparency_demonstration_1.png";
-    }
-
-    @Override
-    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType() {
-        return QwenChatResponseMetadata.class;
     }
 }
