@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
-        <version>1.0.0-beta4-SNAPSHOT</version>
+        <version>1.0.0-beta5</version>
     </parent>
 
     <artifactId>langchain4j-community-vearch-spring-boot-starter</artifactId>
@@ -28,29 +28,6 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-http-client-spring-restclient</artifactId>
-            <version>${project.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework</groupId>
-                    <artifactId>spring-web</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>dev.langchain4j</groupId>
-                    <artifactId>langchain4j-http-client</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!-- FIXME: it's strange langchain4j-http-client-spring-restclient does not contain spring-web and langchain4j-http-client -->
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-http-client</artifactId>
             <version>${project.version}</version>
         </dependency>
 
