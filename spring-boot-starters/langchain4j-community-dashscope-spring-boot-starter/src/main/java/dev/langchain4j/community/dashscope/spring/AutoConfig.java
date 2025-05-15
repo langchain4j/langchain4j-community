@@ -117,6 +117,8 @@ public class AutoConfig {
                 .vlHighResolutionImages(parameters.getVlHighResolutionImages())
                 .isMultimodalModel(parameters.getIsMultimodalModel())
                 .supportIncrementalOutput(parameters.getSupportIncrementalOutput())
+                .enableThinking(parameters.getEnableThinking())
+                .thinkingBudget(parameters.getThinkingBudget())
                 .build();
     }
 

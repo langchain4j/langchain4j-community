@@ -142,6 +142,8 @@ public class ChatModelProperties {
         private Boolean vlHighResolutionImages;
         private Boolean isMultimodalModel;
         private Boolean supportIncrementalOutput;
+        private Boolean enableThinking;
+        private Integer thinkingBudget;
 
         public String getModelName() {
             return modelName;
@@ -277,6 +279,22 @@ public class ChatModelProperties {
 
         public void setSupportIncrementalOutput(Boolean supportIncrementalOutput) {
             this.supportIncrementalOutput = supportIncrementalOutput;
+        }
+
+        public Boolean getEnableThinking() {
+            return enableThinking;
+        }
+
+        public void setEnableThinking(Boolean enableThinking) {
+            this.enableThinking = enableThinking;
+        }
+
+        public Integer getThinkingBudget() {
+            return thinkingBudget;
+        }
+
+        public void setThinkingBudget(Integer thinkingBudget) {
+            this.thinkingBudget = thinkingBudget;
         }
     }
 
