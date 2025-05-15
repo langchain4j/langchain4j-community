@@ -12,14 +12,20 @@ import java.util.Objects;
 @Experimental
 public class QwenChatResponseMetadata extends ChatResponseMetadata {
     private final SearchInfo searchInfo;
+    private final String reasoningContent;
 
     protected QwenChatResponseMetadata(Builder builder) {
         super(builder);
         this.searchInfo = builder.searchInfo;
+        this.reasoningContent = builder.reasoningContent;
     }
 
     public SearchInfo searchInfo() {
         return searchInfo;
+    }
+
+    public String reasoningContent() {
+        return reasoningContent;
     }
 
     public Map<String, Object> toMap() {
@@ -39,6 +45,9 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
         if (searchInfo != null) {
             map.put("searchInfo", searchInfo);
         }
+        if (reasoningContent != null) {
+            map.put("reasoningContent", reasoningContent);
+        }
         return map;
     }
 
@@ -47,12 +56,12 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
         if (this == o) return true;
         if (!(o instanceof QwenChatResponseMetadata that)) return false;
         if (!super.equals(o)) return false;
-        return Objects.equals(searchInfo, that.searchInfo);
+        return Objects.equals(searchInfo, that.searchInfo) && Objects.equals(reasoningContent, that.reasoningContent);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), searchInfo);
+        return Objects.hash(super.hashCode(), searchInfo, reasoningContent);
     }
 
     @Override
@@ -62,7 +71,8 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
                 + quoted(modelName()) + ", tokenUsage="
                 + tokenUsage() + ", finishReason="
                 + finishReason() + ", searchInfo="
-                + searchInfo + '}';
+                + searchInfo + ", reasoningContent="
+                + reasoningContent + '}';
     }
 
     public static Builder builder() {
@@ -71,9 +81,15 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
 
     public static class Builder extends ChatResponseMetadata.Builder<Builder> {
         private SearchInfo searchInfo;
+        private String reasoningContent;
 
         public Builder searchInfo(SearchInfo searchInfo) {
             this.searchInfo = searchInfo;
+            return this;
+        }
+
+        public Builder reasoningContent(String reasoningContent) {
+            this.reasoningContent = reasoningContent;
             return this;
         }
 

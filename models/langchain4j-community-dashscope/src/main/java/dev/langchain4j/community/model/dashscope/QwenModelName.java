@@ -33,7 +33,6 @@ public class QwenModelName {
             "qwen2-72b-instruct"; // Qwen open sourced 72-billion-parameters model (v2)
     public static final String QWEN2_57B_A14B_INSTRUCT =
             "qwen2-57b-a14b-instruct"; // Qwen open sourced 57-billion-parameters and 14-billion-activation-parameters
-    // MOE model (v2)
     public static final String QWEN2_5_0_5B_INSTRUCT =
             "qwen2.5-0.5b-instruct"; // Qwen open sourced 0.5-billion-parameters model (v2.5)
     public static final String QWEN2_5_1_5B_INSTRUCT =
@@ -48,6 +47,16 @@ public class QwenModelName {
             "qwen2.5-32b-instruct"; // Qwen open sourced 32-billion-parameters model (v2.5)
     public static final String QWEN2_5_72B_INSTRUCT =
             "qwen2.5-72b-instruct"; // Qwen open sourced 72-billion-parameters model (v2.5)
+    public static final String QWEN3_0_6B = "qwen3-0.6b"; // Qwen open sourced 0.6-billion-parameters model (v3)
+    public static final String QWEN3_1_7B = "qwen3-1.7b"; // Qwen open sourced 1.7-billion-parameters model (v3)
+    public static final String QWEN3_4B = "qwen3-4b"; // Qwen open sourced 4-billion-parameters model (v3)
+    public static final String QWEN3_8B = "qwen3-8b"; // Qwen open sourced 8-billion-parameters model (v3)
+    public static final String QWEN3_14B = "qwen3-14b"; // Qwen open sourced 14-billion-parameters model (v3)
+    public static final String QWEN3_32B = "qwen3-32b"; // Qwen open sourced 32-billion-parameters model (v3)
+    public static final String QWEN3_30B_A3B =
+            "qwen3-30b-a3b"; // Qwen open sourced 30-billion-parameters and 3-billion-activation-parameters (v3)
+    public static final String QWEN3_235B_A22B =
+            "qwen3-235b-a22b"; // Qwen open sourced 235-billion-parameters and 22-billion-activation-parameters (v3)
     public static final String QWEN_VL_PLUS =
             "qwen-vl-plus"; // Qwen multi-modal model, supports image and text information, stable version
     public static final String QWEN_VL_PLUS_LATEST =

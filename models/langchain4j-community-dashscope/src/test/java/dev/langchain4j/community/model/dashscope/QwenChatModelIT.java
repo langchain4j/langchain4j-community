@@ -33,6 +33,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -64,7 +65,8 @@ class QwenChatModelIT extends AbstractChatModelIT {
         QwenChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
-        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rain"));
+        model.setGenerationParamCustomizer(
+                generationParamBuilder -> generationParamBuilder.stopStrings(List.of("Rainy", "rainy")));
 
         ChatResponse response = model.chat(QwenTestHelper.chatMessages());
 
@@ -109,7 +111,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("10");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -158,7 +160,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("rain");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -252,7 +254,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("4");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -548,5 +550,10 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @Override
     protected String diceImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/PNG_transparency_demonstration_1.png";
+    }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(ChatModel model) {
+        return QwenChatResponseMetadata.class;
     }
 }

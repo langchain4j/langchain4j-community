@@ -110,6 +110,8 @@ public class QwenChatModel implements ChatModel {
                 .vlHighResolutionImages(qwenParameters.vlHighResolutionImages())
                 .isMultimodalModel(getOrDefault(isMultimodalModel, qwenParameters.isMultimodalModel()))
                 .supportIncrementalOutput(qwenParameters.supportIncrementalOutput())
+                .enableThinking(qwenParameters.enableThinking())
+                .thinkingBudget(qwenParameters.thinkingBudget())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 
