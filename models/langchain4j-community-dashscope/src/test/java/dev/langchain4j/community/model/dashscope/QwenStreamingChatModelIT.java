@@ -36,6 +36,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
@@ -50,7 +51,6 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
     void should_send_non_multimodal_messages_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
@@ -72,7 +72,8 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .modelName(modelName)
                 .build();
 
-        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rainy"));
+        model.setGenerationParamCustomizer(
+                generationParamBuilder -> generationParamBuilder.stopStrings(List.of("Rainy", "rainy")));
 
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(ChatRequest.builder().messages(chatMessages()).build(), handler);
@@ -129,7 +130,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("10");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -188,7 +189,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("rain");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -298,7 +299,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("4");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -496,6 +497,60 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.content().text().trim()).isEqualTo("我的内存");
     }
 
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
+    void should_send_non_multimodal_messages_and_receive_response_with_reasoning_content(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        QwenChatRequestParameters parameters =
+                QwenChatRequestParameters.builder().enableThinking(true).build();
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(UserMessage.from("What is the capital of France?"))
+                .parameters(parameters)
+                .build();
+
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().text()).containsIgnoringCase("Paris");
+        assertThat(response.metadata()).isNotNull();
+        assertThat(response.metadata()).isInstanceOf(QwenChatResponseMetadata.class);
+        assertThat(((QwenChatResponseMetadata) response.metadata()).reasoningContent())
+                .isNotBlank();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
+    void should_send_non_multimodal_messages_and_receive_response_without_reasoning_content(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        QwenChatRequestParameters parameters =
+                QwenChatRequestParameters.builder().enableThinking(false).build();
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(UserMessage.from("What is the capital of China?"))
+                .parameters(parameters)
+                .build();
+
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().text()).containsIgnoringCase("Beijing");
+        assertThat(response.metadata()).isNotNull();
+        assertThat(response.metadata()).isInstanceOf(QwenChatResponseMetadata.class);
+        assertThat(((QwenChatResponseMetadata) response.metadata()).reasoningContent())
+                .isBlank();
+    }
+
     @Override
     protected List<StreamingChatModel> models() {
         return nonMultimodalChatModelNameProvider()
@@ -575,5 +630,10 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected String diceImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/PNG_transparency_demonstration_1.png";
+    }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(StreamingChatModel model) {
+        return QwenChatResponseMetadata.class;
     }
 }

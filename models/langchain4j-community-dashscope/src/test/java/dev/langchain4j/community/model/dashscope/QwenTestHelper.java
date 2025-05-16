@@ -31,8 +31,7 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN_TURBO),
                 Arguments.of(QwenModelName.QWEN_PLUS),
                 Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
+                Arguments.of(QwenModelName.QWEN_LONG));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
@@ -41,13 +40,12 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN_PLUS),
                 Arguments.of(QwenModelName.QWEN_MAX),
                 Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
+                Arguments.of(QwenModelName.QWEN3_32B));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
-        // Function Call and structured output (JSON Mode) are not supported.
-        return Stream.of(Arguments.of(QwenModelName.QWQ_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_32B), Arguments.of(QwenModelName.QWEN3_235B_A22B));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
