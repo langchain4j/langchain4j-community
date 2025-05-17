@@ -671,11 +671,6 @@ class QwenHelper {
                     "'frequencyPenalty' parameter is not supported by " + parameters.modelName());
         }
 
-        if (!isNullOrEmpty(parameters.stopSequences())) {
-            throw new UnsupportedFeatureException(
-                    "'stopSequences' parameter is not supported by " + parameters.modelName());
-        }
-
         if (parameters.toolChoice() != null) {
             throw new UnsupportedFeatureException(
                     "'toolChoice' parameter is not supported by " + parameters.modelName());
@@ -778,6 +773,10 @@ class QwenHelper {
 
         if (parameters.temperature() != null) {
             builder.temperature(parameters.temperature().floatValue());
+        }
+
+        if (!isNullOrEmpty(parameters.stopSequences())) {
+            builder.parameter("stop", parameters.stopSequences());
         }
 
         if (parameters.vlHighResolutionImages() != null) {
