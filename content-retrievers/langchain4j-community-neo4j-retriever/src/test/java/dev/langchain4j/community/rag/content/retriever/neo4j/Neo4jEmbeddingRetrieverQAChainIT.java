@@ -3,8 +3,9 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.community.rag.content.RetrievalQAChain;
+import dev.langchain4j.community.chain.RetrievalQAChain;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
+import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentByRegexSplitter;
@@ -14,6 +15,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.injector.DefaultContentInjector;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -61,10 +63,8 @@ public class Neo4jEmbeddingRetrieverQAChainIT extends Neo4jEmbeddingRetrieverBas
                 .dimension(384)
                 .build();
 
-        final Neo4jEmbeddingRetriever retriever = Neo4jEmbeddingRetriever.builder()
+        final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingModel(embeddingModel)
-                .driver(driver)
-                .query("CREATE (:MainDoc $metadata)")
                 .maxResults(5)
                 .minScore(0.4)
                 .embeddingStore(neo4jEmbeddingStore)
@@ -82,8 +82,16 @@ public class Neo4jEmbeddingRetrieverQAChainIT extends Neo4jEmbeddingRetrieverBas
         DocumentSplitter childSplitter =
                 new DocumentByRegexSplitter(expectedQueryChild, expectedQuery, maxSegmentSize, 0);
 
+        final Neo4jEmbeddingStoreIngestor build = Neo4jEmbeddingStoreIngestor.builder()
+                .driver(driver)
+                .query("CREATE (:MainDoc $metadata)")
+                .documentSplitter(parentSplitter)
+                .documentSplitter(childSplitter)
+                .embeddingModel(embeddingModel)
+                .embeddingStore(neo4jEmbeddingStore)
+                .build();
         // Index the document into Neo4j as parent-child nodes
-        retriever.index(doc, parentSplitter, childSplitter);
+        build.ingest(doc);
 
         final String retrieveQuery = "Who is John Doe?";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));

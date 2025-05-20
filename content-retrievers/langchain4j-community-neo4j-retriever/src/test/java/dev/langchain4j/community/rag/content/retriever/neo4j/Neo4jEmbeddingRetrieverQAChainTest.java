@@ -5,8 +5,9 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.community.rag.content.RetrievalQAChain;
+import dev.langchain4j.community.chain.RetrievalQAChain;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
+import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentByRegexSplitter;
@@ -17,6 +18,7 @@ import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.injector.DefaultContentInjector;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -49,18 +51,11 @@ public class Neo4jEmbeddingRetrieverQAChainTest extends Neo4jEmbeddingRetrieverB
         final String chatResponse = "dattebayo";
         when(chatLanguageModel.chat(anyString())).thenReturn(chatResponse).thenReturn(chatResponse);
 
-        final Neo4jEmbeddingRetriever retriever = Neo4jEmbeddingRetriever.builder()
+        final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingModel(embeddingModel)
                 .embeddingStore(neo4jEmbeddingStore)
-                .driver(driver)
                 .maxResults(2)
                 .minScore(0.4)
-                .questionModel(chatLanguageModel)
-                .answerModel(chatLanguageModel)
-                .query("CREATE (:MainDoc $metadata)")
-                .userPrompt("mock prompt user")
-                .systemPrompt("mock prompt system")
-                .answerPrompt("mock prompt answer")
                 .build();
 
         Document parentDoc = getDocumentMiscTopics();
@@ -70,8 +65,18 @@ public class Neo4jEmbeddingRetrieverQAChainTest extends Neo4jEmbeddingRetrieverB
         int maxSegmentSize = 250;
         DocumentSplitter splitter = new DocumentByRegexSplitter(expectedQuery, expectedQuery, maxSegmentSize, 0);
 
+        final Neo4jEmbeddingStoreIngestor build = Neo4jEmbeddingStoreIngestor.builder()
+                .driver(driver)
+                .query("CREATE (:MainDoc $metadata)")
+                .embeddingStore(neo4jEmbeddingStore)
+                .embeddingModel(embeddingModel)
+                .documentSplitter(splitter)
+                .questionModel(chatLanguageModel)
+                .userPrompt("mock prompt user")
+                .systemPrompt("mock prompt system")
+                .build();
         // returns a single result without
-        retriever.index(parentDoc, splitter);
+        build.ingest(parentDoc);
         final String retrieveQuery = "naruto";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
         assertThat(results).hasSize(1);

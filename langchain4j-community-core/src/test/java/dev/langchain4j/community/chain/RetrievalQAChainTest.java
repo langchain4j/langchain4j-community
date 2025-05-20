@@ -1,4 +1,4 @@
-package dev.langchain4j.community.rag.content;
+package dev.langchain4j.community.chain;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -203,7 +203,7 @@ public class RetrievalQAChainTest {
             RetrievalQAChain.builder().chatModel(chatModel).build();
             fail("Should fail due to missing builder configurations");
         } catch (Exception e) {
-            assertThat(e.getMessage()).contains(RetrievalQAChain.Builder.CONTENT_RETRIEVER_NULL_ERROR);
+            assertThat(e.getMessage()).contains("queryRouter cannot be null");
         }
     }
 
@@ -216,7 +216,7 @@ public class RetrievalQAChainTest {
                     .build();
             fail("Should fail due to missing builder configurations");
         } catch (Exception e) {
-            assertThat(e.getMessage()).contains(RetrievalQAChain.Builder.CONTENT_RETRIEVER_NULL_ERROR);
+            assertThat(e.getMessage()).contains("queryRouter cannot be null");
         }
     }
 }

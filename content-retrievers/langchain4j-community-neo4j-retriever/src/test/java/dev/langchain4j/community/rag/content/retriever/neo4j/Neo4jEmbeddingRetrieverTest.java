@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
+import dev.langchain4j.community.embedding.ParentChildEmbeddingStoreIngestor;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
+import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentByRegexSplitter;
@@ -14,6 +16,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import java.util.List;
 import java.util.Map;
@@ -30,14 +33,6 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
 
     @Test
     public void testBasicRetriever() {
-        final Neo4jEmbeddingRetriever retriever = Neo4jEmbeddingRetriever.builder()
-                .embeddingModel(embeddingModel)
-                .embeddingStore(embeddingStore)
-                .driver(driver)
-                .maxResults(1)
-                .minScore(0.4)
-                .build();
-
         Document parentDoc = getDocumentMiscTopics();
 
         // Child splitter: splits into sentences using OpenNLP
@@ -45,10 +40,21 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
         int maxSegmentSize = 250;
         DocumentSplitter splitter = new DocumentByRegexSplitter(expectedQuery, expectedQuery, maxSegmentSize, 0);
 
-        retriever.index(parentDoc, splitter);
+        final ParentChildEmbeddingStoreIngestor build = ParentChildEmbeddingStoreIngestor.builder()
+                .documentSplitter(splitter)
+                .embeddingStore(embeddingStore)
+                .embeddingModel(embeddingModel)
+                .build();
+
+        build.ingest(parentDoc);
 
         // Query and validate results
         final String retrieveQuery = "fundamental theory";
+        final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(embeddingStore)
+                .maxResults(1)
+                .minScore(0.4)
+                .build();
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
         commonResults(results, retrieveQuery);
     }
@@ -70,17 +76,11 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
                         .aiMessage(AiMessage.aiMessage("Naruto"))
                         .build());
 
-        final Neo4jEmbeddingRetriever retriever = Neo4jEmbeddingRetriever.builder()
+        final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingModel(embeddingModel)
                 .embeddingStore(neo4jEmbeddingStore)
-                .driver(driver)
                 .maxResults(2)
                 .minScore(0.4)
-                .questionModel(chatLanguageModel)
-                .query("CREATE (:MainDoc $metadata)")
-                .userPrompt("mock prompt user")
-                .systemPrompt("mock prompt system")
-                .answerPrompt("mock prompt anwser")
                 .build();
 
         Document parentDoc = getDocumentMiscTopics();
@@ -90,7 +90,17 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
         int maxSegmentSize = 250;
         DocumentSplitter splitter = new DocumentByRegexSplitter(expectedQuery, expectedQuery, maxSegmentSize, 0);
 
-        retriever.index(parentDoc, splitter);
+        final Neo4jEmbeddingStoreIngestor build = Neo4jEmbeddingStoreIngestor.builder()
+                .documentSplitter(splitter)
+                .embeddingStore(neo4jEmbeddingStore)
+                .embeddingModel(embeddingModel)
+                .driver(driver)
+                .query("CREATE (:MainDoc $metadata)")
+                .questionModel(chatLanguageModel)
+                .userPrompt("mock prompt user")
+                .systemPrompt("mock prompt system")
+                .build();
+        build.ingest(parentDoc);
         final String retrieveQuery = "naruto";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
         commonResults(results, retrieveQuery);
@@ -108,10 +118,8 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
                 .dimension(384)
                 .build();
 
-        final Neo4jEmbeddingRetriever retriever = Neo4jEmbeddingRetriever.builder()
+        final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingModel(embeddingModel)
-                .driver(driver)
-                .query("CREATE (:MainDoc $metadata)")
                 .maxResults(5)
                 .minScore(0.4)
                 .embeddingStore(neo4jEmbeddingStore)
@@ -126,15 +134,22 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
 
         // Child splitter splits on periods (sentences)
         final String expectedQueryChild = "\\. ";
-        DocumentSplitter childSplitter =
-                new DocumentByRegexSplitter(expectedQueryChild, expectedQuery, maxSegmentSize, 0);
+        DocumentSplitter childSplitter = new DocumentByRegexSplitter(expectedQueryChild, expectedQuery, 150, 0);
 
+        final Neo4jEmbeddingStoreIngestor build = Neo4jEmbeddingStoreIngestor.builder()
+                .documentSplitter(parentSplitter)
+                .documentChildSplitter(childSplitter)
+                .driver(driver)
+                .query("CREATE (:MainDoc $metadata)")
+                .embeddingStore(neo4jEmbeddingStore)
+                .embeddingModel(embeddingModel)
+                .build();
         // Index the document into Neo4j as parent-child nodes
-        retriever.index(doc, parentSplitter, childSplitter);
+        build.ingest(doc);
 
         final String retrieveQuery = "Machine Learning";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
-        assertThat(results).hasSize(2);
+        assertThat(results).hasSize(1);
     }
 
     // TODO - change with cypher-dsl
@@ -158,12 +173,8 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
                 .dimension(384)
                 .build();
 
-        final Neo4jEmbeddingRetriever retriever = Neo4jEmbeddingRetriever.builder()
+        final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingModel(embeddingModel)
-                .driver(driver)
-                .query("CREATE (:MainDoc $metadata)")
-                .parentIdKey("customParentId")
-                .params(Map.of("customMainDocId", "foo", "bar", 1))
                 .maxResults(5)
                 .minScore(0.4)
                 .embeddingStore(neo4jEmbeddingStore)
@@ -181,12 +192,22 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
         DocumentSplitter childSplitter =
                 new DocumentByRegexSplitter(expectedQueryChild, expectedQuery, maxSegmentSize, 0);
 
+        final Neo4jEmbeddingStoreIngestor build = Neo4jEmbeddingStoreIngestor.builder()
+                .documentSplitter(parentSplitter)
+                .documentChildSplitter(childSplitter)
+                .driver(driver)
+                .query("CREATE (:MainDoc $metadata)")
+                .parentIdKey("customParentId")
+                .params(Map.of("customMainDocId", "foo", "bar", 1))
+                .embeddingStore(neo4jEmbeddingStore)
+                .embeddingModel(embeddingModel)
+                .build();
         // Index the document into Neo4j as parent-child nodes
-        retriever.index(doc, parentSplitter, childSplitter);
+        build.ingest(doc);
 
         final String retrieveQuery = "Machine Learning";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
-        assertThat(results).hasSize(2);
+        assertThat(results).hasSize(1);
     }
 
     @Test
@@ -203,9 +224,8 @@ public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest
 
         seedMainDocAndChildData();
 
-        final Neo4jEmbeddingRetriever retriever = Neo4jEmbeddingRetriever.builder()
+        final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingModel(embeddingModel)
-                .driver(driver)
                 .maxResults(5)
                 .minScore(0.6)
                 .embeddingStore(neo4jEmbeddingStore)
