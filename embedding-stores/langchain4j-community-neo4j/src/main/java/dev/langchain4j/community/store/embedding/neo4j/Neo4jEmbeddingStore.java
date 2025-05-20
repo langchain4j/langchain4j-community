@@ -298,7 +298,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             // Render Cypher
             String cypher = Renderer.getDefaultRenderer().render(finalQuery);
-            System.out.println("cypher = " + cypher);
 
             // Execute using the Neo4j driver session
             session.run(cypher);
@@ -497,7 +496,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         // Render the Cypher query
         String cypherQuery = Renderer.getDefaultRenderer().render(statement);
-        System.out.println(cypherQuery);
 
         Set<String> columns = getColumnNames(session, cypherQuery);
         Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
