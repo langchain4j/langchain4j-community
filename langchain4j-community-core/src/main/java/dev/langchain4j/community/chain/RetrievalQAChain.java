@@ -1,5 +1,6 @@
 package dev.langchain4j.community.chain;
 
+import dev.langchain4j.Experimental;
 import dev.langchain4j.chain.Chain;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -21,8 +22,12 @@ import dev.langchain4j.rag.query.Query;
  * where relevant context is retrieved and injected into the conversation before
  * invoking the chat model.
  * </p>
+ *
+ * @since 1.1.0-beta7
  */
+@Experimental
 public class RetrievalQAChain implements Chain<Query, String> {
+
     private final ChatModel chatModel;
     private final RetrievalAugmentor retrievalAugmentor;
 

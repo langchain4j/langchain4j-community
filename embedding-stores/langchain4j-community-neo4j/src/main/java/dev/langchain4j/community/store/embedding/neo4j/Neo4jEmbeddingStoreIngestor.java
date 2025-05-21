@@ -5,7 +5,7 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
-import dev.langchain4j.community.embedding.ParentChildEmbeddingStoreIngestor;
+import dev.langchain4j.community.store.embedding.ParentChildEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.DocumentTransformer;
 import dev.langchain4j.data.document.Metadata;

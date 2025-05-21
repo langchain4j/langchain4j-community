@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.community.embedding.ParentChildEmbeddingStoreIngestor;
+import dev.langchain4j.community.store.embedding.ParentChildEmbeddingStoreIngestor;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.Document;

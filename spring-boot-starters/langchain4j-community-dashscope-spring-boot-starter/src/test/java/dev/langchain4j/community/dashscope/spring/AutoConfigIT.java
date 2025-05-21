@@ -180,7 +180,9 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.terms[0].target=内存",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.tm-list[0].source=memory",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.tm-list[0].target=内存",
-                        "langchain4j.community.dashscope.chat-model.parameters.vl-high-resolution-images=false")
+                        "langchain4j.community.dashscope.chat-model.parameters.vl-high-resolution-images=false",
+                        "langchain4j.community.dashscope.chat-model.parameters.enable-thinking=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.thinking-budget=1000")
                 .run(context -> {
                     ChatModel chatModel = context.getBean(ChatModel.class);
                     assertThat(chatModel).isInstanceOf(QwenChatModel.class);
@@ -239,6 +241,8 @@ public class AutoConfigIT {
                                     .target())
                             .isEqualTo("内存");
                     assertThat(defaultParameters.vlHighResolutionImages()).isFalse();
+                    assertThat(defaultParameters.enableThinking()).isTrue();
+                    assertThat(defaultParameters.thinkingBudget()).isEqualTo(1000);
 
                     assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatModel);
                 });
@@ -273,7 +277,9 @@ public class AutoConfigIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.terms[0].target=内存",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.tm-list[0].source=memory",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.tm-list[0].target=内存",
-                        "langchain4j.community.dashscope.streaming-chat-model.parameters.vl-high-resolution-images=false")
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.vl-high-resolution-images=false",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.enable-thinking=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.thinking-budget=1000")
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
                     assertThat(streamingChatModel).isInstanceOf(QwenStreamingChatModel.class);
@@ -333,6 +339,8 @@ public class AutoConfigIT {
                                     .target())
                             .isEqualTo("内存");
                     assertThat(defaultParameters.vlHighResolutionImages()).isFalse();
+                    assertThat(defaultParameters.enableThinking()).isTrue();
+                    assertThat(defaultParameters.thinkingBudget()).isEqualTo(1000);
 
                     assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatModel);
                 });

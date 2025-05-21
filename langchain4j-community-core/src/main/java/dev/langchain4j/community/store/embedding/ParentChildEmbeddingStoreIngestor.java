@@ -1,7 +1,8 @@
-package dev.langchain4j.community.embedding;
+package dev.langchain4j.community.store.embedding;
 
 import static java.util.stream.Collectors.toList;
 
+import dev.langchain4j.Experimental;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.DocumentTransformer;
@@ -35,8 +36,11 @@ import org.slf4j.LoggerFactory;
  * </p>
  *
  * @see EmbeddingStoreIngestor
+ * @since 1.1.0-beta7
  */
+@Experimental
 public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
+
     private static final Logger log = LoggerFactory.getLogger(ParentChildEmbeddingStoreIngestor.class);
     private final DocumentTransformer documentTransformer;
     private final DocumentSplitter documentSplitter;

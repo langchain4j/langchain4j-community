@@ -7,6 +7,8 @@ import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimoda
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoData;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultimodalChatModelNameProvider;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
@@ -31,6 +33,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -62,7 +65,8 @@ class QwenChatModelIT extends AbstractChatModelIT {
         QwenChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
 
-        model.setGenerationParamCustomizer(generationParamBuilder -> generationParamBuilder.stopString("rain"));
+        model.setGenerationParamCustomizer(
+                generationParamBuilder -> generationParamBuilder.stopStrings(List.of("Rainy", "rainy")));
 
         ChatResponse response = model.chat(QwenTestHelper.chatMessages());
 
@@ -107,7 +111,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("10");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -156,7 +160,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("rain");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -250,7 +254,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
         AiMessage secondAiMessage = secondResponse.aiMessage();
         assertThat(secondAiMessage.text()).contains("4");
-        assertThat(secondAiMessage.toolExecutionRequests()).isNull();
+        assertThat(secondAiMessage.toolExecutionRequests()).isEmpty();
 
         TokenUsage secondTokenUsage = secondResponse.tokenUsage();
         assertThat(secondTokenUsage.inputTokenCount()).isPositive();
@@ -302,6 +306,28 @@ class QwenChatModelIT extends AbstractChatModelIT {
         ChatResponse response = model.chat(multimodalChatMessagesWithAudioData());
 
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    void should_send_multimodal_video_url_and_receive_response(String modelName) {
+        ChatModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        ChatResponse response = model.chat(multimodalChatMessagesWithVideoUrl());
+
+        assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    void should_send_multimodal_video_data_and_receive_response(String modelName) {
+        ChatModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        ChatResponse response = model.chat(multimodalChatMessagesWithVideoData());
+
+        assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
     @Test
@@ -524,5 +550,10 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @Override
     protected String diceImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/PNG_transparency_demonstration_1.png";
+    }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(ChatModel model) {
+        return QwenChatResponseMetadata.class;
     }
 }
