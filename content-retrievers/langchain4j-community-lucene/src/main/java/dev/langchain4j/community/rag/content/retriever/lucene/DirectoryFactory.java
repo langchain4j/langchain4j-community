@@ -2,6 +2,7 @@ package dev.langchain4j.community.rag.content.retriever.lucene;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import dev.langchain4j.Internal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,7 +12,8 @@ import org.apache.lucene.store.MMapDirectory;
 /**
  * Static factory for create Lucene directories.
  */
-public class DirectoryFactory {
+@Internal
+class DirectoryFactory {
 
     /**
      * Create a memory mapped file-system based directory.
@@ -19,7 +21,7 @@ public class DirectoryFactory {
      * @param directoryPath Path for the directory.
      * @return Lucene directory
      */
-    public static Directory fsDirectory(Path directoryPath) {
+    static Directory fsDirectory(Path directoryPath) {
         ensureNotNull(directoryPath, "directoryPath");
         try {
             Directory directory = new MMapDirectory(directoryPath);
@@ -34,7 +36,7 @@ public class DirectoryFactory {
      *
      * @return Lucene directory
      */
-    public static Directory tempDirectory() {
+    static Directory tempDirectory() {
         try {
             Path directoryPath = Files.createTempDirectory(Directory.class.getCanonicalName());
             Path newSubDirectory = Paths.get(directoryPath.toString(), Directory.class.getCanonicalName());

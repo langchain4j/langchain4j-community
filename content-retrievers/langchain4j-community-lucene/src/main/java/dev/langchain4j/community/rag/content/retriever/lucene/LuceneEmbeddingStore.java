@@ -1,8 +1,9 @@
 package dev.langchain4j.community.rag.content.retriever.lucene;
 
+import static dev.langchain4j.community.rag.content.retriever.lucene.DirectoryFactory.tempDirectory;
+import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;
@@ -45,57 +46,12 @@ import org.slf4j.LoggerFactory;
  */
 public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
 
-    /**
-     * Builder for `LuceneEmbeddingStore`.
-     */
-    public static class LuceneEmbeddingStoreBuilder {
-
-        private Directory directory;
-
-        private LuceneEmbeddingStoreBuilder() {
-            // Set defaults
-        }
-
-        /**
-         * Build an instance of `LuceneContentRetriever` using internal builder field values.
-         *
-         * @return New instance of `LuceneContentRetriever`
-         */
-        public LuceneEmbeddingStore build() {
-            if (directory == null) {
-                directory = DirectoryFactory.tempDirectory();
-            }
-            return new LuceneEmbeddingStore(directory);
-        }
-
-        /**
-         * Sets the Lucene directory. If null, a temporary file-based directory is used.
-         *
-         * @param directory Lucene directory
-         * @return Builder
-         */
-        public LuceneEmbeddingStoreBuilder directory(Directory directory) {
-            // Can be null
-            this.directory = directory;
-            return this;
-        }
-    }
+    private static final Logger log = LoggerFactory.getLogger(LuceneEmbeddingStore.class);
 
     private static final String ID_FIELD_NAME = LuceneDocumentFields.ID_FIELD_NAME.fieldName();
     private static final String CONTENT_FIELD_NAME = LuceneDocumentFields.CONTENT_FIELD_NAME.fieldName();
     private static final String TOKEN_COUNT_FIELD_NAME = LuceneDocumentFields.TOKEN_COUNT_FIELD_NAME.fieldName();
     private static final String EMBEDDING_FIELD_NAME = LuceneDocumentFields.EMBEDDING_FIELD_NAME.fieldName();
-
-    private static final Logger log = LoggerFactory.getLogger(LuceneEmbeddingStore.class);
-
-    /**
-     * Instantiate a builder for `LuceneEmbeddingStore`.
-     *
-     * @return Builder for `LuceneEmbeddingStore`
-     */
-    public static LuceneEmbeddingStoreBuilder builder() {
-        return new LuceneEmbeddingStoreBuilder();
-    }
 
     private final Directory directory;
     private final Encoding encoding;
@@ -106,7 +62,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param directory Lucene directory
      */
     private LuceneEmbeddingStore(Directory directory) {
-        this.directory = ensureNotNull(directory, "directory");
+        this.directory = getOrDefault(directory, tempDirectory());
         EncodingRegistry registry = Encodings.newDefaultEncodingRegistry();
         encoding = registry.getEncoding(EncodingType.CL100K_BASE);
     }
@@ -232,7 +188,7 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .minScore(request.minScore())
                 .directory(directory)
                 .build();
-        log.debug("Ignoring request filter", request.filter());
+        log.debug("Ignoring request filter, filter: {}", request.filter());
 
         List<EmbeddingMatch<TextSegment>> results = new ArrayList<>();
         List<Content> contents = contentRetriever.retrieve(null);
@@ -400,5 +356,46 @@ public final class LuceneEmbeddingStore implements EmbeddingStore<TextSegment> {
             field = new StringField(fieldName, String.valueOf(fieldValue), Store.YES);
         }
         return field;
+    }
+
+    /**
+     * Instantiate a builder for `LuceneEmbeddingStore`.
+     *
+     * @return Builder for `LuceneEmbeddingStore`
+     */
+    public static LuceneEmbeddingStoreBuilder builder() {
+        return new LuceneEmbeddingStoreBuilder();
+    }
+
+    /**
+     * Builder for `LuceneEmbeddingStore`.
+     */
+    public static class LuceneEmbeddingStoreBuilder {
+
+        private Directory directory;
+
+        private LuceneEmbeddingStoreBuilder() {
+            // Set defaults
+        }
+
+        /**
+         * Sets the Lucene directory. If null, a temporary file-based directory is used.
+         *
+         * @param directory Lucene directory
+         * @return Builder
+         */
+        public LuceneEmbeddingStoreBuilder directory(Directory directory) {
+            this.directory = directory;
+            return this;
+        }
+
+        /**
+         * Build an instance of `LuceneContentRetriever` using internal builder field values.
+         *
+         * @return New instance of `LuceneContentRetriever`
+         */
+        public LuceneEmbeddingStore build() {
+            return new LuceneEmbeddingStore(directory);
+        }
     }
 }
