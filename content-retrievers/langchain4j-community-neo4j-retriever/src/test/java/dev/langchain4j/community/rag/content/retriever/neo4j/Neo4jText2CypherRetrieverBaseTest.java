@@ -3,7 +3,7 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.driver.Session;
 
-public class Neo4jText2CypherRetrieverBaseTest extends Neo4jRetrieverBaseTest {
+public class Neo4jText2CypherRetrieverBaseTest extends Neo4jContainerBaseTest {
     protected Neo4jGraph graph;
 
     @BeforeEach

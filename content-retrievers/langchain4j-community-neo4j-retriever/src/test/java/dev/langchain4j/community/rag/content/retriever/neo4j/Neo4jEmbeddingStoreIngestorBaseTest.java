@@ -16,7 +16,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
 
-public class Neo4jEmbeddingRetrieverBaseTest extends Neo4jRetrieverBaseTest {
+public class Neo4jEmbeddingStoreIngestorBaseTest extends Neo4jContainerBaseTest {
 
     protected static final String CUSTOM_RETRIEVAL =
             """
@@ -43,7 +43,7 @@ public class Neo4jEmbeddingRetrieverBaseTest extends Neo4jRetrieverBaseTest {
 
     @BeforeAll
     public static void beforeAll() {
-        Neo4jRetrieverBaseTest.beforeAll();
+        Neo4jContainerBaseTest.beforeAll();
 
         embeddingStore =
                 Neo4jEmbeddingStore.builder().driver(driver).dimension(384).build();

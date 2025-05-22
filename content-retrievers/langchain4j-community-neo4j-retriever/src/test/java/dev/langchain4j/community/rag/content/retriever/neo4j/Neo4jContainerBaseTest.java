@@ -10,7 +10,7 @@ import org.neo4j.driver.Session;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 
-public class Neo4jRetrieverBaseTest {
+public class Neo4jContainerBaseTest {
 
     protected static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "5.26");
 

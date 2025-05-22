@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-public class Neo4jEmbeddingRetrieverQAChainIT extends Neo4jEmbeddingRetrieverBaseTest {
+public class Neo4jEmbeddingStoreIngestorQAChainIT extends Neo4jEmbeddingStoreIngestorBaseTest {
 
     ChatModel chatModel = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))

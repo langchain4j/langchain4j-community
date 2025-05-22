@@ -11,6 +11,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.data.segment.TextSegmentTransformer;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.output.TokenUsage;
 import dev.langchain4j.spi.data.document.splitter.DocumentSplitterFactory;
 import dev.langchain4j.spi.model.embedding.EmbeddingModelFactory;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -104,6 +105,7 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
         }
 
         if (documentChildSplitter != null) {
+            TokenUsage totalUsage = new TokenUsage();
             for (TextSegment segment : segments) {
                 // Convert back to Document to apply DocumentSplitter
                 Document parentDoc = Document.from(segment.text(), segment.metadata());
@@ -118,8 +120,9 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
 
                 embeddingStore.addAll(embeddingsResponse.content(), childSegments);
 
-                return new IngestionResult(embeddingsResponse.tokenUsage());
+                totalUsage = totalUsage.add(embeddingsResponse.tokenUsage());
             }
+            return new IngestionResult(totalUsage);
         }
 
         log.debug("Starting to embed {} text segments", segments.size());
