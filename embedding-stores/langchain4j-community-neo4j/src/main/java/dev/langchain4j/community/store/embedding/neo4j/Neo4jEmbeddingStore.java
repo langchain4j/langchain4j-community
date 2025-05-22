@@ -16,6 +16,7 @@ import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtil
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.sanitizeOrThrows;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.toEmbeddingMatch;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jFilterMapper.toCypherLiteral;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
@@ -129,7 +130,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String sanitizedLabel;
     private final String textProperty;
     private final String retrievalQuery;
+    private final String entityCreationQuery;
     private final Set<String> notMetaKeys;
+    private Map<String, Object> additionalParams;
 
     private final String fullTextIndexName;
     private final String fullTextQuery;
@@ -156,6 +159,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param fullTextQuery          the optional full-text index query, required if we want to perform a hybrid search
      * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
      * @param autoCreateFullText     if true, it will auto create the full-text index if not exists (default: false)
+     * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
+     * @param additionalParams       the additional entity creation parameters (default: empty maps)
      */
     public Neo4jEmbeddingStore(
             SessionConfig config,
@@ -173,7 +178,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             String fullTextIndexName,
             String fullTextQuery,
             String fullTextRetrievalQuery,
-            boolean autoCreateFullText) {
+            boolean autoCreateFullText,
+            String entityCreationQuery,
+            Map<String, Object> additionalParams) {
 
         /* required configs */
         this.driver = ensureNotNull(driver, "driver");
@@ -189,6 +196,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.metadataPrefix = getOrDefault(metadataPrefix, "");
         this.textProperty = getOrDefault(textProperty, DEFAULT_TEXT_PROP);
         this.awaitIndexTimeout = getOrDefault(awaitIndexTimeout, DEFAULT_AWAIT_INDEX_TIMEOUT);
+        this.additionalParams = copy(additionalParams);
 
         /* sanitize labels and property names, to prevent from Cypher Injections */
         this.sanitizedLabel = sanitizeOrThrows(this.label, "label");
@@ -207,8 +215,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 "RETURN properties(node) AS metadata, node.%1$s AS %1$s, node.%2$s AS %2$s, node.%3$s AS %3$s, score",
                 this.sanitizedIdProperty, sanitizedText, sanitizedEmbeddingProperty);
         this.retrievalQuery = getOrDefault(retrievalQuery, defaultRetrievalQuery);
-        //        retrievalQuery = getOrDefault(retrievalQuery, defaultRetrievalQuery);
-        //        this.retrievalQuery = sanitizeOrThrows(retrievalQuery, "retrievalQuery");
 
         this.notMetaKeys = new HashSet<>(Arrays.asList(this.idProperty, this.embeddingProperty, this.textProperty));
 
@@ -216,10 +222,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.autoCreateFullText = autoCreateFullText;
         this.fullTextIndexName = getOrDefault(fullTextIndexName, DEFAULT_FULLTEXT_IDX_NAME);
         this.fullTextQuery = fullTextQuery;
-
         this.fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
-        //        fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
-        //        this.fullTextRetrievalQuery = sanitizeOrThrows(fullTextRetrievalQuery, "fullTextRetrievalQuery");
+
+        this.entityCreationQuery = getOrDefault(entityCreationQuery, ENTITIES_CREATION);
 
         /* auto-schema creation */
         createSchema();
@@ -254,6 +259,26 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     public String getIndexName() {
         return indexName;
+    }
+
+    public String getRetrievalQuery() {
+        return retrievalQuery;
+    }
+
+    public String getSanitizedLabel() {
+        return sanitizedLabel;
+    }
+
+    public int getDimension() {
+        return dimension;
+    }
+
+    public String getSanitizedEmbeddingProperty() {
+        return sanitizedEmbeddingProperty;
+    }
+
+    public void setAdditionalParams(final Map<String, Object> additionalParams) {
+        this.additionalParams = additionalParams;
     }
 
     /*
@@ -408,14 +433,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .where(condition)
                 .with(node.as("node"), similarity.as("score"))
                 .where(scoreCondition)
-                .returning(getaReturn(retrievalQuery))
+                .returning(raw(retrievalQuery))
                 .orderBy(name("score"))
                 .descending()
                 .limit(parameter("maxResults"))
                 .build();
 
         // Render the Cypher query
-        String cypherQuery = Renderer.getDefaultRenderer().render(statement);
+        String cypherQuery = getRender(statement);
 
         Map<String, Object> params = new HashMap<>(); // entry.getValue();
         params.put("minScore", request.minScore());
@@ -461,7 +486,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .withArgs(indexNameParam, maxResultsParam, embeddingValueParam)
                 .yield("node", "score")
                 .where(name("score").gte(minScoreParam))
-                .returning(getaReturn(retrievalQuery))
+                .returning(raw(retrievalQuery))
                 .build();
 
         Statement statement;
@@ -481,7 +506,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     .withArgs(fullTextIndexNameParam, fullTextQueryParam, mapOf("limit", maxResultsParam))
                     .yield("node", "score")
                     .where(name("score").gte(minScoreParam))
-                    .returning(getaReturn(fullTextRetrievalQuery))
+                    .returning(raw(fullTextRetrievalQuery))
                     .build();
 
             // UNION with full-text search
@@ -495,7 +520,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         // Render the Cypher query
-        String cypherQuery = Renderer.getDefaultRenderer().render(statement);
+        String cypherQuery = getRender(statement);
 
         Set<String> columns = getColumnNames(session, cypherQuery);
         Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
@@ -507,8 +532,20 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         return getEmbeddingSearchResult(session, cypherQuery, params);
     }
 
-    private static Expression getaReturn(String query) {
-        return raw(query.replaceFirst("RETURN", ""));
+    /**
+     * The user can put a retrievalQuery / fullTextRetrievalQuery with a MATCH, CALL, WHERE and RETURN
+     * for example "MATCH (node)-[:REL]->(otherNode) RETURN properties(otherNode) AS metadata, score"
+     * Given that the `returning()` Cypher-DSL method prepend a "RETURN " to the statement,
+     * we sanitize the query by replacing "RETURN MATCH ... RETURN ..." with "MATCH ... RETURN ..." and so on.
+     * We just check MATCH, CALL, WHERE and RETURN since the other clauses (e.g. "SET")
+     * should not be passed as they perform write operations, not read operations
+     */
+    private static String getRender(Statement statement) {
+        final String input = Renderer.getDefaultRenderer().render(statement);
+        return input.replaceAll("(?i)RETURN\\s+MATCH", "MATCH")
+                .replaceAll("(?i)RETURN\\s+WHERE", "WHERE")
+                .replaceAll("(?i)RETURN\\s+CALL", "CALL")
+                .replaceAll("(?i)RETURN\\s+RETURN", "RETURN");
     }
 
     private EmbeddingSearchResult<TextSegment> getEmbeddingSearchResult(
@@ -552,9 +589,16 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         try (Session session = session()) {
             rowsBatched.forEach(rows -> {
                 String statement = String.format(
-                        ENTITIES_CREATION, this.sanitizedLabel, this.sanitizedIdProperty, PROPS, EMBEDDINGS_ROW_KEY);
+                        this.entityCreationQuery,
+                        this.sanitizedLabel,
+                        this.sanitizedIdProperty,
+                        PROPS,
+                        EMBEDDINGS_ROW_KEY);
 
-                Map<String, Object> params = Map.of("rows", rows, "embeddingProperty", this.embeddingProperty);
+                Map<String, Object> params = new HashMap<>();
+                params.put("rows", rows);
+                params.put("embeddingProperty", this.embeddingProperty);
+                params.putAll(additionalParams);
 
                 session.executeWrite(tx -> tx.run(statement, params).consume());
             });
@@ -679,6 +723,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         private String fullTextQuery;
         private String fullTextRetrievalQuery;
         private boolean autoCreateFullText;
+        private String entityCreationQuery;
+        private Map<String, Object> additionalParams;
 
         /**
          * @param indexName the optional index name (default: "vector")
@@ -742,6 +788,15 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
          */
         public Builder retrievalQuery(String retrievalQuery) {
             this.retrievalQuery = retrievalQuery;
+            return this;
+        }
+
+        /**
+         * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
+         *
+         */
+        public Builder entityCreationQuery(String entityCreationQuery) {
+            this.entityCreationQuery = entityCreationQuery;
             return this;
         }
 
@@ -810,6 +865,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * @param additionalParams the additional entity creation parameters (default: empty maps)
+         */
+        public Builder additionalParams(Map<String, Object> additionalParams) {
+            this.additionalParams = additionalParams;
+            return this;
+        }
+
+        /**
          * Creates an instance a {@link Driver}, starting from uri, user and password
          *
          * @param uri      the Bolt URI to a Neo4j instance
@@ -838,7 +901,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     fullTextIndexName,
                     fullTextQuery,
                     fullTextRetrievalQuery,
-                    autoCreateFullText);
+                    autoCreateFullText,
+                    entityCreationQuery,
+                    additionalParams);
         }
     }
 }
