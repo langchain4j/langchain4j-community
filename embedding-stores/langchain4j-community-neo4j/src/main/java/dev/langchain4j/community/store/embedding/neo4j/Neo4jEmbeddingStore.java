@@ -16,6 +16,7 @@ import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtil
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.sanitizeOrThrows;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.toEmbeddingMatch;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jFilterMapper.toCypherLiteral;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jUtils.functionDef;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
@@ -423,7 +424,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         // Cosine similarity
         Expression similarity = FunctionInvocation.create(
-                functionDefinition, node.property(this.embeddingProperty), toCypherLiteral(embeddingValue));
+                functionDef("vector.similarity.cosine"),
+                node.property(this.embeddingProperty),
+                toCypherLiteral(embeddingValue));
 
         // Filtering by score
         Condition scoreCondition = similarity.gte(parameter("minScore"));
@@ -447,20 +450,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         params.put("maxResults", request.maxResults());
         return getEmbeddingSearchResult(session, cypherQuery, params);
     }
-
-    private final FunctionInvocation.FunctionDefinition functionDefinition =
-            new FunctionInvocation.FunctionDefinition() {
-
-                @Override
-                public String getImplementationName() {
-                    return "vector.similarity.cosine";
-                }
-
-                @Override
-                public boolean isAggregate() {
-                    return false;
-                }
-            };
 
     private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorIndex(
             EmbeddingSearchRequest request, Value embeddingValue, Session session) {
