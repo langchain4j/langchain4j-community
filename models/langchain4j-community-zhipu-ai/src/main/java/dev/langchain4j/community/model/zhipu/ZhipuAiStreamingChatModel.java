@@ -1,44 +1,32 @@
 package dev.langchain4j.community.model.zhipu;
 
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toTools;
-import static dev.langchain4j.community.model.zhipu.DefaultZhipuAiHelper.toZhipuAiMessages;
-import static dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel.GLM_4_FLASH;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toTools;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toZhipuAiMessages;
+import static dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode.AUTO;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.emptyList;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
-import dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode;
 import dev.langchain4j.community.model.zhipu.spi.ZhipuAiStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.internal.ValidationUtils;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ZhipuAiStreamingChatModel implements StreamingChatModel {
 
-    private static final Logger log = LoggerFactory.getLogger(ZhipuAiStreamingChatModel.class);
-
-    private final Double temperature;
-    private final Double topP;
-    private final String model;
-    private final List<String> stops;
-    private final Integer maxToken;
     private final ZhipuAiClient client;
     private final List<ChatModelListener> listeners;
+    private final ChatRequestParameters defaultRequestParameters;
 
     public ZhipuAiStreamingChatModel(
             String baseUrl,
@@ -55,12 +43,7 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
             Duration connectTimeout,
             Duration readTimeout,
             Duration writeTimeout) {
-        this.temperature = getOrDefault(temperature, 0.7);
-        this.topP = topP;
-        this.stops = stops;
-        this.model = getOrDefault(model, GLM_4_FLASH.toString());
-        this.maxToken = getOrDefault(maxToken, 512);
-        this.listeners = listeners == null ? emptyList() : new ArrayList<>(listeners);
+        this.listeners = copy(listeners);
         this.client = ZhipuAiClient.builder()
                 .baseUrl(getOrDefault(baseUrl, "https://open.bigmodel.cn/"))
                 .apiKey(apiKey)
@@ -71,6 +54,23 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
                 .logRequests(getOrDefault(logRequests, false))
                 .logResponses(getOrDefault(logResponses, false))
                 .build();
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .temperature(getOrDefault(temperature, 0.7))
+                .topP(topP)
+                .stopSequences(stops)
+                .modelName(ensureNotNull(model, "model"))
+                .maxOutputTokens(getOrDefault(maxToken, 512))
+                .build();
+    }
+
+    @Override
+    public ChatRequestParameters defaultRequestParameters() {
+        return defaultRequestParameters;
+    }
+
+    @Override
+    public List<ChatModelListener> listeners() {
+        return listeners;
     }
 
     @Override
@@ -78,30 +78,24 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
         List<ChatMessage> messages = request.messages();
         List<ToolSpecification> toolSpecifications = request.toolSpecifications();
 
-        ChatCompletionRequest.Builder requestBuilder =
-                ChatCompletionRequest.builder().model(this.model).maxTokens(this.maxToken).stream(true)
-                        .stop(stops)
-                        .topP(this.topP)
-                        .temperature(this.temperature)
-                        .toolChoice(ToolChoiceMode.AUTO)
-                        .messages(toZhipuAiMessages(messages));
+        ChatRequestParameters parameters = request.parameters();
+        ChatCompletionRequest.Builder requestBuilder = ChatCompletionRequest.builder()
+                .model(parameters.modelName())
+                .messages(toZhipuAiMessages(messages))
+                .maxTokens(parameters.maxOutputTokens())
+                .stop(parameters.stopSequences())
+                .stream(true)
+                .temperature(parameters.temperature())
+                .topP(parameters.topP())
+                .toolChoice(AUTO);
 
         if (!isNullOrEmpty(toolSpecifications)) {
             requestBuilder.tools(toTools(toolSpecifications));
         }
 
         ChatCompletionRequest completionRequest = requestBuilder.build();
-        Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
-        for (ChatModelListener chatModelListener : listeners) {
-            try {
-                chatModelListener.onRequest(requestContext);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        }
 
-        client.streamingChatCompletion(completionRequest, handler, listeners, requestContext, provider());
+        client.streamingChatCompletion(completionRequest, handler);
     }
 
     public static ZhipuAiStreamingChatModelBuilder builder() {
@@ -135,7 +129,6 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
         }
 
         public ZhipuAiStreamingChatModelBuilder model(String model) {
-            ValidationUtils.ensureNotBlank(model, "model");
             this.model = model;
             return this;
         }
@@ -185,6 +178,10 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
+        /**
+         * @deprecated This method is deprecated due to {@link ZhipuAiClient} use {@link dev.langchain4j.http.client.HttpClient} as an http client.
+         */
+        @Deprecated(since = "1.0.0-beta4", forRemoval = true)
         public ZhipuAiStreamingChatModelBuilder callTimeout(Duration callTimeout) {
             this.callTimeout = callTimeout;
             return this;
@@ -200,6 +197,10 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
+        /**
+         * @deprecated This method is deprecated due to {@link ZhipuAiClient} use {@link dev.langchain4j.http.client.HttpClient} as an http client.
+         */
+        @Deprecated(since = "1.0.0-beta4", forRemoval = true)
         public ZhipuAiStreamingChatModelBuilder writeTimeout(Duration writeTimeout) {
             this.writeTimeout = writeTimeout;
             return this;

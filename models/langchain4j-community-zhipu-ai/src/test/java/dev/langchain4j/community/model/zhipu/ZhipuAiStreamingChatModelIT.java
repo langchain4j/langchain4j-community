@@ -3,7 +3,6 @@ package dev.langchain4j.community.model.zhipu;
 import static dev.langchain4j.community.model.zhipu.ZhipuAiChatModelIT.multimodalChatMessagesWithImageData;
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static dev.langchain4j.model.output.FinishReason.OTHER;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
@@ -30,7 +29,6 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.TokenUsage;
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -77,7 +75,7 @@ public class ZhipuAiStreamingChatModelIT {
 
     @Test
     void should_sensitive_words_stream_answer() throws Exception {
-        CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+        CompletableFuture<Throwable> future = new CompletableFuture<>();
         StreamingChatResponseHandler handler = new StreamingChatResponseHandler() {
 
             @Override
@@ -87,31 +85,27 @@ public class ZhipuAiStreamingChatModelIT {
 
             @Override
             public void onError(Throwable error) {
-                fail("OnError() must not be called");
+                future.complete(error);
             }
 
             @Override
             public void onCompleteResponse(ChatResponse response) {
-                future.complete(response);
+                fail("onCompleteResponse() must not be called");
             }
         };
 
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
         model.chat("this message will fail", handler);
 
-        ChatResponse response = future.get(5, SECONDS);
-
-        assertThat(response.aiMessage().text()).isEqualTo("Authorization Token非法，请确认Authorization Token正确传递。");
-
-        assertThat(response.finishReason()).isEqualTo(OTHER);
+        Throwable throwable = future.get(5, SECONDS);
+        assertThat(throwable)
+                .isExactlyInstanceOf(ZhipuAiException.class)
+                .hasMessageContaining("Authorization Token非法，请确认Authorization Token正确传递。");
     }
 
     @Test
@@ -266,6 +260,7 @@ public class ZhipuAiStreamingChatModelIT {
         int maxTokens = 7;
 
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey)
                 .temperature(temperature)
                 .topP(topP)
@@ -273,10 +268,6 @@ public class ZhipuAiStreamingChatModelIT {
                 .logRequests(true)
                 .logResponses(true)
                 .listeners(singletonList(listener))
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         UserMessage userMessage = UserMessage.from("hello");
@@ -343,19 +334,16 @@ public class ZhipuAiStreamingChatModelIT {
         };
 
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
                 .listeners(singletonList(listener))
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         String userMessage = "this message will fail";
 
-        CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<Throwable> future = new CompletableFuture<>();
         StreamingChatResponseHandler handler = new StreamingChatResponseHandler() {
 
             @Override
@@ -365,23 +353,23 @@ public class ZhipuAiStreamingChatModelIT {
 
             @Override
             public void onError(Throwable error) {
-                fail("OnError() must not be called");
+                future.complete(error);
             }
 
             @Override
             public void onCompleteResponse(ChatResponse response) {
-                future.complete(response.aiMessage().text());
+                fail("onCompleteResponse() must not be called");
             }
         };
 
         // when
         model.chat(userMessage, handler);
-        String content = future.get(5, SECONDS);
+        Throwable throwable = future.get(5, SECONDS);
 
         // then
-        assertThat(content).contains("Authorization Token非法，请确认Authorization Token正确传递。");
-
         assertThat(errorReference.get()).isInstanceOf(ZhipuAiException.class);
+        assertThat(errorReference.get()).isEqualTo(throwable);
+        assertThat(errorReference.get()).hasMessageContaining("Authorization Token非法，请确认Authorization Token正确传递。");
     }
 
     @Test
@@ -389,10 +377,6 @@ public class ZhipuAiStreamingChatModelIT {
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(multimodalChatMessagesWithImageData(), handler);

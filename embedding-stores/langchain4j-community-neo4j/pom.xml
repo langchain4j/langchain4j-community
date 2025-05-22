@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.0.0-beta4-SNAPSHOT</version>
+        <version>1.1.0-beta7-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Integration :: Neo4j</name>
 
     <properties>
-        <neo4j.version>5.26.0</neo4j.version>
+        <neo4j.version>5.28.5</neo4j.version>
         <neo4j.cypher.dsl.version>2024.5.1</neo4j.cypher.dsl.version>
     </properties>
 
@@ -20,7 +20,7 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-core</artifactId>
-            <version>${project.version}</version>
+            <version>${langchain4j.core.version}</version>
         </dependency>
 
         <dependency>
@@ -51,6 +51,12 @@
             <version>${neo4j.cypher.dsl.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- test dependencies -->
 
         <dependency>
@@ -68,7 +74,7 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-core</artifactId>
-            <version>${project.version}</version>
+            <version>${langchain4j.core.version}</version>
             <classifier>tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
@@ -108,7 +114,7 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
-            <version>${project.version}</version>
+            <version>${langchain4j.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -135,7 +141,7 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
-            <version>${project.version}</version>
+            <version>${langchain4j.open-ai.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

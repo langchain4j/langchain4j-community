@@ -2,12 +2,12 @@ package dev.langchain4j.community.model.zhipu;
 
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static dev.langchain4j.model.output.FinishReason.OTHER;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -32,7 +32,6 @@ import dev.langchain4j.model.output.TokenUsage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -79,24 +78,19 @@ class ZhipuAiChatModelIT {
     @Test
     void should_sensitive_words_answer() {
         ZhipuAiChatModel model = ZhipuAiChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
                 .maxRetries(1)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
         // given
         UserMessage userMessage = userMessage("this message will fail");
 
         // when
-        ChatResponse response = model.chat(userMessage);
-
-        assertThat(response.aiMessage().text()).isEqualTo("Authorization Token非法，请确认Authorization Token正确传递。");
-
-        assertThat(response.finishReason()).isEqualTo(OTHER);
+        assertThatThrownBy(() -> model.chat(userMessage))
+                .isExactlyInstanceOf(ZhipuAiException.class)
+                .hasMessageContaining("Authorization Token非法，请确认Authorization Token正确传递。");
     }
 
     @Test
@@ -233,6 +227,7 @@ class ZhipuAiChatModelIT {
 
         ZhipuAiChatModel model = ZhipuAiChatModel.builder()
                 .apiKey(apiKey)
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .topP(topP)
                 .maxToken(maxTokens)
                 .temperature(temperature)
@@ -240,10 +235,6 @@ class ZhipuAiChatModelIT {
                 .logResponses(true)
                 .maxRetries(1)
                 .listeners(singletonList(listener))
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         UserMessage userMessage = UserMessage.from("hello");
@@ -307,19 +298,18 @@ class ZhipuAiChatModelIT {
         };
 
         ZhipuAiChatModel model = ZhipuAiChatModel.builder()
+                .model(ChatCompletionModel.GLM_4_FLASH)
                 .apiKey(apiKey + 1)
                 .logRequests(true)
                 .logResponses(true)
                 .maxRetries(1)
                 .listeners(singletonList(listener))
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         String userMessage = "this message will fail";
-        model.chat(userMessage);
+        assertThatThrownBy(() -> model.chat(userMessage))
+                .isExactlyInstanceOf(ZhipuAiException.class)
+                .hasMessageContaining("Authorization Token非法，请确认Authorization Token正确传递。");
 
         // then
         Throwable throwable = errorReference.get();
@@ -332,10 +322,6 @@ class ZhipuAiChatModelIT {
         ChatModel model = ZhipuAiChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)
-                .callTimeout(Duration.ofSeconds(60))
-                .connectTimeout(Duration.ofSeconds(60))
-                .writeTimeout(Duration.ofSeconds(60))
-                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
         ChatResponse response = model.chat(multimodalChatMessagesWithImageData());

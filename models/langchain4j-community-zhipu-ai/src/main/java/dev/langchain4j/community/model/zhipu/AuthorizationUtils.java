@@ -6,6 +6,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import dev.langchain4j.Internal;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import java.lang.reflect.Constructor;
@@ -15,7 +16,12 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.crypto.spec.SecretKeySpec;
 
+@Internal
 class AuthorizationUtils {
+
+    private AuthorizationUtils() throws InstantiationException {
+        throw new InstantiationException("Can not instantiate utility class");
+    }
 
     private static final long expireMillis = 1000 * 60 * 30;
     private static final String id = "HS256";
@@ -42,8 +48,6 @@ class AuthorizationUtils {
     private static final Cache<String, String> cache = CacheBuilder.newBuilder()
             .expireAfterWrite(Duration.ofMillis(expireMillis))
             .build();
-
-    private AuthorizationUtils() {}
 
     public static String getToken(String apiKey) {
         String token = getOrDefault(cache.getIfPresent(apiKey), generateToken(apiKey));
