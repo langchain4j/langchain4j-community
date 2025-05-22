@@ -1,6 +1,6 @@
 package dev.langchain4j.community.store.memory.chat.neo4j;
 
-import static dev.langchain4j.community.store.Neo4jUtils.functionDef;
+import static dev.langchain4j.community.store.memory.chat.neo4j.Neo4jUtils.functionDef;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
@@ -264,7 +264,7 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
             NamedPath p = Cypher.path("p").definedBy(rel);
             final String query = match(firstNode)
                     .where(firstNode.property(idProperty).isEqualTo(parameter("memoryId")))
-                    .optionalMatch(p) // TODO
+                    .optionalMatch(p)
                     .with(firstNode, p, raw("length(p)").as("length"))
                     .orderBy(raw("length"))
                     .descending()

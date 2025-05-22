@@ -1,10 +1,12 @@
-package dev.langchain4j.community.store;
+package dev.langchain4j.community.store.embedding.neo4j;
 
+import dev.langchain4j.Internal;
 import org.neo4j.cypherdsl.core.FunctionInvocation;
 
-public class Neo4jUtils {
+@Internal
+class Neo4jUtils {
 
-    public static FunctionInvocation.FunctionDefinition functionDef(String functionName) {
+    static FunctionInvocation.FunctionDefinition functionDef(String functionName) {
         return new FunctionInvocation.FunctionDefinition() {
 
             @Override
