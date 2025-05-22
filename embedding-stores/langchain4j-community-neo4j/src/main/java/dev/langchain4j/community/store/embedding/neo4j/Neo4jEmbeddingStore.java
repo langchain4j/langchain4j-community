@@ -427,20 +427,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         return getEmbeddingSearchResult(session, cypherQuery, params);
     }
 
-    //    private final FunctionInvocation.FunctionDefinition functionDefinition =
-    //            new FunctionInvocation.FunctionDefinition() {
-    //
-    //                @Override
-    //                public String getImplementationName() {
-    //                    return "vector.similarity.cosine";
-    //                }
-    //
-    //                @Override
-    //                public boolean isAggregate() {
-    //                    return false;
-    //                }
-    //            };
-
     private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorIndex(
             EmbeddingSearchRequest request, Value embeddingValue, Session session) {
 
