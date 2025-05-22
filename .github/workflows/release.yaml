@@ -26,7 +26,6 @@ jobs:
       - name: release
         run: |
           mvn -B -U --fail-at-end \
-            -Dspotless.check.skip=true \
             -DskipTests -DskipITs -Psign \
             clean deploy
         env:
