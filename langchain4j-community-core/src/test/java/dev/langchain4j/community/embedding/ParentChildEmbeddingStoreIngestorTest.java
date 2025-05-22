@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import dev.langchain4j.community.store.embedding.ParentChildEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.DocumentTransformer;
@@ -109,7 +110,7 @@ public class ParentChildEmbeddingStoreIngestorTest {
                 asList(Embedding.from(new float[] {4}), Embedding.from(new float[] {7}));
         final List<Embedding> sixthEmbeddings =
                 asList(Embedding.from(new float[] {5}), Embedding.from(new float[] {6}));
-        
+
         when(embeddingModel.embedAll(any())).thenAnswer(invocation -> {
             List<TextSegment> segments = invocation.getArgument(0);
 

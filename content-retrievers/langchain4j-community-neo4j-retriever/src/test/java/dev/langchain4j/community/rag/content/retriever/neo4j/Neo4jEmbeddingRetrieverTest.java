@@ -26,7 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingRetrieverBaseTest {
+public class Neo4jEmbeddingRetrieverTest extends Neo4jEmbeddingStoreIngestorBaseTest {
 
     @Mock
     private ChatModel chatLanguageModel;

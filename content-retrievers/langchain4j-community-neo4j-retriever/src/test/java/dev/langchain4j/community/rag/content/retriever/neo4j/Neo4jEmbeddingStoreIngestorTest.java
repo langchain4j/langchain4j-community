@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.community.embedding.ParentChildEmbeddingStoreIngestor;
+import dev.langchain4j.community.store.embedding.ParentChildEmbeddingStoreIngestor;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.Document;
@@ -40,13 +40,13 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         int maxSegmentSize = 250;
         DocumentSplitter splitter = new DocumentByRegexSplitter(expectedQuery, expectedQuery, maxSegmentSize, 0);
 
-        final ParentChildEmbeddingStoreIngestor build = ParentChildEmbeddingStoreIngestor.builder()
+        final ParentChildEmbeddingStoreIngestor ingestor = ParentChildEmbeddingStoreIngestor.builder()
                 .documentSplitter(splitter)
                 .embeddingStore(embeddingStore)
                 .embeddingModel(embeddingModel)
                 .build();
 
-        build.ingest(parentDoc);
+        ingestor.ingest(parentDoc);
 
         // Query and validate results
         final String retrieveQuery = "fundamental theory";
@@ -90,7 +90,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         int maxSegmentSize = 250;
         DocumentSplitter splitter = new DocumentByRegexSplitter(expectedQuery, expectedQuery, maxSegmentSize, 0);
 
-        final Neo4jEmbeddingStoreIngestor build = Neo4jEmbeddingStoreIngestor.builder()
+        final Neo4jEmbeddingStoreIngestor ingestor = Neo4jEmbeddingStoreIngestor.builder()
                 .documentSplitter(splitter)
                 .embeddingStore(neo4jEmbeddingStore)
                 .embeddingModel(embeddingModel)
@@ -100,7 +100,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .userPrompt("mock prompt user")
                 .systemPrompt("mock prompt system")
                 .build();
-        build.ingest(parentDoc);
+        ingestor.ingest(parentDoc);
         final String retrieveQuery = "naruto";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
         commonResults(results, retrieveQuery);
@@ -136,7 +136,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         final String expectedQueryChild = "\\. ";
         DocumentSplitter childSplitter = new DocumentByRegexSplitter(expectedQueryChild, expectedQuery, 150, 0);
 
-        final Neo4jEmbeddingStoreIngestor build = Neo4jEmbeddingStoreIngestor.builder()
+        final Neo4jEmbeddingStoreIngestor ingestor = Neo4jEmbeddingStoreIngestor.builder()
                 .documentSplitter(parentSplitter)
                 .documentChildSplitter(childSplitter)
                 .driver(driver)
@@ -145,7 +145,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .embeddingModel(embeddingModel)
                 .build();
         // Index the document into Neo4j as parent-child nodes
-        build.ingest(doc);
+        ingestor.ingest(doc);
 
         final String retrieveQuery = "Machine Learning";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
@@ -192,7 +192,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         DocumentSplitter childSplitter =
                 new DocumentByRegexSplitter(expectedQueryChild, expectedQuery, maxSegmentSize, 0);
 
-        final Neo4jEmbeddingStoreIngestor build = Neo4jEmbeddingStoreIngestor.builder()
+        final Neo4jEmbeddingStoreIngestor ingestor = Neo4jEmbeddingStoreIngestor.builder()
                 .documentSplitter(parentSplitter)
                 .documentChildSplitter(childSplitter)
                 .driver(driver)
@@ -203,7 +203,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .embeddingModel(embeddingModel)
                 .build();
         // Index the document into Neo4j as parent-child nodes
-        build.ingest(doc);
+        ingestor.ingest(doc);
 
         final String retrieveQuery = "Machine Learning";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
