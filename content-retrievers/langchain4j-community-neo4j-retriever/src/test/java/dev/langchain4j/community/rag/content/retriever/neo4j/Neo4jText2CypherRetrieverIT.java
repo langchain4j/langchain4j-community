@@ -252,4 +252,23 @@ class Neo4jText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
             return null;
         });
     }
+
+    @Test
+    void shouldReturnANaturalLanguageResponse() {
+        // With
+        Neo4jText2CypherRetriever neo4jContentRetriever = Neo4jText2CypherRetriever.builder()
+                .graph(graph)
+                .chatModel(OPEN_AI_CHAT_MODEL)
+                .build();
+
+        // Given
+        Query query = new Query("Who is the author of the book 'Dune'?");
+
+        // When
+        String response = neo4jContentRetriever.fromLLM(query);
+
+        // Then
+        assertThat(response).containsIgnoringCase("author");
+        assertThat(response).containsIgnoringCase("Frank Herbert");
+    }
 }
