@@ -140,8 +140,7 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
         return new ParentChildEmbeddingStoreIngestor.Builder();
     }
 
-    public static class Builder<B extends Builder<B>>
-            extends EmbeddingStoreIngestor.Builder {
+    public static class Builder<B extends Builder<B>> extends EmbeddingStoreIngestor.Builder {
 
         protected DocumentTransformer documentTransformer;
         protected DocumentSplitter documentSplitter;

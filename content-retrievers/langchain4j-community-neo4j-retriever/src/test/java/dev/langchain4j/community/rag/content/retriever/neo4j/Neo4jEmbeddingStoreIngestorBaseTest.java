@@ -2,7 +2,6 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
@@ -11,10 +10,9 @@ import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import java.util.List;
 import java.util.Map;
-
-import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import org.junit.jupiter.api.BeforeAll;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
@@ -136,7 +134,8 @@ public class Neo4jEmbeddingStoreIngestorBaseTest extends Neo4jContainerBaseTest 
         assertEquals("https://example.com/ai", result.textSegment().metadata().getString("url"));
     }
 
-    protected static EmbeddingStoreContentRetriever getEmbeddingStoreContentRetriever(Neo4jEmbeddingStoreIngestor ingestor) {
+    protected static EmbeddingStoreContentRetriever getEmbeddingStoreContentRetriever(
+            Neo4jEmbeddingStoreIngestor ingestor) {
         return EmbeddingStoreContentRetriever.builder()
                 .embeddingModel(embeddingModel)
                 .maxResults(2)

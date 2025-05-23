@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.langchain4j.community.store.embedding.ParentChildEmbeddingStoreIngestor;
@@ -144,6 +143,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         final String expectedQueryChild = "\\. ";
         DocumentSplitter childSplitter = new DocumentByRegexSplitter(expectedQueryChild, expectedQuery, 150, 0);
 
+        // Ingest the document into Neo4j as parent-child nodes
         final Neo4jEmbeddingStoreIngestor ingestor = Neo4jEmbeddingStoreIngestor.builder()
                 .documentSplitter(parentSplitter)
                 .documentChildSplitter(childSplitter)
@@ -152,14 +152,14 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .embeddingStore(neo4jEmbeddingStore)
                 .embeddingModel(embeddingModel)
                 .build();
-        // Index the document into Neo4j as parent-child nodes
+
         ingestor.ingest(doc);
 
         final String retrieveQuery = "Machine Learning";
         List<Content> results = retriever.retrieve(Query.from(retrieveQuery));
         assertThat(results).hasSize(1);
     }
-    
+
     @Test
     void testRetrieverWithCustomRetrievalAndEmbeddingCreationQueryMainDocIdAndParams() {
         String customCreationQuery =
@@ -259,7 +259,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
 
         summaryGraphIngestorCommon(chatLanguageModel);
     }
-    
+
     @Test
     public void testHypotheticalQuestionIngestor() {
 
@@ -267,7 +267,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .thenReturn(ChatResponse.builder()
                         .aiMessage(AiMessage.aiMessage("What is the Machine learning?"))
                         .build());
-        
+
         hypotheticalQuestionIngestorCommon(chatLanguageModel);
     }
 
@@ -284,6 +284,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         // Child splitter: splits into sentences using OpenNLP
         DocumentSplitter childSplitter = new DocumentBySentenceSplitter(maxSegmentSize, 0);
 
+        // Ingest the document into Neo4j as parent-child nodes
         Neo4jEmbeddingStoreIngestor ingestor = ParentChildGraphIngestor.builder()
                 .embeddingModel(embeddingModel)
                 .driver(driver)
@@ -291,9 +292,8 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .documentChildSplitter(childSplitter)
                 .build();
 
-        Document doc = getDocumentAI();
-
-        ingestor.ingest(doc);
+        Document document = getDocumentAI();
+        ingestor.ingest(document);
 
         EmbeddingStoreContentRetriever retriever = getEmbeddingStoreContentRetriever(ingestor);
         List<Content> results = retriever.retrieve(Query.from("What is Machine Learning?"));
@@ -302,8 +302,9 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
 
     protected static void summaryGraphIngestorCommon(ChatModel chatModel) {
         int maxSegmentSize = 250;
-        DocumentSplitter parentSplitter = new DocumentBySentenceSplitter( maxSegmentSize, 0);
+        DocumentSplitter parentSplitter = new DocumentBySentenceSplitter(maxSegmentSize, 0);
 
+        // Ingest the document into Neo4j as chunk-summary nodes
         final Neo4jEmbeddingStoreIngestor ingestor = SummaryGraphIngestor.builder()
                 .driver(driver)
                 .embeddingModel(embeddingModel)
@@ -311,10 +312,9 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .documentSplitter(parentSplitter)
                 .build();
 
-        Document doc = getDocumentAI();
+        Document document = getDocumentAI();
 
-        // Index the document into Neo4j as parent-child nodes
-        ingestor.ingest(doc);
+        ingestor.ingest(document);
 
         final EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingModel(embeddingModel)
@@ -333,15 +333,13 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
     }
 
     protected static void hypotheticalQuestionIngestorCommon(ChatModel chatModel) {
-        // Step 1: Document with metadata
-        Document parentDoc = getDocumentAI();
 
         int maxSegmentSize = 250;
 
-        // Child splitter: splits into sentences using OpenNLP
+        // Splits into sentences using OpenNLP
         DocumentSplitter splitter = new DocumentBySentenceSplitter(maxSegmentSize, 0);
 
-        // Index the document into Neo4j as parent-child nodes
+        // Ingest the document into Neo4j as chunk-question nodes
         Neo4jEmbeddingStoreIngestor ingestor = HypotheticalQuestionGraphIngestor.builder()
                 .embeddingModel(embeddingModel)
                 .driver(driver)
@@ -350,7 +348,8 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .embeddingStore(embeddingStore)
                 .build();
 
-        ingestor.ingest(parentDoc);
+        Document document = getDocumentAI();
+        ingestor.ingest(document);
 
         final EmbeddingStoreContentRetriever retriever = getEmbeddingStoreContentRetriever(ingestor);
         List<Content> results = retriever.retrieve(Query.from("Tell me about machine learning"));

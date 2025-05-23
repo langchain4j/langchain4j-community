@@ -1,28 +1,33 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
-
+/**
+ * A specialized ingestor for storing document-linked embedded chunks that represent specific concepts,
+ * and associating them with parent documents in a Neo4j graph database.
+ * It implements the <a href="https://graphrag.com/reference/graphrag/parent-child-retriever/">Parent-Child Retriever concept</a>
+ *
+ * <p>This ingestor is built on top of {@link Neo4jEmbeddingStoreIngestor} and is designed to process
+ * documents into vector embeddings, store them in Neo4j, and generate related hypothetical questions
+ * which are also embedded and stored in the graph.
+ *
+ * <p><strong>It provides:</strong>
+ * <ul>
+ *     <li>A predefined {@code embeddingStore} configured for child node storage and retrieval</li>
+ *     <li>A Cypher {@code creationQuery} and {@code retrievalQuery} for inserting question nodes and linking to parent nodes</li>
+ * </ul>
+ */
 public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
-    
 
     public ParentChildGraphIngestor(final Neo4jIngestorConfig config) {
         super(config);
     }
-
-    //    public ParentChildGraphIngestor(EmbeddingModel embeddingModel, Driver driver,
-//                                     int maxResults,
-//                                     double minScore, Neo4jEmbeddingStore embeddingStore) {
-//        super(embeddingModel, driver, maxResults, minScore, "CREATE (:Parent $metadata)", Map.of(), embeddingStore,  null, null, null, null, null, null);
-//    }
-
-    // @Override
-
 
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder extends Neo4jEmbeddingStoreIngestor.Builder {
-        public final static String DEFAULT_RETRIEVAL = """
+        public static final String DEFAULT_RETRIEVAL =
+                """
             MATCH (node)<-[:HAS_CHILD]-(parent)
             WITH parent, collect(node.text) AS chunks, max(score) AS score
             RETURN parent.text + reduce(r = "", c in chunks | r + "\\n\\n" + c) AS text,
@@ -40,7 +45,7 @@ public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
                     WITH row, u
                     CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
                     RETURN count(*)""";
-        
+
         @Override
         protected Neo4jEmbeddingStore getEmbeddingStore() {
             return Neo4jEmbeddingStore.builder()
@@ -68,6 +73,4 @@ public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
             return new ParentChildGraphIngestor(createIngestorConfig());
         }
     }
-
-
 }

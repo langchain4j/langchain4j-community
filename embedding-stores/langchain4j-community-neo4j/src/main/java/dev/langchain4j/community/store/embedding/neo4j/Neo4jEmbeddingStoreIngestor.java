@@ -70,10 +70,8 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
             Map<String, Object> params,
             String systemPrompt,
             String userPrompt,
-            ChatModel questionModel
-    ) {}
-    
-    
+            ChatModel questionModel) {}
+
     public static final String DEFAULT_PARENT_ID_KEY = "parentId";
 
     protected final Driver driver;
@@ -84,7 +82,6 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
     protected final String userPrompt;
     protected final String systemPrompt;
     protected final ChatModel questionModel;
-
 
     public Neo4jEmbeddingStoreIngestor(Neo4jIngestorConfig config) {
         this(
@@ -101,8 +98,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
                 config.params(),
                 config.systemPrompt(),
                 config.userPrompt(),
-                config.questionModel()
-        );
+                config.questionModel());
     }
 
     /**
@@ -159,7 +155,6 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
         this.parentIdKey = getOrDefault(parentIdKey, DEFAULT_PARENT_ID_KEY);
 
         this.neo4jEmbeddingStore = embeddingStore;
-//        this.neo4jEmbeddingStore = getEmbeddingStore();
         super.textSegmentTransformer = getOrDefault(textSegmentTransformer, getTextSegmentTransformer());
         super.childTextSegmentTransformer =
                 getOrDefault(childTextSegmentTransformer, getDefaultChildTextSegmentTransformer());
@@ -333,8 +328,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
                     params,
                     getSystemPrompt(),
                     getUserPrompt(),
-                    questionModel
-            );
+                    questionModel);
         }
 
         protected String getSystemPrompt() {

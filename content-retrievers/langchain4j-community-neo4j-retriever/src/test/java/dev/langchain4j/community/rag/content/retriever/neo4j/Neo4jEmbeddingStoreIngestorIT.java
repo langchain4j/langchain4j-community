@@ -130,7 +130,7 @@ public class Neo4jEmbeddingStoreIngestorIT extends Neo4jEmbeddingStoreIngestorBa
         assertThat(chainResultWithPromptBuilder).containsIgnoringCase("dattebayo");
         assertThat(chainResultWithPromptBuilder).containsIgnoringCase("super saiyan");
     }
-    
+
     @Test
     public void testSummaryGraphIngestor() {
         summaryGraphIngestorCommon(chatModel);
