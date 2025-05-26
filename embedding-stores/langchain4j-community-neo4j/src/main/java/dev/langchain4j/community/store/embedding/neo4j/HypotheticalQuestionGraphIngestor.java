@@ -1,5 +1,7 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+
 /**
  *  A specialized ingestor for generating and storing hypothetical questions in a Neo4j graph database.
  * It implements the <a href="https://graphrag.com/reference/graphrag/hypothetical-question-retriever/">Hypothetical Question Retriever concept</a>
@@ -17,8 +19,8 @@ package dev.langchain4j.community.store.embedding.neo4j;
  */
 public class HypotheticalQuestionGraphIngestor extends Neo4jEmbeddingStoreIngestor {
 
-    public HypotheticalQuestionGraphIngestor(final Neo4jIngestorConfig config) {
-        super(config);
+    public HypotheticalQuestionGraphIngestor(final Builder builder) {
+        super(builder);
     }
 
     public static SummaryGraphIngestor.Builder builder() {
@@ -27,7 +29,7 @@ public class HypotheticalQuestionGraphIngestor extends Neo4jEmbeddingStoreIngest
 
     public static class Builder extends Neo4jEmbeddingStoreIngestor.Builder {
 
-        private static final String RETRIEVAL_QUERY =
+        private static final String DEFAULT_RETRIEVAL_QUERY =
                 """
             MATCH (node)<-[:HAS_QUESTION]-(parent)
             WITH parent, max(score) AS score, node // deduplicate parents
@@ -35,7 +37,7 @@ public class HypotheticalQuestionGraphIngestor extends Neo4jEmbeddingStoreIngest
              ORDER BY score DESC
             LIMIT $maxResults""";
 
-        private static final String CREATION_QUERY =
+        private static final String DEFAULT_PARENT_QUERY =
                 """
                             UNWIND $rows AS question
                             MATCH (p:QuestionChunk {parentId: $parentId})
@@ -48,41 +50,26 @@ public class HypotheticalQuestionGraphIngestor extends Neo4jEmbeddingStoreIngest
                             RETURN count(*)
                         """;
 
-        private static final String SYSTEM_PROMPT =
+        private static final String DEFAULT_SYSTEM_PROMPT =
                 """
             You are generating hypothetical questions based on the information found in the text.
             Make sure to provide full context in the generated questions.
             """;
 
-        private static final String USER_PROMPT =
+        private static final String DEFAULT_USER_PROMPT =
                 """
             Use the given format to generate hypothetical questions from the following input:
             {{input}}
 
             Hypothetical questions:
             """;
+        public static final String DEFAULT_CHUNK_CREATION_QUERY = "CREATE (:QuestionChunk $metadata)";
 
-        @Override
-        protected String getSystemPrompt() {
-            return SYSTEM_PROMPT;
-        }
-
-        @Override
-        protected String getUserPrompt() {
-            return USER_PROMPT;
-        }
-
-        @Override
-        protected String getQuery() {
-            return "CREATE (:QuestionChunk $metadata)";
-        }
-
-        @Override
-        protected Neo4jEmbeddingStore getEmbeddingStore() {
+        private Neo4jEmbeddingStore defaultEmbeddingStore() {
             return Neo4jEmbeddingStore.builder()
                     .driver(driver)
-                    .retrievalQuery(RETRIEVAL_QUERY)
-                    .entityCreationQuery(CREATION_QUERY)
+                    .retrievalQuery(DEFAULT_RETRIEVAL_QUERY)
+                    .entityCreationQuery(DEFAULT_PARENT_QUERY)
                     .label("Child")
                     .indexName("child_embedding_index")
                     .dimension(384)
@@ -96,7 +83,12 @@ public class HypotheticalQuestionGraphIngestor extends Neo4jEmbeddingStoreIngest
 
         @Override
         public HypotheticalQuestionGraphIngestor build() {
-            return new HypotheticalQuestionGraphIngestor(createIngestorConfig());
+            systemPrompt = getOrDefault(systemPrompt, DEFAULT_SYSTEM_PROMPT);
+            userPrompt = getOrDefault(userPrompt, DEFAULT_USER_PROMPT);
+            query = getOrDefault(query, DEFAULT_CHUNK_CREATION_QUERY);
+            embeddingStore = getOrDefault(embeddingStore, defaultEmbeddingStore());
+
+            return new HypotheticalQuestionGraphIngestor(this);
         }
     }
 }

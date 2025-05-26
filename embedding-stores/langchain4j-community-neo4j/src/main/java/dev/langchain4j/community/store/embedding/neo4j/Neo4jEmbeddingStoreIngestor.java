@@ -56,21 +56,6 @@ import org.neo4j.driver.Session;
  * </ul>
  */
 public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngestor {
-    public record Neo4jIngestorConfig(
-            DocumentTransformer documentTransformer,
-            DocumentSplitter documentSplitter,
-            TextSegmentTransformer textSegmentTransformer,
-            TextSegmentTransformer childTextSegmentTransformer,
-            EmbeddingModel embeddingModel,
-            Neo4jEmbeddingStore embeddingStore,
-            DocumentSplitter documentChildSplitter,
-            Driver driver,
-            String query,
-            String parentIdKey,
-            Map<String, Object> params,
-            String systemPrompt,
-            String userPrompt,
-            ChatModel questionModel) {}
 
     public static final String DEFAULT_PARENT_ID_KEY = "parentId";
 
@@ -83,22 +68,22 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
     protected final String systemPrompt;
     protected final ChatModel questionModel;
 
-    public Neo4jEmbeddingStoreIngestor(Neo4jIngestorConfig config) {
+    public Neo4jEmbeddingStoreIngestor(Builder builder) {
         this(
-                config.documentTransformer(),
-                config.documentSplitter(),
-                config.textSegmentTransformer(),
-                config.childTextSegmentTransformer(),
-                config.embeddingModel(),
-                config.embeddingStore(),
-                config.documentChildSplitter(),
-                config.driver(),
-                config.query(),
-                config.parentIdKey(),
-                config.params(),
-                config.systemPrompt(),
-                config.userPrompt(),
-                config.questionModel());
+                builder.documentTransformer,
+                builder.documentSplitter,
+                builder.textSegmentTransformer,
+                builder.childTextSegmentTransformer,
+                builder.embeddingModel,
+                (Neo4jEmbeddingStore) builder.embeddingStore,
+                builder.documentChildSplitter,
+                builder.driver,
+                builder.query,
+                builder.parentIdKey,
+                builder.params,
+                builder.systemPrompt,
+                builder.userPrompt,
+                builder.questionModel);
     }
 
     /**
@@ -310,41 +295,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
 
         @Override
         public Neo4jEmbeddingStoreIngestor build() {
-            return new Neo4jEmbeddingStoreIngestor(createIngestorConfig());
-        }
-
-        protected Neo4jIngestorConfig createIngestorConfig() {
-            return new Neo4jIngestorConfig(
-                    documentTransformer,
-                    documentSplitter,
-                    textSegmentTransformer,
-                    childTextSegmentTransformer,
-                    embeddingModel,
-                    getEmbeddingStore(),
-                    documentChildSplitter,
-                    driver,
-                    getQuery(),
-                    parentIdKey,
-                    params,
-                    getSystemPrompt(),
-                    getUserPrompt(),
-                    questionModel);
-        }
-
-        protected String getSystemPrompt() {
-            return systemPrompt;
-        }
-
-        protected String getUserPrompt() {
-            return userPrompt;
-        }
-
-        protected String getQuery() {
-            return query;
-        }
-
-        protected Neo4jEmbeddingStore getEmbeddingStore() {
-            return (Neo4jEmbeddingStore) embeddingStore;
+            return new Neo4jEmbeddingStoreIngestor(this);
         }
     }
 }

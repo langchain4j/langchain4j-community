@@ -1,5 +1,9 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+
+import dev.langchain4j.store.embedding.EmbeddingStore;
+
 /**
  * A specialized ingestor for storing document-linked embedded chunks that represent specific concepts,
  * and associating them with parent documents in a Neo4j graph database.
@@ -17,8 +21,8 @@ package dev.langchain4j.community.store.embedding.neo4j;
  */
 public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
 
-    public ParentChildGraphIngestor(final Neo4jIngestorConfig config) {
-        super(config);
+    public ParentChildGraphIngestor(final Builder builder) {
+        super(builder);
     }
 
     public static Builder builder() {
@@ -26,7 +30,7 @@ public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
     }
 
     public static class Builder extends Neo4jEmbeddingStoreIngestor.Builder {
-        public static final String DEFAULT_RETRIEVAL =
+        private static final String DEFAULT_RETRIEVAL =
                 """
             MATCH (node)<-[:HAS_CHILD]-(parent)
             WITH parent, collect(node.text) AS chunks, max(score) AS score
@@ -36,7 +40,7 @@ public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
             ORDER BY score DESC
             LIMIT $maxResults""";
 
-        public static final String PARENT_QUERY =
+        private static final String DEFAULT_PARENT_QUERY =
                 """
                     UNWIND $rows AS row
                     MATCH (p:ParentChunk {parentId: $parentId})
@@ -45,22 +49,17 @@ public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
                     WITH row, u
                     CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
                     RETURN count(*)""";
+        private static final String DEFAULT_CHUNK_CREATION_QUERY = "CREATE (:ParentChunk $metadata)";
 
-        @Override
-        protected Neo4jEmbeddingStore getEmbeddingStore() {
+        private EmbeddingStore defaultEmbeddingStore() {
             return Neo4jEmbeddingStore.builder()
                     .driver(driver)
                     .retrievalQuery(DEFAULT_RETRIEVAL)
-                    .entityCreationQuery(PARENT_QUERY)
+                    .entityCreationQuery(DEFAULT_PARENT_QUERY)
                     .label("Child")
                     .indexName("child_embedding_index")
                     .dimension(384)
                     .build();
-        }
-
-        @Override
-        protected String getQuery() {
-            return "CREATE (:ParentChunk $metadata)";
         }
 
         @Override
@@ -70,7 +69,10 @@ public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
 
         @Override
         public ParentChildGraphIngestor build() {
-            return new ParentChildGraphIngestor(createIngestorConfig());
+            query = getOrDefault(query, DEFAULT_CHUNK_CREATION_QUERY);
+            embeddingStore = getOrDefault(embeddingStore, defaultEmbeddingStore());
+
+            return new ParentChildGraphIngestor(this);
         }
     }
 }
