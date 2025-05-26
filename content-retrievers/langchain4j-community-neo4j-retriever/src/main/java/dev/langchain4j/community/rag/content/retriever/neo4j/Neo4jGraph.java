@@ -15,6 +15,7 @@ import org.neo4j.driver.exceptions.ClientException;
 import org.neo4j.driver.summary.ResultSummary;
 
 public class Neo4jGraph implements AutoCloseable {
+
     public record StructuredSchema(
             List<String> nodesProperties, List<String> relationshipsProperties, List<String> patterns) {}
 
@@ -24,7 +25,7 @@ public class Neo4jGraph implements AutoCloseable {
 
     private StructuredSchema structuredSchema;
 
-    public Neo4jGraph(final Driver driver, Long sample, Long maxRels) {
+    public Neo4jGraph(Driver driver, Long sample, Long maxRels) {
 
         this.sample = getOrDefault(sample, 1000L);
         this.maxRels = getOrDefault(maxRels, 100L);

@@ -11,18 +11,18 @@ class Neo4jGraphSchemaUtils {
 
     static final String SCHEMA_FROM_META_DATA =
             """
-            CALL apoc.meta.data({maxRels: $maxRels, sample: $sample})
-            YIELD label, other, elementType, type, property
-            WITH label, elementType,
-                 apoc.text.join(collect(case when NOT type = "RELATIONSHIP" then property+": "+type else null end),", ") AS properties,
-                 collect(case when type = "RELATIONSHIP" AND elementType = "node" then "(:" + label + ")-[:" + property + "]->(:" + toString(other[0]) + ")" else null end) AS patterns
-            WITH elementType AS type,
-                collect(":"+label+" {"+properties+"}") AS entities,
-                apoc.coll.flatten(collect(coalesce(patterns,[]))) AS patterns
-            RETURN collect(case type when "relationship" then entities end)[0] AS relationships,
-                collect(case type when "node" then entities end)[0] AS nodes,
-                collect(case type when "node" then patterns end)[0] as patterns
-            """;
+                    CALL apoc.meta.data({maxRels: $maxRels, sample: $sample})
+                    YIELD label, other, elementType, type, property
+                    WITH label, elementType,
+                         apoc.text.join(collect(case when NOT type = "RELATIONSHIP" then property+": "+type else null end),", ") AS properties,
+                         collect(case when type = "RELATIONSHIP" AND elementType = "node" then "(:" + label + ")-[:" + property + "]->(:" + toString(other[0]) + ")" else null end) AS patterns
+                    WITH elementType AS type,
+                        collect(":"+label+" {"+properties+"}") AS entities,
+                        apoc.coll.flatten(collect(coalesce(patterns,[]))) AS patterns
+                    RETURN collect(case type when "relationship" then entities end)[0] AS relationships,
+                        collect(case type when "node" then entities end)[0] AS nodes,
+                        collect(case type when "node" then patterns end)[0] as patterns
+                    """;
 
     static Neo4jGraph.StructuredSchema getSchemaFromMetadata(Neo4jGraph graph, Long sample, Long maxRels) {
         final Record record = graph.executeRead(SCHEMA_FROM_META_DATA, Map.of("sample", sample, "maxRels", maxRels))

@@ -2,6 +2,7 @@ package dev.langchain4j.community.store.embedding.neo4j;
 
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 
 /**
@@ -32,26 +33,26 @@ public class ParentChildGraphIngestor extends Neo4jEmbeddingStoreIngestor {
     public static class Builder extends Neo4jEmbeddingStoreIngestor.Builder {
         private static final String DEFAULT_RETRIEVAL =
                 """
-            MATCH (node)<-[:HAS_CHILD]-(parent)
-            WITH parent, collect(node.text) AS chunks, max(score) AS score
-            RETURN parent.text + reduce(r = "", c in chunks | r + "\\n\\n" + c) AS text,
-                   score,
-                   properties(parent) AS metadata
-            ORDER BY score DESC
-            LIMIT $maxResults""";
+                        MATCH (node)<-[:HAS_CHILD]-(parent)
+                        WITH parent, collect(node.text) AS chunks, max(score) AS score
+                        RETURN parent.text + reduce(r = "", c in chunks | r + "\\n\\n" + c) AS text,
+                               score,
+                               properties(parent) AS metadata
+                        ORDER BY score DESC
+                        LIMIT $maxResults""";
 
         private static final String DEFAULT_PARENT_QUERY =
                 """
-                    UNWIND $rows AS row
-                    MATCH (p:ParentChunk {parentId: $parentId})
-                    CREATE (p)-[:HAS_CHILD]->(u:%1$s {%2$s: row.%2$s})
-                    SET u += row.%3$s
-                    WITH row, u
-                    CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
-                    RETURN count(*)""";
+                        UNWIND $rows AS row
+                        MATCH (p:ParentChunk {parentId: $parentId})
+                        CREATE (p)-[:HAS_CHILD]->(u:%1$s {%2$s: row.%2$s})
+                        SET u += row.%3$s
+                        WITH row, u
+                        CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
+                        RETURN count(*)""";
         private static final String DEFAULT_CHUNK_CREATION_QUERY = "CREATE (:ParentChunk $metadata)";
 
-        private EmbeddingStore defaultEmbeddingStore() {
+        private EmbeddingStore<TextSegment> defaultEmbeddingStore() {
             return Neo4jEmbeddingStore.builder()
                     .driver(driver)
                     .retrievalQuery(DEFAULT_RETRIEVAL)

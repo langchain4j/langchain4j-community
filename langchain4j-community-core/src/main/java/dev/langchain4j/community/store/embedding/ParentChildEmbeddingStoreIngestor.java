@@ -57,21 +57,21 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
      * that includes transformation, hierarchical splitting into parent and child segments, and embedding generation
      * for each segment. The resulting embeddings can then be stored using the specified {@link EmbeddingStore}.
      *
-     * @param documentTransformer The {@link DocumentTransformer} to preprocess or normalize documents before splitting.
-     * @param documentSplitter The {@link DocumentSplitter} used to split documents into higher-level (parent) segments.
-     * @param textSegmentTransformer The {@link TextSegmentTransformer} applied to each parent segment before embedding.
+     * @param documentTransformer         The {@link DocumentTransformer} to preprocess or normalize documents before splitting.
+     * @param documentSplitter            The {@link DocumentSplitter} used to split documents into higher-level (parent) segments.
+     * @param textSegmentTransformer      The {@link TextSegmentTransformer} applied to each parent segment before embedding.
      * @param childTextSegmentTransformer The {@link TextSegmentTransformer} applied to child segments derived from parents.
-     * @param embeddingModel The {@link EmbeddingModel} used to generate vector embeddings for both parent and child segments.
-     * @param embeddingStore The {@link EmbeddingStore} used to persist the generated embeddings.
-     * @param documentChildSplitter The {@link DocumentSplitter} responsible for generating child segments from parent segments.
+     * @param embeddingModel              The {@link EmbeddingModel} used to generate vector embeddings for both parent and child segments.
+     * @param embeddingStore              The {@link EmbeddingStore} used to persist the generated embeddings.
+     * @param documentChildSplitter       The {@link DocumentSplitter} responsible for generating child segments from parent segments.
      */
     public ParentChildEmbeddingStoreIngestor(
-            final DocumentTransformer documentTransformer,
-            final DocumentSplitter documentSplitter,
-            final TextSegmentTransformer textSegmentTransformer,
+            DocumentTransformer documentTransformer,
+            DocumentSplitter documentSplitter,
+            TextSegmentTransformer textSegmentTransformer,
             TextSegmentTransformer childTextSegmentTransformer,
-            final EmbeddingModel embeddingModel,
-            final EmbeddingStore<TextSegment> embeddingStore,
+            EmbeddingModel embeddingModel,
+            EmbeddingStore<TextSegment> embeddingStore,
             DocumentSplitter documentChildSplitter) {
         super(documentTransformer, documentSplitter, textSegmentTransformer, embeddingModel, embeddingStore);
         this.documentTransformer = documentTransformer;
@@ -187,6 +187,7 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
          * @param documentTransformer the document transformer.
          * @return {@code this}
          */
+        @Override
         public B documentTransformer(DocumentTransformer documentTransformer) {
             this.documentTransformer = documentTransformer;
             return self();
@@ -201,6 +202,7 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
          * @param documentSplitter the document splitter.
          * @return {@code this}
          */
+        @Override
         public B documentSplitter(DocumentSplitter documentSplitter) {
             this.documentSplitter = documentSplitter;
             return self();
@@ -212,6 +214,7 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
          * @param textSegmentTransformer the text segment transformer.
          * @return {@code this}
          */
+        @Override
         public B textSegmentTransformer(TextSegmentTransformer textSegmentTransformer) {
             this.textSegmentTransformer = textSegmentTransformer;
             return self();
@@ -224,6 +227,7 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
          * @param embeddingModel the embedding model.
          * @return {@code this}
          */
+        @Override
         public B embeddingModel(EmbeddingModel embeddingModel) {
             this.embeddingModel = embeddingModel;
             return self();
@@ -235,6 +239,7 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
          * @param embeddingStore the embedding store.
          * @return {@code this}
          */
+        @Override
         public B embeddingStore(EmbeddingStore<TextSegment> embeddingStore) {
             this.embeddingStore = embeddingStore;
             return self();

@@ -3,7 +3,7 @@ package dev.langchain4j.community.store.embedding.neo4j;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
 /**
- *  A specialized ingestor for generating and storing hypothetical questions in a Neo4j graph database.
+ * A specialized ingestor for generating and storing hypothetical questions in a Neo4j graph database.
  * It implements the <a href="https://graphrag.com/reference/graphrag/hypothetical-question-retriever/">Hypothetical Question Retriever concept</a>
  *
  * <p>This ingestor is built on top of {@link Neo4jEmbeddingStoreIngestor} and is designed to process
@@ -31,11 +31,11 @@ public class HypotheticalQuestionGraphIngestor extends Neo4jEmbeddingStoreIngest
 
         private static final String DEFAULT_RETRIEVAL_QUERY =
                 """
-            MATCH (node)<-[:HAS_QUESTION]-(parent)
-            WITH parent, max(score) AS score, node // deduplicate parents
-            RETURN parent.text AS text, score, properties(node) AS metadata
-             ORDER BY score DESC
-            LIMIT $maxResults""";
+                        MATCH (node)<-[:HAS_QUESTION]-(parent)
+                        WITH parent, max(score) AS score, node // deduplicate parents
+                        RETURN parent.text AS text, score, properties(node) AS metadata
+                         ORDER BY score DESC
+                        LIMIT $maxResults""";
 
         private static final String DEFAULT_PARENT_QUERY =
                 """
@@ -52,17 +52,17 @@ public class HypotheticalQuestionGraphIngestor extends Neo4jEmbeddingStoreIngest
 
         private static final String DEFAULT_SYSTEM_PROMPT =
                 """
-            You are generating hypothetical questions based on the information found in the text.
-            Make sure to provide full context in the generated questions.
-            """;
+                        You are generating hypothetical questions based on the information found in the text.
+                        Make sure to provide full context in the generated questions.
+                        """;
 
         private static final String DEFAULT_USER_PROMPT =
                 """
-            Use the given format to generate hypothetical questions from the following input:
-            {{input}}
+                        Use the given format to generate hypothetical questions from the following input:
+                        {{input}}
 
-            Hypothetical questions:
-            """;
+                        Hypothetical questions:
+                        """;
         public static final String DEFAULT_CHUNK_CREATION_QUERY = "CREATE (:QuestionChunk $metadata)";
 
         private Neo4jEmbeddingStore defaultEmbeddingStore() {

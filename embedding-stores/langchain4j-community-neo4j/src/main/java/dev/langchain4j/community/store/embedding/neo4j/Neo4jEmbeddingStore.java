@@ -398,7 +398,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     /*
     Private methods
     */
-    private EmbeddingSearchResult getSearchResUsingVectorSimilarity(
+    private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorSimilarity(
             EmbeddingSearchRequest request, Filter filter, Value embeddingValue, Session session) {
         /* Build an
             CYPHER runtime = parallel parallelRuntimeSupport=all
@@ -635,9 +635,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             if (!resIndex.hasNext()) {
                 return false;
             }
-            Record record = resIndex.single();
-            List<String> idxLabels = record.get("labelsOrTypes").asList(Value::asString);
-            List<Object> idxProps = record.get("properties").asList();
+            Record singleRecord = resIndex.single();
+            List<String> idxLabels = singleRecord.get("labelsOrTypes").asList(Value::asString);
+            List<Object> idxProps = singleRecord.get("properties").asList();
 
             boolean isIndexDifferent = !idxLabels.equals(singletonList(this.label))
                     || !idxProps.equals(singletonList(this.embeddingProperty));
@@ -781,8 +781,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
-         *
+         * @param entityCreationQuery the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
          */
         public Builder entityCreationQuery(String entityCreationQuery) {
             this.entityCreationQuery = entityCreationQuery;

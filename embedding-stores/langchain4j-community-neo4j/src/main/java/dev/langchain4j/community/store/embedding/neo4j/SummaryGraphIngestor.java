@@ -30,34 +30,34 @@ public class SummaryGraphIngestor extends Neo4jEmbeddingStoreIngestor {
     public static class Builder extends Neo4jEmbeddingStoreIngestor.Builder {
         private static final String DEFAULT_RETRIEVAL =
                 """
-            MATCH (node)<-[:HAS_SUMMARY]-(parent)
-            WITH parent, max(score) AS score, node // deduplicate parents
-            RETURN parent.text AS text, score, properties(node) AS metadata
-            ORDER BY score DESC
-            LIMIT $maxResults""";
+                        MATCH (node)<-[:HAS_SUMMARY]-(parent)
+                        WITH parent, max(score) AS score, node // deduplicate parents
+                        RETURN parent.text AS text, score, properties(node) AS metadata
+                        ORDER BY score DESC
+                        LIMIT $maxResults""";
 
         private static final String DEFAULT_SYSTEM_PROMPT =
                 """
-            You are generating concise and accurate summaries based on the information found in the text.
-            """;
+                        You are generating concise and accurate summaries based on the information found in the text.
+                        """;
 
         private static final String DEFAULT_USER_PROMPT =
                 """
-            Generate a summary of the following input:
-            {{input}}
+                        Generate a summary of the following input:
+                        {{input}}
 
-            Summary:
-            """;
+                        Summary:
+                        """;
 
         private static final String DEFAULT_PARENT_QUERY =
                 """
-                    UNWIND $rows AS row
-                    MATCH (p:SummaryChunk {parentId: $parentId})
-                    CREATE (p)-[:HAS_SUMMARY]->(u:%1$s {%2$s: row.%2$s})
-                    SET u += row.%3$s
-                    WITH row, u
-                    CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
-                    RETURN count(*)""";
+                        UNWIND $rows AS row
+                        MATCH (p:SummaryChunk {parentId: $parentId})
+                        CREATE (p)-[:HAS_SUMMARY]->(u:%1$s {%2$s: row.%2$s})
+                        SET u += row.%3$s
+                        WITH row, u
+                        CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
+                        RETURN count(*)""";
         private static final String DEFAULT_CHUNK_CREATION_QUERY = "CREATE (:SummaryChunk $metadata)";
 
         private Neo4jEmbeddingStore defaultEmbeddingStore() {

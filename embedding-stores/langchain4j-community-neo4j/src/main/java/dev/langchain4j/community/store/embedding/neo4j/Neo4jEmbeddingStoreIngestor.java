@@ -96,29 +96,29 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
      *   <li>Embedding generation and storage of segments into Neo4j</li>
      * </ul>
      *
-     * @param documentTransformer The {@link DocumentTransformer} applied to the original documents.
-     * @param documentSplitter The {@link DocumentSplitter} used to split documents into parent segments.
-     * @param textSegmentTransformer The {@link TextSegmentTransformer} applied to parent segments.
+     * @param documentTransformer         The {@link DocumentTransformer} applied to the original documents.
+     * @param documentSplitter            The {@link DocumentSplitter} used to split documents into parent segments.
+     * @param textSegmentTransformer      The {@link TextSegmentTransformer} applied to parent segments.
      * @param childTextSegmentTransformer The {@link TextSegmentTransformer} applied to child segments.
-     * @param embeddingModel The {@link EmbeddingModel} used to generate embeddings from text segments.
-     * @param embeddingStore The {@link EmbeddingStore} (specifically {@link Neo4jEmbeddingStore}) used to persist embeddings.
-     * @param documentChildSplitter The {@link DocumentSplitter} used to generate child segments from parent segments.
-     * @param driver The {@link Driver} used to execute Cypher queries against the Neo4j database.
-     * @param query The Cypher query used to insert processed segments and metadata into Neo4j.
-     * @param parentIdKey The metadata key used to extract the parent segment ID; if absent, a UUID will be generated.
-     * @param params Additional query parameters to include in the Cypher execution, beyond segment metadata and text.
-     * @param systemPrompt A system prompt for manipulating parent segment text via a {@link ChatModel}. Ignored if {@code questionModel} is {@code null}.
-     * @param userPrompt A user prompt for manipulating parent segment text via a {@link ChatModel}. Ignored if {@code questionModel} is {@code null}.
-     * @param questionModel A {@link ChatModel} used to further transform parent segment text based on provided prompts. If {@code null}, no chat-based manipulation occurs.
+     * @param embeddingModel              The {@link EmbeddingModel} used to generate embeddings from text segments.
+     * @param embeddingStore              The {@link EmbeddingStore} (specifically {@link Neo4jEmbeddingStore}) used to persist embeddings.
+     * @param documentChildSplitter       The {@link DocumentSplitter} used to generate child segments from parent segments.
+     * @param driver                      The {@link Driver} used to execute Cypher queries against the Neo4j database.
+     * @param query                       The Cypher query used to insert processed segments and metadata into Neo4j.
+     * @param parentIdKey                 The metadata key used to extract the parent segment ID; if absent, a UUID will be generated.
+     * @param params                      Additional query parameters to include in the Cypher execution, beyond segment metadata and text.
+     * @param systemPrompt                A system prompt for manipulating parent segment text via a {@link ChatModel}. Ignored if {@code questionModel} is {@code null}.
+     * @param userPrompt                  A user prompt for manipulating parent segment text via a {@link ChatModel}. Ignored if {@code questionModel} is {@code null}.
+     * @param questionModel               A {@link ChatModel} used to further transform parent segment text based on provided prompts. If {@code null}, no chat-based manipulation occurs.
      */
     public Neo4jEmbeddingStoreIngestor(
-            final DocumentTransformer documentTransformer,
-            final DocumentSplitter documentSplitter,
+            DocumentTransformer documentTransformer,
+            DocumentSplitter documentSplitter,
             TextSegmentTransformer textSegmentTransformer,
             TextSegmentTransformer childTextSegmentTransformer,
-            final EmbeddingModel embeddingModel,
-            final Neo4jEmbeddingStore embeddingStore,
-            final DocumentSplitter documentChildSplitter,
+            EmbeddingModel embeddingModel,
+            Neo4jEmbeddingStore embeddingStore,
+            DocumentSplitter documentChildSplitter,
             Driver driver,
             String query,
             String parentIdKey,
@@ -152,7 +152,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
         return segment -> {
             TextSegment parentSegment = getTextSegmentWithUniqueId(segment, neo4jEmbeddingStore.getIdProperty(), null);
             String textInput = parentSegment.text();
-            final Map<String, Object> metadataMap = segment.metadata().toMap();
+            Map<String, Object> metadataMap = segment.metadata().toMap();
             String parentId = "parent_" + UUID.randomUUID();
             metadataMap.put(parentIdKey, parentId);
             String text;
@@ -161,14 +161,11 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
                     throw new RuntimeException(
                             "Prompts cannot be null: systemPrompt=" + systemPrompt + ", userPrompt=" + userPrompt);
                 }
-                final SystemMessage systemMessage = Prompt.from(systemPrompt).toSystemMessage();
-
-                final PromptTemplate userTemplate = PromptTemplate.from(userPrompt);
-
-                final UserMessage userMessage =
+                SystemMessage systemMessage = Prompt.from(systemPrompt).toSystemMessage();
+                PromptTemplate userTemplate = PromptTemplate.from(userPrompt);
+                UserMessage userMessage =
                         userTemplate.apply(Map.of("input", textInput)).toUserMessage();
-
-                final List<ChatMessage> chatMessages = List.of(systemMessage, userMessage);
+                List<ChatMessage> chatMessages = List.of(systemMessage, userMessage);
 
                 text = this.questionModel.chat(chatMessages).aiMessage().text();
             } else {
@@ -176,7 +173,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
             }
             metadataMap.putIfAbsent("text", text);
 
-            final Map<String, Object> params = new HashMap<>(Map.of("metadata", metadataMap));
+            Map<String, Object> params = new HashMap<>(Map.of("metadata", metadataMap));
             params.put(parentIdKey, parentId);
             getAdditionalParams(parentId);
             metadataMap.putAll(this.params);
@@ -193,14 +190,14 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
     }
 
     private void getAdditionalParams(String parentId) {
-        final Map<String, Object> params = new HashMap<>(this.params);
+        Map<String, Object> params = new HashMap<>(this.params);
         params.put(parentIdKey, parentId);
         neo4jEmbeddingStore.setAdditionalParams(params);
     }
 
     public static TextSegment getTextSegmentWithUniqueId(TextSegment segment, String idProperty, String parentId) {
-        final Metadata metadata1 = segment.metadata();
-        final Object idMeta = metadata1.toMap().get(idProperty);
+        Metadata metadata1 = segment.metadata();
+        Object idMeta = metadata1.toMap().get(idProperty);
         String value = parentId == null ? randomUUID() : parentId + "_" + randomUUID();
         if (idMeta != null) {
             value = idMeta + "_" + value;
@@ -219,6 +216,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
     }
 
     public static class Builder extends ParentChildEmbeddingStoreIngestor.Builder<Builder> {
+
         protected Driver driver;
         protected String query;
         protected String parentIdKey;

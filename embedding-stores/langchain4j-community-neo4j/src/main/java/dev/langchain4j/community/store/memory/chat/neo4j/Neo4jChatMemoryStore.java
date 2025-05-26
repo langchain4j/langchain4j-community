@@ -38,6 +38,7 @@ import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.exceptions.Neo4jException;
 
 public class Neo4jChatMemoryStore implements ChatMemoryStore {
+
     public static final String DEFAULT_MEMORY_LABEL = "Memory";
     public static final String DEFAULT_MESSAGE_LABEL = "Message";
     public static final String DEFAULT_LAST_REL_TYPE = "LAST_MESSAGE";
@@ -60,24 +61,24 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
     /**
      * Creates an instance of Neo4jChatMemoryStore
      *
-     * @param driver the {@link Driver} (required)
-     * @param config the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
-     * @param memoryLabel the node label to be used for the memory ID (default: "Memory")
-     * @param messageLabel the node label to be used for the message (default: "Message")
-     * @param idProperty the optional memory ID property name of the node (default: "id")
-     * @param messageProperty the property name to be used for the message text (default: "message")
+     * @param driver             the {@link Driver} (required)
+     * @param config             the {@link SessionConfig}  (optional, default is `SessionConfig.forDatabase(`databaseName`)`)
+     * @param memoryLabel        the node label to be used for the memory ID (default: "Memory")
+     * @param messageLabel       the node label to be used for the message (default: "Message")
+     * @param idProperty         the optional memory ID property name of the node (default: "id")
+     * @param messageProperty    the property name to be used for the message text (default: "message")
      * @param lastMessageRelType the relationship type to be used to store the last message (default: "LAST_MESSAGE")
      * @param nextMessageRelType the relationship type to be used to store the next messages (default: "NEXT")
-     * @param databaseName the optional database name (default: "neo4j")
-     * @param size the optional message size to be retrieved from {@link Neo4jChatMemoryStore#getMessages(Object)}} (default: 10)
-     *             If the size is 0 or negative, all messages will be retrieved
+     * @param databaseName       the optional database name (default: "neo4j")
+     * @param size               the optional message size to be retrieved from {@link Neo4jChatMemoryStore#getMessages(Object)}} (default: 10)
+     *                           If the size is 0 or negative, all messages will be retrieved
      */
     public Neo4jChatMemoryStore(
-            final Driver driver,
-            final SessionConfig config,
-            final String memoryLabel,
-            final String messageLabel,
-            final String lastMessageRelType,
+            Driver driver,
+            SessionConfig config,
+            String memoryLabel,
+            String messageLabel,
+            String lastMessageRelType,
             String nextMessageRelType,
             String idProperty,
             String messageProperty,
@@ -102,13 +103,13 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
         return new Builder();
     }
 
-    private void createSessionNode(final Object memoryId) {
+    private void createSessionNode(Object memoryId) {
         try (var session = session()) {
             /*
             Build a: MERGE (s:<memoryLabel> {<idProperty>: $memoryId})
              */
-            final Map<String, Object> params = Map.of("label", memoryLabel, "window", size, "memoryId", memoryId);
-            final String query = merge(node(memoryLabel).withProperties(idProperty, parameter("memoryId")))
+            Map<String, Object> params = Map.of("label", memoryLabel, "window", size, "memoryId", memoryId);
+            String query = merge(node(memoryLabel).withProperties(idProperty, parameter("memoryId")))
                     .build()
                     .getCypher();
             session.run(query, params);
@@ -119,15 +120,15 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
     }
 
     @Override
-    public List<ChatMessage> getMessages(final Object memoryIdObj) {
-        final String memoryId = toMemoryIdString(memoryIdObj);
+    public List<ChatMessage> getMessages(Object memoryIdObj) {
+        String memoryId = toMemoryIdString(memoryIdObj);
         try (var session = session()) {
 
             String windowPar = this.size < 1 ? "" : Long.toString(this.size);
-            final Map<String, Object> params = Map.of("label", memoryLabel, "window", windowPar, "memoryId", memoryId);
+            Map<String, Object> params = Map.of("label", memoryLabel, "window", windowPar, "memoryId", memoryId);
 
-            final Statement statement = buildHistoryQuery();
-            final String cypher = Renderer.getDefaultRenderer().render(statement);
+            Statement statement = buildHistoryQuery();
+            String cypher = Renderer.getDefaultRenderer().render(statement);
 
             return session.run(cypher, params).stream()
                     .map(i -> i.get("msg").asString(null))
@@ -146,7 +147,7 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
         Node lastNode = Cypher.anyNode().named("lastNode");
 
         // Path pattern
-        final Relationship relationship = lastNode.relationshipFrom(Cypher.anyNode(), nextMessageRelType);
+        Relationship relationship = lastNode.relationshipFrom(Cypher.anyNode(), nextMessageRelType);
         RelationshipPattern pathRel = size < 1 ? relationship.min(0) : relationship.length(0, size);
         NamedPath p = Cypher.path("p").definedBy(pathRel);
 
@@ -154,7 +155,7 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
         AliasedExpression pathLength = create(functionDef("length"), name("p")).as("length");
 
         // reverse(nodes(p)) AS node
-        final FunctionInvocation reverseNodes = create(functionDef("reverse"), create(functionDef("nodes"), name("p")));
+        FunctionInvocation reverseNodes = create(functionDef("reverse"), create(functionDef("nodes"), name("p")));
 
         /*
         Build a
@@ -179,11 +180,11 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
     }
 
     @Override
-    public void updateMessages(final Object memoryIdObj, final List<ChatMessage> messages) {
-        final String memoryId = toMemoryIdString(memoryIdObj);
+    public void updateMessages(Object memoryIdObj, List<ChatMessage> messages) {
+        String memoryId = toMemoryIdString(memoryIdObj);
 
         ensureNotEmpty(messages, "messages");
-        final List<Map<String, String>> messagesValues = messages.stream()
+        List<Map<String, String>> messagesValues = messages.stream()
                 .map(ChatMessageSerializer::messageToJson)
                 .map(i -> Map.of(messageProperty, i))
                 .toList();
@@ -205,12 +206,12 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
             CREATE (lastNode)-[:<nextMessageRelType>]->(new)
             DELETE lastRel
              */
-            final Node s = node(memoryLabel).named("s");
+            Node s = node(memoryLabel).named("s");
             Node lastNode = Cypher.anyNode().named("lastNode");
-            final Relationship lastRel =
+            Relationship lastRel =
                     s.relationshipTo(lastNode, lastMessageRelType).named("lastRel");
-            final Node newNode = anyNode().named("new");
-            final String query = match(s).where(s.property(idProperty).isEqualTo(parameter("memoryId")))
+            Node newNode = anyNode().named("new");
+            String query = match(s).where(s.property(idProperty).isEqualTo(parameter("memoryId")))
                     .optionalMatch(lastRel)
                     .call("apoc.create.nodes")
                     .withArgs(raw("[$label], $messages"))
@@ -228,7 +229,7 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
                     .build()
                     .getCypher();
 
-            final Map<String, Object> params = Map.of(
+            Map<String, Object> params = Map.of(
                     "memoryId",
                     memoryId,
                     "relType",
@@ -243,8 +244,8 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
     }
 
     @Override
-    public void deleteMessages(final Object memoryIdObj) {
-        final String memoryId = toMemoryIdString(memoryIdObj);
+    public void deleteMessages(Object memoryIdObj) {
+        String memoryId = toMemoryIdString(memoryIdObj);
         try (var session = session()) {
             /*
             build a:
@@ -256,13 +257,13 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
              */
             Node firstNode = Cypher.node(memoryLabel).named("s");
             Node lastNode = Cypher.anyNode().named("lastNode");
-            final RelationshipChain rel = firstNode
+            RelationshipChain rel = firstNode
                     .relationshipTo(lastNode, lastMessageRelType)
                     .named("lastRel")
                     .relationshipFrom(anyNode(), nextMessageRelType)
                     .min(0);
             NamedPath p = Cypher.path("p").definedBy(rel);
-            final String query = match(firstNode)
+            String query = match(firstNode)
                     .where(firstNode.property(idProperty).isEqualTo(parameter("memoryId")))
                     .optionalMatch(p)
                     .with(firstNode, p, raw("length(p)").as("length"))
@@ -273,7 +274,7 @@ public class Neo4jChatMemoryStore implements ChatMemoryStore {
                     .build()
                     .getCypher();
 
-            final Map<String, Object> params =
+            Map<String, Object> params =
                     Map.of("memoryId", memoryId, "relType", lastMessageRelType, "label", memoryLabel);
 
             session.run(query, params);

@@ -179,7 +179,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
     public String fromLLM(Query query) {
         RetrieveResult result = getRetrieveResult(query);
 
-        final Prompt prompt = FROM_LLM_PROMPT_TEMPLATE.apply(
+        Prompt prompt = FROM_LLM_PROMPT_TEMPLATE.apply(
                 Map.of("context", result.contents(), "cypher", result.cypherQuery(), "question", query.text()));
         String cypherQuery = chatModel.chat(prompt.text());
         return getBacktickText(cypherQuery);

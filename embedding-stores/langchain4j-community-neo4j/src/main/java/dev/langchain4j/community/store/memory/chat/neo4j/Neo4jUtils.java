@@ -6,6 +6,10 @@ import org.neo4j.cypherdsl.core.FunctionInvocation;
 @Internal
 class Neo4jUtils {
 
+    private Neo4jUtils() throws InstantiationException {
+        throw new InstantiationException("Cannot instantiate utility class.");
+    }
+
     static FunctionInvocation.FunctionDefinition functionDef(String functionName) {
         return new FunctionInvocation.FunctionDefinition() {
 
