@@ -337,7 +337,7 @@ class Neo4jText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBaseTest {
 
     @Test
     void shouldReturnCorrectStructuredSchema() {
-        final Neo4jGraph.GraphSchema structuredSchema = graph.getStructuredSchema();
+        final Neo4jGraph.StructuredSchema structuredSchema = graph.getStructuredSchema();
 
         final List<String> patterns = structuredSchema.patterns();
         final List<String> nodesProperties = structuredSchema.nodesProperties();

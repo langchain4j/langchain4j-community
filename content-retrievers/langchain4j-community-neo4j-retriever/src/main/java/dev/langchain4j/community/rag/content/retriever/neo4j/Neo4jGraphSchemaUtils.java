@@ -24,25 +24,26 @@ class Neo4jGraphSchemaUtils {
                 collect(case type when "node" then patterns end)[0] as patterns
             """;
 
-    static String getSchemaFromMetadata(Neo4jGraph graph, Long sample, Long maxRels) {
+    static Neo4jGraph.StructuredSchema getSchemaFromMetadata(Neo4jGraph graph, Long sample, Long maxRels) {
         final Record record = graph.executeRead(SCHEMA_FROM_META_DATA, Map.of("sample", sample, "maxRels", maxRels))
                 .get(0);
         final List<String> nodes = record.get("nodes").asList(Value::asString, List.of());
         final List<String> relationships = record.get("relationships").asList(Value::asString, List.of());
         final List<String> patterns = record.get("patterns").asList(Value::asString, List.of());
 
-        final Neo4jGraph.GraphSchema structuredSchema = new Neo4jGraph.GraphSchema(nodes, relationships, patterns);
-        graph.setStructuredSchema(structuredSchema);
+        return new Neo4jGraph.StructuredSchema(nodes, relationships, patterns);
+    }
 
-        final String nodesString = String.join(", ", nodes);
-        final String relationshipsString = String.join(", ", relationships);
-        final String patternsString = String.join(", ", patterns);
+    static String toSchemaString(Neo4jGraph.StructuredSchema structuredSchema) {
 
-        final String schema = "Node properties are the following:\n" + nodesString
+        final String nodesString = String.join(", ", structuredSchema.nodesProperties());
+        final String relationshipsString = String.join(", ", structuredSchema.relationshipsProperties());
+        final String patternsString = String.join(", ", structuredSchema.patterns());
+
+        return "Node properties are the following:\n" + nodesString
                 + "\n\n" + "Relationship properties are the following:\n"
                 + relationshipsString
                 + "\n\n" + "The relationships are the following:\n"
                 + patternsString;
-        return schema;
     }
 }

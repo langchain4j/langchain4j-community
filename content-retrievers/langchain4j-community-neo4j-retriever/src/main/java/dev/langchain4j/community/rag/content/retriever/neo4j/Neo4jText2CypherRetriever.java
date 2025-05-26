@@ -1,5 +1,6 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
+import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jGraphSchemaUtils.toSchemaString;
 import static dev.langchain4j.community.rag.content.retriever.neo4j.Neo4jUtils.getBacktickText;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.getOrDefault;
@@ -115,7 +116,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
     private RetrieveResult getRetrieveResult(Query query) {
         String question = query.text();
-        String schema = graph.getSchema();
+        String schema = toSchemaString(graph.getStructuredSchema());
 
         String examplesString = "";
         if (!this.examples.isEmpty()) {
