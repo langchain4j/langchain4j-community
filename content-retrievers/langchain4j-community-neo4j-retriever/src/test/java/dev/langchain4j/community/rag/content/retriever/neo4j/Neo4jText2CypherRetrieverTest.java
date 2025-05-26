@@ -3,6 +3,7 @@ package dev.langchain4j.community.rag.content.retriever.neo4j;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
@@ -332,5 +333,43 @@ class Neo4jText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBaseTest {
 
         // Then
         assertThat(contentsWithExamples).hasSize(1);
+    }
+
+    @Test
+    void shouldReturnCorrectStructuredSchema() {
+        final Neo4jGraph.StructuredSchema structuredSchema = graph.getStructuredSchema();
+
+        final List<String> patterns = structuredSchema.patterns();
+        final List<String> nodesProperties = structuredSchema.nodesProperties();
+        final List<String> relationshipsProperties = structuredSchema.relationshipsProperties();
+
+        assertThat(patterns).containsExactly("(:Person)-[:WROTE]->(:Book)");
+        assertThat(nodesProperties).containsExactly(":Book {title: STRING}", ":Person {name: STRING}");
+        assertThat(relationshipsProperties).containsExactly(":WROTE {}");
+    }
+
+    @Test
+    void shouldReturnANaturalLanguageResponse() {
+        // Given
+        Query query = new Query("Who is the author of the book 'Dune'?");
+        final String llmResponse = "The author of the book Dune is: Frank Herbert";
+        when(chatModel.chat(anyList()))
+                .thenReturn(
+                        getChatResponse(
+                                """
+                                Mock response:
+                                ```
+                                cypher
+                                MATCH(book:Book {title: 'Dune'})<-[:WROTE]-(author:Person) RETURN author.name AS output
+                                ```
+                                """));
+
+        when(chatModel.chat(anyString())).thenReturn(llmResponse);
+
+        // When
+        final String response = retriever.fromLLM(query);
+
+        // Then
+        assertThat(response).isEqualTo(llmResponse);
     }
 }
