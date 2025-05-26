@@ -56,6 +56,7 @@ import org.neo4j.driver.Session;
  * </ul>
  */
 public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngestor {
+
     public static final String DEFAULT_PARENT_ID_KEY = "parentId";
 
     protected final Driver driver;
@@ -66,6 +67,24 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
     protected final String userPrompt;
     protected final String systemPrompt;
     protected final ChatModel questionModel;
+
+    public Neo4jEmbeddingStoreIngestor(Builder builder) {
+        this(
+                builder.documentTransformer,
+                builder.documentSplitter,
+                builder.textSegmentTransformer,
+                builder.childTextSegmentTransformer,
+                builder.embeddingModel,
+                (Neo4jEmbeddingStore) builder.embeddingStore,
+                builder.documentChildSplitter,
+                builder.driver,
+                builder.query,
+                builder.parentIdKey,
+                builder.params,
+                builder.systemPrompt,
+                builder.userPrompt,
+                builder.questionModel);
+    }
 
     /**
      * Constructs a new {@code Neo4jEmbeddingStoreIngestor}, which processes documents through a transformation
@@ -115,12 +134,12 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
                 embeddingModel,
                 embeddingStore,
                 documentChildSplitter);
-        this.neo4jEmbeddingStore = embeddingStore;
         this.driver = ensureNotNull(driver, "driver");
         this.query = ensureNotNull(query, "query");
         this.params = copy(params);
         this.parentIdKey = getOrDefault(parentIdKey, DEFAULT_PARENT_ID_KEY);
 
+        this.neo4jEmbeddingStore = embeddingStore;
         super.textSegmentTransformer = getOrDefault(textSegmentTransformer, getTextSegmentTransformer());
         super.childTextSegmentTransformer =
                 getOrDefault(childTextSegmentTransformer, getDefaultChildTextSegmentTransformer());
@@ -191,6 +210,10 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
         return segment;
     }
 
+    public Neo4jEmbeddingStore getEmbeddingStore() {
+        return neo4jEmbeddingStore;
+    }
+
     public static Neo4jEmbeddingStoreIngestor.Builder builder() {
         return new Neo4jEmbeddingStoreIngestor.Builder();
     }
@@ -214,7 +237,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
          */
         public Builder driver(Driver driver) {
             this.driver = driver;
-            return this;
+            return self();
         }
 
         /**
@@ -222,7 +245,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
          */
         public Builder query(String query) {
             this.query = query;
-            return this;
+            return self();
         }
 
         /**
@@ -230,7 +253,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
          */
         public Builder parentIdKey(String parentIdKey) {
             this.parentIdKey = parentIdKey;
-            return this;
+            return self();
         }
 
         /**
@@ -272,21 +295,7 @@ public class Neo4jEmbeddingStoreIngestor extends ParentChildEmbeddingStoreIngest
 
         @Override
         public Neo4jEmbeddingStoreIngestor build() {
-            return new Neo4jEmbeddingStoreIngestor(
-                    documentTransformer,
-                    documentSplitter,
-                    textSegmentTransformer,
-                    childTextSegmentTransformer,
-                    embeddingModel,
-                    (Neo4jEmbeddingStore) embeddingStore,
-                    documentChildSplitter,
-                    driver,
-                    query,
-                    parentIdKey,
-                    params,
-                    systemPrompt,
-                    userPrompt,
-                    questionModel);
+            return new Neo4jEmbeddingStoreIngestor(this);
         }
     }
 }

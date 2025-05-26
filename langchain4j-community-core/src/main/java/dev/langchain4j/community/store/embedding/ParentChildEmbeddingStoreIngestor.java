@@ -140,16 +140,15 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
         return new ParentChildEmbeddingStoreIngestor.Builder();
     }
 
-    public static class Builder<B extends ParentChildEmbeddingStoreIngestor.Builder>
-            extends EmbeddingStoreIngestor.Builder {
+    public static class Builder<B extends Builder<B>> extends EmbeddingStoreIngestor.Builder {
 
-        protected DocumentTransformer documentTransformer;
-        protected DocumentSplitter documentSplitter;
-        protected DocumentSplitter documentChildSplitter;
-        protected TextSegmentTransformer textSegmentTransformer;
-        protected TextSegmentTransformer childTextSegmentTransformer;
-        protected EmbeddingModel embeddingModel;
-        protected EmbeddingStore<TextSegment> embeddingStore;
+        public DocumentTransformer documentTransformer;
+        public DocumentSplitter documentSplitter;
+        public DocumentSplitter documentChildSplitter;
+        public TextSegmentTransformer textSegmentTransformer;
+        public TextSegmentTransformer childTextSegmentTransformer;
+        public EmbeddingModel embeddingModel;
+        public EmbeddingStore<TextSegment> embeddingStore;
 
         protected B self() {
             return (B) this;
