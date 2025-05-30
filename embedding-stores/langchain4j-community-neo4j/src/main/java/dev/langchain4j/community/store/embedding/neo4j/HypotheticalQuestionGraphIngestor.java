@@ -23,8 +23,8 @@ public class HypotheticalQuestionGraphIngestor extends Neo4jEmbeddingStoreIngest
         super(builder);
     }
 
-    public static SummaryGraphIngestor.Builder builder() {
-        return new SummaryGraphIngestor.Builder();
+    public static HypotheticalQuestionGraphIngestor.Builder builder() {
+        return new HypotheticalQuestionGraphIngestor.Builder();
     }
 
     public static class Builder extends Neo4jEmbeddingStoreIngestor.Builder {

@@ -265,7 +265,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
 
         when(chatLanguageModel.chat(anyList()))
                 .thenReturn(ChatResponse.builder()
-                        .aiMessage(AiMessage.aiMessage("What is the Machine learning?"))
+                        .aiMessage(AiMessage.aiMessage("Who is John Doe?"))
                         .build());
 
         hypotheticalQuestionIngestorCommon(chatLanguageModel);
@@ -334,10 +334,8 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
 
     protected static void hypotheticalQuestionIngestorCommon(ChatModel chatModel) {
 
-        int maxSegmentSize = 250;
-
         // Splits into sentences using OpenNLP
-        DocumentSplitter splitter = new DocumentBySentenceSplitter(maxSegmentSize, 0);
+        DocumentSplitter splitter = new DocumentBySentenceSplitter(100, 0);
 
         // Ingest the document into Neo4j as chunk-question nodes
         Neo4jEmbeddingStoreIngestor ingestor = HypotheticalQuestionGraphIngestor.builder()
@@ -348,17 +346,17 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
                 .embeddingStore(embeddingStore)
                 .build();
 
-        Document document = getDocumentAI();
+        Document document = getDocumentMiscTopics();
         ingestor.ingest(document);
 
         final EmbeddingStoreContentRetriever retriever = getEmbeddingStoreContentRetriever(ingestor);
-        List<Content> results = retriever.retrieve(Query.from("Tell me about machine learning"));
+        List<Content> results = retriever.retrieve(Query.from("Who is John Doe?"));
 
         assertFalse(results.isEmpty(), "Should retrieve at least one parent document");
 
         Content result = results.get(0);
 
-        assertThat(result.textSegment().text().toLowerCase()).containsIgnoringWhitespaces("machine learning");
+        assertThat(result.textSegment().text().toLowerCase()).containsIgnoringWhitespaces("super saiyan");
         assertEquals("Wikipedia link", result.textSegment().metadata().getString("source"));
         assertEquals("https://example.com/ai", result.textSegment().metadata().getString("url"));
     }
