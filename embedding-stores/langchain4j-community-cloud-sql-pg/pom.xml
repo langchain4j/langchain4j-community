@@ -25,7 +25,7 @@
     <properties>
         <pgvector-java.version>0.1.6</pgvector-java.version>
         <postgres.version>42.7.5</postgres.version>
-        <pg-socket.version>1.25.0</pg-socket.version>
+        <pg-socket.version>1.25.1</pg-socket.version>
         <jdbc-socket.version>1.25.1</jdbc-socket.version>
         <hikaricp.version>6.3.0</hikaricp.version>
         <google.oauth.client.version>1.39.0</google.oauth.client.version>
