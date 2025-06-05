@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
@@ -26,6 +25,8 @@
     <properties>
         <skipOciGenAiITs>false</skipOciGenAiITs>
         <oci-sdk.version>3.67.0</oci-sdk.version>
+        <!-- Stable module name until lc4j switches to JPMS -->
+        <automatic-module-name>langchain4j.community.oci.genai</automatic-module-name>
     </properties>
 
     <dependencies>
@@ -108,6 +109,28 @@
                 <configuration>
                     <skipTests>${skipOciGenAiITs}</skipTests>
                     <useModulePath>false</useModulePath>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Automatic-Module-Name>${automatic-module-name}</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <!--
+                    OCI SDK libs are dual-licensed under the UPL 1.0 or Apache License 2.0,
+                    license files are custom generated to the artifacts, hence not passing the compliance test.
+                    -->
+                    <skipCompliance>true</skipCompliance>
                 </configuration>
             </plugin>
         </plugins>
