@@ -14,9 +14,18 @@
     <description>Oracle OCI Generative AI</description>
     <url>https://www.oracle.com/artificial-intelligence/generative-ai/generative-ai-service</url>
 
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
     <properties>
         <skipOciGenAiITs>false</skipOciGenAiITs>
-        <oci-sdk.version>3.66.0</oci-sdk.version>
+        <oci-sdk.version>3.67.0</oci-sdk.version>
     </properties>
 
     <dependencies>

@@ -177,38 +177,6 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
         return builder;
     }
 
-    //    // TODO: remove
-    //    @Deprecated
-    //    static ChatContent map(Content lc4jContent) {
-    //        return switch (lc4jContent.type()) {
-    //            case TEXT -> {
-    //                var textContent = (dev.langchain4j.data.message.TextContent) lc4jContent;
-    //                yield TextContent.builder().text(textContent.text()).build();
-    //            }
-    //            case IMAGE -> {
-    //                var imageContent = (dev.langchain4j.data.message.ImageContent) lc4jContent;
-    //                Image image = imageContent.image();
-    //                var ociImageBuilder = ImageUrl.builder();
-    //                if (image.url() != null) {
-    //                    ociImageBuilder.url(image.url().toString());
-    //                } else {
-    //                    // rfc2397
-    //                    ociImageBuilder.url("data:" + image.mimeType() + ";base64," + image.base64Data());
-    //                }
-    //
-    //                yield ImageContent.builder()
-    //                        .imageUrl(ociImageBuilder
-    //                                .detail(ImageUrl.Detail.create(
-    //                                        imageContent.detailLevel().name()))
-    //                                .build())
-    //                        .build();
-    //            }
-    //            default -> throw new IllegalStateException("Unsupported content type: "
-    //                    + lc4jContent.type()
-    //                    + " only TEXT and IMAGE content types are supported.");
-    //        };
-    //    }
-
     static CohereResponseFormat map(ResponseFormat responseFormat) {
         if (responseFormat == null) {
             return null;

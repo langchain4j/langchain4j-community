@@ -16,8 +16,6 @@ import com.oracle.bmc.generativeaiinference.model.TextContent;
 import com.oracle.bmc.generativeaiinference.model.UserMessage;
 import com.oracle.bmc.generativeaiinference.requests.ChatRequest;
 import com.oracle.bmc.generativeaiinference.responses.ChatResponse;
-import dev.langchain4j.community.model.oracle.oci.genai.OciGenAiChatModel;
-import dev.langchain4j.community.model.oracle.oci.genai.OciGenAiCohereChatModel;
 import dev.langchain4j.model.output.FinishReason;
 import java.io.IOException;
 import java.util.List;

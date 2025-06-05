@@ -10,7 +10,7 @@ See AI model availability [here](https://docs.public.oneportal.content.oci.oracl
 ```xml
 <dependency>
     <groupId>dev.langchain4j</groupId>
-    <artificatId>langchain4j-oci-genai</artificatId>
+    <artifactId>langchain4j-community-oci-genai</artifactId>
 </dependency>
 ```
 Additionally, you have to select HTTP client for OCI SDK, by default, use a Jersey 3 based version:
