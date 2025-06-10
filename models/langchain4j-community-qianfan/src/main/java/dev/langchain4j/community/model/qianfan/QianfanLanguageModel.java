@@ -66,7 +66,7 @@ public class QianfanLanguageModel implements LanguageModel {
                 .logResponses(logResponses)
                 .proxy(proxy)
                 .build();
-        this.temperature = getOrDefault(temperature, 0.7);
+        this.temperature = temperature;
         this.maxRetries = getOrDefault(maxRetries, 3);
         this.topP = topP;
         this.topK = topK;

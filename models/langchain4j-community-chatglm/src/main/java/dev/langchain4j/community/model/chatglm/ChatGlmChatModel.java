@@ -43,7 +43,7 @@ public class ChatGlmChatModel implements ChatModel {
             boolean logResponses) {
         baseUrl = ensureNotNull(baseUrl, "baseUrl");
         timeout = getOrDefault(timeout, ofSeconds(60));
-        this.temperature = getOrDefault(temperature, 0.7);
+        this.temperature = temperature;
         this.maxRetries = getOrDefault(maxRetries, 3);
         this.topP = topP;
         this.maxLength = maxLength;

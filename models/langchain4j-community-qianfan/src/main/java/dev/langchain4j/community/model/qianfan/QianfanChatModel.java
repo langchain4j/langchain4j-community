@@ -87,7 +87,7 @@ public class QianfanChatModel implements ChatModel {
                 .proxy(proxy)
                 .build();
         this.defaultRequestParameters = ChatRequestParameters.builder()
-                .temperature(getOrDefault(temperature, 0.7))
+                .temperature(temperature)
                 .topP(topP)
                 .stopSequences(stop)
                 .modelName(ensureNotNull(modelName, "modelName"))
