@@ -6,8 +6,12 @@ import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getS
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.toFunctions;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.toOpenAiMessages;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.tokenUsageFrom;
+import static dev.langchain4j.community.model.qianfan.QianfanChatModelNameEnum.fromModelName;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -15,13 +19,13 @@ import dev.langchain4j.community.model.qianfan.client.QianfanClient;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.qianfan.spi.QianfanChatModelBuilderFactory;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.output.Response;
 import java.net.Proxy;
 import java.util.List;
 
@@ -31,17 +35,15 @@ import java.util.List;
 public class QianfanChatModel implements ChatModel {
 
     private final QianfanClient client;
-    private final String baseUrl;
-    private final Double temperature;
-    private final Double topP;
-    private final String modelName;
-    private final String endpoint;
-    private final Double penaltyScore;
+    private final List<ChatModelListener> listeners;
     private final Integer maxRetries;
-    private final String responseFormat;
+
+    private final ChatRequestParameters defaultRequestParameters;
+
+    /* TODO: we need QianfanChatRequestParameters to customize parameters */
+
+    private final String endpoint;
     private final String userId;
-    private final List<String> stop;
-    private final Integer maxOutputTokens;
     private final String system;
 
     public QianfanChatModel(
@@ -61,78 +63,85 @@ public class QianfanChatModel implements ChatModel {
             List<String> stop,
             Integer maxOutputTokens,
             String system,
-            Proxy proxy) {
-        if (Utils.isNullOrBlank(apiKey) || Utils.isNullOrBlank(secretKey)) {
+            Proxy proxy,
+            List<ChatModelListener> listeners) {
+        if (isNullOrBlank(apiKey) || isNullOrBlank(secretKey)) {
             throw new IllegalArgumentException(
                     " api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
         }
 
-        this.modelName = modelName;
-        this.endpoint = Utils.isNullOrBlank(endpoint) ? QianfanChatModelNameEnum.fromModelName(modelName) : endpoint;
-
-        if (Utils.isNullOrBlank(this.endpoint)) {
+        this.endpoint = isNullOrBlank(endpoint) ? fromModelName(modelName) : endpoint;
+        if (isNullOrBlank(this.endpoint)) {
             throw new IllegalArgumentException(
-                    "Qianfan is no such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
+                    "Qianfan does not have such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
         }
 
-        this.baseUrl = getOrDefault(baseUrl, "https://aip.baidubce.com");
-
+        this.maxRetries = getOrDefault(maxRetries, 3);
+        this.listeners = copy(listeners);
         this.client = QianfanClient.builder()
-                .baseUrl(this.baseUrl)
+                .baseUrl(getOrDefault(baseUrl, "https://aip.baidubce.com"))
                 .apiKey(apiKey)
                 .secretKey(secretKey)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .proxy(proxy)
                 .build();
-        this.temperature = getOrDefault(temperature, 0.7);
-        this.maxRetries = getOrDefault(maxRetries, 3);
-        this.topP = topP;
-        this.penaltyScore = penaltyScore;
-        this.responseFormat = responseFormat;
-        this.maxOutputTokens = maxOutputTokens;
-        this.stop = stop;
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .temperature(getOrDefault(temperature, 0.7))
+                .topP(topP)
+                .stopSequences(stop)
+                .modelName(ensureNotNull(modelName, "modelName"))
+                .maxOutputTokens(maxOutputTokens)
+                .responseFormat("json_object".equals(responseFormat) ? ResponseFormat.JSON : ResponseFormat.TEXT)
+                .presencePenalty(penaltyScore)
+                .build();
+
         this.userId = userId;
         this.system = system;
     }
 
     @Override
-    public ChatResponse doChat(ChatRequest chatRequest) {
-        Response<AiMessage> response = doChat(chatRequest.messages(), chatRequest.toolSpecifications());
-        return ChatResponse.builder()
-                .aiMessage(response.content())
-                .tokenUsage(response.tokenUsage())
-                .finishReason(response.finishReason())
-                .build();
+    public ChatRequestParameters defaultRequestParameters() {
+        return defaultRequestParameters;
     }
 
-    private Response<AiMessage> doChat(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
+    @Override
+    public List<ChatModelListener> listeners() {
+        return listeners;
+    }
+
+    @Override
+    public ChatResponse doChat(ChatRequest chatRequest) {
+        List<ChatMessage> messages = chatRequest.messages();
+        List<ToolSpecification> toolSpecifications = chatRequest.toolSpecifications();
+        ChatRequestParameters parameters = chatRequest.parameters();
 
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
                 .messages(toOpenAiMessages(messages))
-                .temperature(temperature)
-                .topP(topP)
-                .maxOutputTokens(maxOutputTokens)
-                .stop(stop)
+                .temperature(parameters.temperature())
+                .topP(parameters.topP())
+                .maxOutputTokens(parameters.maxOutputTokens())
+                .stop(parameters.stopSequences())
                 .system(system)
                 .userId(userId)
-                .penaltyScore(penaltyScore)
-                .responseFormat(responseFormat);
+                .penaltyScore(parameters.presencePenalty())
+                .responseFormat(parameters.responseFormat() == ResponseFormat.JSON ? "json_object" : "text");
         if (system == null || system.isEmpty()) {
             builder.system(getSystemMessage(messages));
         }
-
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.functions(toFunctions(toolSpecifications));
         }
 
         ChatCompletionRequest param = builder.build();
-
         ChatCompletionResponse response =
                 withRetry(() -> client.chatCompletion(param, endpoint).execute(), maxRetries);
 
-        return Response.from(
-                aiMessageFrom(response), tokenUsageFrom(response), finishReasonFrom(response.getFinishReason()));
+        return ChatResponse.builder()
+                .aiMessage(aiMessageFrom(response))
+                .tokenUsage(tokenUsageFrom(response))
+                .finishReason(finishReasonFrom(response.getFinishReason()))
+                .build();
     }
 
     public static QianfanChatModelBuilder builder() {
@@ -161,6 +170,7 @@ public class QianfanChatModel implements ChatModel {
         private Integer maxOutputTokens;
         private String system;
         private Proxy proxy;
+        private List<ChatModelListener> listeners;
 
         public QianfanChatModelBuilder() {
             // This is public so it can be extended
@@ -252,6 +262,11 @@ public class QianfanChatModel implements ChatModel {
             return this;
         }
 
+        public QianfanChatModelBuilder listeners(List<ChatModelListener> listeners) {
+            this.listeners = listeners;
+            return this;
+        }
+
         public QianfanChatModel build() {
             return new QianfanChatModel(
                     baseUrl,
@@ -270,7 +285,8 @@ public class QianfanChatModel implements ChatModel {
                     stop,
                     maxOutputTokens,
                     system,
-                    proxy);
+                    proxy,
+                    listeners);
         }
     }
 }
