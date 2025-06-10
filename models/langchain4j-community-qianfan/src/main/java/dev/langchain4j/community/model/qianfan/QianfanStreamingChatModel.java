@@ -33,6 +33,8 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
     private final String endpoint;
     private final Double penaltyScore;
     private final String responseFormat;
+    private final Integer maxOutputTokens;
+    private final List<String> stop;
 
     public QianfanStreamingChatModel(
             String baseUrl,
@@ -46,6 +48,8 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
             Double penaltyScore,
             Boolean logRequests,
             Boolean logResponses,
+            List<String> stop,
+            Integer maxOutputTokens,
             Proxy proxy) {
         if (Utils.isNullOrBlank(apiKey) || Utils.isNullOrBlank(secretKey)) {
             throw new IllegalArgumentException(
@@ -72,6 +76,8 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
         this.topP = topP;
         this.penaltyScore = penaltyScore;
         this.responseFormat = responseFormat;
+        this.maxOutputTokens = maxOutputTokens;
+        this.stop = stop;
     }
 
     @Override
@@ -87,6 +93,8 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
                 .messages(InternalQianfanHelper.toOpenAiMessages(messages))
                 .temperature(temperature)
                 .topP(topP)
+                .maxOutputTokens(maxOutputTokens)
+                .stop(stop)
                 .system(getSystemMessage(messages))
                 .responseFormat(responseFormat)
                 .penaltyScore(penaltyScore);
@@ -142,6 +150,8 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
         private Double penaltyScore;
         private Boolean logRequests;
         private Boolean logResponses;
+        private List<String> stop;
+        private Integer maxOutputTokens;
         private Proxy proxy;
 
         public QianfanStreamingChatModelBuilder() {
@@ -204,6 +214,16 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
+        public QianfanStreamingChatModelBuilder stop(List<String> stop) {
+            this.stop = stop;
+            return this;
+        }
+
+        public QianfanStreamingChatModelBuilder maxOutputTokens(Integer maxOutputTokens) {
+            this.maxOutputTokens = maxOutputTokens;
+            return this;
+        }
+
         public QianfanStreamingChatModelBuilder proxy(Proxy proxy) {
             this.proxy = proxy;
             return this;
@@ -222,6 +242,8 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
                     penaltyScore,
                     logRequests,
                     logResponses,
+                    stop,
+                    maxOutputTokens,
                     proxy);
         }
     }
