@@ -1,9 +1,5 @@
 package dev.langchain4j.community.model.qianfan;
 
-import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.qianfan.client.QianfanClient;
 import dev.langchain4j.community.model.qianfan.client.SyncOrAsyncOrStreaming;
@@ -11,14 +7,25 @@ import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.qianfan.spi.QianfanStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+
 import java.net.Proxy;
 import java.util.List;
 import java.util.Objects;
+
+import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
+import static dev.langchain4j.community.model.qianfan.QianfanChatModelNameEnum.fromModelName;
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
@@ -26,78 +33,91 @@ import java.util.Objects;
 public class QianfanStreamingChatModel implements StreamingChatModel {
 
     private final QianfanClient client;
-    private final String baseUrl;
-    private final Double temperature;
-    private final Double topP;
-    private final String modelName;
-    private final String endpoint;
-    private final Double penaltyScore;
-    private final String responseFormat;
-    private final Integer maxOutputTokens;
-    private final List<String> stop;
+    private final List<ChatModelListener> listeners;
 
-    public QianfanStreamingChatModel(
-            String baseUrl,
-            String apiKey,
-            String secretKey,
-            Double temperature,
-            Double topP,
-            String modelName,
-            String endpoint,
-            String responseFormat,
-            Double penaltyScore,
-            Boolean logRequests,
-            Boolean logResponses,
-            List<String> stop,
-            Integer maxOutputTokens,
-            Proxy proxy) {
-        if (Utils.isNullOrBlank(apiKey) || Utils.isNullOrBlank(secretKey)) {
+    private final ChatRequestParameters defaultRequestParameters;
+
+    /* TODO: we need QianfanChatRequestParameters to customize parameters */
+
+    private final String endpoint;
+    private final String userId;
+
+    public QianfanStreamingChatModel(String baseUrl,
+                                     String apiKey,
+                                     String secretKey,
+                                     Double temperature,
+                                     Double topP,
+                                     String modelName,
+                                     String endpoint,
+                                     String responseFormat,
+                                     Double penaltyScore,
+                                     Boolean logRequests,
+                                     Boolean logResponses,
+                                     String userId,
+                                     List<String> stop,
+                                     Integer maxOutputTokens,
+                                     Proxy proxy,
+                                     List<ChatModelListener> listeners) {
+        if (isNullOrBlank(apiKey) || isNullOrBlank(secretKey)) {
             throw new IllegalArgumentException(
                     " api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
         }
-        this.modelName = modelName;
-        this.endpoint = Utils.isNullOrBlank(endpoint) ? QianfanChatModelNameEnum.fromModelName(modelName) : endpoint;
 
-        if (Utils.isNullOrBlank(this.endpoint)) {
+        this.endpoint = isNullOrBlank(endpoint) ? fromModelName(modelName) : endpoint;
+        if (isNullOrBlank(this.endpoint)) {
             throw new IllegalArgumentException(
-                    "Qianfan is no such model name(or there is no model definition in the QianfanChatModelNameEnum class). You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
+                    "Qianfan does not have such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
         }
 
-        this.baseUrl = getOrDefault(baseUrl, "https://aip.baidubce.com");
+        this.listeners = copy(listeners);
         this.client = QianfanClient.builder()
-                .baseUrl(this.baseUrl)
+                .baseUrl(getOrDefault(baseUrl, "https://aip.baidubce.com"))
                 .apiKey(apiKey)
                 .secretKey(secretKey)
                 .logRequests(logRequests)
-                .logStreamingResponses(logResponses)
+                .logResponses(logResponses)
                 .proxy(proxy)
                 .build();
-        this.temperature = getOrDefault(temperature, 0.7);
-        this.topP = topP;
-        this.penaltyScore = penaltyScore;
-        this.responseFormat = responseFormat;
-        this.maxOutputTokens = maxOutputTokens;
-        this.stop = stop;
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .temperature(getOrDefault(temperature, 0.7))
+                .topP(topP)
+                .stopSequences(stop)
+                .modelName(ensureNotNull(modelName, "modelName"))
+                .maxOutputTokens(maxOutputTokens)
+                .responseFormat("json_object".equals(responseFormat) ? ResponseFormat.JSON : ResponseFormat.TEXT)
+                .presencePenalty(penaltyScore)
+                .build();
+
+        this.userId = userId;
+    }
+
+    @Override
+    public ChatRequestParameters defaultRequestParameters() {
+        return defaultRequestParameters;
+    }
+
+    @Override
+    public List<ChatModelListener> listeners() {
+        return listeners;
     }
 
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        generate(chatRequest.messages(), chatRequest.toolSpecifications(), handler);
-    }
+        List<ChatMessage> messages = chatRequest.messages();
+        List<ToolSpecification> toolSpecifications = chatRequest.toolSpecifications();
+        ChatRequestParameters parameters = chatRequest.parameters();
 
-    private void generate(
-            List<ChatMessage> messages,
-            List<ToolSpecification> toolSpecifications,
-            StreamingChatResponseHandler handler) {
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
                 .messages(InternalQianfanHelper.toOpenAiMessages(messages))
-                .temperature(temperature)
-                .topP(topP)
-                .maxOutputTokens(maxOutputTokens)
-                .stop(stop)
+                .temperature(parameters.temperature())
+                .topP(parameters.topP())
+                .maxOutputTokens(parameters.maxOutputTokens())
+                .stop(parameters.stopSequences())
+                .stream(true)
                 .system(getSystemMessage(messages))
-                .responseFormat(responseFormat)
-                .penaltyScore(penaltyScore);
+                .userId(userId)
+                .responseFormat(parameters.responseFormat() == ResponseFormat.JSON ? "json_object" : "text")
+                .penaltyScore(parameters.presencePenalty());
 
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.functions(InternalQianfanHelper.toFunctions(toolSpecifications));
@@ -150,9 +170,11 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
         private Double penaltyScore;
         private Boolean logRequests;
         private Boolean logResponses;
+        private String userId;
         private List<String> stop;
         private Integer maxOutputTokens;
         private Proxy proxy;
+        private List<ChatModelListener> listeners;
 
         public QianfanStreamingChatModelBuilder() {
             // This is public so it can be extended
@@ -214,6 +236,11 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
+        public QianfanStreamingChatModelBuilder userId(String userId) {
+            this.userId = userId;
+            return this;
+        }
+
         public QianfanStreamingChatModelBuilder stop(List<String> stop) {
             this.stop = stop;
             return this;
@@ -226,6 +253,11 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
 
         public QianfanStreamingChatModelBuilder proxy(Proxy proxy) {
             this.proxy = proxy;
+            return this;
+        }
+
+        public QianfanStreamingChatModelBuilder listeners(List<ChatModelListener> listeners) {
+            this.listeners = listeners;
             return this;
         }
 
@@ -242,9 +274,12 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
                     penaltyScore,
                     logRequests,
                     logResponses,
+                    userId,
                     stop,
                     maxOutputTokens,
-                    proxy);
+                    proxy,
+                    listeners
+            );
         }
     }
 }
