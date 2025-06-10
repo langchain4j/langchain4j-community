@@ -1,5 +1,7 @@
 package dev.langchain4j.community.qianfan.spring;
 
+import java.util.List;
+
 public class ChatModelProperties {
 
     private String baseUrl;
@@ -14,6 +16,9 @@ public class ChatModelProperties {
     private Double penaltyScore;
     private Boolean logRequests;
     private Boolean logResponses;
+    private Integer maxOutputTokens;
+    private List<String> stop;
+    private String userId;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -109,5 +114,29 @@ public class ChatModelProperties {
 
     public void setLogResponses(Boolean logResponses) {
         this.logResponses = logResponses;
+    }
+
+    public Integer getMaxOutputTokens() {
+        return maxOutputTokens;
+    }
+
+    public void setMaxOutputTokens(Integer maxOutputTokens) {
+        this.maxOutputTokens = maxOutputTokens;
+    }
+
+    public List<String> getStop() {
+        return stop;
+    }
+
+    public void setStop(List<String> stop) {
+        this.stop = stop;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

@@ -1,5 +1,13 @@
 package dev.langchain4j.community.model.qianfan;
 
+import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
+import static dev.langchain4j.community.model.qianfan.QianfanChatModelNameEnum.fromModelName;
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.qianfan.client.QianfanClient;
 import dev.langchain4j.community.model.qianfan.client.SyncOrAsyncOrStreaming;
@@ -14,18 +22,9 @@ import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-
 import java.net.Proxy;
 import java.util.List;
 import java.util.Objects;
-
-import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
-import static dev.langchain4j.community.model.qianfan.QianfanChatModelNameEnum.fromModelName;
-import static dev.langchain4j.internal.Utils.copy;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
@@ -42,22 +41,23 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
     private final String endpoint;
     private final String userId;
 
-    public QianfanStreamingChatModel(String baseUrl,
-                                     String apiKey,
-                                     String secretKey,
-                                     Double temperature,
-                                     Double topP,
-                                     String modelName,
-                                     String endpoint,
-                                     String responseFormat,
-                                     Double penaltyScore,
-                                     Boolean logRequests,
-                                     Boolean logResponses,
-                                     String userId,
-                                     List<String> stop,
-                                     Integer maxOutputTokens,
-                                     Proxy proxy,
-                                     List<ChatModelListener> listeners) {
+    public QianfanStreamingChatModel(
+            String baseUrl,
+            String apiKey,
+            String secretKey,
+            Double temperature,
+            Double topP,
+            String modelName,
+            String endpoint,
+            String responseFormat,
+            Double penaltyScore,
+            Boolean logRequests,
+            Boolean logResponses,
+            String userId,
+            List<String> stop,
+            Integer maxOutputTokens,
+            Proxy proxy,
+            List<ChatModelListener> listeners) {
         if (isNullOrBlank(apiKey) || isNullOrBlank(secretKey)) {
             throw new IllegalArgumentException(
                     " api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
@@ -278,8 +278,7 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
                     stop,
                     maxOutputTokens,
                     proxy,
-                    listeners
-            );
+                    listeners);
         }
     }
 }

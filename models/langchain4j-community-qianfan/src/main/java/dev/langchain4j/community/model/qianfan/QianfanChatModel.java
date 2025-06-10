@@ -1,21 +1,5 @@
 package dev.langchain4j.community.model.qianfan;
 
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.community.model.qianfan.client.QianfanClient;
-import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
-import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
-import dev.langchain4j.community.model.qianfan.spi.QianfanChatModelBuilderFactory;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.request.ResponseFormat;
-import dev.langchain4j.model.chat.response.ChatResponse;
-
-import java.net.Proxy;
-import java.util.List;
-
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.aiMessageFrom;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
@@ -29,6 +13,21 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.community.model.qianfan.client.QianfanClient;
+import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest;
+import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
+import dev.langchain4j.community.model.qianfan.spi.QianfanChatModelBuilderFactory;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import java.net.Proxy;
+import java.util.List;
 
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
@@ -47,24 +46,25 @@ public class QianfanChatModel implements ChatModel {
     private final String userId;
     private final String system;
 
-    public QianfanChatModel(String baseUrl,
-                            String apiKey,
-                            String secretKey,
-                            Double temperature,
-                            Integer maxRetries,
-                            Double topP,
-                            String modelName,
-                            String endpoint,
-                            String responseFormat,
-                            Double penaltyScore,
-                            Boolean logRequests,
-                            Boolean logResponses,
-                            String userId,
-                            List<String> stop,
-                            Integer maxOutputTokens,
-                            String system,
-                            Proxy proxy,
-                            List<ChatModelListener> listeners) {
+    public QianfanChatModel(
+            String baseUrl,
+            String apiKey,
+            String secretKey,
+            Double temperature,
+            Integer maxRetries,
+            Double topP,
+            String modelName,
+            String endpoint,
+            String responseFormat,
+            Double penaltyScore,
+            Boolean logRequests,
+            Boolean logResponses,
+            String userId,
+            List<String> stop,
+            Integer maxOutputTokens,
+            String system,
+            Proxy proxy,
+            List<ChatModelListener> listeners) {
         if (isNullOrBlank(apiKey) || isNullOrBlank(secretKey)) {
             throw new IllegalArgumentException(
                     " api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
