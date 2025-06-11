@@ -25,24 +25,6 @@
         </license>
     </licenses>
 
-    <developers>
-        <developer>
-            <id>deep-learning-dynamo</id>
-            <email>deeplearningdynamo@gmail.com</email>
-            <url>https://github.com/deep-learning-dynamo</url>
-        </developer>
-        <developer>
-            <id>kuraleta</id>
-            <email>digital.kuraleta@gmail.com</email>
-            <url>https://github.com/kuraleta</url>
-        </developer>
-        <developer>
-            <id>Martin7-1</id>
-            <email>yi.zheng.se@gmail.com</email>
-            <url>https://github.com/Martin7-1</url>
-        </developer>
-    </developers>
-
     <modules>
 
         <module>langchain4j-community-core</module>
