@@ -1,6 +1,8 @@
 package dev.langchain4j.community.model.chatglm;
 
+import static dev.langchain4j.data.message.AiMessage.from;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
@@ -13,7 +15,9 @@ import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -23,14 +27,16 @@ import java.util.stream.Collectors;
 /**
  * Support <a href="https://github.com/THUDM/ChatGLM-6B">ChatGLM</a>,
  * ChatGLM2 and ChatGLM3 api are compatible with OpenAI API
+ *
+ * @deprecated Please use langchain4j-community-zhipu-ai for more advanced feature instead.
  */
+@Deprecated(forRemoval = true)
 public class ChatGlmChatModel implements ChatModel {
 
     private final ChatGlmClient client;
-    private final Double temperature;
-    private final Double topP;
-    private final Integer maxLength;
+    private final List<ChatModelListener> listeners;
     private final Integer maxRetries;
+    private final ChatRequestParameters defaultRequestParameters;
 
     public ChatGlmChatModel(
             String baseUrl,
@@ -40,14 +46,17 @@ public class ChatGlmChatModel implements ChatModel {
             Double topP,
             Integer maxLength,
             boolean logRequests,
-            boolean logResponses) {
+            boolean logResponses,
+            List<ChatModelListener> listeners) {
         baseUrl = ensureNotNull(baseUrl, "baseUrl");
         timeout = getOrDefault(timeout, ofSeconds(60));
-        this.temperature = getOrDefault(temperature, 0.7);
         this.maxRetries = getOrDefault(maxRetries, 3);
-        this.topP = topP;
-        this.maxLength = maxLength;
-
+        this.listeners = copy(listeners);
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .temperature(temperature)
+                .topP(topP)
+                .maxOutputTokens(maxLength)
+                .build();
         this.client = ChatGlmClient.builder()
                 .baseUrl(baseUrl)
                 .timeout(timeout)
@@ -57,13 +66,19 @@ public class ChatGlmChatModel implements ChatModel {
     }
 
     @Override
-    public ChatResponse doChat(ChatRequest chatRequest) {
-        List<ChatMessage> chatMessages = chatRequest.messages();
-        return ChatResponse.builder().aiMessage(doChat(chatMessages)).build();
+    public ChatRequestParameters defaultRequestParameters() {
+        return defaultRequestParameters;
     }
 
-    public AiMessage doChat(List<ChatMessage> messages) {
-        // get last user message
+    @Override
+    public List<ChatModelListener> listeners() {
+        return listeners;
+    }
+
+    @Override
+    public ChatResponse doChat(ChatRequest chatRequest) {
+        List<ChatMessage> messages = chatRequest.messages();
+        ChatRequestParameters parameters = chatRequest.parameters();
         String prompt;
         ChatMessage lastMessage = messages.get(messages.size() - 1);
         if (lastMessage instanceof UserMessage userMessage) {
@@ -74,15 +89,15 @@ public class ChatGlmChatModel implements ChatModel {
         List<List<String>> history = toHistory(messages.subList(0, messages.size() - 1));
         ChatCompletionRequest request = ChatCompletionRequest.builder()
                 .prompt(prompt)
-                .temperature(temperature)
-                .topP(topP)
-                .maxLength(maxLength)
+                .temperature(parameters.temperature())
+                .topP(parameters.topP())
+                .maxLength(parameters.maxOutputTokens())
                 .history(history)
                 .build();
 
         ChatCompletionResponse response = withRetry(() -> client.chatCompletion(request), maxRetries);
 
-        return AiMessage.from(response.getResponse());
+        return ChatResponse.builder().aiMessage(from(response.getResponse())).build();
     }
 
     private List<List<String>> toHistory(List<ChatMessage> historyMessages) {
@@ -138,6 +153,7 @@ public class ChatGlmChatModel implements ChatModel {
         private Integer maxLength;
         private boolean logRequests;
         private boolean logResponses;
+        private List<ChatModelListener> listeners;
 
         public ChatGlmChatModelBuilder() {
             // This is public so it can be extended
@@ -184,9 +200,14 @@ public class ChatGlmChatModel implements ChatModel {
             return this;
         }
 
+        public ChatGlmChatModelBuilder listeners(List<ChatModelListener> listeners) {
+            this.listeners = listeners;
+            return this;
+        }
+
         public ChatGlmChatModel build() {
             return new ChatGlmChatModel(
-                    baseUrl, timeout, temperature, maxRetries, topP, maxLength, logRequests, logResponses);
+                    baseUrl, timeout, temperature, maxRetries, topP, maxLength, logRequests, logResponses, listeners);
         }
     }
 }

@@ -91,7 +91,7 @@ class IndexerTest {
 
         List<Content> results = contentRetriever.retrieve(query);
 
-        assertThat(results).hasSize(0);
+        assertThat(results).isEmpty();
     }
 
     @Test

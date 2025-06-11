@@ -87,7 +87,7 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
     public static final String VALUE_KEANU = "value3";
     public static String USERNAME = "neo4j";
     public static String ADMIN_PASSWORD = "adminPass";
-    private static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "2025.01.0-enterprise");
+    private static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "2025.04.0-enterprise");
 
     public static String CAT_ON_THE_TABLE = "Sylvester the cat is on the table";
     public static String KEANU_REEVES_ACTED = "Keanu Reeves acted in Matrix";

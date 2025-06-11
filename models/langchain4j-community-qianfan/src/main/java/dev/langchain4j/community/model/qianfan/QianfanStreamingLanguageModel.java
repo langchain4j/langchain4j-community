@@ -65,7 +65,7 @@ public class QianfanStreamingLanguageModel implements StreamingLanguageModel {
                 .logStreamingResponses(logResponses)
                 .proxy(proxy)
                 .build();
-        this.temperature = getOrDefault(temperature, 0.7);
+        this.temperature = temperature;
         this.topP = topP;
         this.topK = topK;
         this.penaltyScore = penaltyScore;

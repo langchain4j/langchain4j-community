@@ -55,6 +55,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      */
     private final Boolean supportIncrementalOutput;
     /**
+     * Specifies whether to use the reasoning mode. Applicable for Qwen3 models.
+     * Default value is false.
+     */
+    private final Boolean enableThinking;
+    /**
+     * The maximum reasoning length, effective when enable_thinking is set to true.
+     * Applicable for qwen-plus-latest, qwen-turbo-latest and all other Qwen3 models.
+     */
+    private final Integer thinkingBudget;
+    /**
      * User-defined parameters. They may have special effects on some special models.
      */
     private final Map<String, Object> custom;
@@ -68,6 +78,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.vlHighResolutionImages = builder.vlHighResolutionImages;
         this.isMultimodalModel = builder.isMultimodalModel;
         this.supportIncrementalOutput = builder.supportIncrementalOutput;
+        this.enableThinking = getOrDefault(builder.enableThinking, Boolean.FALSE);
+        this.thinkingBudget = builder.thinkingBudget;
         this.custom = builder.custom;
     }
 
@@ -97,6 +109,14 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
     public Boolean supportIncrementalOutput() {
         return supportIncrementalOutput;
+    }
+
+    public Boolean enableThinking() {
+        return enableThinking;
+    }
+
+    public Integer thinkingBudget() {
+        return thinkingBudget;
     }
 
     public Map<String, Object> custom() {
@@ -170,6 +190,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private Boolean vlHighResolutionImages;
         private Boolean isMultimodalModel;
         private Boolean supportIncrementalOutput;
+        private Boolean enableThinking;
+        private Integer thinkingBudget;
         private Map<String, Object> custom;
 
         @Override
@@ -181,6 +203,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 searchOptions(getOrDefault(qwenParameters.searchOptions(), searchOptions));
                 translationOptions(getOrDefault(qwenParameters.translationOptions(), translationOptions));
                 vlHighResolutionImages(getOrDefault(qwenParameters.vlHighResolutionImages(), vlHighResolutionImages));
+                enableThinking(getOrDefault(qwenParameters.enableThinking(), enableThinking));
+                thinkingBudget(getOrDefault(qwenParameters.thinkingBudget(), thinkingBudget));
                 custom(getOrDefault(qwenParameters.custom(), custom));
             }
             return this;
@@ -218,6 +242,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder supportIncrementalOutput(Boolean supportIncrementalOutput) {
             this.supportIncrementalOutput = supportIncrementalOutput;
+            return this;
+        }
+
+        public Builder enableThinking(Boolean enableThinking) {
+            this.enableThinking = enableThinking;
+            return this;
+        }
+
+        public Builder thinkingBudget(Integer thinkingBudget) {
+            this.thinkingBudget = thinkingBudget;
             return this;
         }
 

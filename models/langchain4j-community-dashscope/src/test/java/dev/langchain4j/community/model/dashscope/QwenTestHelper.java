@@ -12,6 +12,8 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.VideoContent;
+import dev.langchain4j.data.video.Video;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,8 +31,7 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN_TURBO),
                 Arguments.of(QwenModelName.QWEN_PLUS),
                 Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
+                Arguments.of(QwenModelName.QWEN_LONG));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
@@ -39,13 +40,12 @@ class QwenTestHelper {
                 Arguments.of(QwenModelName.QWEN_PLUS),
                 Arguments.of(QwenModelName.QWEN_MAX),
                 Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN2_5_72B_INSTRUCT));
+                Arguments.of(QwenModelName.QWEN3_32B));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
-        // Function Call and structured output (JSON Mode) are not supported.
-        return Stream.of(Arguments.of(QwenModelName.QWQ_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_32B), Arguments.of(QwenModelName.QWEN3_235B_A22B));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
@@ -103,19 +103,7 @@ class QwenTestHelper {
     }
 
     public static String multimodalImageData() {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        try (InputStream in = QwenTestHelper.class.getResourceAsStream("/parrot.jpg")) {
-            assertThat(in).isNotNull();
-            byte[] data = new byte[512];
-            int n;
-            while ((n = in.read(data)) != -1) {
-                buffer.write(data, 0, n);
-            }
-        } catch (IOException e) {
-            fail("", e.getMessage());
-        }
-
-        return Base64.getEncoder().encodeToString(buffer.toByteArray());
+        return getBase64DataFromResource("/parrot.jpg");
     }
 
     public static List<ChatMessage> multimodalChatMessagesWithAudioUrl() {
@@ -140,8 +128,35 @@ class QwenTestHelper {
     }
 
     public static String multimodalAudioData() {
+        return getBase64DataFromResource("/welcome.mp3");
+    }
+
+    public static List<ChatMessage> multimodalChatMessagesWithVideoUrl() {
+        Video video = Video.builder()
+                .url("https://cdn.wanx.aliyuncs.com/upload/commons/parrot.mp4")
+                .build();
+        VideoContent videoContent = VideoContent.from(video);
+        TextContent textContent = TextContent.from("What animal is in the video?");
+        return Collections.singletonList(UserMessage.from(videoContent, textContent));
+    }
+
+    public static List<ChatMessage> multimodalChatMessagesWithVideoData() {
+        Video video = Video.builder()
+                .base64Data(multimodalVideoData())
+                .mimeType("video/mp4")
+                .build();
+        VideoContent videoContent = VideoContent.from(video);
+        TextContent textContent = TextContent.from("What animal is in the video?");
+        return Collections.singletonList(UserMessage.from(videoContent, textContent));
+    }
+
+    public static String multimodalVideoData() {
+        return getBase64DataFromResource("/parrot.mp4");
+    }
+
+    private static String getBase64DataFromResource(String path) {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        try (InputStream in = QwenTestHelper.class.getResourceAsStream("/welcome.mp3")) {
+        try (InputStream in = QwenTestHelper.class.getResourceAsStream(path)) {
             assertThat(in).isNotNull();
             byte[] data = new byte[512];
             int n;

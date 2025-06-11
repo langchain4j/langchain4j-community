@@ -2,6 +2,7 @@ package dev.langchain4j.community.store.embedding.neo4j;
 
 import static org.neo4j.cypherdsl.support.schema_name.SchemaNames.sanitize;
 
+import dev.langchain4j.Internal;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -16,6 +17,7 @@ import org.neo4j.driver.Record;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
 
+@Internal
 class Neo4jEmbeddingUtils {
 
     private Neo4jEmbeddingUtils() throws InstantiationException {

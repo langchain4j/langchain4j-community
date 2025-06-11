@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.0.0-beta4</version>
+        <version>1.1.0-beta7-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -25,24 +25,6 @@
         </license>
     </licenses>
 
-    <developers>
-        <developer>
-            <id>deep-learning-dynamo</id>
-            <email>deeplearningdynamo@gmail.com</email>
-            <url>https://github.com/deep-learning-dynamo</url>
-        </developer>
-        <developer>
-            <id>kuraleta</id>
-            <email>digital.kuraleta@gmail.com</email>
-            <url>https://github.com/kuraleta</url>
-        </developer>
-        <developer>
-            <id>Martin7-1</id>
-            <email>yi.zheng.se@gmail.com</email>
-            <url>https://github.com/Martin7-1</url>
-        </developer>
-    </developers>
-
     <modules>
 
         <module>langchain4j-community-core</module>
@@ -53,6 +35,7 @@
         <!-- Integration of models -->
         <module>models/langchain4j-community-chatglm</module>
         <module>models/langchain4j-community-dashscope</module>
+        <module>models/langchain4j-community-oci-genai</module>
         <module>models/langchain4j-community-qianfan</module>
         <module>models/langchain4j-community-xinference</module>
         <module>models/langchain4j-community-zhipu-ai</module>
@@ -90,28 +73,25 @@
         <url>https://github.com/langchain4j/langchain4j-community</url>
     </scm>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.0.0-rc1</langchain4j.core.version>
-        <langchain4j.version>1.0.0-rc1</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.0.0-rc1</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.0.0-rc1</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.1.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.1.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.1.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.1.0-SNAPSHOT</langchain4j.open-ai.version>
     </properties>
 
     <repositories>
         <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
-            <id>ossrh-snapshots</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+            <id>central-portal-snapshots</id>
+            <name>Central Portal Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         </repository>
     </repositories>
 
@@ -215,13 +195,13 @@
             </plugin>
 
             <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.7.0</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>true</autoPublish>
                 </configuration>
             </plugin>
 
@@ -265,7 +245,7 @@
             <extension>
                 <groupId>io.github.gitflow-incremental-builder</groupId>
                 <artifactId>gitflow-incremental-builder</artifactId>
-                <version>4.5.4</version>
+                <version>4.5.5</version>
             </extension>
         </extensions>
     </build>
@@ -304,7 +284,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>5.23.1</version>
+                        <version>6.11.0</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
@@ -316,7 +296,7 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>2.4.1</version>
+                                <version>3.10.0</version>
                             </dependency>
                         </dependencies>
                     </plugin>

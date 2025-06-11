@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.0.0-beta4</version>
+        <version>1.1.0-beta7-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -23,36 +23,15 @@
     <properties>
         <jedis.version>5.2.0</jedis.version>
         <redis-containers.version>2.2.4</redis-containers.version>
-        <gson.version>2.11.0</gson.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.google.code.gson</groupId>
-                <artifactId>gson</artifactId>
-                <version>${gson.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-core</artifactId>
-            <version>1.0.0-beta3-SNAPSHOT</version>
+            <version>${langchain4j.core.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings</artifactId>
-            <version>1.0.0-beta3-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- We don't need a separate model-chat dependency since ChatLanguageModel is in core -->
-        <!-- The ChatLanguageModel interface is part of langchain4j-core already included above -->
 
         <dependency>
             <groupId>redis.clients</groupId>
@@ -78,7 +57,7 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-core</artifactId>
-            <version>1.0.0-beta3-SNAPSHOT</version>
+            <version>${langchain4j.core.version}</version>
             <classifier>tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
@@ -119,21 +98,21 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
-            <version>1.0.0-beta3-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
-            <version>1.0.0-beta3-SNAPSHOT</version>
+            <version>${langchain4j.open-ai.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-anthropic</artifactId>
-            <version>1.0.0-beta3-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -144,18 +123,9 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Add TestContainers dependencies -->
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <version>1.19.3</version>
-            <scope>test</scope>
-        </dependency>
-
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>1.19.3</version>
             <scope>test</scope>
         </dependency>
 

@@ -1,0 +1,15 @@
+/**
+ * <a href="https://www.oracle.com/artificial-intelligence/generative-ai/generative-ai-service">
+ * Oracle OCI Generative AI</a> LangChain4j chat models integration.
+ */
+module langchain4j.community.oci.genai {
+    requires transitive langchain4j.core;
+    requires transitive oci.java.sdk.common;
+    requires transitive oci.java.sdk.common.httpclient;
+    requires transitive oci.java.sdk.generativeaiinference;
+
+    requires org.slf4j;
+    requires com.fasterxml.jackson.annotation;
+
+    exports dev.langchain4j.community.model.oracle.oci.genai;
+}
