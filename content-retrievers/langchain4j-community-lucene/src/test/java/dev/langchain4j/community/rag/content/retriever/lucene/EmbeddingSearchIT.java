@@ -14,8 +14,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class EmbeddingSearchIT {
+
+    private static final Logger log = LoggerFactory.getLogger(EmbeddingSearchIT.class);
 
     private static final TextEmbedding[] hits = {
         TextEmbedding.fromResource("hitDoc1.txt"),
@@ -108,9 +112,9 @@ class EmbeddingSearchIT {
     }
 
     private void debugQuery(TextEmbedding query, List<EmbeddingMatch<TextSegment>> results) {
-        System.out.printf("%n>> %s%n", query.text().text());
+        log.info("\n>> {}\n", query.text().text());
         for (EmbeddingMatch<TextSegment> match : results) {
-            System.out.printf("%f %s%n", match.score(), match.embedded().text());
+            log.info("{} {}\n", match.score(), match.embedded().text());
         }
     }
 }
