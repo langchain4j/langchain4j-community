@@ -6,6 +6,7 @@ import static dev.langchain4j.community.model.xinference.InternalXinferenceHelpe
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toXinferenceMessages;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
@@ -39,19 +40,16 @@ public class XinferenceChatModel implements ChatModel {
     private static final Logger log = LoggerFactory.getLogger(XinferenceChatModel.class);
 
     private final XinferenceClient client;
-    private final String modelName;
-    private final Double temperature;
-    private final Double topP;
-    private final List<String> stop;
-    private final Integer maxTokens;
-    private final Double presencePenalty;
-    private final Double frequencyPenalty;
+    private final Integer maxRetries;
+    private final List<ChatModelListener> listeners;
+    private final ChatRequestParameters defaultRequestParameters;
+
+    /* TODO: support custom ChatRequestParameters */
+
     private final Integer seed;
     private final String user;
     private final Object toolChoice;
     private final Boolean parallelToolCalls;
-    private final Integer maxRetries;
-    private final List<ChatModelListener> listeners;
 
     public XinferenceChatModel(
             String baseUrl,
@@ -75,6 +73,8 @@ public class XinferenceChatModel implements ChatModel {
             Map<String, String> customHeaders,
             List<ChatModelListener> listeners) {
         timeout = getOrDefault(timeout, Duration.ofSeconds(60));
+        this.maxRetries = getOrDefault(maxRetries, 3);
+        this.listeners = copy(listeners);
 
         this.client = XinferenceClient.builder()
                 .baseUrl(baseUrl)
@@ -88,20 +88,30 @@ public class XinferenceChatModel implements ChatModel {
                 .logResponses(logResponses)
                 .customHeaders(customHeaders)
                 .build();
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .modelName(ensureNotBlank(modelName, "modelName"))
+                .temperature(temperature)
+                .topP(topP)
+                .stopSequences(stop)
+                .maxOutputTokens(maxTokens)
+                .presencePenalty(presencePenalty)
+                .frequencyPenalty(frequencyPenalty)
+                .build();
 
-        this.modelName = ensureNotBlank(modelName, "modelName");
-        this.temperature = temperature;
-        this.topP = topP;
-        this.stop = stop;
-        this.maxTokens = maxTokens;
-        this.presencePenalty = presencePenalty;
-        this.frequencyPenalty = frequencyPenalty;
         this.seed = seed;
         this.user = user;
         this.toolChoice = toolChoice;
         this.parallelToolCalls = parallelToolCalls;
-        this.maxRetries = getOrDefault(maxRetries, 3);
-        this.listeners = getOrDefault(listeners, List.of());
+    }
+
+    @Override
+    public ChatRequestParameters defaultRequestParameters() {
+        return defaultRequestParameters;
+    }
+
+    @Override
+    public List<ChatModelListener> listeners() {
+        return listeners;
     }
 
     @Override
@@ -110,14 +120,14 @@ public class XinferenceChatModel implements ChatModel {
         ChatRequestParameters parameters = request.parameters();
         List<ToolSpecification> toolSpecifications = parameters.toolSpecifications();
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
-                .model(modelName)
+                .model(parameters.modelName())
                 .messages(toXinferenceMessages(messages))
-                .temperature(temperature)
-                .topP(topP)
-                .stop(stop)
-                .maxTokens(maxTokens)
-                .presencePenalty(presencePenalty)
-                .frequencyPenalty(frequencyPenalty)
+                .temperature(parameters.temperature())
+                .topP(parameters.topP())
+                .stop(parameters.stopSequences())
+                .maxTokens(parameters.maxOutputTokens())
+                .presencePenalty(parameters.presencePenalty())
+                .frequencyPenalty(parameters.frequencyPenalty())
                 .user(user)
                 .seed(seed)
                 .toolChoice(toolChoice)
