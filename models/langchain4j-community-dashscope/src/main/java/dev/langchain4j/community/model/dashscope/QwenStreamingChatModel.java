@@ -5,6 +5,7 @@ import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPen
 import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions;
 import static dev.langchain4j.internal.Utils.copyIfNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
@@ -27,6 +28,7 @@ import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.exception.UploadFileException;
 import com.alibaba.dashscope.protocol.Protocol;
 import dev.langchain4j.community.model.dashscope.spi.QwenStreamingChatModelBuilderFactory;
+import dev.langchain4j.internal.ExceptionMapper;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -142,20 +144,31 @@ public class QwenStreamingChatModel implements StreamingChatModel {
             generation.streamCall(param, new ResultCallback<>() {
                 @Override
                 public void onEvent(GenerationResult result) {
-                    String delta = responseBuilder.append(result);
-                    if (isNotNullOrEmpty(delta)) {
-                        handler.onPartialResponse(delta);
+                    try {
+                        String delta = responseBuilder.append(result);
+                        if (isNotNullOrEmpty(delta)) {
+                            handler.onPartialResponse(delta);
+                        }
+                    } catch (Throwable t) {
+                        RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(t);
+                        withLoggingExceptions(() -> handler.onError(mappedException));
                     }
                 }
 
                 @Override
                 public void onComplete() {
-                    handler.onCompleteResponse(responseBuilder.build());
+                    try {
+                        handler.onCompleteResponse(responseBuilder.build());
+                    } catch (Throwable t) {
+                        RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(t);
+                        withLoggingExceptions(() -> handler.onError(mappedException));
+                    }
                 }
 
                 @Override
                 public void onError(Exception e) {
-                    handler.onError(e);
+                    RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(e);
+                    withLoggingExceptions(() -> handler.onError(mappedException));
                 }
             });
         } catch (NoApiKeyException | InputRequiredException e) {

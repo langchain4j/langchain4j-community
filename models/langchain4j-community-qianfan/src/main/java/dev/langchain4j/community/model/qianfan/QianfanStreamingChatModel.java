@@ -2,6 +2,7 @@ package dev.langchain4j.community.model.qianfan;
 
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
 import static dev.langchain4j.community.model.qianfan.QianfanChatModelNameEnum.fromModelName;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
@@ -15,6 +16,7 @@ import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionRequest
 import dev.langchain4j.community.model.qianfan.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.qianfan.spi.QianfanStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.internal.ExceptionMapper;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -130,14 +132,27 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
         SyncOrAsyncOrStreaming<ChatCompletionResponse> response = client.chatCompletion(request, endpoint);
 
         response.onPartialResponse(partialResponse -> {
-                    responseBuilder.append(partialResponse);
-                    handle(partialResponse, handler);
+                    try {
+                        responseBuilder.append(partialResponse);
+                        handle(partialResponse, handler);
+                    } catch (Throwable t) {
+                        RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(t);
+                        withLoggingExceptions(() -> handler.onError(mappedException));
+                    }
                 })
                 .onComplete(() -> {
-                    ChatResponse chatResponse = responseBuilder.build();
-                    handler.onCompleteResponse(chatResponse);
+                    try {
+                        ChatResponse chatResponse = responseBuilder.build();
+                        handler.onCompleteResponse(chatResponse);
+                    } catch (Throwable t) {
+                        RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(t);
+                        withLoggingExceptions(() -> handler.onError(mappedException));
+                    }
                 })
-                .onError(handler::onError)
+                .onError(throwable -> {
+                    RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(throwable);
+                    withLoggingExceptions(() -> handler.onError(mappedException));
+                })
                 .execute();
     }
 

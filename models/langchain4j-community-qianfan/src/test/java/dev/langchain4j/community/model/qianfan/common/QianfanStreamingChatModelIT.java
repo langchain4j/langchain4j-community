@@ -237,7 +237,13 @@ class QianfanStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     public StreamingChatModel createModelWith(ChatModelListener chatModelListener) {
-        // FIXME
-        return null;
+        return QianfanStreamingChatModel.builder()
+                .modelName("ERNIE-Bot 4.0")
+                .temperature(0.7)
+                .topP(1.0)
+                .apiKey(apiKey)
+                .secretKey(secretKey)
+                .listeners(singletonList(chatModelListener))
+                .build();
     }
 }
