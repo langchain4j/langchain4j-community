@@ -35,9 +35,10 @@ public class OciGenAiCohereChatModelListenerIT extends AbstractChatModelListener
     @Override
     protected ChatModel createModel(ChatModelListener listener) {
         var model = OciGenAiCohereChatModel.builder()
-                .chatModelId(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
+                .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.7)
                 .listeners(List.of(listener))
@@ -52,10 +53,11 @@ public class OciGenAiCohereChatModelListenerIT extends AbstractChatModelListener
     @Override
     protected ChatModel createFailingModel(ChatModelListener listener) {
         var model = OciGenAiChatModel.builder()
-                .chatModelId("failing")
+                .modelName("failing")
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .listeners(List.of(listener))
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .build();
 
         CHAT_MODELS.add(model);

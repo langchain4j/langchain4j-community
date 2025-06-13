@@ -1,12 +1,14 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
+import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
+import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,23 +41,19 @@ public class OciGenAiCohereChatModel extends BaseCohereChatModel<OciGenAiCohereC
     }
 
     @Override
-    public ChatRequestParameters defaultRequestParameters() {
-        return ChatRequestParameters.builder()
-                .modelName(builder.chatModelId())
-                .frequencyPenalty(builder.frequencyPenalty())
-                .maxOutputTokens(builder.maxTokens())
-                .presencePenalty(builder.presencePenalty())
-                .stopSequences(builder.stop())
-                .temperature(builder.temperature())
-                .topK(builder.topK())
-                .topP(builder.topP())
-                .build();
-    }
-
-    @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
         var b = prepareRequest(chatRequest);
-        return map(super.ociChat(b.build()), builder.chatModelId());
+        var modelName = Optional.ofNullable(chatRequest.modelName())
+                .orElse(defaultRequestParameters().modelName());
+
+        var servingMode =
+                switch (builder.servingType()) {
+                    case OnDemand ->
+                        OnDemandServingMode.builder().modelId(modelName).build();
+                    case Dedicated ->
+                        DedicatedServingMode.builder().endpointId(modelName).build();
+                };
+        return map(super.ociChat(b.build(), servingMode), modelName);
     }
 
     /**

@@ -45,7 +45,7 @@ Minimal required configuration:
 ```java
 ChatModel chatModel = OciGenAiChatModel.builder()
         .authProvider(new ConfigFileAuthenticationDetailsProvider("DEFAULT")) // OCI SDK Authentication provider
-        .chatModelId("meta.llama-3.3-70b-instruct")                           // Model name or OCID
+        .modelName("meta.llama-3.3-70b-instruct")                           // Model name or OCID
         .compartmentId("ocid1.tenancy.oc1..your.compartment.ocid")            // Compartment OCID
         .region(Region.EU_FRANKFURT_1)
         .build();
@@ -63,6 +63,7 @@ Integration tests are disabled unless following environment variables are availa
 * `OCI_GENAI_COMPARTMENT_ID` - OCI compartment ID(OCID) for compartment with available on-demand GenAi models available 
 * `OCI_GENAI_GENERIC_MODEL_NAME` - Generic on-demand GenAi model(non-cohere) name or OCID available at provided compartment
 * `OCI_GENAI_COHERE_MODEL_NAME` - Cohere on-demand GenAi model name or OCID available at provided compartment
+* `OCI_GENAI_COHERE_MODEL_ALTERNATIVE_NAME` - Cohere alternative GenAi model name or OCID available at provided compartment
 
 Image test is disabled unless additional environment property is set:
 * `OCI_GENAI_GENERIC_VISION_MODEL_NAME` - Generic on-demand GenAi vision model(non-cohere) name or OCID available at provided compartment

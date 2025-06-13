@@ -41,7 +41,7 @@ class GenericStreamingResponseBuilder {
     private ChatChoice mergeChoiceParts(List<ChatChoice> choiceParts) {
         StringBuilder finishReason = new StringBuilder();
         StringBuilder content = new StringBuilder();
-        StringBuilder toolName = new StringBuilder();
+        String toolName = "";
         StringBuilder toolArgs = new StringBuilder();
         StringBuilder toolCallId = new StringBuilder();
         for (ChatChoice chatChoice : choiceParts) {
@@ -66,7 +66,7 @@ class GenericStreamingResponseBuilder {
                 if (toolCalls.size() == 1) {
                     FunctionCall toolCall = (FunctionCall) toolCalls.get(0);
                     if (toolCall.getName() != null) {
-                        toolName.append(toolCall.getName());
+                        toolName = toolCall.getName();
                     }
                     if (toolCall.getArguments() != null) {
                         toolArgs.append(toolCall.getArguments());

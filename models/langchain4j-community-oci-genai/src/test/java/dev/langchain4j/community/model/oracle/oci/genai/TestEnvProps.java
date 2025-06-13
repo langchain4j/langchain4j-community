@@ -17,10 +17,16 @@ final class TestEnvProps {
 
     static final String OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY = "OCI_GENAI_COHERE_MODEL_NAME";
     static final String OCI_GENAI_COHERE_CHAT_MODEL_NAME = System.getenv(OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY);
+    static final String OCI_GENAI_COHERE_CHAT_MODEL_ALTERNATIVE_NAME_PROPERTY =
+            "OCI_GENAI_COHERE_MODEL_ALTERNATIVE_NAME";
+    static final String OCI_GENAI_COHERE_CHAT_MODEL_ALTERNATIVE_NAME =
+            System.getenv(OCI_GENAI_COHERE_CHAT_MODEL_ALTERNATIVE_NAME_PROPERTY);
 
     static final String OCI_GENAI_CONFIG_PROFILE_PROPERTY = "OCI_GENAI_CONFIG_PROFILE";
 
     static final String NON_EMPTY = ".+";
+
+    static final int SEED = 555341123;
 
     static AuthenticationDetailsProvider createAuthProvider() {
         var configProfile = System.getenv().getOrDefault(OCI_GENAI_CONFIG_PROFILE_PROPERTY, "DEFAULT");

@@ -4,12 +4,15 @@ import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.function.Predicate.not;
 
 import com.oracle.bmc.generativeaiinference.model.AssistantMessage;
 import com.oracle.bmc.generativeaiinference.model.ChatChoice;
 import com.oracle.bmc.generativeaiinference.model.ChatResult;
+import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
 import com.oracle.bmc.generativeaiinference.model.FunctionCall;
 import com.oracle.bmc.generativeaiinference.model.GenericChatResponse;
+import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
 import com.oracle.bmc.generativeaiinference.model.TextContent;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -17,13 +20,12 @@ import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,23 +60,21 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
     }
 
     @Override
-    public ChatRequestParameters defaultRequestParameters() {
-        return ChatRequestParameters.builder()
-                .modelName(builder.chatModelId())
-                .frequencyPenalty(builder.frequencyPenalty())
-                .maxOutputTokens(builder.maxTokens())
-                .presencePenalty(builder.presencePenalty())
-                .stopSequences(builder.stop())
-                .temperature(builder.temperature())
-                .topK(builder.topK())
-                .topP(builder.topP())
-                .build();
-    }
-
-    @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
         var b = super.prepareRequest(chatRequest);
-        return map(super.ociChat(b.build()), this.builder.chatModelId());
+
+        var modelName = Optional.ofNullable(chatRequest.modelName())
+                .orElse(defaultRequestParameters().modelName());
+
+        var servingMode =
+                switch (builder.servingType()) {
+                    case OnDemand ->
+                        OnDemandServingMode.builder().modelId(modelName).build();
+                    case Dedicated ->
+                        DedicatedServingMode.builder().endpointId(modelName).build();
+                };
+
+        return map(super.ociChat(b.build(), servingMode), modelName);
     }
 
     static ChatResponse map(com.oracle.bmc.generativeaiinference.responses.ChatResponse bmcResponse, String modelName) {
@@ -99,11 +99,13 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
 
         var aiMessageBuilder = AiMessage.builder();
 
-        if (content != null) {
-            aiMessageBuilder.text(content.stream()
+        if (content != null && !content.isEmpty()) {
+            content.stream()
                     .map(TextContent.class::cast)
                     .map(TextContent::getText)
-                    .collect(Collectors.joining()));
+                    .filter(not(String::isBlank))
+                    .reduce(String::concat)
+                    .ifPresent(aiMessageBuilder::text);
         }
 
         if (message instanceof AssistantMessage assistantMessage && assistantMessage.getToolCalls() != null) {
@@ -138,7 +140,7 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
         //        }
         //    }
         // }
-        chatResponseMetadataBuilder.tokenUsage(new TokenUsage(1, 1, 1));
+        chatResponseMetadataBuilder.tokenUsage(new TokenUsage(1, 1, 2));
 
         return ChatResponse.builder()
                 .aiMessage(aiMessageBuilder.build())

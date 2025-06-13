@@ -2,18 +2,21 @@ package dev.langchain4j.community.model.oracle.oci.genai;
 
 import com.oracle.bmc.generativeaiinference.model.CohereChatResponse;
 import com.oracle.bmc.generativeaiinference.model.CohereToolCall;
+import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
+import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
+import com.oracle.bmc.generativeaiinference.model.StreamOptions;
 import com.oracle.bmc.http.client.Serializer;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,24 +52,24 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
     }
 
     @Override
-    public ChatRequestParameters defaultRequestParameters() {
-        return ChatRequestParameters.builder()
-                .modelName(builder.chatModelId())
-                .frequencyPenalty(builder.frequencyPenalty())
-                .maxOutputTokens(builder.maxTokens())
-                .presencePenalty(builder.presencePenalty())
-                .stopSequences(builder.stop())
-                .temperature(builder.temperature())
-                .topK(builder.topK())
-                .topP(builder.topP())
-                .build();
-    }
-
-    @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        var bmcChatRequest = prepareRequest(chatRequest).isStream(true).build();
+        var bmcChatRequest = prepareRequest(chatRequest)
+                .isStream(true)
+                .streamOptions(StreamOptions.builder().isIncludeUsage(true).build())
+                .build();
+        var modelName = Optional.ofNullable(chatRequest.modelName())
+                .orElse(defaultRequestParameters().modelName());
 
-        try (var isr = new InputStreamReader(super.ociChat(bmcChatRequest).getEventStream());
+        var servingMode =
+                switch (builder.servingType()) {
+                    case OnDemand ->
+                        OnDemandServingMode.builder().modelId(modelName).build();
+                    case Dedicated ->
+                        DedicatedServingMode.builder().endpointId(modelName).build();
+                };
+
+        try (var isr = new InputStreamReader(
+                        super.ociChat(bmcChatRequest, servingMode).getEventStream());
                 var reader = new BufferedReader(isr)) {
             String line;
             com.oracle.bmc.generativeaiinference.model.CohereChatResponse lastCohereChatResponse = null;
@@ -86,29 +89,30 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
 
                 if (lastCohereChatResponse.getToolCalls() == null && lastCohereChatResponse.getChatHistory() == null) {
                     // Cohere repeats streamed text content in partial messages with tool-calls and chat history
-                    handler.onPartialResponse(lastCohereChatResponse.getText());
+                    try {
+                        handler.onPartialResponse(lastCohereChatResponse.getText());
+                    } catch (Exception userException) {
+                        handler.onError(userException);
+                    }
                     partialContent.append(lastCohereChatResponse.getText());
-                }
-
-                if (lastCohereChatResponse.getToolCalls() != null) {
-                    mergedToolCalls.addAll(lastCohereChatResponse.getToolCalls());
                 }
             }
 
             if (lastCohereChatResponse != null) {
+                // Use only tool calls from the last message (Cohere repeats all stream content summarized in the last
+                // part)
+                if (lastCohereChatResponse.getToolCalls() != null) {
+                    mergedToolCalls.addAll(lastCohereChatResponse.getToolCalls());
+                }
+
                 var toolCalls = lastCohereChatResponse.getToolCalls();
                 if (toolCalls != null && !toolCalls.isEmpty()) {
-                    CohereChatResponse.builder()
-                            .copy(lastCohereChatResponse)
-                            .toolCalls(mergedToolCalls)
-                            .build();
-
                     handler.onCompleteResponse(map(
                                     CohereChatResponse.builder()
                                             .copy(lastCohereChatResponse)
                                             .toolCalls(mergedToolCalls)
                                             .build(),
-                                    builder.chatModelId(),
+                                    modelName,
                                     FinishReason.TOOL_EXECUTION)
                             .build());
                 } else {
@@ -120,7 +124,7 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                                             .toolCalls(null)
                                             .finishReason(null)
                                             .build(),
-                                    builder.chatModelId(),
+                                    modelName,
                                     BaseCohereChatModel.map(lastCohereChatResponse.getFinishReason()))
                             .build());
                 }
@@ -130,12 +134,16 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                                 CohereChatResponse.builder()
                                         .text(partialContent.toString())
                                         .build(),
-                                builder.chatModelId(),
+                                modelName,
                                 FinishReason.STOP)
                         .build());
             }
         } catch (Exception e) {
-            handler.onError(e);
+            try {
+                handler.onError(e);
+            } catch (Exception userException) {
+                LOGGER.error("Error in user error handler", userException);
+            }
         }
     }
 

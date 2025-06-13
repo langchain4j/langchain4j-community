@@ -16,13 +16,18 @@ import com.oracle.bmc.generativeaiinference.model.CohereTool;
 import com.oracle.bmc.generativeaiinference.model.CohereToolCall;
 import com.oracle.bmc.generativeaiinference.model.CohereToolResult;
 import com.oracle.bmc.generativeaiinference.model.CohereUserMessage;
+import com.oracle.bmc.generativeaiinference.model.Usage;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.internal.JsonSchemaElementUtils;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -34,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,48 +54,91 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
         this.builder = builder;
     }
 
+    @Override
+    public ChatRequestParameters defaultRequestParameters() {
+        var modelBuilderParams = ChatRequestParameters.builder()
+                .modelName(builder.modelName())
+                .frequencyPenalty(builder.frequencyPenalty())
+                .maxOutputTokens(builder.maxTokens())
+                .presencePenalty(builder.presencePenalty())
+                .stopSequences(builder.stop())
+                .temperature(builder.temperature())
+                .topK(builder.topK())
+                .topP(builder.topP())
+                .build();
+
+        return ChatRequestParameters.builder()
+                .overrideWith(modelBuilderParams)
+                .overrideWith(builder.defaultRequestParameters())
+                .build();
+    }
+
     /**
      * Maps lc4j chat request and sets configured properties.
      *
-     * @param chatRequest lc4j chat request
+     * @param lc4jReq lc4j chat request
      * @return OCI BMC generic chat request
      */
-    protected CohereChatRequest.Builder prepareRequest(ChatRequest chatRequest) {
-        var requestBuilder = map(chatRequest);
+    protected CohereChatRequest.Builder prepareRequest(ChatRequest lc4jReq) {
+        validateRequest(lc4jReq);
+        var bmcBuilder = map(lc4jReq);
+
+        var defaultParams = builder.defaultRequestParameters().overrideWith(lc4jReq.parameters());
+        setIfNotNull(defaultParams.stopSequences(), bmcBuilder::stopSequences);
+        setIfNotNull(defaultParams.topK(), bmcBuilder::topK);
+        setIfNotNull(defaultParams.topP(), bmcBuilder::topP);
+        setIfNotNull(defaultParams.temperature(), bmcBuilder::temperature);
+        setIfNotNull(defaultParams.frequencyPenalty(), bmcBuilder::frequencyPenalty);
+        setIfNotNull(defaultParams.presencePenalty(), bmcBuilder::presencePenalty);
+        setIfNotNull(defaultParams.maxOutputTokens(), bmcBuilder::maxTokens);
+        setIfNotNull(defaultParams.responseFormat(), this::map, bmcBuilder::responseFormat);
+        setIfNotNull(defaultParams.toolSpecifications(), this::map, bmcBuilder::tools);
 
         // Common for Generic and Cohere
-        setIfNotNull(builder.maxTokens(), requestBuilder::maxTokens);
-        setIfNotNull(builder.topK(), requestBuilder::topK);
-        setIfNotNull(builder.topP(), requestBuilder::topP);
-        setIfNotNull(builder.temperature(), requestBuilder::temperature);
-        setIfNotNull(builder.frequencyPenalty(), requestBuilder::frequencyPenalty);
-        setIfNotNull(builder.presencePenalty(), requestBuilder::presencePenalty);
-        setIfNotNull(builder.seed(), requestBuilder::seed);
-        setIfNotNull(builder.stop(), requestBuilder::stopSequences);
+        setIfNotNull(builder.maxTokens(), bmcBuilder::maxTokens);
+        setIfNotNull(builder.topK(), bmcBuilder::topK);
+        setIfNotNull(builder.topP(), bmcBuilder::topP);
+        setIfNotNull(builder.temperature(), bmcBuilder::temperature);
+        setIfNotNull(builder.frequencyPenalty(), bmcBuilder::frequencyPenalty);
+        setIfNotNull(builder.presencePenalty(), bmcBuilder::presencePenalty);
+        setIfNotNull(builder.seed(), bmcBuilder::seed);
+        setIfNotNull(builder.stop(), bmcBuilder::stopSequences);
 
         // Cohere specific
-        setIfNotNull(builder.documents(), requestBuilder::documents);
-        setIfNotNull(builder.isSearchQueriesOnly(), requestBuilder::isSearchQueriesOnly);
-        setIfNotNull(builder.preambleOverride(), requestBuilder::preambleOverride);
-        setIfNotNull(builder.maxInputTokens(), requestBuilder::maxInputTokens);
-        setIfNotNull(builder.promptTruncation(), requestBuilder::promptTruncation);
-        setIfNotNull(builder.isRawPrompting(), requestBuilder::isRawPrompting);
-        setIfNotNull(builder.citationQuality(), requestBuilder::citationQuality);
+        setIfNotNull(builder.documents(), bmcBuilder::documents);
+        setIfNotNull(builder.isSearchQueriesOnly(), bmcBuilder::isSearchQueriesOnly);
+        setIfNotNull(builder.preambleOverride(), bmcBuilder::preambleOverride);
+        setIfNotNull(builder.maxInputTokens(), bmcBuilder::maxInputTokens);
+        setIfNotNull(builder.promptTruncation(), bmcBuilder::promptTruncation);
+        setIfNotNull(builder.isRawPrompting(), bmcBuilder::isRawPrompting);
+        setIfNotNull(builder.citationQuality(), bmcBuilder::citationQuality);
 
         // Per-request overrides
-        var params = chatRequest.parameters();
-        setIfNotNull(params.maxOutputTokens(), requestBuilder::maxTokens);
-        setIfNotNull(params.topK(), requestBuilder::topK);
-        setIfNotNull(params.topP(), requestBuilder::topP);
-        setIfNotNull(params.temperature(), requestBuilder::temperature);
-        setIfNotNull(params.frequencyPenalty(), requestBuilder::frequencyPenalty);
-        setIfNotNull(params.presencePenalty(), requestBuilder::presencePenalty);
-        setIfNotNull(params.stopSequences(), requestBuilder::stopSequences);
+        var params = lc4jReq.parameters();
+        setIfNotNull(params.maxOutputTokens(), bmcBuilder::maxTokens);
+        setIfNotNull(params.topK(), bmcBuilder::topK);
+        setIfNotNull(params.topP(), bmcBuilder::topP);
+        setIfNotNull(params.temperature(), bmcBuilder::temperature);
+        setIfNotNull(params.frequencyPenalty(), bmcBuilder::frequencyPenalty);
+        setIfNotNull(params.presencePenalty(), bmcBuilder::presencePenalty);
+        setIfNotNull(params.stopSequences(), bmcBuilder::stopSequences);
 
-        return requestBuilder;
+        return bmcBuilder;
     }
 
-    static CohereChatRequest.Builder map(ChatRequest chatRequest) {
+    private static CohereUserMessage map(Content content) {
+        return switch (content.type()) {
+            case TEXT ->
+                CohereUserMessage.builder()
+                        .message(((TextContent) content).text())
+                        .build();
+            default ->
+                throw new UnsupportedFeatureException("Cohere models does not support content type: "
+                        + content.type().toString().toLowerCase());
+        };
+    }
+
+    private CohereChatRequest.Builder map(ChatRequest chatRequest) {
 
         var builder = CohereChatRequest.builder();
 
@@ -101,14 +150,14 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
             switch (chatMessage.type()) {
                 case USER -> {
                     var userMessage = (dev.langchain4j.data.message.UserMessage) chatMessage;
-
-                    var cohereUserMessage = CohereUserMessage.builder()
-                            .message(userMessage.singleText())
-                            .build();
-                    if (firstUserMessage == null) {
-                        firstUserMessage = cohereUserMessage;
+                    for (Content content : userMessage.contents()) {
+                        var cohereUserMessage = map(content);
+                        if (firstUserMessage == null) {
+                            firstUserMessage = cohereUserMessage;
+                        } else {
+                            chatHistory.add(cohereUserMessage);
+                        }
                     }
-                    chatHistory.add(cohereUserMessage);
                 }
                 case TOOL_EXECUTION_RESULT -> {
                     var toolResultMessage = (dev.langchain4j.data.message.ToolExecutionResultMessage) chatMessage;
@@ -173,18 +222,31 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
             builder.message(firstUserMessage.getMessage());
         }
 
-        builder.responseFormat(map(chatRequest.responseFormat()));
+        if (chatRequest.responseFormat() != null) {
+            builder.responseFormat(map(chatRequest.responseFormat()));
+        }
         return builder;
     }
 
-    static CohereResponseFormat map(ResponseFormat responseFormat) {
+    CohereResponseFormat map(ResponseFormat responseFormat) {
         if (responseFormat == null) {
             return null;
         }
         return switch (responseFormat.type()) {
             case TEXT -> CohereResponseTextFormat.builder().build();
-            case JSON -> CohereResponseJsonFormat.builder().build();
+            case JSON -> {
+                var b = CohereResponseJsonFormat.builder();
+                if (responseFormat.jsonSchema() != null) {
+                    b.schema(JsonSchemaElementUtils.toMap(
+                            responseFormat.jsonSchema().rootElement(), false));
+                }
+                yield b.build();
+            }
         };
+    }
+
+    List<CohereTool> map(List<ToolSpecification> toolSpec) {
+        return toolSpec.stream().map(BaseCohereChatModel::map).collect(Collectors.toList());
     }
 
     static CohereTool map(ToolSpecification toolSpec) {
@@ -248,22 +310,11 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
             chatResponseMetadataBuilder.finishReason(map(bmcResponse.getFinishReason()));
         }
         chatResponseMetadataBuilder.modelName(modelName);
-        // TODO: Token usage is actually sent from OCI but SDK doesn't use it
-        // {
-        //    "chatResponse": {
-        //        "apiFormat": "GENERIC",
-        //        "timeCreated": "2025-04-24T14:57:17.740Z",
-        //        "choices": [
-        //            "..."
-        //        ],
-        //        "usage": {
-        //            "completionTokens": 13,
-        //            "promptTokens": 233,
-        //            "totalTokens": 246
-        //        }
-        //    }
-        // }
-        chatResponseMetadataBuilder.tokenUsage(new TokenUsage(1, 1, 1));
+        Usage tokens = bmcResponse.getUsage();
+        if (tokens != null) {
+            chatResponseMetadataBuilder.tokenUsage(
+                    new TokenUsage(tokens.getPromptTokens(), tokens.getCompletionTokens(), tokens.getTotalTokens()));
+        }
 
         return ChatResponse.builder()
                 .metadata(chatResponseMetadataBuilder.build())

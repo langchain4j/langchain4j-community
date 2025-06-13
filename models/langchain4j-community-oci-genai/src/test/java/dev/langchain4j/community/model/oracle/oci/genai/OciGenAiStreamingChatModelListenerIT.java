@@ -35,9 +35,10 @@ public class OciGenAiStreamingChatModelListenerIT extends AbstractStreamingChatM
     @Override
     protected StreamingChatModel createModel(ChatModelListener listener) {
         var model = OciGenAiStreamingChatModel.builder()
-                .chatModelId(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
+                .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .maxTokens(7)
                 .temperature(0.7)
                 .listeners(List.of(listener))
@@ -52,10 +53,11 @@ public class OciGenAiStreamingChatModelListenerIT extends AbstractStreamingChatM
     @Override
     protected StreamingChatModel createFailingModel(ChatModelListener listener) {
         var model = OciGenAiStreamingChatModel.builder()
-                .chatModelId("failing")
+                .modelName("failing")
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .listeners(List.of(listener))
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .build();
 
         CHAT_MODELS.add(model);
