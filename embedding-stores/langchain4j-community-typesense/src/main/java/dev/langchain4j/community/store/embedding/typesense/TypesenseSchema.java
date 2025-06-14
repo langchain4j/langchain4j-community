@@ -118,6 +118,9 @@ public class TypesenseSchema {
         private String embeddingFieldName = DEFAULT_EMBEDDING_FIELD_NAME;
         private String metadataFieldName = DEFAULT_METADATA_FIELD_NAME;
         private String collectionName = DEFAULT_COLLECTION_NAME;
+        /**
+         * TODO: schema could be created by field name
+         */
         private CollectionSchema collectionSchema = DEFAULT_COLLECTION_SCHEMA;
 
         public Builder idFieldName(String idFieldName) {

@@ -1,5 +1,14 @@
 package dev.langchain4j.community.store.embedding.typesense;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+
 import dev.langchain4j.community.store.embedding.typesense.exception.TypesenseException;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -9,6 +18,13 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.typesense.api.Client;
@@ -22,23 +38,6 @@ import org.typesense.model.MultiSearchSearchesParameter;
 import org.typesense.model.SearchParameters;
 import org.typesense.model.SearchResult;
 import org.typesense.model.SearchResultHit;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
 
 /**
  * Represents a <a href="https://typesense.org/">Typesense</a> embedding store
@@ -135,8 +134,8 @@ public class TypesenseEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(Collection<String> ids) {
         ensureNotEmpty(ids, "ids");
 
-        DeleteDocumentsParameters deleteDocumentsParameters = new DeleteDocumentsParameters()
-                .filterBy(schema.getIdFieldName() + ":=[" + String.join(",", ids) + "]");
+        DeleteDocumentsParameters deleteDocumentsParameters =
+                new DeleteDocumentsParameters().filterBy(schema.getIdFieldName() + ":=[" + String.join(",", ids) + "]");
 
         doRemove(deleteDocumentsParameters);
     }
@@ -146,8 +145,7 @@ public class TypesenseEmbeddingStore implements EmbeddingStore<TextSegment> {
         ensureNotNull(filter, "filter");
 
         String expression = metadataFilterMapper.mapToFilter(filter);
-        DeleteDocumentsParameters deleteDocumentsParameters = new DeleteDocumentsParameters()
-                .filterBy(expression);
+        DeleteDocumentsParameters deleteDocumentsParameters = new DeleteDocumentsParameters().filterBy(expression);
 
         doRemove(deleteDocumentsParameters);
     }
@@ -155,19 +153,16 @@ public class TypesenseEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public void removeAll() {
         // Typesense need filter_by to remove
-        SearchParameters searchParameters = new SearchParameters()
-                .q("*")
-                .queryBy(schema.getIdFieldName());
+        SearchParameters searchParameters = new SearchParameters().q("*").queryBy(schema.getIdFieldName());
 
         List<String> ids = new ArrayList<>();
         try {
             // FIXME: paginate
-            SearchResult searchResult = client.collections(schema.getCollectionName()).documents().search(searchParameters);
-            Optional.ofNullable(searchResult.getHits())
-                    .ifPresent(hit -> hit.stream()
-                            .map(SearchResultHit::getDocument)
-                            .forEach(document -> ids.add((String) document.get(schema.getIdFieldName())))
-                    );
+            SearchResult searchResult =
+                    client.collections(schema.getCollectionName()).documents().search(searchParameters);
+            Optional.ofNullable(searchResult.getHits()).ifPresent(hit -> hit.stream()
+                    .map(SearchResultHit::getDocument)
+                    .forEach(document -> ids.add((String) document.get(schema.getIdFieldName()))));
         } catch (Exception e) {
             log.error("Failed to retrieve ids during removeAll", e);
             throw new TypesenseException("Failed to retrieve ids during removeAll", e);
@@ -189,10 +184,10 @@ public class TypesenseEmbeddingStore implements EmbeddingStore<TextSegment> {
         String vectorQuery = schema.getEmbeddingFieldName() + ":("
                 + "["
                 + String.join(
-                ",",
-                request.queryEmbedding().vectorAsList().stream()
-                        .map(String::valueOf)
-                        .toList()) + "], "
+                        ",",
+                        request.queryEmbedding().vectorAsList().stream()
+                                .map(String::valueOf)
+                                .toList()) + "], "
                 + "k: " + request.maxResults() + ", "
                 + "distance_threshold: " + 2 * (1 - request.minScore()) + ")";
 
@@ -220,20 +215,24 @@ public class TypesenseEmbeddingStore implements EmbeddingStore<TextSegment> {
                     .flatMap(hits -> hits.stream().map(hit -> {
                         Map<String, Object> rawDocument = hit.getDocument();
                         String id = rawDocument.get(schema.getIdFieldName()).toString();
-                        List<Float> embedding = ((List<Double>) rawDocument.get(schema.getEmbeddingFieldName())).stream()
-                                .map(Double::floatValue)
-                                .toList();
+                        List<Float> embedding = ((List<Double>) rawDocument.get(schema.getEmbeddingFieldName()))
+                                .stream().map(Double::floatValue).toList();
 
                         TextSegment textSegment = null;
                         if (rawDocument.containsKey(schema.getTextFieldName())) {
-                            Map<String, Object> metadata = (Map<String, Object>) rawDocument.get(schema.getMetadataFieldName());
-                            textSegment = TextSegment.from((String) rawDocument.get(schema.getTextFieldName()), Metadata.from(metadata));
+                            Map<String, Object> metadata =
+                                    (Map<String, Object>) rawDocument.get(schema.getMetadataFieldName());
+                            textSegment = TextSegment.from(
+                                    (String) rawDocument.get(schema.getTextFieldName()), Metadata.from(metadata));
                         }
 
                         // Typesense vector_distance is a value between [0, 2] where 0 represents perfect match and 2
                         // represents extreme different
                         return new EmbeddingMatch<>(
-                                1 - hit.getVectorDistance().doubleValue() / 2, id, Embedding.from(embedding), textSegment);
+                                1 - hit.getVectorDistance().doubleValue() / 2,
+                                id,
+                                Embedding.from(embedding),
+                                textSegment);
                     }))
                     .toList();
 
