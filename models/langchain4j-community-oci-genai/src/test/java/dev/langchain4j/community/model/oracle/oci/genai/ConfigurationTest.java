@@ -38,7 +38,7 @@ public class ConfigurationTest {
 
         var builder = OciGenAiCohereChatModel.builder()
                 .genAiClient(client)
-                .chatModelId("chatModelId")
+                .modelName("chatModelId")
                 .compartmentId("compartmentId")
                 .citationQuality(CohereChatRequest.CitationQuality.Fast)
                 .documents(List.of("documents"))
@@ -98,7 +98,7 @@ public class ConfigurationTest {
 
         var builder = OciGenAiChatModel.builder()
                 .genAiClient(client)
-                .chatModelId("chatModelId")
+                .modelName("chatModelId")
                 .compartmentId("compartmentId")
                 .frequencyPenalty(0.007)
                 .logitBias(0.008)

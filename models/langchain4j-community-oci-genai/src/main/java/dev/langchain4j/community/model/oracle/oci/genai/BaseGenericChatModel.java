@@ -13,6 +13,10 @@ import com.oracle.bmc.generativeaiinference.model.Message;
 import com.oracle.bmc.generativeaiinference.model.SystemMessage;
 import com.oracle.bmc.generativeaiinference.model.TextContent;
 import com.oracle.bmc.generativeaiinference.model.ToolCall;
+import com.oracle.bmc.generativeaiinference.model.ToolChoice;
+import com.oracle.bmc.generativeaiinference.model.ToolChoiceAuto;
+import com.oracle.bmc.generativeaiinference.model.ToolChoiceFunction;
+import com.oracle.bmc.generativeaiinference.model.ToolChoiceRequired;
 import com.oracle.bmc.generativeaiinference.model.ToolDefinition;
 import com.oracle.bmc.generativeaiinference.model.ToolMessage;
 import com.oracle.bmc.generativeaiinference.model.UserMessage;
@@ -22,15 +26,21 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
+import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.internal.JsonSchemaElementUtils;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 abstract class BaseGenericChatModel<T extends BaseGenericChatModel<T>> extends BaseChatModel<T> {
 
@@ -41,79 +51,109 @@ abstract class BaseGenericChatModel<T extends BaseGenericChatModel<T>> extends B
         this.builder = builder;
     }
 
+    @Override
+    public ChatRequestParameters defaultRequestParameters() {
+        var modelBuilderParams = ChatRequestParameters.builder()
+                .modelName(builder.modelName())
+                .frequencyPenalty(builder.frequencyPenalty())
+                .maxOutputTokens(builder.maxTokens())
+                .presencePenalty(builder.presencePenalty())
+                .stopSequences(builder.stop())
+                .temperature(builder.temperature())
+                .topK(builder.topK())
+                .topP(builder.topP())
+                .build();
+
+        return ChatRequestParameters.builder()
+                .overrideWith(modelBuilderParams)
+                .overrideWith(builder.defaultRequestParameters())
+                .build();
+    }
+
     /**
      * Maps lc4j chat request and sets configured properties.
      *
-     * @param chatRequest lc4j chat request
+     * @param lc4jReq lc4j chat request
      * @return OCI BMC generic chat request
      */
-    protected GenericChatRequest.Builder prepareRequest(ChatRequest chatRequest) {
-        var requestBuilder = map(chatRequest);
+    protected GenericChatRequest.Builder prepareRequest(ChatRequest lc4jReq) {
+        validateRequest(lc4jReq);
+
+        var bmcBuilder = GenericChatRequest.builder();
+
+        setIfNotNull(lc4jReq.messages(), m -> m.stream().map(this::map).toList(), bmcBuilder::messages);
+
+        var defaultParams = this.defaultRequestParameters();
+        setIfNotNull(defaultParams.stopSequences(), bmcBuilder::stop);
+        setIfNotNull(defaultParams.topK(), bmcBuilder::topK);
+        setIfNotNull(defaultParams.topP(), bmcBuilder::topP);
+        setIfNotNull(defaultParams.temperature(), bmcBuilder::temperature);
+        setIfNotNull(defaultParams.frequencyPenalty(), bmcBuilder::frequencyPenalty);
+        setIfNotNull(defaultParams.presencePenalty(), bmcBuilder::presencePenalty);
+        setIfNotNull(defaultParams.maxOutputTokens(), bmcBuilder::maxTokens);
+        setIfNotNull(defaultParams.toolSpecifications(), this::map, bmcBuilder::tools);
+        setIfNotNull(
+                defaultParams.toolChoice(), c -> map(c, defaultParams.toolSpecifications()), bmcBuilder::toolChoice);
 
         // Common for Generic and Cohere
-        setIfNotNull(builder.maxTokens(), requestBuilder::maxTokens);
-        setIfNotNull(builder.topK(), requestBuilder::topK);
-        setIfNotNull(builder.topP(), requestBuilder::topP);
-        setIfNotNull(builder.temperature(), requestBuilder::temperature);
-        setIfNotNull(builder.frequencyPenalty(), requestBuilder::frequencyPenalty);
-        setIfNotNull(builder.presencePenalty(), requestBuilder::presencePenalty);
-        setIfNotNull(builder.seed(), requestBuilder::seed);
-        setIfNotNull(builder.stop(), requestBuilder::stop);
+        setIfNotNull(builder.maxTokens(), bmcBuilder::maxTokens);
+        setIfNotNull(builder.topK(), bmcBuilder::topK);
+        setIfNotNull(builder.topP(), bmcBuilder::topP);
+        setIfNotNull(builder.temperature(), bmcBuilder::temperature);
+        setIfNotNull(builder.frequencyPenalty(), bmcBuilder::frequencyPenalty);
+        setIfNotNull(builder.presencePenalty(), bmcBuilder::presencePenalty);
+        setIfNotNull(builder.seed(), bmcBuilder::seed);
+        setIfNotNull(builder.stop(), bmcBuilder::stop);
 
         // Generic specific
-        setIfNotNull(builder.numGenerations(), requestBuilder::numGenerations);
-        setIfNotNull(builder.logProbs(), requestBuilder::logProbs);
-        setIfNotNull(builder.logitBias(), requestBuilder::logitBias);
+        setIfNotNull(builder.numGenerations(), bmcBuilder::numGenerations);
+        setIfNotNull(builder.logProbs(), bmcBuilder::logProbs);
+        setIfNotNull(builder.logitBias(), bmcBuilder::logitBias);
 
         // Per-request overrides
-        var params = chatRequest.parameters();
-        setIfNotNull(params.maxOutputTokens(), requestBuilder::maxTokens);
-        setIfNotNull(params.topK(), requestBuilder::topK);
-        setIfNotNull(params.topP(), requestBuilder::topP);
-        setIfNotNull(params.temperature(), requestBuilder::temperature);
-        setIfNotNull(params.frequencyPenalty(), requestBuilder::frequencyPenalty);
-        setIfNotNull(params.presencePenalty(), requestBuilder::presencePenalty);
-        setIfNotNull(params.stopSequences(), requestBuilder::stop);
+        var params = lc4jReq.parameters();
+        setIfNotNull(params.maxOutputTokens(), bmcBuilder::maxTokens);
+        setIfNotNull(params.topK(), bmcBuilder::topK);
+        setIfNotNull(params.topP(), bmcBuilder::topP);
+        setIfNotNull(params.temperature(), bmcBuilder::temperature);
+        setIfNotNull(params.frequencyPenalty(), bmcBuilder::frequencyPenalty);
+        setIfNotNull(params.presencePenalty(), bmcBuilder::presencePenalty);
+        setIfNotNull(params.stopSequences(), bmcBuilder::stop);
+        setIfNotNull(params.toolSpecifications(), this::map, bmcBuilder::tools);
+        setIfNotNull(params.toolChoice(), c -> map(c, params.toolSpecifications()), bmcBuilder::toolChoice);
 
-        return requestBuilder;
+        return bmcBuilder;
     }
 
-    static GenericChatRequest.Builder map(ChatRequest chatRequest) {
-        List<Message> messages =
-                chatRequest.messages().stream().map(BaseGenericChatModel::map).toList();
+    protected void validateRequest(ChatRequest lc4jReq) {
+        Stream.of(lc4jReq.responseFormat(), lc4jReq.parameters().responseFormat())
+                .filter(Objects::nonNull)
+                .map(ResponseFormat::type)
+                .filter(r -> r == ResponseFormatType.JSON)
+                .findFirst()
+                .ifPresent(r -> {
+                    throw new UnsupportedFeatureException("Generic chat models do not support JSON response format.");
+                });
+    }
 
-        var bmcTools = Optional.ofNullable(chatRequest.toolSpecifications()).orElse(List.of()).stream()
-                .map(toolSpec -> {
-                    var b = FunctionDefinition.builder();
-
-                    if (toolSpec.parameters() != null) {
-                        b.parameters(map(toolSpec));
-                    }
-
-                    return b.name(toolSpec.name())
-                            .description(toolSpec.description())
+    private ToolChoice map(
+            dev.langchain4j.model.chat.request.ToolChoice choice, List<ToolSpecification> toolSpecifications) {
+        return switch (choice) {
+            case AUTO -> ToolChoiceAuto.builder().build();
+            case REQUIRED -> {
+                if (toolSpecifications.size() == 1) {
+                    // Some GenAi models don't support required but do support named tool choice
+                    // use named directly when exactly one tool is specified
+                    yield ToolChoiceFunction.builder()
+                            .name(toolSpecifications.get(0).name())
                             .build();
-                })
-                .map(ToolDefinition.class::cast)
-                .toList();
-
-        var builder = GenericChatRequest.builder().messages(messages);
-
-        var parameters = chatRequest.parameters();
-        setIfNotNull(parameters.frequencyPenalty(), builder::frequencyPenalty);
-        setIfNotNull(parameters.maxOutputTokens(), builder::maxTokens);
-        setIfNotNull(parameters.topK(), builder::topK);
-        setIfNotNull(parameters.presencePenalty(), builder::presencePenalty);
-        setIfNotNull(parameters.temperature(), builder::temperature);
-
-        if (!bmcTools.isEmpty()) {
-            builder.tools(bmcTools);
-        }
-
-        return builder;
+                }
+                yield ToolChoiceRequired.builder().build();
+            }
+        };
     }
 
-    static Message map(ChatMessage chatMessage) {
+    private Message map(ChatMessage chatMessage) {
         return switch (chatMessage.type()) {
             case USER -> {
                 var userMessage = (dev.langchain4j.data.message.UserMessage) chatMessage;
@@ -164,7 +204,7 @@ abstract class BaseGenericChatModel<T extends BaseGenericChatModel<T>> extends B
         };
     }
 
-    static ChatContent map(Content lc4jContent) {
+    private static ChatContent map(Content lc4jContent) {
         return switch (lc4jContent.type()) {
             case TEXT -> {
                 var textContent = (dev.langchain4j.data.message.TextContent) lc4jContent;
@@ -195,19 +235,29 @@ abstract class BaseGenericChatModel<T extends BaseGenericChatModel<T>> extends B
         };
     }
 
-    static ToolFunctionParameters map(ToolSpecification toolSpecification) {
+    private List<ToolDefinition> map(List<ToolSpecification> toolSpecification) {
+        return toolSpecification.stream().map(this::map).collect(Collectors.toList());
+    }
 
-        final JsonObjectSchema lc4jParams = toolSpecification.parameters();
+    private ToolDefinition map(ToolSpecification toolSpecification) {
+        var b = FunctionDefinition.builder();
 
-        ToolFunctionParameters result = new ToolFunctionParameters();
+        if (toolSpecification.parameters() != null) {
+            final JsonObjectSchema lc4jParams = toolSpecification.parameters();
 
-        for (var entry : lc4jParams.properties().entrySet()) {
-            Map<String, Object> map = JsonSchemaElementUtils.toMap(entry.getValue());
-            result.setProperties(Map.of(entry.getKey(), map));
-            result.required.add(entry.getKey());
+            ToolFunctionParameters result = new ToolFunctionParameters();
+
+            for (var entry : lc4jParams.properties().entrySet()) {
+                Map<String, Object> map = JsonSchemaElementUtils.toMap(entry.getValue());
+                result.setProperties(Map.of(entry.getKey(), map));
+                result.required.add(entry.getKey());
+            }
+            b.parameters(result);
         }
 
-        return result;
+        return b.name(toolSpecification.name())
+                .description(toolSpecification.description())
+                .build();
     }
 
     /**

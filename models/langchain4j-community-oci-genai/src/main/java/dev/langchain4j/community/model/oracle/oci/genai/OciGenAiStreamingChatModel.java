@@ -2,13 +2,14 @@ package dev.langchain4j.community.model.oracle.oci.genai;
 
 import static java.util.function.Predicate.not;
 
+import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
+import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
 import com.oracle.bmc.http.client.Serializer;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -47,27 +48,24 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
     }
 
     @Override
-    public ChatRequestParameters defaultRequestParameters() {
-        return ChatRequestParameters.builder()
-                .modelName(builder.chatModelId())
-                .frequencyPenalty(builder.frequencyPenalty())
-                .maxOutputTokens(builder.maxTokens())
-                .presencePenalty(builder.presencePenalty())
-                .stopSequences(builder.stop())
-                .temperature(builder.temperature())
-                .topK(builder.topK())
-                .topP(builder.topP())
-                .build();
-    }
-
-    @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
         var bmcChatRequest = prepareRequest(chatRequest).isStream(true).build();
+        var modelName = Optional.ofNullable(chatRequest.modelName())
+                .orElse(defaultRequestParameters().modelName());
 
-        try (var isr = new InputStreamReader(super.ociChat(bmcChatRequest).getEventStream());
+        var servingMode =
+                switch (builder.servingType()) {
+                    case OnDemand ->
+                        OnDemandServingMode.builder().modelId(modelName).build();
+                    case Dedicated ->
+                        DedicatedServingMode.builder().endpointId(modelName).build();
+                };
+
+        try (var isr = new InputStreamReader(
+                        super.ociChat(bmcChatRequest, servingMode).getEventStream());
                 var reader = new BufferedReader(isr)) {
             String line;
-            var streamingResponseBuilder = new GenericStreamingResponseBuilder(builder.chatModelId());
+            var streamingResponseBuilder = new GenericStreamingResponseBuilder(modelName);
             while ((line = reader.readLine()) != null) {
                 if (line.isEmpty()) {
                     continue;
@@ -80,16 +78,24 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
 
                 streamingResponseBuilder.append(chatChoice);
 
-                Optional.ofNullable(OciGenAiChatModel.map(chatChoice, builder.chatModelId())
-                                .aiMessage())
-                        .map(AiMessage::text)
-                        .filter(not(String::isEmpty))
-                        .ifPresent(handler::onPartialResponse);
+                try {
+                    Optional.ofNullable(
+                                    OciGenAiChatModel.map(chatChoice, modelName).aiMessage())
+                            .map(AiMessage::text)
+                            .filter(not(String::isEmpty))
+                            .ifPresent(handler::onPartialResponse);
+                } catch (Exception userException) {
+                    handler.onError(userException);
+                }
             }
 
             handler.onCompleteResponse(streamingResponseBuilder.build());
         } catch (Exception e) {
-            handler.onError(e);
+            try {
+                handler.onError(e);
+            } catch (Exception userException) {
+                LOGGER.error("Error in user error handler", userException);
+            }
         }
     }
 

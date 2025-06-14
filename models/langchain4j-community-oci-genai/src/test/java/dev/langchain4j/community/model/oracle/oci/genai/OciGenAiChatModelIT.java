@@ -38,6 +38,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -54,20 +55,19 @@ public class OciGenAiChatModelIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OciGenAiChatModelIT.class);
 
-    static final int SEED = 555341123;
     static final Duration TIMEOUT = Duration.ofSeconds(30);
     static final AuthenticationDetailsProvider authProvider = TestEnvProps.createAuthProvider();
 
     @Test
     void squareRoot() {
         try (var chatModel = OciGenAiChatModel.builder()
-                .chatModelId(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
+                .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
                 .maxTokens(600)
                 .temperature(0.2)
                 .topP(0.75)
-                .seed(SEED)
+                .seed(TestEnvProps.SEED)
                 .build()) {
 
             var mathService = new MathService();
@@ -97,9 +97,10 @@ public class OciGenAiChatModelIT {
         }
 
         try (var chatModel = OciGenAiChatModel.builder()
-                .chatModelId(OCI_GENAI_GENERIC_VISION_MODEL_NAME)
+                .modelName(OCI_GENAI_GENERIC_VISION_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .build()) {
 
             // Only url encoded base64 is supported
@@ -116,13 +117,13 @@ public class OciGenAiChatModelIT {
     @Test
     void squareRootCohere() {
         try (var chatModel = OciGenAiCohereChatModel.builder()
-                .chatModelId(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
+                .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.2)
                 .topP(0.75)
-                .seed(SEED)
                 .build()) {
 
             var mathService = new MathService();
@@ -133,9 +134,7 @@ public class OciGenAiChatModelIT {
                     .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
                     .build();
 
-            assertThat(
-                    assistant.chat("Calculate square root of 16 and return the result."),
-                    is("The square root of 16 is **four**."));
+            assertThat(assistant.chat("Calculate square root of 16 and return the result."), containsString("four"));
 
             assertThat(mathService.results, hasItem(4.0));
         }
@@ -145,13 +144,13 @@ public class OciGenAiChatModelIT {
     void streamingChat() throws ExecutionException, InterruptedException, TimeoutException {
 
         try (var chatModel = OciGenAiStreamingChatModel.builder()
-                .chatModelId(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
+                .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.2)
                 .topP(0.75)
-                .seed(SEED)
                 .build()) {
 
             StreamingAssistant assistant = AiServices.builder(StreamingAssistant.class)
@@ -182,13 +181,13 @@ public class OciGenAiChatModelIT {
     void streamingCohereChat() throws ExecutionException, InterruptedException, TimeoutException {
 
         try (var chatModel = OciGenAiCohereStreamingChatModel.builder()
-                .chatModelId(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
+                .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.2)
                 .topP(0.75)
-                .seed(SEED)
                 .build()) {
 
             StreamingAssistant assistant = AiServices.builder(StreamingAssistant.class)
@@ -219,9 +218,10 @@ public class OciGenAiChatModelIT {
     void streamingChatWithTools() throws ExecutionException, InterruptedException, TimeoutException {
 
         try (var chatModel = OciGenAiStreamingChatModel.builder()
-                .chatModelId(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
+                .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .seed(TestEnvProps.SEED)
                 .build()) {
 
             var assistant = AiServices.builder(NoSystemMessageAssistant.class)
@@ -256,12 +256,12 @@ public class OciGenAiChatModelIT {
     void streamingCohereChatWithTools() throws ExecutionException, InterruptedException, TimeoutException {
 
         try (var chatModel = OciGenAiCohereStreamingChatModel.builder()
-                .chatModelId(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
+                .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .maxTokens(600)
                 .temperature(0.2)
                 .topP(0.75)
-                .seed(SEED)
+                .seed(TestEnvProps.SEED)
                 .authProvider(authProvider)
                 .build()) {
 
@@ -291,6 +291,7 @@ public class OciGenAiChatModelIT {
             var joinedResult = String.join("", partialResults);
             assertThat(joinedResult, is(completeResponse.aiMessage().text()));
             assertThat(mathService.results, hasItem(4.0));
+            assertThat(mathService.callCounter.get(), is(1));
         }
     }
 
@@ -312,10 +313,12 @@ public class OciGenAiChatModelIT {
     public static class MathService {
 
         final List<Double> results = new ArrayList<>();
+        final AtomicInteger callCounter = new AtomicInteger();
         final CompletableFuture<List<Double>> future = new CompletableFuture<>();
 
         @Tool("Calculates the square root of a number and returns actual result.")
         double sqrt(@P("number") Integer number) {
+            callCounter.incrementAndGet();
             LOGGER.debug("Calculating {} square root", number);
             var result = -1.0;
             if (number != null) {

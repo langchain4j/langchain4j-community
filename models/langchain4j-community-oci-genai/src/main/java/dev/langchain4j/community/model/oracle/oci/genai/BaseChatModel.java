@@ -5,14 +5,16 @@ import com.oracle.bmc.auth.BasicAuthenticationDetailsProvider;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceClient;
 import com.oracle.bmc.generativeaiinference.model.BaseChatRequest;
 import com.oracle.bmc.generativeaiinference.model.ChatDetails;
-import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
-import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
 import com.oracle.bmc.generativeaiinference.model.ServingMode;
 import com.oracle.bmc.http.client.Serializer;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,18 +24,10 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
 
     private final GenerativeAiInferenceClient client;
     private final String compartmentId;
-    private final String chatModelId;
-    private final ServingMode servingMode;
 
     BaseChatModel(Builder<?, ?> builder) {
         this.compartmentId = builder.compartmentId();
-        this.chatModelId = builder.chatModelId();
         this.client = builder.genAiClient();
-        this.servingMode = switch (builder.servingType()) {
-            case OnDemand -> OnDemandServingMode.builder().modelId(chatModelId).build();
-            case Dedicated ->
-                DedicatedServingMode.builder().endpointId(chatModelId).build();
-        };
     }
 
     @Override
@@ -42,13 +36,32 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     }
 
     /**
+     * Validates the given chat request.
+     *
+     * @param lc4jReq the chat request that is to be validated
+     */
+    protected void validateRequest(ChatRequest lc4jReq) {
+        // noop
+    }
+
+    /**
+     * Default request parameters.
+     *
+     * @return an instance of {@link ChatRequestParameters} containing the default request parameters.
+     */
+    public abstract ChatRequestParameters defaultRequestParameters();
+
+    /**
      * Sends given OCI BMC request over OCI SDK client and returns received OCI BMC response.
      *
      * @param chatRequest OCI BMC request
+     * @param servingMode Serving mode with model name information
      * @return OCI BMC response
      */
-    protected com.oracle.bmc.generativeaiinference.responses.ChatResponse ociChat(BaseChatRequest chatRequest) {
+    protected com.oracle.bmc.generativeaiinference.responses.ChatResponse ociChat(
+            BaseChatRequest chatRequest, ServingMode servingMode) {
         LOGGER.debug("Chat Request: {}", chatRequest);
+
         var details = ChatDetails.builder()
                 .servingMode(servingMode)
                 .compartmentId(compartmentId)
@@ -65,8 +78,16 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     }
 
     static <P> void setIfNotNull(P value, Consumer<P> consumer) {
-        if (value != null) {
-            consumer.accept(value);
+        setIfNotNull(value, Function.identity(), consumer);
+    }
+
+    static <P, R> void setIfNotNull(P value, Function<P, R> mapper, Consumer<R> consumer) {
+        if ((value instanceof Collection<?> col && col.isEmpty()) || value == null) {
+            return;
+        }
+        var mapped = mapper.apply(value);
+        if (mapped != null) {
+            consumer.accept(mapped);
         }
     }
 
@@ -90,7 +111,7 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         private Region region;
         private BasicAuthenticationDetailsProvider authProvider;
         private String compartmentId;
-        private String chatModelId;
+        private String modelName;
         private Integer maxTokens;
         private Integer topK;
         private Double topP;
@@ -102,6 +123,8 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         private GenerativeAiInferenceClient genAiClient;
         private List<ChatModelListener> listeners = List.of();
         private ServingMode.ServingType servingType = ServingMode.ServingType.OnDemand;
+        private ChatRequestParameters defaultRequestParameters =
+                ChatRequestParameters.builder().build();
 
         protected Builder() {}
 
@@ -120,6 +143,24 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
 
         List<ChatModelListener> listeners() {
             return listeners;
+        }
+
+        /**
+         * Sets default common {@link ChatRequestParameters}.
+         * <br>
+         * When a parameter is set via an individual builder method (e.g., {@link #modelName(String)}),
+         * its value takes precedence over the same parameter set via {@link ChatRequestParameters}.
+         *
+         * @param parameters default parameters to be used
+         * @return builder
+         */
+        public B defaultRequestParameters(ChatRequestParameters parameters) {
+            this.defaultRequestParameters = parameters;
+            return self();
+        }
+
+        ChatRequestParameters defaultRequestParameters() {
+            return this.defaultRequestParameters;
         }
 
         /**
@@ -203,16 +244,16 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
          * or endpoint ID for
          * {@link com.oracle.bmc.generativeaiinference.model.ServingMode.ServingType#Dedicated} servingType.
          *
-         * @param chatModelId Model name or it's OCID
+         * @param modelName Model name or it's OCID
          * @return builder
          */
-        public B chatModelId(String chatModelId) {
-            this.chatModelId = chatModelId;
+        public B modelName(String modelName) {
+            this.modelName = modelName;
             return self();
         }
 
-        String chatModelId() {
-            return chatModelId;
+        String modelName() {
+            return modelName;
         }
 
         /**
@@ -375,6 +416,9 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         }
 
         List<String> stop() {
+            if (stop == null) {
+                return defaultRequestParameters().stopSequences();
+            }
             return stop;
         }
 
