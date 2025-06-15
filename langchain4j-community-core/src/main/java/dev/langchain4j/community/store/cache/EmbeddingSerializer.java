@@ -1,4 +1,4 @@
-package dev.langchain4j.community.store.cache.embedding.redis;
+package dev.langchain4j.community.store.cache;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -7,7 +7,7 @@ import dev.langchain4j.data.embedding.Embedding;
 import java.io.IOException;
 
 /**
- * Custom JSON serializer for Embedding objects used in the Redis embedding cache.
+ * Custom JSON serializer for Embedding objects used in the embedding cache.
  * This class converts Embedding objects into a JSON representation for storage in Redis.
  *
  * <p>The JSON output format has a "vector" field containing an array of the embedding's vector values:
@@ -39,7 +39,7 @@ public class EmbeddingSerializer extends StdSerializer<Embedding> {
     @Override
     public void serialize(Embedding embedding, JsonGenerator gen, SerializerProvider provider) throws IOException {
         gen.writeStartObject();
-        gen.writeArrayFieldStart("vector");
+        gen.writeArrayFieldStart("embedding");
         for (float value : embedding.vector()) {
             gen.writeNumber(value);
         }

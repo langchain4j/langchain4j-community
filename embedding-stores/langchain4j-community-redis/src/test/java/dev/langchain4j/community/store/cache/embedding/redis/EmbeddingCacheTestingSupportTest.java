@@ -2,6 +2,7 @@ package dev.langchain4j.community.store.cache.embedding.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.community.store.cache.EmbeddingCache;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,7 +13,7 @@ import org.mockito.MockitoAnnotations;
 /**
  * Tests for the EmbeddingCacheTestingSupport utility.
  */
-public class EmbeddingCacheTestingSupportTest {
+class EmbeddingCacheTestingSupportTest {
 
     @Mock
     private EmbeddingModel mockModel;
@@ -23,19 +24,19 @@ public class EmbeddingCacheTestingSupportTest {
     private AutoCloseable closeable;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
         EmbeddingModelCache.disableGlobalCache();
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         closeable.close();
         EmbeddingModelCache.disableGlobalCache();
     }
 
     @Test
-    public void should_wrap_model_in_record_mode() {
+    void should_wrap_model_in_record_mode() {
         // given
         String testContextId = "test-123";
 
@@ -53,10 +54,10 @@ public class EmbeddingCacheTestingSupportTest {
     }
 
     @Test
-    public void should_wrap_cached_model_in_record_mode() {
+    void should_wrap_cached_model_in_record_mode() {
         // given
         String testContextId = "test-123";
-        CachedEmbeddingModel alreadyCachedModel = (CachedEmbeddingModel) CachedEmbeddingModelBuilder.builder()
+        CachedEmbeddingModel alreadyCachedModel = CachedEmbeddingModel.builder()
                 .delegate(mockModel)
                 .cache(mockCache)
                 .build();
@@ -78,7 +79,7 @@ public class EmbeddingCacheTestingSupportTest {
     }
 
     @Test
-    public void should_wrap_model_in_play_mode() {
+    void should_wrap_model_in_play_mode() {
         // given
         String testContextId = "test-123";
 
@@ -96,7 +97,7 @@ public class EmbeddingCacheTestingSupportTest {
     }
 
     @Test
-    public void should_configure_global_playback_cache() {
+    void should_configure_global_playback_cache() {
         // given
         String testContextId = "test-123";
 

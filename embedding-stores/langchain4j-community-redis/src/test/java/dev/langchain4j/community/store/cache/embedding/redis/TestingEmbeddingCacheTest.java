@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import dev.langchain4j.community.store.cache.EmbeddingCache;
 import dev.langchain4j.data.embedding.Embedding;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +20,7 @@ import org.mockito.MockitoAnnotations;
 /**
  * Tests for the TestingEmbeddingCache class.
  */
-public class TestingEmbeddingCacheTest {
+class TestingEmbeddingCacheTest {
 
     @Mock
     private EmbeddingCache mockCache;
@@ -27,12 +28,12 @@ public class TestingEmbeddingCacheTest {
     private AutoCloseable closeable;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void should_store_in_both_namespaces_in_record_mode() throws Exception {
+    void should_store_in_both_namespaces_in_record_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -51,7 +52,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_not_store_in_play_mode() throws Exception {
+    void should_not_store_in_play_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -70,7 +71,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_check_test_namespace_first_in_play_mode() throws Exception {
+    void should_check_test_namespace_first_in_play_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -93,7 +94,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_fallback_to_regular_namespace_in_play_mode() throws Exception {
+    void should_fallback_to_regular_namespace_in_play_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -115,7 +116,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_use_regular_namespace_in_record_mode() throws Exception {
+    void should_use_regular_namespace_in_record_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -130,13 +131,13 @@ public class TestingEmbeddingCacheTest {
 
         // then - should return the regular embedding
         assertThat(result).isPresent();
-        assertThat(result.get()).isSameAs(regularEmbedding);
+        assertThat(result).containsSame(regularEmbedding);
 
         closeable.close();
     }
 
     @Test
-    public void should_remove_from_both_namespaces_in_record_mode() throws Exception {
+    void should_multi_remove_from_both_namespaces_in_record_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -159,7 +160,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_return_true_if_either_remove_succeeds_in_record_mode() throws Exception {
+    void should_return_true_if_either_remove_succeeds_in_record_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -180,7 +181,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_return_false_if_both_removes_fail_in_record_mode() throws Exception {
+    void should_return_false_if_both_removes_fail_in_record_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -200,7 +201,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_not_remove_in_play_mode() throws Exception {
+    void should_not_remove_in_play_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text = "test embedding text";
@@ -219,7 +220,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_handle_mget_in_play_mode() throws Exception {
+    void should_handle_get_in_play_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text1 = "test embedding 1";
@@ -237,7 +238,7 @@ public class TestingEmbeddingCacheTest {
         TestingEmbeddingCache cache = TestingEmbeddingCache.inPlayMode(mockCache, testContextId);
 
         // when
-        Map<String, Embedding> results = cache.mget(List.of(text1, text2));
+        Map<String, Embedding> results = cache.get(List.of(text1, text2));
 
         // then - should return embeddings from both namespaces based on availability
         assertThat(results).hasSize(2);
@@ -248,7 +249,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_handle_mput_in_record_mode() throws Exception {
+    void should_handle_put_in_record_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text1 = "test embedding 1";
@@ -263,7 +264,7 @@ public class TestingEmbeddingCacheTest {
         TestingEmbeddingCache cache = TestingEmbeddingCache.inRecordMode(mockCache, testContextId);
 
         // when
-        cache.mput(embeddings);
+        cache.put(embeddings);
 
         // then - should store in both regular and test namespaces
         Map<String, Embedding> testEmbeddings = new HashMap<>();
@@ -271,16 +272,16 @@ public class TestingEmbeddingCacheTest {
         testEmbeddings.put("test:" + testContextId + ":" + text2, embedding2);
 
         // Verify regular cache operations
-        verify(mockCache).mput(embeddings);
+        verify(mockCache).put(embeddings);
 
         // Verify test cache operations with transformed keys
-        verify(mockCache).mput(testEmbeddings);
+        verify(mockCache).put(testEmbeddings);
 
         closeable.close();
     }
 
     @Test
-    public void should_not_mput_in_play_mode() throws Exception {
+    void should_not_put_in_play_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text1 = "test embedding 1";
@@ -295,16 +296,16 @@ public class TestingEmbeddingCacheTest {
         TestingEmbeddingCache cache = TestingEmbeddingCache.inPlayMode(mockCache, testContextId);
 
         // when
-        cache.mput(embeddings);
+        cache.put(embeddings);
 
         // then - should not modify cache in play mode
-        verify(mockCache, never()).mput(embeddings);
+        verify(mockCache, never()).put(embeddings);
 
         closeable.close();
     }
 
     @Test
-    public void should_mexists_check_in_play_mode() throws Exception {
+    void should_exists_check_in_play_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text1 = "test embedding 1";
@@ -315,9 +316,9 @@ public class TestingEmbeddingCacheTest {
         testResults.put("test:" + testContextId + ":" + text2, false);
 
         // Set up mock to return test namespace results
-        when(mockCache.mexists(List.of("test:" + testContextId + ":" + text1)))
+        when(mockCache.exists(List.of("test:" + testContextId + ":" + text1)))
                 .thenReturn(Map.of("test:" + testContextId + ":" + text1, true));
-        when(mockCache.mexists(List.of("test:" + testContextId + ":" + text2)))
+        when(mockCache.exists(List.of("test:" + testContextId + ":" + text2)))
                 .thenReturn(Map.of("test:" + testContextId + ":" + text2, false));
 
         // Set up mock to return regular namespace results for text2
@@ -326,7 +327,7 @@ public class TestingEmbeddingCacheTest {
         TestingEmbeddingCache cache = TestingEmbeddingCache.inPlayMode(mockCache, testContextId);
 
         // when
-        Map<String, Boolean> results = cache.mexists(List.of(text1, text2));
+        Map<String, Boolean> results = cache.exists(List.of(text1, text2));
 
         // then - should check both namespaces
         assertThat(results).hasSize(2);
@@ -337,7 +338,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_mremove_from_both_namespaces_in_record_mode() throws Exception {
+    void should_remove_from_both_namespaces_in_record_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text1 = "test embedding 1";
@@ -354,7 +355,7 @@ public class TestingEmbeddingCacheTest {
         TestingEmbeddingCache cache = TestingEmbeddingCache.inRecordMode(mockCache, testContextId);
 
         // when
-        Map<String, Boolean> results = cache.mremove(List.of(text1, text2));
+        Map<String, Boolean> results = cache.remove(List.of(text1, text2));
 
         // then - should remove from both namespaces
         verify(mockCache).remove(text1);
@@ -371,7 +372,7 @@ public class TestingEmbeddingCacheTest {
     }
 
     @Test
-    public void should_not_mremove_in_play_mode() throws Exception {
+    void should_not_multi_remove_in_play_mode() throws Exception {
         // given
         String testContextId = "test-123";
         String text1 = "test embedding 1";
@@ -380,14 +381,14 @@ public class TestingEmbeddingCacheTest {
         TestingEmbeddingCache cache = TestingEmbeddingCache.inPlayMode(mockCache, testContextId);
 
         // when
-        Map<String, Boolean> results = cache.mremove(List.of(text1, text2));
+        Map<String, Boolean> results = cache.remove(List.of(text1, text2));
 
         // then - should not attempt to remove anything in play mode
         verify(mockCache, never()).remove(text1);
         verify(mockCache, never()).remove(text2);
         verify(mockCache, never()).remove("test:" + testContextId + ":" + text1);
         verify(mockCache, never()).remove("test:" + testContextId + ":" + text2);
-        verify(mockCache, never()).mremove(List.of(text1, text2));
+        verify(mockCache, never()).remove(List.of(text1, text2));
 
         assertThat(results).hasSize(2);
         assertThat(results.get(text1)).isFalse();

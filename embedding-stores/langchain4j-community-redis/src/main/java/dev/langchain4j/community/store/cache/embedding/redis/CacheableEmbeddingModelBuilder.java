@@ -1,5 +1,6 @@
 package dev.langchain4j.community.store.cache.embedding.redis;
 
+import dev.langchain4j.community.store.cache.EmbeddingCache;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import java.util.function.Consumer;
 
@@ -28,7 +29,7 @@ public interface CacheableEmbeddingModelBuilder<T> {
      */
     default T cacheWithRedis(String host, int port) {
         RedisEmbeddingCache cache =
-                RedisEmbeddingCacheBuilder.builder().host(host).port(port).build();
+                RedisEmbeddingCache.builder().host(host).port(port).build();
         return cacheWith(cache);
     }
 
@@ -38,8 +39,8 @@ public interface CacheableEmbeddingModelBuilder<T> {
      * @param configurator A consumer function that configures the Redis embedding cache builder
      * @return The builder instance for method chaining
      */
-    default T cacheWithRedis(Consumer<RedisEmbeddingCacheBuilder> configurator) {
-        RedisEmbeddingCacheBuilder builder = RedisEmbeddingCacheBuilder.builder();
+    default T cacheWithRedis(Consumer<RedisEmbeddingCache.Builder> configurator) {
+        RedisEmbeddingCache.Builder builder = RedisEmbeddingCache.builder();
         configurator.accept(builder);
         return cacheWith(builder.build());
     }
@@ -52,10 +53,7 @@ public interface CacheableEmbeddingModelBuilder<T> {
      * @return A new embedding model that uses the cache
      */
     static EmbeddingModel withCache(EmbeddingModel model, EmbeddingCache cache) {
-        return CachedEmbeddingModelBuilder.builder()
-                .delegate(model)
-                .cache(cache)
-                .build();
+        return CachedEmbeddingModel.builder().delegate(model).cache(cache).build();
     }
 
     /**
@@ -70,7 +68,7 @@ public interface CacheableEmbeddingModelBuilder<T> {
         // Generate a key prefix based on the model's class name as EmbeddingModel doesn't have a modelId method
         String modelIdentifier = model.getClass().getSimpleName();
 
-        RedisEmbeddingCache cache = RedisEmbeddingCacheBuilder.builder()
+        RedisEmbeddingCache cache = RedisEmbeddingCache.builder()
                 .host(host)
                 .port(port)
                 .keyPrefix(modelIdentifier + ":")

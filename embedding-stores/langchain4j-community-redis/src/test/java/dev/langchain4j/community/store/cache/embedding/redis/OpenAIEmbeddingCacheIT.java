@@ -3,6 +3,7 @@ package dev.langchain4j.community.store.cache.embedding.redis;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import com.redis.testcontainers.RedisStackContainer;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -13,9 +14,9 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 import redis.clients.jedis.JedisPooled;
 
 /**
@@ -23,21 +24,19 @@ import redis.clients.jedis.JedisPooled;
  * This test requires Docker to run Redis in a container and an OpenAI API key.
  */
 @Testcontainers
-public class OpenAIEmbeddingCacheIT {
+class OpenAIEmbeddingCacheIT {
 
     private static final int REDIS_PORT = 6379;
 
     @Container
-    private final GenericContainer<?> redis =
-            new GenericContainer<>("redis/redis-stack:latest").withExposedPorts(REDIS_PORT);
+    private final RedisStackContainer redis =
+            new RedisStackContainer(DockerImageName.parse("redis/redis-stack:latest"));
 
-    private JedisPooled jedisPooled;
     private RedisEmbeddingCache embeddingCache;
-    private EmbeddingModel embeddingModel;
     private CachedEmbeddingModel cachedModel;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         String openAiApiKey = System.getenv("OPENAI_API_KEY");
         assumeTrue(
                 openAiApiKey != null && !openAiApiKey.isEmpty(),
@@ -46,17 +45,17 @@ public class OpenAIEmbeddingCacheIT {
         String host = redis.getHost();
         Integer port = redis.getMappedPort(REDIS_PORT);
 
-        jedisPooled = new JedisPooled(host, port);
+        JedisPooled jedisPooled = new JedisPooled(host, port);
 
         // Use OpenAI embedding model for real-world testing
-        embeddingModel = OpenAiEmbeddingModel.builder()
+        EmbeddingModel embeddingModel = OpenAiEmbeddingModel.builder()
                 .apiKey(openAiApiKey)
                 .modelName("text-embedding-3-small")
                 .dimensions(1536)
                 .build();
 
         // Create the Redis embedding cache
-        embeddingCache = RedisEmbeddingCacheBuilder.builder()
+        embeddingCache = RedisEmbeddingCache.builder()
                 .redis(jedisPooled)
                 .keyPrefix("openai-embedding-cache")
                 .ttlSeconds(60)
@@ -64,21 +63,21 @@ public class OpenAIEmbeddingCacheIT {
                 .build();
 
         // Create the cached model with our cache
-        cachedModel = CachedEmbeddingModelBuilder.builder()
+        cachedModel = CachedEmbeddingModel.builder()
                 .delegate(embeddingModel)
                 .cache(embeddingCache)
                 .build();
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         if (embeddingCache != null) {
             embeddingCache.clear();
         }
     }
 
     @Test
-    public void should_cache_and_retrieve_openai_embeddings() {
+    void should_cache_and_retrieve_openai_embeddings() {
         // given
         String text = "This is a test text for OpenAI embedding";
 
@@ -91,7 +90,7 @@ public class OpenAIEmbeddingCacheIT {
         assertThat(firstResponse.content().vector()).isNotNull();
 
         // Verify vector dimension matches OpenAI's model dimension
-        assertThat(firstResponse.content().vector().length).isEqualTo(1536);
+        assertThat(firstResponse.content().vector()).hasSize(1536);
 
         // Second call - should retrieve from cache (no API call)
         Response<Embedding> secondResponse = cachedModel.embed(text);
@@ -107,7 +106,7 @@ public class OpenAIEmbeddingCacheIT {
     }
 
     @Test
-    public void should_cache_and_retrieve_batch_openai_embeddings() {
+    void should_cache_and_retrieve_batch_openai_embeddings() {
         // given
         List<TextSegment> segments = Arrays.asList(
                 TextSegment.from("First OpenAI test segment"),
@@ -140,7 +139,7 @@ public class OpenAIEmbeddingCacheIT {
     }
 
     @Test
-    public void should_handle_mixed_cache_hits_and_misses() {
+    void should_handle_mixed_cache_hits_and_misses() {
         // Pre-cache some embeddings
         List<TextSegment> initialSegments =
                 Arrays.asList(TextSegment.from("Cached segment one"), TextSegment.from("Cached segment two"));

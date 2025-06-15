@@ -14,7 +14,7 @@ class RedisEmbeddingCacheBuilderTest {
         JedisPooled redis = mock(JedisPooled.class);
 
         // When
-        RedisEmbeddingCache cache = RedisEmbeddingCacheBuilder.builder()
+        RedisEmbeddingCache cache = RedisEmbeddingCache.builder()
                 .redis(redis)
                 .keyPrefix("test:")
                 .maxCacheSize(500)
@@ -35,7 +35,7 @@ class RedisEmbeddingCacheBuilderTest {
         // This test just ensures no exceptions are thrown during the build process
 
         // When
-        RedisEmbeddingCache cache = RedisEmbeddingCacheBuilder.builder()
+        RedisEmbeddingCache cache = RedisEmbeddingCache.builder()
                 .host("localhost")
                 .port(6379)
                 .keyPrefix("test:")

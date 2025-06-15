@@ -1,4 +1,4 @@
-package dev.langchain4j.community.embedding;
+package dev.langchain4j.community.store.embedding;
 
 import static dev.langchain4j.data.segment.TextSegment.textSegment;
 import static java.util.Arrays.asList;
@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import dev.langchain4j.community.store.embedding.ParentChildEmbeddingStoreIngestor;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.DocumentTransformer;
@@ -27,7 +26,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
-public class ParentChildEmbeddingStoreIngestorTest {
+class ParentChildEmbeddingStoreIngestorTest {
 
     @Test
     void should_extract_text_then_split_into_segments_then_embed_them_and_store_in_embedding_store() {

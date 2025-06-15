@@ -2,6 +2,7 @@ package dev.langchain4j.community.store.cache.embedding.redis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.redis.testcontainers.RedisStackContainer;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -13,9 +14,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 import redis.clients.jedis.JedisPooled;
 
 /**
@@ -23,31 +24,30 @@ import redis.clients.jedis.JedisPooled;
  * This test requires Docker to run Redis in a container.
  */
 @Testcontainers
-public class RedisEmbeddingCacheIT {
+class RedisEmbeddingCacheIT {
 
     private static final int REDIS_PORT = 6379;
 
     @Container
-    private final GenericContainer<?> redis =
-            new GenericContainer<>("redis/redis-stack:latest").withExposedPorts(REDIS_PORT);
+    private final RedisStackContainer redis =
+            new RedisStackContainer(DockerImageName.parse("redis/redis-stack:latest"));
 
-    private JedisPooled jedisPooled;
     private RedisEmbeddingCache embeddingCache;
     private EmbeddingModel embeddingModel;
     private CachedEmbeddingModel cachedModel;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         String host = redis.getHost();
         Integer port = redis.getMappedPort(REDIS_PORT);
 
-        jedisPooled = new JedisPooled(host, port);
+        JedisPooled jedisPooled = new JedisPooled(host, port);
 
         // Use a local embedding model to avoid OpenAI API calls during tests
         embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
         // Create the Redis embedding cache with short TTL and small max size for testing
-        embeddingCache = RedisEmbeddingCacheBuilder.builder()
+        embeddingCache = RedisEmbeddingCache.builder()
                 .redis(jedisPooled)
                 .keyPrefix("test-embedding-cache")
                 .ttlSeconds(5) // Short TTL for testing expiration
@@ -55,19 +55,19 @@ public class RedisEmbeddingCacheIT {
                 .build();
 
         // Create the cached model with our cache
-        cachedModel = CachedEmbeddingModelBuilder.builder()
+        cachedModel = CachedEmbeddingModel.builder()
                 .delegate(embeddingModel)
                 .cache(embeddingCache)
                 .build();
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         embeddingCache.clear();
     }
 
     @Test
-    public void should_cache_and_retrieve_embeddings() {
+    void should_cache_and_retrieve_embeddings() {
         // given
         String text = "This is a test text for embedding";
 
@@ -93,7 +93,7 @@ public class RedisEmbeddingCacheIT {
     }
 
     @Test
-    public void should_cache_and_retrieve_batch_embeddings() {
+    void should_cache_and_retrieve_batch_embeddings() {
         // given
         List<TextSegment> segments = Arrays.asList(
                 TextSegment.from("First test segment"),
@@ -123,7 +123,7 @@ public class RedisEmbeddingCacheIT {
     }
 
     @Test
-    public void should_respect_ttl_for_cache_entries() throws Exception {
+    void should_respect_ttl_for_cache_entries() throws Exception {
         // given
         String text = "This is a text that will expire from cache";
 
@@ -149,7 +149,7 @@ public class RedisEmbeddingCacheIT {
     }
 
     @Test
-    public void should_respect_max_cache_size() {
+    void should_respect_max_cache_size() {
         // We set max cache size to 5, so we'll add 6 entries to trigger eviction
 
         // Add 6 different texts to the cache

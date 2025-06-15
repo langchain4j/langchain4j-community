@@ -1,5 +1,6 @@
 package dev.langchain4j.community.store.cache.embedding.redis;
 
+import dev.langchain4j.community.store.cache.EmbeddingCache;
 import dev.langchain4j.data.embedding.Embedding;
 import java.util.HashMap;
 import java.util.List;
@@ -150,7 +151,7 @@ public class TestingEmbeddingCache implements EmbeddingCache {
     }
 
     @Override
-    public Map<String, Embedding> mget(List<String> texts) {
+    public Map<String, Embedding> get(List<String> texts) {
         Map<String, Embedding> results = new HashMap<>();
 
         for (String text : texts) {
@@ -162,14 +163,14 @@ public class TestingEmbeddingCache implements EmbeddingCache {
     }
 
     @Override
-    public Map<String, Boolean> mexists(List<String> texts) {
+    public Map<String, Boolean> exists(List<String> texts) {
         Map<String, Boolean> results = new HashMap<>();
 
         if (mode == Mode.PLAY) {
             // In play mode, check test keys first, then fall back to regular keys
             for (String text : texts) {
                 // First check test namespace
-                Map<String, Boolean> testResults = delegate.mexists(List.of(testKey(text)));
+                Map<String, Boolean> testResults = delegate.exists(List.of(testKey(text)));
                 if (testResults.getOrDefault(testKey(text), false)) {
                     results.put(text, true);
                 } else {
@@ -180,7 +181,7 @@ public class TestingEmbeddingCache implements EmbeddingCache {
             }
         } else {
             // In record mode or default, just check regular keys
-            Map<String, Boolean> delegateResults = delegate.mexists(texts);
+            Map<String, Boolean> delegateResults = delegate.exists(texts);
             results.putAll(delegateResults);
         }
 
@@ -188,26 +189,26 @@ public class TestingEmbeddingCache implements EmbeddingCache {
     }
 
     @Override
-    public void mput(Map<String, Embedding> embeddings) {
+    public void put(Map<String, Embedding> embeddings) {
         if (mode == Mode.RECORD) {
             // In record mode, store in both regular and test caches
 
             // Store in regular cache
-            delegate.mput(embeddings);
+            delegate.put(embeddings);
 
             // Create test namespace mappings and store in test cache
             Map<String, Embedding> testEmbeddings = new HashMap<>();
             for (Map.Entry<String, Embedding> entry : embeddings.entrySet()) {
                 testEmbeddings.put(testKey(entry.getKey()), entry.getValue());
             }
-            delegate.mput(testEmbeddings);
+            delegate.put(testEmbeddings);
         } else if (mode == Mode.PLAY) {
             // In play mode, don't modify the cache
         }
     }
 
     @Override
-    public Map<String, Boolean> mremove(List<String> texts) {
+    public Map<String, Boolean> remove(List<String> texts) {
         Map<String, Boolean> results = new HashMap<>();
 
         if (mode == Mode.RECORD) {
@@ -225,7 +226,7 @@ public class TestingEmbeddingCache implements EmbeddingCache {
             }
         } else {
             // Default case, just use regular removal
-            return delegate.mremove(texts);
+            return delegate.remove(texts);
         }
 
         return results;

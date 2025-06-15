@@ -1,4 +1,4 @@
-package dev.langchain4j.community.store.cache.embedding.redis;
+package dev.langchain4j.community.store.cache;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -8,10 +8,14 @@ import dev.langchain4j.data.embedding.Embedding;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
+
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.getOrDefault;
 
 /**
  * Represents a cache entry for an embedding, including metadata.
- * This class is used for serialization/deserialization of entries in the Redis cache.
+ * This class is used for serialization/deserialization of entries in the cache.
  */
 public class CacheEntry {
 
@@ -30,12 +34,12 @@ public class CacheEntry {
     /**
      * Creates a new cache entry.
      *
-     * @param text The text that was embedded
-     * @param embedding The embedding vector
-     * @param metadata Optional metadata associated with this embedding
-     * @param modelName Optional name of the model that created this embedding
-     * @param insertedAt When this entry was first inserted into the cache
-     * @param accessedAt When this entry was last accessed
+     * @param text        The text that was embedded
+     * @param embedding   The embedding vector
+     * @param metadata    Optional metadata associated with this embedding
+     * @param modelName   Optional name of the model that created this embedding
+     * @param insertedAt  When this entry was first inserted into the cache
+     * @param accessedAt  When this entry was last accessed
      * @param accessCount How many times this entry has been accessed
      */
     @JsonCreator
@@ -49,17 +53,17 @@ public class CacheEntry {
             @JsonProperty("accessCount") long accessCount) {
         this.text = text;
         this.embedding = embedding;
-        this.metadata = metadata == null ? Collections.emptyMap() : Collections.unmodifiableMap(metadata);
+        this.metadata = copy(metadata);
         this.modelName = modelName;
-        this.insertedAt = insertedAt == null ? Instant.now() : insertedAt;
-        this.accessedAt = accessedAt == null ? insertedAt : accessedAt;
+        this.insertedAt = getOrDefault(insertedAt, Instant.now());
+        this.accessedAt = getOrDefault(accessedAt, this.insertedAt);
         this.accessCount = accessCount;
     }
 
     /**
      * Creates a new cache entry with default settings.
      *
-     * @param text The text that was embedded
+     * @param text      The text that was embedded
      * @param embedding The embedding vector
      */
     public CacheEntry(String text, Embedding embedding) {
@@ -69,9 +73,9 @@ public class CacheEntry {
     /**
      * Creates a new cache entry with metadata.
      *
-     * @param text The text that was embedded
+     * @param text      The text that was embedded
      * @param embedding The embedding vector
-     * @param metadata Optional metadata associated with this embedding
+     * @param metadata  Optional metadata associated with this embedding
      */
     public CacheEntry(String text, Embedding embedding, Map<String, Object> metadata) {
         this(text, embedding, metadata, null, Instant.now(), Instant.now(), 0);
@@ -80,9 +84,9 @@ public class CacheEntry {
     /**
      * Creates a new cache entry with metadata and model name.
      *
-     * @param text The text that was embedded
+     * @param text      The text that was embedded
      * @param embedding The embedding vector
-     * @param metadata Optional metadata associated with this embedding
+     * @param metadata  Optional metadata associated with this embedding
      * @param modelName Optional name of the model that created this embedding
      */
     public CacheEntry(String text, Embedding embedding, Map<String, Object> metadata, String modelName) {
@@ -190,6 +194,24 @@ public class CacheEntry {
      */
     public long getAccessCount() {
         return accessCount;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        CacheEntry that = (CacheEntry) o;
+        return accessCount == that.accessCount
+                && Objects.equals(text, that.text)
+                && Objects.equals(embedding, that.embedding)
+                && Objects.equals(metadata, that.metadata)
+                && Objects.equals(modelName, that.modelName)
+                && Objects.equals(insertedAt, that.insertedAt)
+                && Objects.equals(accessedAt, that.accessedAt);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(text, embedding, metadata, modelName, insertedAt, accessedAt, accessCount);
     }
 
     @Override

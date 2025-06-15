@@ -26,7 +26,7 @@ import redis.clients.jedis.JedisPooled;
  * Uses TestContainers to run a Redis Stack instance.
  */
 @Testcontainers
-public class RedisEmbeddingCacheMetadataIT {
+class RedisEmbeddingCacheMetadataIT {
 
     @Container
     private final RedisStackContainer redis =
@@ -35,7 +35,6 @@ public class RedisEmbeddingCacheMetadataIT {
     private JedisPooled jedis;
     private EmbeddingModel embeddingModel;
     private RedisEmbeddingCache embeddingCache;
-    private CachedEmbeddingModel cachedModel;
 
     @BeforeEach
     void setUp() {
@@ -46,17 +45,11 @@ public class RedisEmbeddingCacheMetadataIT {
         embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
         // Create a Redis embedding cache
-        embeddingCache = RedisEmbeddingCacheBuilder.builder()
+        embeddingCache = RedisEmbeddingCache.builder()
                 .redis(jedis)
                 .keyPrefix("metadata-test-cache")
                 .ttlSeconds(3600) // 1 hour TTL
                 .maxCacheSize(10000)
-                .build();
-
-        // Create a cached model that uses our cache
-        cachedModel = CachedEmbeddingModelBuilder.builder()
-                .delegate(embeddingModel)
-                .cache(embeddingCache)
                 .build();
     }
 
@@ -160,7 +153,7 @@ public class RedisEmbeddingCacheMetadataIT {
         }
 
         // When: Store all in one batch operation
-        embeddingCache.mputWithMetadata(batchEmbs);
+        embeddingCache.putWithMetadata(batchEmbs);
 
         // And: Retrieve all in one batch operation
         List<String> batchTexts = Arrays.asList(
@@ -171,7 +164,7 @@ public class RedisEmbeddingCacheMetadataIT {
                 "Batch text example 4");
 
         Map<String, Map.Entry<Embedding, Map<String, Object>>> batchResults =
-                embeddingCache.mgetWithMetadata(batchTexts);
+                embeddingCache.getWithMetadata(batchTexts);
 
         // Then: Verify all embeddings were retrieved with correct metadata
         assertThat(batchResults).hasSize(5);
@@ -191,18 +184,13 @@ public class RedisEmbeddingCacheMetadataIT {
                 .containsEntry("even", false);
 
         // Verify all even-indexed items have "even": true
-        assertThat(batchResults.get("Batch text example 0").getValue().get("even"))
-                .isEqualTo(true);
-        assertThat(batchResults.get("Batch text example 2").getValue().get("even"))
-                .isEqualTo(true);
-        assertThat(batchResults.get("Batch text example 4").getValue().get("even"))
-                .isEqualTo(true);
+        assertThat(batchResults.get("Batch text example 0").getValue()).containsEntry("even", true);
+        assertThat(batchResults.get("Batch text example 2").getValue()).containsEntry("even", true);
+        assertThat(batchResults.get("Batch text example 4").getValue()).containsEntry("even", true);
 
         // Verify all odd-indexed items have "even": false
-        assertThat(batchResults.get("Batch text example 1").getValue().get("even"))
-                .isEqualTo(false);
-        assertThat(batchResults.get("Batch text example 3").getValue().get("even"))
-                .isEqualTo(false);
+        assertThat(batchResults.get("Batch text example 1").getValue()).containsEntry("even", false);
+        assertThat(batchResults.get("Batch text example 3").getValue()).containsEntry("even", false);
     }
 
     private void addSampleEmbeddingsWithMetadata() {

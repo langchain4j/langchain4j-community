@@ -1,5 +1,6 @@
 package dev.langchain4j.community.store.cache.embedding.redis;
 
+import dev.langchain4j.community.store.cache.EmbeddingCache;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 /**
@@ -37,8 +38,7 @@ public class EmbeddingModelCache {
      * @param port Redis port
      */
     public static void configureGlobalRedisCache(String host, int port) {
-        defaultCache =
-                RedisEmbeddingCacheBuilder.builder().host(host).port(port).build();
+        defaultCache = RedisEmbeddingCache.builder().host(host).port(port).build();
         globalCachingEnabled = true;
     }
 
@@ -76,7 +76,7 @@ public class EmbeddingModelCache {
             return model;
         }
 
-        return CachedEmbeddingModelBuilder.builder()
+        return CachedEmbeddingModel.builder()
                 .delegate(model)
                 .cache(defaultCache)
                 .build();

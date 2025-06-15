@@ -1,29 +1,35 @@
 package dev.langchain4j.community.store.cache.embedding.redis;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import dev.langchain4j.community.store.cache.CacheEntry;
+import dev.langchain4j.community.store.cache.EmbeddingDeserializer;
+import dev.langchain4j.community.store.cache.EmbeddingSerializer;
 import dev.langchain4j.data.embedding.Embedding;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.resps.ScanResult;
+
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import redis.clients.jedis.JedisPooled;
-import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.json.Path;
-import redis.clients.jedis.params.ScanParams;
-import redis.clients.jedis.resps.ScanResult;
+
+import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for the metadata functionality in RedisEmbeddingCache.
@@ -32,29 +38,25 @@ class RedisEmbeddingCacheMetadataTest {
 
     private static final String TEST_PREFIX = "test:";
     private static final String TEST_TEXT = "Hello, world!";
-    private static final Embedding TEST_EMBEDDING = new Embedding(new float[] {0.1f, 0.2f, 0.3f});
+    private static final Embedding TEST_EMBEDDING = new Embedding(new float[]{0.1f, 0.2f, 0.3f});
     private static final Map<String, Object> TEST_METADATA = createTestMetadata();
-    private static final Path ROOT_PATH = Path.ROOT_PATH;
 
     private JedisPooled jedis;
     private RedisEmbeddingCache cache;
-    private RedisEmbeddingCache cacheWithTtl;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
         jedis = mock(JedisPooled.class);
         cache = new RedisEmbeddingCache(jedis, TEST_PREFIX);
-        cacheWithTtl = new RedisEmbeddingCache(jedis, TEST_PREFIX, 100, 3600);
 
         // Create the same object mapper as in the implementation
-        objectMapper = com.fasterxml.jackson.databind.json.JsonMapper.builder()
-                .addModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-                .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        objectMapper = JsonMapper.builder()
+                .addModule(new JavaTimeModule())
+                .disable(WRITE_DATES_AS_TIMESTAMPS)
                 .build();
 
-        com.fasterxml.jackson.databind.module.SimpleModule module =
-                new com.fasterxml.jackson.databind.module.SimpleModule();
+        SimpleModule module = new SimpleModule();
         module.addSerializer(Embedding.class, new EmbeddingSerializer());
         module.addDeserializer(Embedding.class, new EmbeddingDeserializer());
         objectMapper.registerModule(module);
@@ -86,7 +88,7 @@ class RedisEmbeddingCacheMetadataTest {
         Optional<Map.Entry<Embedding, Map<String, Object>>> result = cache.getWithMetadata(TEST_TEXT);
 
         // Then
-        verify(jedis).jsonSet(eq(key), eq(ROOT_PATH), anyString());
+        verify(jedis).jsonSet(key, anyString());
         assertThat(result).isPresent();
         assertThat(result.get().getKey().vector()).containsExactly(0.1f, 0.2f, 0.3f);
         assertThat(result.get().getValue())
@@ -118,19 +120,20 @@ class RedisEmbeddingCacheMetadataTest {
         Optional<Map.Entry<Embedding, Map<String, Object>>> result = cache.getWithMetadata(TEST_TEXT);
 
         // Then
-        verify(jedis).jsonSet(eq(key), eq(ROOT_PATH), anyString());
-        verify(jedis).expire(eq(key), eq(customTtl));
+        verify(jedis).jsonSet(key, anyString());
+        verify(jedis).expire(key, customTtl);
         assertThat(result).isPresent();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     void should_support_batch_operations_with_metadata() throws JsonProcessingException {
         // Given
         String text1 = "Hello, world!";
         String text2 = "Goodbye, world!";
 
-        Embedding embedding1 = new Embedding(new float[] {0.1f, 0.2f, 0.3f});
-        Embedding embedding2 = new Embedding(new float[] {0.4f, 0.5f, 0.6f});
+        Embedding embedding1 = new Embedding(new float[]{0.1f, 0.2f, 0.3f});
+        Embedding embedding2 = new Embedding(new float[]{0.4f, 0.5f, 0.6f});
 
         Map<String, Object> metadata1 = new HashMap<>(TEST_METADATA);
         Map<String, Object> metadata2 = new HashMap<>(TEST_METADATA);
@@ -149,7 +152,7 @@ class RedisEmbeddingCacheMetadataTest {
         Pipeline pipeline = mock(Pipeline.class);
         when(jedis.pipelined()).thenReturn(pipeline);
 
-        // For mget with JSON
+        // For get with JSON
         redis.clients.jedis.Response<Object> jsonResp1 = mock(redis.clients.jedis.Response.class);
         redis.clients.jedis.Response<Object> jsonResp2 = mock(redis.clients.jedis.Response.class);
         // For legacy format fallback
@@ -171,20 +174,19 @@ class RedisEmbeddingCacheMetadataTest {
         embeddings.put(text1, Map.entry(embedding1, metadata1));
         embeddings.put(text2, Map.entry(embedding2, metadata2));
 
-        cache.mputWithMetadata(embeddings);
+        cache.putWithMetadata(embeddings);
 
-        // Then: Verify mput
-        verify(pipeline).jsonSet(eq(key1), eq(ROOT_PATH), anyString());
-        verify(pipeline).jsonSet(eq(key2), eq(ROOT_PATH), anyString());
+        // Then: Verify put
+        verify(pipeline).jsonSet(key1, anyString());
+        verify(pipeline).jsonSet(key2, anyString());
         verify(pipeline).sync();
 
         // When: Get with metadata
         Map<String, Map.Entry<Embedding, Map<String, Object>>> results =
-                cache.mgetWithMetadata(Arrays.asList(text1, text2));
+                cache.getWithMetadata(Arrays.asList(text1, text2));
 
-        // Then: Verify mget results
-        assertThat(results).hasSize(2);
-        assertThat(results).containsKeys(text1, text2);
+        // Then: Verify get results
+        assertThat(results).hasSize(2).containsKeys(text1, text2);
 
         Map.Entry<Embedding, Map<String, Object>> result1 = results.get(text1);
         assertThat(result1.getKey().vector()).containsExactly(0.1f, 0.2f, 0.3f);
@@ -203,9 +205,9 @@ class RedisEmbeddingCacheMetadataTest {
         String text2 = "Sports news";
         String text3 = "Politics news";
 
-        Embedding embedding1 = new Embedding(new float[] {0.1f, 0.2f, 0.3f});
-        Embedding embedding2 = new Embedding(new float[] {0.4f, 0.5f, 0.6f});
-        Embedding embedding3 = new Embedding(new float[] {0.7f, 0.8f, 0.9f});
+        Embedding embedding1 = new Embedding(new float[]{0.1f, 0.2f, 0.3f});
+        Embedding embedding2 = new Embedding(new float[]{0.4f, 0.5f, 0.6f});
+        Embedding embedding3 = new Embedding(new float[]{0.7f, 0.8f, 0.9f});
 
         Map<String, Object> metadata1 = new HashMap<>();
         metadata1.put("category", "finance");
@@ -259,8 +261,7 @@ class RedisEmbeddingCacheMetadataTest {
         Map<String, Map.Entry<Embedding, Map<String, Object>>> results = cache.findByMetadata(filter, 10);
 
         // Then
-        assertThat(results).hasSize(2);
-        assertThat(results).containsKeys(text1, text3);
+        assertThat(results).hasSize(2).containsKeys(text1, text3);
 
         // When: Find by specific category
         filter = new HashMap<>();
@@ -269,8 +270,7 @@ class RedisEmbeddingCacheMetadataTest {
         results = cache.findByMetadata(filter, 10);
 
         // Then
-        assertThat(results).hasSize(1);
-        assertThat(results).containsKey(text1);
+        assertThat(results).hasSize(1).containsKey(text1);
 
         // Verify the metadata is preserved
         Map.Entry<Embedding, Map<String, Object>> financeResult = results.get(text1);
@@ -303,7 +303,6 @@ class RedisEmbeddingCacheMetadataTest {
     void should_track_access_statistics() throws JsonProcessingException {
         // Given
         String key = TEST_PREFIX + "embedding:" + cache.md5(TEST_TEXT);
-        CacheEntry entry = new CacheEntry(TEST_TEXT, TEST_EMBEDDING, TEST_METADATA);
 
         // Create a CacheEntry that has access count 9 (so next access will be a multiple of 10)
         CacheEntry entryWithCount9 =
@@ -312,13 +311,13 @@ class RedisEmbeddingCacheMetadataTest {
 
         // Mock the Redis JSON methods
         when(jedis.jsonGet(key)).thenReturn(jsonWithCount9);
-        when(jedis.jsonSet(eq(key), eq(ROOT_PATH), anyString())).thenReturn("OK");
+        when(jedis.jsonSet(key, anyString())).thenReturn("OK");
 
         // When: Access the entry once, which should trigger an update since count will be 10
         cache.getWithMetadata(TEST_TEXT);
 
         // Then: Verify the entry was updated because access count reached a multiple of 10
-        verify(jedis).jsonSet(eq(key), eq(ROOT_PATH), anyString());
+        verify(jedis).jsonSet(key, anyString());
     }
 
     // Tests for legacy format and access statistics are implemented above

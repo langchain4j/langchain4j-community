@@ -1,17 +1,22 @@
 package dev.langchain4j.community.store.cache.embedding.redis;
 
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import dev.langchain4j.community.store.cache.CacheEntry;
+import dev.langchain4j.community.store.cache.EmbeddingCache;
+import dev.langchain4j.community.store.cache.EmbeddingDeserializer;
+import dev.langchain4j.community.store.cache.EmbeddingSerializer;
 import dev.langchain4j.data.embedding.Embedding;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
-import redis.clients.jedis.json.Path;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
@@ -31,7 +35,6 @@ import redis.clients.jedis.resps.ScanResult;
 public class RedisEmbeddingCache implements EmbeddingCache {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisEmbeddingCache.class);
-    private static final Path ROOT_PATH = Path.ROOT_PATH;
     private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
 
     private final JedisPooled jedis;
@@ -60,7 +63,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
     /**
      * Creates a new RedisEmbeddingCache with default settings.
      *
-     * @param jedis The Redis client to use
+     * @param jedis     The Redis client to use
      * @param keyPrefix A prefix for all Redis keys created by this cache
      */
     public RedisEmbeddingCache(JedisPooled jedis, String keyPrefix) {
@@ -70,10 +73,10 @@ public class RedisEmbeddingCache implements EmbeddingCache {
     /**
      * Creates a new RedisEmbeddingCache with custom settings.
      *
-     * @param jedis The Redis client to use
-     * @param keyPrefix A prefix for all Redis keys created by this cache
+     * @param jedis        The Redis client to use
+     * @param keyPrefix    A prefix for all Redis keys created by this cache
      * @param maxCacheSize The maximum number of embeddings to store (0 for unlimited)
-     * @param ttlSeconds Time-to-live in seconds for cache entries (0 for no expiration)
+     * @param ttlSeconds   Time-to-live in seconds for cache entries (0 for no expiration)
      */
     public RedisEmbeddingCache(JedisPooled jedis, String keyPrefix, int maxCacheSize, long ttlSeconds) {
         this.jedis = jedis;
@@ -84,7 +87,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
     @Override
     public Optional<Embedding> get(String text) {
-        if (text == null || text.isEmpty()) {
+        if (isNullOrEmpty(text)) {
             return Optional.empty();
         }
 
@@ -148,7 +151,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
     @Override
     public Optional<Map.Entry<Embedding, Map<String, Object>>> getWithMetadata(String text) {
-        if (text == null || text.isEmpty()) {
+        if (isNullOrEmpty(text)) {
             return Optional.empty();
         }
 
@@ -169,7 +172,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
                 Embedding embedding = parseLegacyFormat(legacyResult);
                 if (embedding != null) {
                     // Return embedding with empty metadata for legacy format
-                    return Optional.of(Map.entry(embedding, Collections.emptyMap()));
+                    return Optional.of(Map.entry(embedding, Map.of()));
                 }
                 return Optional.empty();
             }
@@ -189,7 +192,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
             if (updatedEntry.getAccessCount() % 10 == 0) {
                 try {
                     String updatedJson = OBJECT_MAPPER.writeValueAsString(updatedEntry);
-                    jedis.jsonSet(key, ROOT_PATH, updatedJson);
+                    jedis.jsonSet(key, updatedJson);
                     if (ttlSeconds > 0) {
                         jedis.expire(key, ttlSeconds);
                     }
@@ -207,7 +210,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
     @Override
     public void put(String text, Embedding embedding) {
-        put(text, embedding, Collections.emptyMap());
+        put(text, embedding, Map.of());
     }
 
     @Override
@@ -217,7 +220,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
     @Override
     public void put(String text, Embedding embedding, Map<String, Object> metadata, long ttlSeconds) {
-        if (text == null || text.isEmpty() || embedding == null) {
+        if (isNullOrEmpty(text) || embedding == null) {
             return;
         }
 
@@ -229,7 +232,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
             String jsonValue = OBJECT_MAPPER.writeValueAsString(entry);
 
             // Store the embedding using Redis JSON
-            jedis.jsonSet(key, ROOT_PATH, jsonValue);
+            jedis.jsonSet(key, jsonValue);
 
             // Use custom TTL if provided, otherwise use default
             long effectiveTtl = ttlSeconds > 0 ? ttlSeconds : this.ttlSeconds;
@@ -269,14 +272,14 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
     @Override
     public boolean remove(String text) {
-        if (text == null || text.isEmpty()) {
+        if (isNullOrEmpty(text)) {
             return false;
         }
 
         String key = buildKey(text);
 
         try {
-            Long result = jedis.del(key);
+            long result = jedis.del(key);
             return result > 0;
         } catch (Exception e) {
             logger.error("Error removing embedding from Redis", e);
@@ -285,9 +288,9 @@ public class RedisEmbeddingCache implements EmbeddingCache {
     }
 
     @Override
-    public Map<String, Embedding> mget(List<String> texts) {
-        if (texts == null || texts.isEmpty()) {
-            return Collections.emptyMap();
+    public Map<String, Embedding> get(List<String> texts) {
+        if (isNullOrEmpty(texts)) {
+            return Map.of();
         }
 
         Map<String, Embedding> results = new HashMap<>();
@@ -304,7 +307,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
         }
 
         if (keys.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         try {
@@ -360,14 +363,14 @@ public class RedisEmbeddingCache implements EmbeddingCache {
             return results;
         } catch (Exception e) {
             logger.error("Error retrieving multiple embeddings from Redis", e);
-            return Collections.emptyMap();
+            return Map.of();
         }
     }
 
     @Override
-    public Map<String, Map.Entry<Embedding, Map<String, Object>>> mgetWithMetadata(List<String> texts) {
-        if (texts == null || texts.isEmpty()) {
-            return Collections.emptyMap();
+    public Map<String, Map.Entry<Embedding, Map<String, Object>>> getWithMetadata(List<String> texts) {
+        if (isNullOrEmpty(texts)) {
+            return Map.of();
         }
 
         Map<String, Map.Entry<Embedding, Map<String, Object>>> results = new HashMap<>();
@@ -384,7 +387,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
         }
 
         if (keys.isEmpty()) {
-            return Collections.emptyMap();
+            return Map.of();
         }
 
         try {
@@ -419,7 +422,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
                         if (updatedEntry.getAccessCount() % 10 == 0) {
                             try {
                                 String updatedJson = OBJECT_MAPPER.writeValueAsString(updatedEntry);
-                                jedis.jsonSet(key, ROOT_PATH, updatedJson);
+                                jedis.jsonSet(key, updatedJson);
                                 if (ttlSeconds > 0) {
                                     jedis.expire(key, ttlSeconds);
                                 }
@@ -442,7 +445,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
                         Embedding embedding = parseLegacyFormat(legacyValue);
                         if (embedding != null) {
                             // Return embedding with empty metadata for legacy format
-                            results.put(text, Map.entry(embedding, Collections.emptyMap()));
+                            results.put(text, Map.entry(embedding, Map.of()));
 
                             // Update TTL if configured
                             if (ttlSeconds > 0) {
@@ -456,14 +459,14 @@ public class RedisEmbeddingCache implements EmbeddingCache {
             return results;
         } catch (Exception e) {
             logger.error("Error retrieving multiple embeddings with metadata from Redis", e);
-            return Collections.emptyMap();
+            return Map.of();
         }
     }
 
     @Override
-    public Map<String, Boolean> mexists(List<String> texts) {
-        if (texts == null || texts.isEmpty()) {
-            return Collections.emptyMap();
+    public Map<String, Boolean> exists(List<String> texts) {
+        if (isNullOrEmpty(texts)) {
+            return Map.of();
         }
 
         Map<String, Boolean> results = new HashMap<>(texts.size());
@@ -513,23 +516,23 @@ public class RedisEmbeddingCache implements EmbeddingCache {
     }
 
     @Override
-    public void mput(Map<String, Embedding> embeddings) {
-        if (embeddings == null || embeddings.isEmpty()) {
+    public void put(Map<String, Embedding> embeddings) {
+        if (isNullOrEmpty(embeddings)) {
             return;
         }
 
         // Convert simple embeddings to entries with empty metadata
         Map<String, Map.Entry<Embedding, Map<String, Object>>> embeddingsWithMetadata = new HashMap<>();
         for (Map.Entry<String, Embedding> entry : embeddings.entrySet()) {
-            embeddingsWithMetadata.put(entry.getKey(), Map.entry(entry.getValue(), Collections.emptyMap()));
+            embeddingsWithMetadata.put(entry.getKey(), Map.entry(entry.getValue(), Map.of()));
         }
 
-        mputWithMetadata(embeddingsWithMetadata);
+        putWithMetadata(embeddingsWithMetadata);
     }
 
     @Override
-    public void mputWithMetadata(Map<String, Map.Entry<Embedding, Map<String, Object>>> embeddings) {
-        if (embeddings == null || embeddings.isEmpty()) {
+    public void putWithMetadata(Map<String, Map.Entry<Embedding, Map<String, Object>>> embeddings) {
+        if (isNullOrEmpty(embeddings)) {
             return;
         }
 
@@ -551,7 +554,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
                     try {
                         String jsonValue = OBJECT_MAPPER.writeValueAsString(cacheEntry);
-                        pipeline.jsonSet(key, ROOT_PATH, jsonValue);
+                        pipeline.jsonSet(key, jsonValue);
 
                         // Set TTL if configured
                         if (ttlSeconds > 0) {
@@ -582,9 +585,9 @@ public class RedisEmbeddingCache implements EmbeddingCache {
     }
 
     @Override
-    public Map<String, Boolean> mremove(List<String> texts) {
-        if (texts == null || texts.isEmpty()) {
-            return Collections.emptyMap();
+    public Map<String, Boolean> remove(List<String> texts) {
+        if (isNullOrEmpty(texts)) {
+            return Map.of();
         }
 
         Map<String, Boolean> results = new HashMap<>(texts.size());
@@ -717,8 +720,8 @@ public class RedisEmbeddingCache implements EmbeddingCache {
     @Override
     public Map<String, Map.Entry<Embedding, Map<String, Object>>> findByMetadata(
             Map<String, Object> filter, int limit) {
-        if (filter == null || filter.isEmpty()) {
-            return Collections.emptyMap();
+        if (isNullOrEmpty(filter)) {
+            return Map.of();
         }
 
         Map<String, Map.Entry<Embedding, Map<String, Object>>> results = new HashMap<>();
@@ -796,7 +799,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
             return results;
         } catch (Exception e) {
             logger.error("Error finding embeddings by metadata in Redis", e);
-            return Collections.emptyMap();
+            return Map.of();
         }
     }
 
@@ -804,7 +807,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
      * Checks if the given entry metadata matches the filter.
      */
     private boolean matchesFilter(Map<String, Object> metadata, Map<String, Object> filter) {
-        if (metadata == null || metadata.isEmpty()) {
+        if (isNullOrEmpty(metadata)) {
             return false;
         }
 
@@ -836,7 +839,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
      * from potentially long or variable-length text inputs. Using MD5 hash
      * ensures consistent key length regardless of input size and avoids
      * special characters that might cause issues in Redis keys.
-     *
+     * <p>
      * Note: This is NOT used for security purposes but for key generation.
      * This is publicly accessible for testing purposes.
      *
@@ -861,6 +864,157 @@ public class RedisEmbeddingCache implements EmbeddingCache {
             // This shouldn't happen as MD5 is a standard algorithm
             logger.error("MD5 algorithm not available", e);
             throw new RedisEmbeddingCacheException("MD5 algorithm not available", e);
+        }
+    }
+
+    /**
+     * Creates a new builder instance.
+     *
+     * @return A new RedisEmbeddingCacheBuilder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Builder for {@link RedisEmbeddingCache} to simplify configuration and creation.
+     * Provides a fluent API for configuring and instantiating Redis-based embedding caches.
+     */
+    public static class Builder {
+
+        /**
+         * Private constructor used by the static builder() method.
+         * Use RedisEmbeddingCacheBuilder.builder() to create instances.
+         */
+        private Builder() {
+            // Private constructor
+        }
+
+        private JedisPooled redis;
+        private String host = "localhost";
+        private int port = 6379;
+        private String user = null;
+        private String password = null;
+        private String keyPrefix = "langchain4j:";
+        private int maxCacheSize = 1000; // Default max size
+        private long ttlSeconds = 86400; // Default to 24 hours
+
+        /**
+         * Sets the Redis client to use.
+         * <p>If a client is provided, host, port, and password settings are ignored.</p>
+         *
+         * @param redis The Redis client
+         * @return This builder
+         */
+        public Builder redis(JedisPooled redis) {
+            this.redis = redis;
+            return this;
+        }
+
+        /**
+         * Sets the Redis host.
+         * <p>Default is "localhost".</p>
+         *
+         * @param host The Redis host
+         * @return This builder
+         */
+        public Builder host(String host) {
+            this.host = host;
+            return this;
+        }
+
+        /**
+         * Sets the Redis port.
+         * <p>Default is 6379.</p>
+         *
+         * @param port The Redis port
+         * @return This builder
+         */
+        public Builder port(int port) {
+            this.port = port;
+            return this;
+        }
+
+        /**
+         * Sets the Redis user.
+         * <p>Default is null (no user).</p>
+         *
+         * @param user The Redis user
+         * @return This builder
+         */
+        public Builder user(String user) {
+            this.user = user;
+            return this;
+        }
+
+        /**
+         * Sets the Redis password.
+         * <p>Default is null (no password).</p>
+         *
+         * @param password The Redis password
+         * @return This builder
+         */
+        public Builder password(String password) {
+            this.password = password;
+            return this;
+        }
+
+        /**
+         * Sets the key prefix for Redis keys.
+         * <p>Default is "langchain4j:".</p>
+         *
+         * @param keyPrefix The key prefix
+         * @return This builder
+         */
+        public Builder keyPrefix(String keyPrefix) {
+            this.keyPrefix = keyPrefix;
+            return this;
+        }
+
+        /**
+         * Sets the maximum cache size.
+         * <p>Default is 1000 entries. Set to 0 for unlimited size.</p>
+         *
+         * @param maxCacheSize The maximum number of entries in the cache
+         * @return This builder
+         */
+        public Builder maxCacheSize(int maxCacheSize) {
+            this.maxCacheSize = maxCacheSize;
+            return this;
+        }
+
+        /**
+         * Sets the TTL (time-to-live) for cache entries in seconds.
+         * <p>Default is 86400 (24 hours). Set to 0 for no expiration.</p>
+         *
+         * @param ttlSeconds TTL in seconds
+         * @return This builder
+         */
+        public Builder ttlSeconds(long ttlSeconds) {
+            this.ttlSeconds = ttlSeconds;
+            return this;
+        }
+
+        /**
+         * Builds a new {@link RedisEmbeddingCache} with the configured parameters.
+         *
+         * @return A new RedisEmbeddingCache instance
+         */
+        public RedisEmbeddingCache build() {
+            JedisPooled redisClient = redis;
+
+            // Create a new client if one wasn't provided
+            if (redisClient == null) {
+                if (user != null && !user.isEmpty()) {
+                    redisClient = new JedisPooled(host, port, user, password);
+                } else if (password != null && !password.isEmpty()) {
+                    redisClient = new JedisPooled(host, port, null, password);
+                } else {
+                    redisClient = new JedisPooled(host, port);
+                }
+            }
+
+            return new RedisEmbeddingCache(redisClient, keyPrefix, maxCacheSize, ttlSeconds);
         }
     }
 }

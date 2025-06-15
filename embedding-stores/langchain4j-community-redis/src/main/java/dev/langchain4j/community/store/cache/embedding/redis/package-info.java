@@ -7,16 +7,10 @@
  *
  * <p>Key components:</p>
  * <ul>
- *   <li>{@link dev.langchain4j.community.store.cache.embedding.redis.EmbeddingCache}:
- *       Interface defining the cache contract</li>
  *   <li>{@link dev.langchain4j.community.store.cache.embedding.redis.RedisEmbeddingCache}:
  *       Redis implementation of the cache</li>
  *   <li>{@link dev.langchain4j.community.store.cache.embedding.redis.CachedEmbeddingModel}:
  *       Wrapper for embedding models that uses the cache</li>
- *   <li>{@link dev.langchain4j.community.store.cache.embedding.redis.RedisEmbeddingCacheBuilder}:
- *       Builder for configuring the Redis cache</li>
- *   <li>{@link dev.langchain4j.community.store.cache.embedding.redis.CachedEmbeddingModelBuilder}:
- *       Builder for configuring the cached model</li>
  * </ul>
  *
  * <p>Example usage:</p>

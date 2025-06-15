@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import dev.langchain4j.community.store.cache.EmbeddingCache;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
@@ -13,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class EmbeddingModelCacheTest {
+class EmbeddingModelCacheTest {
 
     @Mock
     private EmbeddingModel mockModel;
@@ -24,21 +25,21 @@ public class EmbeddingModelCacheTest {
     private AutoCloseable closeable;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
         // Reset global state
         EmbeddingModelCache.disableGlobalCache();
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    void tearDown() throws Exception {
         closeable.close();
         // Clean up after each test
         EmbeddingModelCache.disableGlobalCache();
     }
 
     @Test
-    public void should_passthrough_model_when_caching_disabled() {
+    void should_passthrough_model_when_caching_disabled() {
         // given
         String text = "test text";
         Embedding testEmbedding = Embedding.from(new float[] {0.1f, 0.2f, 0.3f});
@@ -56,7 +57,7 @@ public class EmbeddingModelCacheTest {
     }
 
     @Test
-    public void should_wrap_model_when_caching_enabled() {
+    void should_wrap_model_when_caching_enabled() {
         // given
         EmbeddingModelCache.configureGlobalCache(mockCache);
 
@@ -73,12 +74,12 @@ public class EmbeddingModelCacheTest {
     }
 
     @Test
-    public void should_not_doublewrap_already_cached_model() {
+    void should_not_doublewrap_already_cached_model() {
         // given
         EmbeddingModelCache.configureGlobalCache(mockCache);
 
         // Create an already cached model
-        CachedEmbeddingModel alreadyCachedModel = (CachedEmbeddingModel) CachedEmbeddingModelBuilder.builder()
+        CachedEmbeddingModel alreadyCachedModel = CachedEmbeddingModel.builder()
                 .delegate(mockModel)
                 .cache(mock(EmbeddingCache.class))
                 .build();
@@ -91,7 +92,7 @@ public class EmbeddingModelCacheTest {
     }
 
     @Test
-    public void should_configure_redis_cache_correctly() {
+    void should_configure_redis_cache_correctly() {
         // given
         EmbeddingModelCache.configureGlobalRedisCache("localhost", 6379);
 

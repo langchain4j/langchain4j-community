@@ -1,4 +1,4 @@
-package dev.langchain4j.community.store.cache.embedding.redis;
+package dev.langchain4j.community.store.cache;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -42,15 +42,15 @@ public class EmbeddingDeserializer extends StdDeserializer<Embedding> {
     public Embedding deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         JsonNode node = p.getCodec().readTree(p);
 
-        if (node.has("vector") && node.get("vector").isArray()) {
-            JsonNode vectorNode = node.get("vector");
-            float[] vector = new float[vectorNode.size()];
+        if (node.has("embedding") && node.get("embedding").isArray()) {
+            JsonNode embeddingNode = node.get("embedding");
+            float[] vector = new float[embeddingNode.size()];
             for (int i = 0; i < vector.length; i++) {
-                vector[i] = (float) vectorNode.get(i).asDouble();
+                vector[i] = (float) embeddingNode.get(i).asDouble();
             }
-            return new Embedding(vector);
+            return Embedding.from(vector);
         }
 
-        throw new IOException("Invalid Embedding format: " + node.toString());
+        throw new IOException("Invalid Embedding format: " + node);
     }
 }

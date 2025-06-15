@@ -1,5 +1,6 @@
 package dev.langchain4j.community.store.cache.embedding.redis;
 
+import dev.langchain4j.community.store.cache.EmbeddingCache;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 /**
@@ -25,28 +26,23 @@ public class EmbeddingCacheTestingSupport {
      * @return A new model that records all embeddings
      */
     public static EmbeddingModel recordMode(EmbeddingModel model, String testContextId) {
-        if (model instanceof CachedEmbeddingModel) {
-            CachedEmbeddingModel cachedModel = (CachedEmbeddingModel) model;
+        if (model instanceof CachedEmbeddingModel cachedModel) {
             EmbeddingCache originalCache = cachedModel.getCache();
             TestingEmbeddingCache testCache = TestingEmbeddingCache.inRecordMode(originalCache, testContextId);
 
-            return CachedEmbeddingModelBuilder.builder()
+            return CachedEmbeddingModel.builder()
                     .delegate(cachedModel.getDelegate())
                     .cache(testCache)
                     .build();
         }
 
         // If not already cached, set up with a Redis cache in record mode
-        RedisEmbeddingCache cache = RedisEmbeddingCacheBuilder.builder()
-                .keyPrefix("test-recordings:")
-                .build();
+        RedisEmbeddingCache cache =
+                RedisEmbeddingCache.builder().keyPrefix("test-recordings:").build();
 
         TestingEmbeddingCache testCache = TestingEmbeddingCache.inRecordMode(cache, testContextId);
 
-        return CachedEmbeddingModelBuilder.builder()
-                .delegate(model)
-                .cache(testCache)
-                .build();
+        return CachedEmbeddingModel.builder().delegate(model).cache(testCache).build();
     }
 
     /**
@@ -58,28 +54,23 @@ public class EmbeddingCacheTestingSupport {
      * @return A new model that uses previously recorded embeddings
      */
     public static EmbeddingModel playMode(EmbeddingModel model, String testContextId) {
-        if (model instanceof CachedEmbeddingModel) {
-            CachedEmbeddingModel cachedModel = (CachedEmbeddingModel) model;
+        if (model instanceof CachedEmbeddingModel cachedModel) {
             EmbeddingCache originalCache = cachedModel.getCache();
             TestingEmbeddingCache testCache = TestingEmbeddingCache.inPlayMode(originalCache, testContextId);
 
-            return CachedEmbeddingModelBuilder.builder()
+            return CachedEmbeddingModel.builder()
                     .delegate(cachedModel.getDelegate())
                     .cache(testCache)
                     .build();
         }
 
         // If not already cached, set up with a Redis cache in play mode
-        RedisEmbeddingCache cache = RedisEmbeddingCacheBuilder.builder()
-                .keyPrefix("test-recordings:")
-                .build();
+        RedisEmbeddingCache cache =
+                RedisEmbeddingCache.builder().keyPrefix("test-recordings:").build();
 
         TestingEmbeddingCache testCache = TestingEmbeddingCache.inPlayMode(cache, testContextId);
 
-        return CachedEmbeddingModelBuilder.builder()
-                .delegate(model)
-                .cache(testCache)
-                .build();
+        return CachedEmbeddingModel.builder().delegate(model).cache(testCache).build();
     }
 
     /**
@@ -92,7 +83,7 @@ public class EmbeddingCacheTestingSupport {
      */
     public static void configureGlobalRecordMode(String host, int port, String testContextId) {
         RedisEmbeddingCache cache =
-                RedisEmbeddingCacheBuilder.builder().host(host).port(port).build();
+                RedisEmbeddingCache.builder().host(host).port(port).build();
 
         TestingEmbeddingCache testCache = TestingEmbeddingCache.inRecordMode(cache, testContextId);
         EmbeddingModelCache.configureGlobalCache(testCache);
@@ -108,7 +99,7 @@ public class EmbeddingCacheTestingSupport {
      */
     public static void configureGlobalPlayMode(String host, int port, String testContextId) {
         RedisEmbeddingCache cache =
-                RedisEmbeddingCacheBuilder.builder().host(host).port(port).build();
+                RedisEmbeddingCache.builder().host(host).port(port).build();
 
         TestingEmbeddingCache testCache = TestingEmbeddingCache.inPlayMode(cache, testContextId);
         EmbeddingModelCache.configureGlobalCache(testCache);

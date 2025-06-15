@@ -1,8 +1,7 @@
-package dev.langchain4j.community.store.cache.embedding.redis;
+package dev.langchain4j.community.store.cache;
 
 import dev.langchain4j.data.embedding.Embedding;
 import java.util.AbstractMap;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,13 +27,10 @@ public interface EmbeddingCache {
      *
      * @param text The text whose embedding should be retrieved
      * @return An Optional containing a map entry with the embedding as key and metadata as value,
-     *         or empty if not in cache
+     * or empty if not in cache
      */
     default Optional<Map.Entry<Embedding, Map<String, Object>>> getWithMetadata(String text) {
-        return get(text).map(embedding -> {
-            Map<String, Object> emptyMetadata = Collections.emptyMap();
-            return new AbstractMap.SimpleEntry<>(embedding, emptyMetadata);
-        });
+        return get(text).map(embedding -> new AbstractMap.SimpleEntry<>(embedding, Map.of()));
     }
 
     /**
@@ -45,7 +41,7 @@ public interface EmbeddingCache {
      * @param texts The list of texts whose embeddings should be retrieved
      * @return A map of text to embedding for all texts found in the cache
      */
-    Map<String, Embedding> mget(List<String> texts);
+    Map<String, Embedding> get(List<String> texts);
 
     /**
      * Retrieves multiple embeddings with their metadata for the given texts if they exist in the cache.
@@ -55,13 +51,13 @@ public interface EmbeddingCache {
      * @param texts The list of texts whose embeddings should be retrieved
      * @return A map of text to embedding/metadata entry for all texts found in the cache
      */
-    default Map<String, Map.Entry<Embedding, Map<String, Object>>> mgetWithMetadata(List<String> texts) {
-        // Default implementation falls back to mget without metadata
-        Map<String, Embedding> embeddings = mget(texts);
+    default Map<String, Map.Entry<Embedding, Map<String, Object>>> getWithMetadata(List<String> texts) {
+        // The default implementation falls back to get without metadata
+        Map<String, Embedding> embeddings = get(texts);
         Map<String, Map.Entry<Embedding, Map<String, Object>>> result = new java.util.HashMap<>();
 
         for (Map.Entry<String, Embedding> entry : embeddings.entrySet()) {
-            Map<String, Object> emptyMetadata = Collections.emptyMap();
+            Map<String, Object> emptyMetadata = Map.of();
             result.put(entry.getKey(), new AbstractMap.SimpleEntry<>(entry.getValue(), emptyMetadata));
         }
 
@@ -75,12 +71,12 @@ public interface EmbeddingCache {
      * @param texts The list of texts to check
      * @return A map of text to boolean indicating whether each text has an embedding in the cache
      */
-    Map<String, Boolean> mexists(List<String> texts);
+    Map<String, Boolean> exists(List<String> texts);
 
     /**
      * Stores an embedding for the given text in the cache.
      *
-     * @param text The text to associate with the embedding
+     * @param text      The text to associate with the embedding
      * @param embedding The embedding to store
      */
     void put(String text, Embedding embedding);
@@ -88,9 +84,9 @@ public interface EmbeddingCache {
     /**
      * Stores an embedding with metadata for the given text in the cache.
      *
-     * @param text The text to associate with the embedding
+     * @param text      The text to associate with the embedding
      * @param embedding The embedding to store
-     * @param metadata Optional metadata to store with the embedding
+     * @param metadata  Optional metadata to store with the embedding
      */
     default void put(String text, Embedding embedding, Map<String, Object> metadata) {
         // Default implementation ignores metadata
@@ -100,9 +96,9 @@ public interface EmbeddingCache {
     /**
      * Stores an embedding with metadata and a custom TTL for the given text in the cache.
      *
-     * @param text The text to associate with the embedding
-     * @param embedding The embedding to store
-     * @param metadata Optional metadata to store with the embedding
+     * @param text       The text to associate with the embedding
+     * @param embedding  The embedding to store
+     * @param metadata   Optional metadata to store with the embedding
      * @param ttlSeconds Time-to-live in seconds for this specific entry (0 for default TTL)
      */
     default void put(String text, Embedding embedding, Map<String, Object> metadata, long ttlSeconds) {
@@ -115,20 +111,20 @@ public interface EmbeddingCache {
      *
      * @param embeddings A map of text to embedding to store in the cache
      */
-    void mput(Map<String, Embedding> embeddings);
+    void put(Map<String, Embedding> embeddings);
 
     /**
      * Stores multiple embeddings with metadata in the cache.
      *
      * @param embeddings A map of text to embedding/metadata entry to store in the cache
      */
-    default void mputWithMetadata(Map<String, Map.Entry<Embedding, Map<String, Object>>> embeddings) {
+    default void putWithMetadata(Map<String, Map.Entry<Embedding, Map<String, Object>>> embeddings) {
         // Default implementation extracts embeddings and ignores metadata
         Map<String, Embedding> embeddingsOnly = new java.util.HashMap<>();
         for (Map.Entry<String, Map.Entry<Embedding, Map<String, Object>>> entry : embeddings.entrySet()) {
             embeddingsOnly.put(entry.getKey(), entry.getValue().getKey());
         }
-        mput(embeddingsOnly);
+        put(embeddingsOnly);
     }
 
     /**
@@ -146,7 +142,7 @@ public interface EmbeddingCache {
      * @param texts The list of texts whose embeddings should be removed
      * @return A map of text to boolean indicating whether each text's embedding was removed
      */
-    Map<String, Boolean> mremove(List<String> texts);
+    Map<String, Boolean> remove(List<String> texts);
 
     /**
      * Clears all entries from the cache.
@@ -158,12 +154,12 @@ public interface EmbeddingCache {
      * The filter is a map of field names to values that must be matched.
      *
      * @param filter The metadata filter to apply
-     * @param limit Maximum number of results to return (0 for unlimited)
+     * @param limit  Maximum number of results to return (0 for unlimited)
      * @return A map of text to embedding/metadata entry for all matching entries
      */
     default Map<String, Map.Entry<Embedding, Map<String, Object>>> findByMetadata(
             Map<String, Object> filter, int limit) {
         // Default implementation returns empty map (no filtering support)
-        return Collections.emptyMap();
+        return Map.of();
     }
 }

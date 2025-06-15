@@ -43,7 +43,7 @@ class RedisEmbeddingCacheTest {
     @Test
     void should_return_empty_for_null_or_empty_text() {
         // When
-        Optional<Embedding> result1 = cache.get(null);
+        Optional<Embedding> result1 = cache.get((String) null);
         Optional<Embedding> result2 = cache.get("");
 
         // Then
@@ -67,7 +67,7 @@ class RedisEmbeddingCacheTest {
         Optional<Embedding> retrievedEmbedding = cache.get(TEST_TEXT);
 
         // Then
-        verify(jedis).jsonSet(eq(key), eq(Path.ROOT_PATH), anyString());
+        verify(jedis).jsonSet(key, anyString());
         assertThat(retrievedEmbedding).isPresent();
         assertThat(retrievedEmbedding.get().vector()).containsExactly(0.1f, 0.2f, 0.3f);
     }
@@ -81,8 +81,8 @@ class RedisEmbeddingCacheTest {
         cacheWithTtl.put(TEST_TEXT, TEST_EMBEDDING);
 
         // Then
-        verify(jedis).jsonSet(eq(key), eq(Path.ROOT_PATH), anyString());
-        verify(jedis).expire(eq(key), eq(3600L));
+        verify(jedis).jsonSet(key, anyString());
+        verify(jedis).expire(key, 3600L);
     }
 
     @Test
@@ -100,7 +100,7 @@ class RedisEmbeddingCacheTest {
 
         // Then
         assertThat(retrievedEmbedding).isPresent();
-        verify(jedis).expire(eq(key), eq(3600L));
+        verify(jedis).expire(key, 3600L);
     }
 
     @Test
@@ -112,7 +112,7 @@ class RedisEmbeddingCacheTest {
         cache.put(TEST_TEXT, TEST_EMBEDDING);
 
         // Then
-        verify(jedis).jsonSet(eq(key), eq(Path.ROOT_PATH), anyString());
+        verify(jedis).jsonSet(key, anyString());
         verify(jedis, never()).expire(anyString(), anyLong());
     }
 
@@ -166,7 +166,7 @@ class RedisEmbeddingCacheTest {
     @Test
     void should_not_remove_null_or_empty_text() {
         // When
-        boolean result1 = cache.remove(null);
+        boolean result1 = cache.remove((String) null);
         boolean result2 = cache.remove("");
 
         // Then
@@ -193,10 +193,10 @@ class RedisEmbeddingCacheTest {
     }
 
     @Test
-    void should_return_empty_map_for_empty_or_null_mget_input() {
+    void should_return_empty_map_for_empty_or_null_get_input() {
         // When
-        Map<String, Embedding> result1 = cache.mget(null);
-        Map<String, Embedding> result2 = cache.mget(List.of());
+        Map<String, Embedding> result1 = cache.get((List<String>) null);
+        Map<String, Embedding> result2 = cache.get(List.of());
 
         // Then
         assertThat(result1).isEmpty();
@@ -204,7 +204,7 @@ class RedisEmbeddingCacheTest {
     }
 
     @Test
-    void should_mget_multiple_embeddings() {
+    void should_get_multiple_embeddings() {
         // Given
         String text1 = "Hello, world!";
         String text2 = "Goodbye, world!";
@@ -253,7 +253,7 @@ class RedisEmbeddingCacheTest {
         when(legacyResp3.get()).thenReturn(null);
 
         // When
-        Map<String, Embedding> results = cache.mget(List.of(text1, text2, text3));
+        Map<String, Embedding> results = cache.get(List.of(text1, text2, text3));
 
         // Then
         assertThat(results).hasSize(2);
@@ -268,7 +268,7 @@ class RedisEmbeddingCacheTest {
     }
 
     @Test
-    void should_mput_multiple_embeddings() {
+    void should_put_multiple_embeddings() {
         // Given
         String text1 = "Hello, world!";
         String text2 = "Goodbye, world!";
@@ -288,7 +288,7 @@ class RedisEmbeddingCacheTest {
         when(jedis.pipelined()).thenReturn(pipeline);
 
         // When
-        cache.mput(embeddings);
+        cache.put(embeddings);
 
         // Then
         verify(pipeline).jsonSet(eq(key1), eq(Path.ROOT_PATH), anyString());
@@ -297,7 +297,7 @@ class RedisEmbeddingCacheTest {
     }
 
     @Test
-    void should_mput_with_ttl_when_configured() {
+    void should_put_with_ttl_when_configured() {
         // Given
         String text1 = "Hello, world!";
         String text2 = "Goodbye, world!";
@@ -317,7 +317,7 @@ class RedisEmbeddingCacheTest {
         when(jedis.pipelined()).thenReturn(pipeline);
 
         // When
-        cacheWithTtl.mput(embeddings);
+        cacheWithTtl.put(embeddings);
 
         // Then
         verify(pipeline).jsonSet(eq(key1), eq(Path.ROOT_PATH), anyString());
@@ -328,7 +328,7 @@ class RedisEmbeddingCacheTest {
     }
 
     @Test
-    void should_mexists_check_multiple_embeddings() {
+    void should_exists_check_multiple_embeddings() {
         // Given
         String text1 = "Hello, world!";
         String text2 = "Goodbye, world!";
@@ -354,7 +354,7 @@ class RedisEmbeddingCacheTest {
         when(resp3.get()).thenReturn(false);
 
         // When
-        Map<String, Boolean> results = cache.mexists(List.of(text1, text2, text3));
+        Map<String, Boolean> results = cache.exists(List.of(text1, text2, text3));
 
         // Then
         assertThat(results).hasSize(3);
@@ -364,7 +364,7 @@ class RedisEmbeddingCacheTest {
     }
 
     @Test
-    void should_mremove_multiple_embeddings() {
+    void should_remove_multiple_embeddings() {
         // Given
         String text1 = "Hello, world!";
         String text2 = "Goodbye, world!";
@@ -390,7 +390,7 @@ class RedisEmbeddingCacheTest {
         when(resp3.get()).thenReturn(0L);
 
         // When
-        Map<String, Boolean> results = cache.mremove(List.of(text1, text2, text3));
+        Map<String, Boolean> results = cache.remove(List.of(text1, text2, text3));
 
         // Then
         assertThat(results).hasSize(3);

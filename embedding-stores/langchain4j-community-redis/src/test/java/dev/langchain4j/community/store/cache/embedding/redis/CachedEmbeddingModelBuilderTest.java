@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
+import dev.langchain4j.community.store.cache.EmbeddingCache;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.junit.jupiter.api.Test;
 import redis.clients.jedis.JedisPooled;
@@ -17,10 +18,8 @@ class CachedEmbeddingModelBuilderTest {
         EmbeddingCache cache = mock(EmbeddingCache.class);
 
         // When
-        CachedEmbeddingModel model = CachedEmbeddingModelBuilder.builder()
-                .delegate(delegate)
-                .cache(cache)
-                .build();
+        CachedEmbeddingModel model =
+                CachedEmbeddingModel.builder().delegate(delegate).cache(cache).build();
 
         // Then
         assertThat(model).isNotNull();
@@ -35,7 +34,7 @@ class CachedEmbeddingModelBuilderTest {
         JedisPooled redis = mock(JedisPooled.class);
 
         // When
-        CachedEmbeddingModel model = CachedEmbeddingModelBuilder.builder()
+        CachedEmbeddingModel model = CachedEmbeddingModel.builder()
                 .delegate(delegate)
                 .redis(redis)
                 .keyPrefix("test:")
@@ -55,8 +54,7 @@ class CachedEmbeddingModelBuilderTest {
         EmbeddingCache cache = mock(EmbeddingCache.class);
 
         // When/Then
-        assertThatThrownBy(
-                        () -> CachedEmbeddingModelBuilder.builder().cache(cache).build())
+        assertThatThrownBy(() -> CachedEmbeddingModel.builder().cache(cache).build())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Delegate embedding model must be specified");
     }
