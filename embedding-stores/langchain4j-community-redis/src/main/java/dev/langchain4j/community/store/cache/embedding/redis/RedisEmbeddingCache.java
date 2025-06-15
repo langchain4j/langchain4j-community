@@ -118,7 +118,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
             }
 
             // Parse JSON result to CacheEntry
-            CacheEntry entry = OBJECT_MAPPER.readValue(result.toString(), CacheEntry.class);
+            CacheEntry entry = OBJECT_MAPPER.convertValue(result, CacheEntry.class);
             return Optional.of(entry.getEmbedding());
         } catch (Exception e) {
             logger.error("Error retrieving embedding from Redis", e);
@@ -183,7 +183,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
             }
 
             // Parse JSON result to CacheEntry
-            CacheEntry entry = OBJECT_MAPPER.readValue(result.toString(), CacheEntry.class);
+            CacheEntry entry = OBJECT_MAPPER.convertValue(result, CacheEntry.class);
 
             // Mark as accessed to update stats
             CacheEntry updatedEntry = entry.markAccessed();
@@ -215,7 +215,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
     @Override
     public void put(String text, Embedding embedding, Map<String, Object> metadata) {
-        put(text, embedding, metadata, 0);
+        put(text, embedding, metadata, -1);
     }
 
     @Override
@@ -333,7 +333,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
                 if (jsonValue != null) {
                     // We have a JSON value, parse it
                     try {
-                        CacheEntry entry = OBJECT_MAPPER.readValue(jsonValue.toString(), CacheEntry.class);
+                        CacheEntry entry = OBJECT_MAPPER.convertValue(jsonValue, CacheEntry.class);
                         results.put(text, entry.getEmbedding());
 
                         // Update TTL if configured
@@ -413,7 +413,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
                 if (jsonValue != null) {
                     // We have a JSON value, parse it
                     try {
-                        CacheEntry entry = OBJECT_MAPPER.readValue(jsonValue.toString(), CacheEntry.class);
+                        CacheEntry entry = OBJECT_MAPPER.convertValue(jsonValue, CacheEntry.class);
 
                         // Mark as accessed to update stats
                         CacheEntry updatedEntry = entry.markAccessed();
@@ -762,7 +762,7 @@ public class RedisEmbeddingCache implements EmbeddingCache {
 
                     try {
                         // Parse JSON result to CacheEntry
-                        CacheEntry cacheEntry = OBJECT_MAPPER.readValue(jsonValue.toString(), CacheEntry.class);
+                        CacheEntry cacheEntry = OBJECT_MAPPER.convertValue(jsonValue, CacheEntry.class);
 
                         // Check if the entry matches the filter
                         boolean matches = matchesFilter(cacheEntry.getMetadata(), filter);

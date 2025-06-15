@@ -24,7 +24,7 @@ class EmbeddingDeserializerTest {
 
     @Test
     void should_deserialize_valid_embedding() throws IOException {
-        String json = "{ \"embedding\": [0.1, 0.2, 0.3] }";
+        String json = "{ \"vector\": [0.1, 0.2, 0.3] }";
 
         Embedding embedding = objectMapper.readValue(json, Embedding.class);
 
@@ -34,7 +34,7 @@ class EmbeddingDeserializerTest {
 
     @Test
     void should_deserialize_empty_embedding() throws IOException {
-        String json = "{ \"embedding\": [] }";
+        String json = "{ \"vector\": [] }";
 
         Embedding embedding = objectMapper.readValue(json, Embedding.class);
 
@@ -44,7 +44,7 @@ class EmbeddingDeserializerTest {
 
     @Test
     void should_throw_exception_when_embedding_is_missing() {
-        String json = "{ \"not_embedding\": [1.0, 2.0] }";
+        String json = "{ \"not_vector\": [1.0, 2.0] }";
 
         assertThatThrownBy(() -> objectMapper.readValue(json, Embedding.class))
                 .isInstanceOf(IOException.class)
@@ -53,7 +53,7 @@ class EmbeddingDeserializerTest {
 
     @Test
     void should_throw_exception_when_embedding_is_not_array() {
-        String json = "{ \"embedding\": 123 }";
+        String json = "{ \"vector\": 123 }";
 
         assertThatThrownBy(() -> objectMapper.readValue(json, Embedding.class))
                 .isInstanceOf(IOException.class)

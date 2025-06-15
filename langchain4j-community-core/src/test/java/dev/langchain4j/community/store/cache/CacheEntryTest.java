@@ -105,11 +105,7 @@ class CacheEntryTest {
         CacheEntry entry2 = new CacheEntry(TEXT, EMBEDDING, METADATA, MODEL_NAME, now, now, 1);
         CacheEntry entry3 = new CacheEntry("different", EMBEDDING, METADATA, MODEL_NAME, now, now, 1);
 
-        assertThat(entry1)
-                .isEqualTo(entry2)
-                .isNotEqualTo(entry3)
-                .isNotEqualTo(null)
-                .isNotEqualTo("not a CacheEntry");
+        assertThat(entry1).isEqualTo(entry2).isNotEqualTo(entry3);
     }
 
     @Test

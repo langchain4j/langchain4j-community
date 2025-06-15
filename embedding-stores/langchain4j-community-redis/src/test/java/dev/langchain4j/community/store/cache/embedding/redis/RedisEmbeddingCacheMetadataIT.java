@@ -125,10 +125,10 @@ class RedisEmbeddingCacheMetadataIT {
                 embeddingCache.findByMetadata(importantFilter, 10);
 
         // Then: Verify we found all important embeddings
-        assertThat(importantResults).hasSize(5);
-
-        // Verify a specific embedding in the results
-        assertThat(importantResults).containsKey("DNA is the building block of life");
+        assertThat(importantResults)
+                .hasSize(5)
+                // Verify a specific embedding in the results
+                .containsKey("DNA is the building block of life");
         Map.Entry<Embedding, Map<String, Object>> dnaEntry = importantResults.get("DNA is the building block of life");
 
         assertThat(dnaEntry.getValue()).containsEntry("category", "science").containsEntry("important", true);
@@ -173,15 +173,17 @@ class RedisEmbeddingCacheMetadataIT {
         Map.Entry<Embedding, Map<String, Object>> item0 = batchResults.get("Batch text example 0");
         Map.Entry<Embedding, Map<String, Object>> item1 = batchResults.get("Batch text example 1");
 
-        assertThat(item0.getValue())
-                .containsEntry("index", 0)
-                .containsEntry("batch", "example")
-                .containsEntry("even", true);
+        assertThat(item0.getValue()).containsEntry("batch", "example").containsEntry("even", true);
+        assertThat(item0.getValue()).containsKey("index").satisfies(map -> {
+            Number n = (Number) map.get("index");
+            assertThat(n.doubleValue()).isEqualTo(0.0);
+        });
 
-        assertThat(item1.getValue())
-                .containsEntry("index", 1)
-                .containsEntry("batch", "example")
-                .containsEntry("even", false);
+        assertThat(item1.getValue()).containsEntry("batch", "example").containsEntry("even", false);
+        assertThat(item1.getValue()).containsKey("index").satisfies(map -> {
+            Number n = (Number) map.get("index");
+            assertThat(n.doubleValue()).isEqualTo(1.0);
+        });
 
         // Verify all even-indexed items have "even": true
         assertThat(batchResults.get("Batch text example 0").getValue()).containsEntry("even", true);

@@ -19,7 +19,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import redis.clients.jedis.JedisPooled;
-import redis.clients.jedis.json.Path;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.Response;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
@@ -67,7 +68,7 @@ class RedisEmbeddingCacheTest {
         Optional<Embedding> retrievedEmbedding = cache.get(TEST_TEXT);
 
         // Then
-        verify(jedis).jsonSet(key, anyString());
+        verify(jedis).jsonSet(eq(key), anyString());
         assertThat(retrievedEmbedding).isPresent();
         assertThat(retrievedEmbedding.get().vector()).containsExactly(0.1f, 0.2f, 0.3f);
     }
@@ -81,7 +82,7 @@ class RedisEmbeddingCacheTest {
         cacheWithTtl.put(TEST_TEXT, TEST_EMBEDDING);
 
         // Then
-        verify(jedis).jsonSet(key, anyString());
+        verify(jedis).jsonSet(eq(key), anyString());
         verify(jedis).expire(key, 3600L);
     }
 
@@ -112,7 +113,7 @@ class RedisEmbeddingCacheTest {
         cache.put(TEST_TEXT, TEST_EMBEDDING);
 
         // Then
-        verify(jedis).jsonSet(key, anyString());
+        verify(jedis).jsonSet(eq(key), anyString());
         verify(jedis, never()).expire(anyString(), anyLong());
     }
 
@@ -204,6 +205,7 @@ class RedisEmbeddingCacheTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void should_get_multiple_embeddings() {
         // Given
         String text1 = "Hello, world!";
@@ -216,14 +218,14 @@ class RedisEmbeddingCacheTest {
 
         // Mock Redis pipeline operations
         redis.clients.jedis.Pipeline pipeline = mock(redis.clients.jedis.Pipeline.class);
-        redis.clients.jedis.Response<Object> jsonResp1 = mock(redis.clients.jedis.Response.class);
-        redis.clients.jedis.Response<Object> jsonResp2 = mock(redis.clients.jedis.Response.class);
-        redis.clients.jedis.Response<Object> jsonResp3 = mock(redis.clients.jedis.Response.class);
+        Response<Object> jsonResp1 = mock(Response.class);
+        Response<Object> jsonResp2 = mock(Response.class);
+        Response<Object> jsonResp3 = mock(Response.class);
 
         // We also need to mock the legacy format responses for backward compatibility
-        redis.clients.jedis.Response<String> legacyResp1 = mock(redis.clients.jedis.Response.class);
-        redis.clients.jedis.Response<String> legacyResp2 = mock(redis.clients.jedis.Response.class);
-        redis.clients.jedis.Response<String> legacyResp3 = mock(redis.clients.jedis.Response.class);
+        Response<String> legacyResp1 = mock(Response.class);
+        Response<String> legacyResp2 = mock(Response.class);
+        Response<String> legacyResp3 = mock(Response.class);
 
         when(jedis.pipelined()).thenReturn(pipeline);
 
@@ -256,9 +258,7 @@ class RedisEmbeddingCacheTest {
         Map<String, Embedding> results = cache.get(List.of(text1, text2, text3));
 
         // Then
-        assertThat(results).hasSize(2);
-        assertThat(results).containsKeys(text1, text2);
-        assertThat(results).doesNotContainKey(text3);
+        assertThat(results).hasSize(2).containsKeys(text1, text2).doesNotContainKey(text3);
 
         Embedding embedding1 = results.get(text1);
         assertThat(embedding1.vector()).containsExactly(0.1f, 0.2f, 0.3f);
@@ -291,8 +291,8 @@ class RedisEmbeddingCacheTest {
         cache.put(embeddings);
 
         // Then
-        verify(pipeline).jsonSet(eq(key1), eq(Path.ROOT_PATH), anyString());
-        verify(pipeline).jsonSet(eq(key2), eq(Path.ROOT_PATH), anyString());
+        verify(pipeline).jsonSet(eq(key1), anyString());
+        verify(pipeline).jsonSet(eq(key2), anyString());
         verify(pipeline).sync();
     }
 
@@ -320,14 +320,15 @@ class RedisEmbeddingCacheTest {
         cacheWithTtl.put(embeddings);
 
         // Then
-        verify(pipeline).jsonSet(eq(key1), eq(Path.ROOT_PATH), anyString());
-        verify(pipeline).jsonSet(eq(key2), eq(Path.ROOT_PATH), anyString());
-        verify(pipeline).expire(eq(key1), eq(3600L));
-        verify(pipeline).expire(eq(key2), eq(3600L));
+        verify(pipeline).jsonSet(eq(key1), anyString());
+        verify(pipeline).jsonSet(eq(key2), anyString());
+        verify(pipeline).expire(key1, 3600L);
+        verify(pipeline).expire(key2, 3600L);
         verify(pipeline).sync();
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void should_exists_check_multiple_embeddings() {
         // Given
         String text1 = "Hello, world!";
@@ -339,10 +340,10 @@ class RedisEmbeddingCacheTest {
         String key3 = TEST_PREFIX + "embedding:" + cache.md5(text3);
 
         // Mock Redis pipeline operations
-        redis.clients.jedis.Pipeline pipeline = mock(redis.clients.jedis.Pipeline.class);
-        redis.clients.jedis.Response<Boolean> resp1 = mock(redis.clients.jedis.Response.class);
-        redis.clients.jedis.Response<Boolean> resp2 = mock(redis.clients.jedis.Response.class);
-        redis.clients.jedis.Response<Boolean> resp3 = mock(redis.clients.jedis.Response.class);
+        Pipeline pipeline = mock(Pipeline.class);
+        Response<Boolean> resp1 = mock(Response.class);
+        Response<Boolean> resp2 = mock(Response.class);
+        Response<Boolean> resp3 = mock(Response.class);
 
         when(jedis.pipelined()).thenReturn(pipeline);
         when(pipeline.exists(key1)).thenReturn(resp1);
@@ -364,6 +365,7 @@ class RedisEmbeddingCacheTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void should_remove_multiple_embeddings() {
         // Given
         String text1 = "Hello, world!";
@@ -376,9 +378,9 @@ class RedisEmbeddingCacheTest {
 
         // Mock Redis pipeline operations
         redis.clients.jedis.Pipeline pipeline = mock(redis.clients.jedis.Pipeline.class);
-        redis.clients.jedis.Response<Long> resp1 = mock(redis.clients.jedis.Response.class);
-        redis.clients.jedis.Response<Long> resp2 = mock(redis.clients.jedis.Response.class);
-        redis.clients.jedis.Response<Long> resp3 = mock(redis.clients.jedis.Response.class);
+        Response<Long> resp1 = mock(Response.class);
+        Response<Long> resp2 = mock(Response.class);
+        Response<Long> resp3 = mock(Response.class);
 
         when(jedis.pipelined()).thenReturn(pipeline);
         when(pipeline.del(key1)).thenReturn(resp1);

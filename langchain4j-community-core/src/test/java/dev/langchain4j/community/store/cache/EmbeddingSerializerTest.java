@@ -27,7 +27,7 @@ class EmbeddingSerializerTest {
 
         String json = objectMapper.writeValueAsString(embedding);
 
-        assertThat(json).isEqualTo("{\"embedding\":[0.1,0.2,0.3]}");
+        assertThat(json).isEqualTo("{\"vector\":[0.1,0.2,0.3]}");
     }
 
     @Test
@@ -36,7 +36,7 @@ class EmbeddingSerializerTest {
 
         String json = objectMapper.writeValueAsString(embedding);
 
-        assertThat(json).isEqualTo("{\"embedding\":[]}");
+        assertThat(json).isEqualTo("{\"vector\":[]}");
     }
 
     @Test

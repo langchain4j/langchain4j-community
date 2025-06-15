@@ -42,11 +42,11 @@ public class EmbeddingDeserializer extends StdDeserializer<Embedding> {
     public Embedding deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         JsonNode node = p.getCodec().readTree(p);
 
-        if (node.has("embedding") && node.get("embedding").isArray()) {
-            JsonNode embeddingNode = node.get("embedding");
-            float[] vector = new float[embeddingNode.size()];
+        if (node.has("vector") && node.get("vector").isArray()) {
+            JsonNode vectorNode = node.get("vector");
+            float[] vector = new float[vectorNode.size()];
             for (int i = 0; i < vector.length; i++) {
-                vector[i] = (float) embeddingNode.get(i).asDouble();
+                vector[i] = (float) vectorNode.get(i).asDouble();
             }
             return Embedding.from(vector);
         }

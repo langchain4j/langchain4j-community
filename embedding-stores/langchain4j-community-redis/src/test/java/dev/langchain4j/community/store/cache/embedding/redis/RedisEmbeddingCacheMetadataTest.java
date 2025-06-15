@@ -4,6 +4,7 @@ import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -87,7 +88,7 @@ class RedisEmbeddingCacheMetadataTest {
         Optional<Map.Entry<Embedding, Map<String, Object>>> result = cache.getWithMetadata(TEST_TEXT);
 
         // Then
-        verify(jedis).jsonSet(key, anyString());
+        verify(jedis).jsonSet(eq(key), anyString());
         assertThat(result).isPresent();
         assertThat(result.get().getKey().vector()).containsExactly(0.1f, 0.2f, 0.3f);
         assertThat(result.get().getValue())
@@ -119,7 +120,7 @@ class RedisEmbeddingCacheMetadataTest {
         Optional<Map.Entry<Embedding, Map<String, Object>>> result = cache.getWithMetadata(TEST_TEXT);
 
         // Then
-        verify(jedis).jsonSet(key, anyString());
+        verify(jedis).jsonSet(eq(key), anyString());
         verify(jedis).expire(key, customTtl);
         assertThat(result).isPresent();
     }
@@ -176,8 +177,8 @@ class RedisEmbeddingCacheMetadataTest {
         cache.putWithMetadata(embeddings);
 
         // Then: Verify put
-        verify(pipeline).jsonSet(key1, anyString());
-        verify(pipeline).jsonSet(key2, anyString());
+        verify(pipeline).jsonSet(eq(key1), anyString());
+        verify(pipeline).jsonSet(eq(key2), anyString());
         verify(pipeline).sync();
 
         // When: Get with metadata
@@ -310,13 +311,13 @@ class RedisEmbeddingCacheMetadataTest {
 
         // Mock the Redis JSON methods
         when(jedis.jsonGet(key)).thenReturn(jsonWithCount9);
-        when(jedis.jsonSet(key, anyString())).thenReturn("OK");
+        when(jedis.jsonSet(eq(key), anyString())).thenReturn("OK");
 
         // When: Access the entry once, which should trigger an update since count will be 10
         cache.getWithMetadata(TEST_TEXT);
 
         // Then: Verify the entry was updated because access count reached a multiple of 10
-        verify(jedis).jsonSet(key, anyString());
+        verify(jedis).jsonSet(eq(key), anyString());
     }
 
     // Tests for legacy format and access statistics are implemented above

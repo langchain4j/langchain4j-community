@@ -39,7 +39,7 @@ public class EmbeddingSerializer extends StdSerializer<Embedding> {
     @Override
     public void serialize(Embedding embedding, JsonGenerator gen, SerializerProvider provider) throws IOException {
         gen.writeStartObject();
-        gen.writeArrayFieldStart("embedding");
+        gen.writeArrayFieldStart("vector");
         for (float value : embedding.vector()) {
             gen.writeNumber(value);
         }

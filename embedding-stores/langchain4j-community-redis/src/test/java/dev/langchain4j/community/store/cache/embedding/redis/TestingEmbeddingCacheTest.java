@@ -87,8 +87,7 @@ class TestingEmbeddingCacheTest {
         Optional<Embedding> result = cache.get(text);
 
         // then - should return the test embedding, not the regular one
-        assertThat(result).isPresent();
-        assertThat(result.get()).isSameAs(testEmbedding);
+        assertThat(result).isPresent().containsSame(testEmbedding);
 
         closeable.close();
     }
@@ -109,8 +108,7 @@ class TestingEmbeddingCacheTest {
         Optional<Embedding> result = cache.get(text);
 
         // then - should fall back to the regular embedding
-        assertThat(result).isPresent();
-        assertThat(result.get()).isSameAs(regularEmbedding);
+        assertThat(result).isPresent().containsSame(regularEmbedding);
 
         closeable.close();
     }
@@ -130,8 +128,7 @@ class TestingEmbeddingCacheTest {
         Optional<Embedding> result = cache.get(text);
 
         // then - should return the regular embedding
-        assertThat(result).isPresent();
-        assertThat(result).containsSame(regularEmbedding);
+        assertThat(result).isPresent().containsSame(regularEmbedding);
 
         closeable.close();
     }
@@ -390,9 +387,7 @@ class TestingEmbeddingCacheTest {
         verify(mockCache, never()).remove("test:" + testContextId + ":" + text2);
         verify(mockCache, never()).remove(List.of(text1, text2));
 
-        assertThat(results).hasSize(2);
-        assertThat(results.get(text1)).isFalse();
-        assertThat(results.get(text2)).isFalse();
+        assertThat(results).hasSize(2).containsEntry(text1, false).containsEntry(text2, false);
 
         closeable.close();
     }
