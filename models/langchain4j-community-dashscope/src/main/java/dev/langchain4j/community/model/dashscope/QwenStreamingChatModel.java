@@ -120,6 +120,7 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                 .supportIncrementalOutput(qwenParameters.supportIncrementalOutput())
                 .enableThinking(qwenParameters.enableThinking())
                 .thinkingBudget(qwenParameters.thinkingBudget())
+                .enableSanitizeMessages(qwenParameters.enableSanitizeMessages())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 
