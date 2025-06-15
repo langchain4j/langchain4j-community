@@ -80,7 +80,7 @@ class QwenHelper {
 
     static List<Message> toQwenMessages(List<ChatMessage> messages, Boolean enableSanitizeMessages) {
         List<ChatMessage> inputMessages =
-                Boolean.FALSE.equals(enableSanitizeMessages) ? messages : sanitizeMessages(messages);
+                Boolean.TRUE.equals(enableSanitizeMessages) ? sanitizeMessages(messages) : messages;
 
         return inputMessages.stream().map(QwenHelper::toQwenMessage).collect(toList());
     }
