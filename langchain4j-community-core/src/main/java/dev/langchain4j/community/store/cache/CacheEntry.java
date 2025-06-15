@@ -1,5 +1,8 @@
 package dev.langchain4j.community.store.cache;
 
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -9,9 +12,6 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-
-import static dev.langchain4j.internal.Utils.copy;
-import static dev.langchain4j.internal.Utils.getOrDefault;
 
 /**
  * Represents a cache entry for an embedding, including metadata.

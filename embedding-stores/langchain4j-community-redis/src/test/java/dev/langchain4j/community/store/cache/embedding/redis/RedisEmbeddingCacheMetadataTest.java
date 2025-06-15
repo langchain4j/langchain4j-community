@@ -1,5 +1,13 @@
 package dev.langchain4j.community.store.cache.embedding.redis;
 
+import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -9,27 +17,18 @@ import dev.langchain4j.community.store.cache.CacheEntry;
 import dev.langchain4j.community.store.cache.EmbeddingDeserializer;
 import dev.langchain4j.community.store.cache.EmbeddingSerializer;
 import dev.langchain4j.data.embedding.Embedding;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import redis.clients.jedis.JedisPooled;
-import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.params.ScanParams;
-import redis.clients.jedis.resps.ScanResult;
-
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.resps.ScanResult;
 
 /**
  * Tests for the metadata functionality in RedisEmbeddingCache.
@@ -38,7 +37,7 @@ class RedisEmbeddingCacheMetadataTest {
 
     private static final String TEST_PREFIX = "test:";
     private static final String TEST_TEXT = "Hello, world!";
-    private static final Embedding TEST_EMBEDDING = new Embedding(new float[]{0.1f, 0.2f, 0.3f});
+    private static final Embedding TEST_EMBEDDING = new Embedding(new float[] {0.1f, 0.2f, 0.3f});
     private static final Map<String, Object> TEST_METADATA = createTestMetadata();
 
     private JedisPooled jedis;
@@ -132,8 +131,8 @@ class RedisEmbeddingCacheMetadataTest {
         String text1 = "Hello, world!";
         String text2 = "Goodbye, world!";
 
-        Embedding embedding1 = new Embedding(new float[]{0.1f, 0.2f, 0.3f});
-        Embedding embedding2 = new Embedding(new float[]{0.4f, 0.5f, 0.6f});
+        Embedding embedding1 = new Embedding(new float[] {0.1f, 0.2f, 0.3f});
+        Embedding embedding2 = new Embedding(new float[] {0.4f, 0.5f, 0.6f});
 
         Map<String, Object> metadata1 = new HashMap<>(TEST_METADATA);
         Map<String, Object> metadata2 = new HashMap<>(TEST_METADATA);
@@ -205,9 +204,9 @@ class RedisEmbeddingCacheMetadataTest {
         String text2 = "Sports news";
         String text3 = "Politics news";
 
-        Embedding embedding1 = new Embedding(new float[]{0.1f, 0.2f, 0.3f});
-        Embedding embedding2 = new Embedding(new float[]{0.4f, 0.5f, 0.6f});
-        Embedding embedding3 = new Embedding(new float[]{0.7f, 0.8f, 0.9f});
+        Embedding embedding1 = new Embedding(new float[] {0.1f, 0.2f, 0.3f});
+        Embedding embedding2 = new Embedding(new float[] {0.4f, 0.5f, 0.6f});
+        Embedding embedding3 = new Embedding(new float[] {0.7f, 0.8f, 0.9f});
 
         Map<String, Object> metadata1 = new HashMap<>();
         metadata1.put("category", "finance");

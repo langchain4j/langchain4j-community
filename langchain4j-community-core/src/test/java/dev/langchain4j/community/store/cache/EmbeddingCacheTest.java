@@ -1,16 +1,15 @@
 package dev.langchain4j.community.store.cache;
 
-import dev.langchain4j.data.embedding.Embedding;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.data.embedding.Embedding;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 class EmbeddingCacheTest {
 
@@ -82,7 +81,7 @@ class EmbeddingCacheTest {
 
     @Test
     void should_get_existing_embedding() {
-        Embedding embedding = Embedding.from(new float[]{1f, 2f});
+        Embedding embedding = Embedding.from(new float[] {1f, 2f});
         cache.put("hello", embedding);
 
         Optional<Embedding> result = cache.get("hello");
@@ -99,7 +98,7 @@ class EmbeddingCacheTest {
 
     @Test
     void should_get_with_metadata_from_default_method() {
-        Embedding embedding = Embedding.from(new float[]{1f});
+        Embedding embedding = Embedding.from(new float[] {1f});
         cache.put("foo", embedding);
 
         Optional<Map.Entry<Embedding, Map<String, Object>>> result = cache.getWithMetadata("foo");
@@ -111,22 +110,20 @@ class EmbeddingCacheTest {
 
     @Test
     void should_get_multiple_embeddings() {
-        Embedding a = Embedding.from(new float[]{1});
-        Embedding b = Embedding.from(new float[]{2});
+        Embedding a = Embedding.from(new float[] {1});
+        Embedding b = Embedding.from(new float[] {2});
         cache.put("a", a);
         cache.put("b", b);
 
         Map<String, Embedding> result = cache.get(List.of("a", "b", "c"));
 
-        assertThat(result).hasSize(2)
-                .containsEntry("a", a)
-                .containsEntry("b", b);
+        assertThat(result).hasSize(2).containsEntry("a", a).containsEntry("b", b);
     }
 
     @Test
     void should_get_with_metadata_for_multiple_texts() {
-        Embedding a = Embedding.from(new float[]{1});
-        Embedding b = Embedding.from(new float[]{2});
+        Embedding a = Embedding.from(new float[] {1});
+        Embedding b = Embedding.from(new float[] {2});
         cache.put("a", a);
         cache.put("b", b);
 
@@ -140,17 +137,16 @@ class EmbeddingCacheTest {
 
     @Test
     void should_check_exists() {
-        cache.put("yes", Embedding.from(new float[]{1}));
+        cache.put("yes", Embedding.from(new float[] {1}));
 
         Map<String, Boolean> result = cache.exists(List.of("yes", "no"));
 
-        assertThat(result).containsEntry("yes", true)
-                .containsEntry("no", false);
+        assertThat(result).containsEntry("yes", true).containsEntry("no", false);
     }
 
     @Test
     void should_support_put_with_metadata_default_method() {
-        Embedding emb = Embedding.from(new float[]{1});
+        Embedding emb = Embedding.from(new float[] {1});
         cache.put("key", emb, Map.of("meta", 123));
 
         assertThat(cache.get("key")).contains(emb);
@@ -158,7 +154,7 @@ class EmbeddingCacheTest {
 
     @Test
     void should_support_put_with_metadata_and_ttl_default_method() {
-        Embedding emb = Embedding.from(new float[]{9});
+        Embedding emb = Embedding.from(new float[] {9});
         cache.put("k", emb, Map.of("meta", "value"), 999L);
 
         assertThat(cache.get("k")).contains(emb);
@@ -166,13 +162,12 @@ class EmbeddingCacheTest {
 
     @Test
     void should_support_put_with_metadata_map() {
-        Embedding e1 = Embedding.from(new float[]{1});
-        Embedding e2 = Embedding.from(new float[]{2});
+        Embedding e1 = Embedding.from(new float[] {1});
+        Embedding e2 = Embedding.from(new float[] {2});
 
         Map<String, Map.Entry<Embedding, Map<String, Object>>> entries = Map.of(
                 "x", new AbstractMap.SimpleEntry<>(e1, Map.of("foo", "bar")),
-                "y", new AbstractMap.SimpleEntry<>(e2, Map.of())
-        );
+                "y", new AbstractMap.SimpleEntry<>(e2, Map.of()));
 
         cache.putWithMetadata(entries);
 
@@ -182,7 +177,7 @@ class EmbeddingCacheTest {
 
     @Test
     void should_remove_single_entry() {
-        cache.put("gone", Embedding.from(new float[]{1}));
+        cache.put("gone", Embedding.from(new float[] {1}));
 
         boolean removed = cache.remove("gone");
 
@@ -192,20 +187,18 @@ class EmbeddingCacheTest {
 
     @Test
     void should_remove_multiple_entries() {
-        cache.put("a", Embedding.from(new float[]{1}));
-        cache.put("b", Embedding.from(new float[]{2}));
+        cache.put("a", Embedding.from(new float[] {1}));
+        cache.put("b", Embedding.from(new float[] {2}));
 
         Map<String, Boolean> result = cache.remove(List.of("a", "b", "c"));
 
-        assertThat(result).containsEntry("a", true)
-                .containsEntry("b", true)
-                .containsEntry("c", false);
+        assertThat(result).containsEntry("a", true).containsEntry("b", true).containsEntry("c", false);
     }
 
     @Test
     void should_clear_all_entries() {
-        cache.put("1", Embedding.from(new float[]{1}));
-        cache.put("2", Embedding.from(new float[]{2}));
+        cache.put("1", Embedding.from(new float[] {1}));
+        cache.put("2", Embedding.from(new float[] {2}));
 
         cache.clear();
 
