@@ -1,1 +1,4 @@
 dev.langchain4j.community.store.embedding.redis.spring.RedisEmbeddingStoreAutoConfiguration
+dev.langchain4j.community.store.cache.redis.spring.RedisSemanticCacheAutoConfiguration
+dev.langchain4j.community.store.cache.redis.spring.RedisCacheAutoConfiguration
+dev.langchain4j.community.store.routing.redis.spring.RedisSemanticRouterAutoConfiguration
