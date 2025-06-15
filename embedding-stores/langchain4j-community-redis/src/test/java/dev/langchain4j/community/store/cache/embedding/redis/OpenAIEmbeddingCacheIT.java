@@ -14,6 +14,7 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -24,6 +25,7 @@ import redis.clients.jedis.JedisPooled;
  * This test requires Docker to run Redis in a container and an OpenAI API key.
  */
 @Testcontainers
+@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class OpenAIEmbeddingCacheIT {
 
     private static final int REDIS_PORT = 6379;
