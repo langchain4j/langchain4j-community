@@ -119,6 +119,7 @@ public class AutoConfig {
                 .supportIncrementalOutput(parameters.getSupportIncrementalOutput())
                 .enableThinking(parameters.getEnableThinking())
                 .thinkingBudget(parameters.getThinkingBudget())
+                .enableSanitizeMessages(parameters.getEnableSanitizeMessages())
                 .build();
     }
 

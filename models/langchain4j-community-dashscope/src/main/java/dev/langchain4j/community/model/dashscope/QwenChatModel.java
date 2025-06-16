@@ -112,6 +112,7 @@ public class QwenChatModel implements ChatModel {
                 .supportIncrementalOutput(qwenParameters.supportIncrementalOutput())
                 .enableThinking(qwenParameters.enableThinking())
                 .thinkingBudget(qwenParameters.thinkingBudget())
+                .enableSanitizeMessages(qwenParameters.enableSanitizeMessages())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 
