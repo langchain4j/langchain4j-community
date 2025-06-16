@@ -66,7 +66,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     private final Integer thinkingBudget;
     /**
      * Specifies whether to sanitize messages before sending to llm provider.
-     * Default value is false.
+     * Default value is true.
      */
     private final Boolean enableSanitizeMessages;
     /**
@@ -85,7 +85,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.supportIncrementalOutput = builder.supportIncrementalOutput;
         this.enableThinking = getOrDefault(builder.enableThinking, Boolean.FALSE);
         this.thinkingBudget = builder.thinkingBudget;
-        this.enableSanitizeMessages = getOrDefault(builder.enableSanitizeMessages, Boolean.FALSE);
+        this.enableSanitizeMessages = getOrDefault(builder.enableSanitizeMessages, Boolean.TRUE);
         this.custom = builder.custom;
     }
 
