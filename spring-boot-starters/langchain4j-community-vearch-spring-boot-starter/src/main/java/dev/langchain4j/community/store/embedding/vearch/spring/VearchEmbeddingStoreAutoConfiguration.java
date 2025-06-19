@@ -59,7 +59,7 @@ public class VearchEmbeddingStoreAutoConfiguration {
 
     @Bean(EMBEDDING_STORE_HTTP_CLIENT_BUILDER)
     @ConditionalOnMissingBean(name = EMBEDDING_STORE_HTTP_CLIENT_BUILDER)
-    HttpClientBuilder ollamaChatModelHttpClientBuilder(ObjectProvider<RestClient.Builder> restClientBuilder) {
+    HttpClientBuilder vearchEmbeddingStoreHttpClientBuilder(ObjectProvider<RestClient.Builder> restClientBuilder) {
         return SpringRestClient.builder()
                 .restClientBuilder(restClientBuilder.getIfAvailable(RestClient::builder))
                 // executor is not needed for no-streaming VearchEmbeddingStore
