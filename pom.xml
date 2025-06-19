@@ -78,7 +78,7 @@
         <langchain4j.core.version>1.1.0-SNAPSHOT</langchain4j.core.version>
         <langchain4j.version>1.1.0-SNAPSHOT</langchain4j.version>
         <langchain4j.http-client-jdk.version>1.1.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.1.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.open-ai.version>1.1.0</langchain4j.open-ai.version>
     </properties>
 
     <repositories>
