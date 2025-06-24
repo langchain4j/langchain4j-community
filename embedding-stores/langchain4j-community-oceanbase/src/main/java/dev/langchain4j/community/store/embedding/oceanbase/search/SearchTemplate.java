@@ -1,19 +1,16 @@
 package dev.langchain4j.community.store.embedding.oceanbase.search;
 
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.filter.Filter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import dev.langchain4j.store.embedding.EmbeddingMatch;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.filter.Filter;
-
 import javax.sql.DataSource;
-
 
 /**
  * Template for the search operation.
@@ -41,7 +38,7 @@ public abstract class SearchTemplate<T> {
         String query = buildSearchQuery(request);
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
+                PreparedStatement statement = connection.prepareStatement(query)) {
 
             setParameters(statement, request);
 
@@ -86,7 +83,8 @@ public abstract class SearchTemplate<T> {
      * @param request The search request
      * @throws SQLException If an error occurs setting the parameters
      */
-    protected abstract void setParameters(PreparedStatement statement, EmbeddingSearchRequest request) throws SQLException;
+    protected abstract void setParameters(PreparedStatement statement, EmbeddingSearchRequest request)
+            throws SQLException;
 
     /**
      * Processes the result set and creates embedding matches.
@@ -97,7 +95,8 @@ public abstract class SearchTemplate<T> {
      * @return A list of embedding matches
      * @throws SQLException If an error occurs processing the result set
      */
-    protected abstract List<EmbeddingMatch<T>> processResults(ResultSet resultSet, EmbeddingSearchRequest request) throws SQLException;
+    protected abstract List<EmbeddingMatch<T>> processResults(ResultSet resultSet, EmbeddingSearchRequest request)
+            throws SQLException;
 
     /**
      * Converts a filter to a WHERE clause.

@@ -1,8 +1,7 @@
 package dev.langchain4j.community.store.embedding.oceanbase.sql;
 
-import java.util.function.BiFunction;
-
 import dev.langchain4j.store.embedding.filter.Filter;
+import java.util.function.BiFunction;
 
 /**
  * Factory for creating SQL filters.

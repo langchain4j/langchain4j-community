@@ -86,21 +86,38 @@ public final class EmbeddingTable {
         if (createOption == CreateOption.CREATE_NONE) return;
 
         try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+                Statement statement = connection.createStatement()) {
             if (createOption == CreateOption.CREATE_OR_REPLACE) {
                 statement.addBatch("DROP TABLE IF EXISTS " + name);
             }
 
             StringBuilder createTableSql = new StringBuilder();
-            createTableSql.append("CREATE TABLE IF NOT EXISTS ").append(name)
-                    .append("(").append(idColumn).append(" VARCHAR(36) NOT NULL, ")
-                    .append(embeddingColumn).append(" VECTOR(").append(vectorDimension).append("), ")
-                    .append(textColumn).append(" VARCHAR(4000), ")
-                    .append(metadataColumn).append(" JSON, ")
-                    .append("PRIMARY KEY (").append(idColumn).append("), ")
-                    .append("VECTOR INDEX ").append(vectorIndexName).append("(")
-                    .append(embeddingColumn).append(") WITH (distance=").append(distanceMetric)
-                    .append(", type=").append(indexType).append("))");
+            createTableSql
+                    .append("CREATE TABLE IF NOT EXISTS ")
+                    .append(name)
+                    .append("(")
+                    .append(idColumn)
+                    .append(" VARCHAR(36) NOT NULL, ")
+                    .append(embeddingColumn)
+                    .append(" VECTOR(")
+                    .append(vectorDimension)
+                    .append("), ")
+                    .append(textColumn)
+                    .append(" VARCHAR(4000), ")
+                    .append(metadataColumn)
+                    .append(" JSON, ")
+                    .append("PRIMARY KEY (")
+                    .append(idColumn)
+                    .append("), ")
+                    .append("VECTOR INDEX ")
+                    .append(vectorIndexName)
+                    .append("(")
+                    .append(embeddingColumn)
+                    .append(") WITH (distance=")
+                    .append(distanceMetric)
+                    .append(", type=")
+                    .append(indexType)
+                    .append("))");
 
             statement.addBatch(createTableSql.toString());
             statement.executeBatch();

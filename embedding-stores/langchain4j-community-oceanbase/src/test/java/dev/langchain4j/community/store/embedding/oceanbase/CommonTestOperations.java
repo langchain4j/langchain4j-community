@@ -1,14 +1,12 @@
 package dev.langchain4j.community.store.embedding.oceanbase;
 
 import dev.langchain4j.model.embedding.EmbeddingModel;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
-
+import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -21,7 +19,8 @@ public class CommonTestOperations {
 
     private static final Logger log = LoggerFactory.getLogger(CommonTestOperations.class);
 
-    private static final String TABLE_NAME = "langchain4j_oceanbase_test_" + UUID.randomUUID().toString().replace("-", "");
+    private static final String TABLE_NAME =
+            "langchain4j_oceanbase_test_" + UUID.randomUUID().toString().replace("-", "");
     private static final int VECTOR_DIM = 3;
 
     // OceanBase container configuration
@@ -50,9 +49,9 @@ public class CommonTestOperations {
             oceanBaseContainer.start();
 
             // Get the mapped port and host
-            String jdbcUrl = String.format("jdbc:oceanbase://%s:%d/test",
-                    oceanBaseContainer.getHost(),
-                    oceanBaseContainer.getMappedPort(OCEANBASE_PORT));
+            String jdbcUrl = String.format(
+                    "jdbc:oceanbase://%s:%d/test",
+                    oceanBaseContainer.getHost(), oceanBaseContainer.getMappedPort(OCEANBASE_PORT));
 
             log.info("OceanBase container started at {}", jdbcUrl);
 
@@ -61,7 +60,7 @@ public class CommonTestOperations {
 
             // Create test database and setup
             try (Connection conn = dataSource.getConnection();
-                 Statement stmt = conn.createStatement()) {
+                    Statement stmt = conn.createStatement()) {
                 // Set memory limit for vector columns
                 stmt.execute("ALTER SYSTEM SET ob_vector_memory_limit_percentage = 30;");
                 // Create a test database if needed
@@ -85,14 +84,12 @@ public class CommonTestOperations {
      */
     public static OceanBaseEmbeddingStore newEmbeddingStore() {
         return OceanBaseEmbeddingStore.builder(getDataSource())
-                .embeddingTable(
-                        EmbeddingTable.builder(TABLE_NAME)
-                                .vectorDimension(VECTOR_DIM)
-                                .createOption(CreateOption.CREATE_OR_REPLACE)
-                                .build())
+                .embeddingTable(EmbeddingTable.builder(TABLE_NAME)
+                        .vectorDimension(VECTOR_DIM)
+                        .createOption(CreateOption.CREATE_OR_REPLACE)
+                        .build())
                 .build();
     }
-
 
     /**
      * Returns the data source for connecting to OceanBase.
@@ -101,7 +98,8 @@ public class CommonTestOperations {
      */
     public static DataSource getDataSource() {
         if (dataSource == null) {
-            throw new IllegalStateException("DataSource is not initialized. Container might not have started properly.");
+            throw new IllegalStateException(
+                    "DataSource is not initialized. Container might not have started properly.");
         }
         return dataSource;
     }
@@ -136,12 +134,10 @@ public class CommonTestOperations {
         }
 
         @Override
-        public void setLogWriter(java.io.PrintWriter out) throws SQLException {
-        }
+        public void setLogWriter(java.io.PrintWriter out) throws SQLException {}
 
         @Override
-        public void setLoginTimeout(int seconds) throws SQLException {
-        }
+        public void setLoginTimeout(int seconds) throws SQLException {}
 
         @Override
         public int getLoginTimeout() throws SQLException {
@@ -171,7 +167,7 @@ public class CommonTestOperations {
      */
     public static void dropTable() throws SQLException {
         try (Connection connection = getDataSource().getConnection();
-             Statement statement = connection.createStatement()) {
+                Statement statement = connection.createStatement()) {
             statement.execute("DROP TABLE IF EXISTS " + TABLE_NAME);
             log.info("Dropped table {}", TABLE_NAME);
         }

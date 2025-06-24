@@ -1,28 +1,25 @@
 package dev.langchain4j.community.store.embedding.oceanbase.search;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.community.store.embedding.oceanbase.EmbeddingTable;
+import dev.langchain4j.community.store.embedding.oceanbase.distance.DistanceConverter;
+import dev.langchain4j.community.store.embedding.oceanbase.distance.DistanceConverterFactory;
+import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilter;
+import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilterFactory;
+import dev.langchain4j.community.store.embedding.oceanbase.sql.SqlQueryBuilder;
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.filter.Filter;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilterFactory;
-import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.community.store.embedding.oceanbase.EmbeddingTable;
-import dev.langchain4j.community.store.embedding.oceanbase.distance.DistanceConverter;
-import dev.langchain4j.community.store.embedding.oceanbase.distance.DistanceConverterFactory;
-import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilter;
-import dev.langchain4j.community.store.embedding.oceanbase.sql.SqlQueryBuilder;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.filter.Filter;
-import dev.langchain4j.store.embedding.EmbeddingMatch;
-
 
 /**
  * Concrete implementation of SearchTemplate for OceanBase.
@@ -140,11 +137,7 @@ public class OceanBaseSearchTemplate extends SearchTemplate<TextSegment> {
         // Use SqlQueryBuilder (Builder pattern) to construct the query
         SqlQueryBuilder builder = SqlQueryBuilder.select()
                 .columns(table.idColumn(), table.embeddingColumn(), table.textColumn(), table.metadataColumn())
-                .function(
-                        table.distanceMetric().toLowerCase() + "_distance",
-                        table.embeddingColumn(),
-                        "?"
-                )
+                .function(table.distanceMetric().toLowerCase() + "_distance", table.embeddingColumn(), "?")
                 .from(table.name());
 
         // Add WHERE clause for filtering
@@ -157,11 +150,7 @@ public class OceanBaseSearchTemplate extends SearchTemplate<TextSegment> {
         }
 
         // Add ORDER BY clause
-        builder.orderByFunction(
-                table.distanceMetric().toLowerCase() + "_distance",
-                table.embeddingColumn(),
-                "?"
-        );
+        builder.orderByFunction(table.distanceMetric().toLowerCase() + "_distance", table.embeddingColumn(), "?");
 
         // Use APPROXIMATE keyword if not exact search
         if (!isExactSearch) {
@@ -182,7 +171,8 @@ public class OceanBaseSearchTemplate extends SearchTemplate<TextSegment> {
     }
 
     @Override
-    protected List<EmbeddingMatch<TextSegment>> processResults(ResultSet resultSet, EmbeddingSearchRequest request) throws SQLException {
+    protected List<EmbeddingMatch<TextSegment>> processResults(ResultSet resultSet, EmbeddingSearchRequest request)
+            throws SQLException {
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
 
         while (resultSet.next()) {
@@ -203,9 +193,7 @@ public class OceanBaseSearchTemplate extends SearchTemplate<TextSegment> {
 
             Embedding embedding = new Embedding(stringToVector(vectorStr));
             Metadata metadata = jsonToMetadata(metadataJson);
-            TextSegment segment = (text != null) ?
-                    TextSegment.from(text, metadata) :
-                    null;
+            TextSegment segment = (text != null) ? TextSegment.from(text, metadata) : null;
 
             matches.add(new EmbeddingMatch<>(score, id, embedding, segment));
         }
@@ -219,8 +207,8 @@ public class OceanBaseSearchTemplate extends SearchTemplate<TextSegment> {
             return null;
         }
 
-        SQLFilter sqlFilter = SQLFilterFactory.create(filter,
-                (key, value) -> table.getMetadataKeyMapper().mapKey(key));
+        SQLFilter sqlFilter = SQLFilterFactory.create(
+                filter, (key, value) -> table.getMetadataKeyMapper().mapKey(key));
 
         if (sqlFilter.matchesAllRows()) {
             return null;
@@ -229,4 +217,3 @@ public class OceanBaseSearchTemplate extends SearchTemplate<TextSegment> {
         return sqlFilter.toSql();
     }
 }
-

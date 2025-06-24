@@ -9,15 +9,13 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
-
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Integration test for OceanBaseEmbeddingStore.
@@ -54,16 +52,18 @@ public class OceanBaseEmbeddingStoreIT {
         String id = embeddingStore.add(embedding);
 
         // Then
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(embedding)
-                                .maxResults(1)
-                                .build())
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .maxResults(1)
+                        .build())
                 .matches();
 
         assertThat(matches).hasSize(1);
         assertThat(matches.get(0).embeddingId()).isEqualTo(id);
-        assertThat(matches.get(0).embedding().vector()).usingComparatorWithPrecision(0.0001f).containsExactly(embedding.vector());
+        assertThat(matches.get(0).embedding().vector())
+                .usingComparatorWithPrecision(0.0001f)
+                .containsExactly(embedding.vector());
         assertThat(matches.get(0).score()).isCloseTo(1.0, within(0.01));
     }
 
@@ -77,16 +77,18 @@ public class OceanBaseEmbeddingStoreIT {
         String id = embeddingStore.add(embedding, segment);
 
         // Then
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(embedding)
-                                .maxResults(1)
-                                .build())
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .maxResults(1)
+                        .build())
                 .matches();
 
         assertThat(matches).hasSize(1);
         assertThat(matches.get(0).embeddingId()).isEqualTo(id);
-        assertThat(matches.get(0).embedding().vector()).usingComparatorWithPrecision(0.0001f).containsExactly(embedding.vector());
+        assertThat(matches.get(0).embedding().vector())
+                .usingComparatorWithPrecision(0.0001f)
+                .containsExactly(embedding.vector());
         assertThat(matches.get(0).embedded().text()).isEqualTo("Test text");
         assertThat(matches.get(0).embedded().metadata().getString("key")).isEqualTo("value");
     }
@@ -101,11 +103,11 @@ public class OceanBaseEmbeddingStoreIT {
         List<String> ids = embeddingStore.addAll(Arrays.asList(embeddings), Arrays.asList(segments));
 
         // Then
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(TestData.queryEmbedding())
-                                .maxResults(3)
-                                .build())
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(3)
+                        .build())
                 .matches();
 
         assertThat(matches).hasSize(3);
@@ -128,15 +130,16 @@ public class OceanBaseEmbeddingStoreIT {
         embeddingStore.removeAll(ids.subList(0, 3));
 
         // Then - only vegetables should remain
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(TestData.queryEmbedding())
-                                .maxResults(10)
-                                .build())
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(10)
+                        .build())
                 .matches();
 
         assertThat(matches).hasSize(3);
-        assertThat(matches).extracting(match -> match.embedded().metadata().getString("type"))
+        assertThat(matches)
+                .extracting(match -> match.embedded().metadata().getString("type"))
                 .containsOnly("vegetable");
     }
 
@@ -151,15 +154,16 @@ public class OceanBaseEmbeddingStoreIT {
         embeddingStore.removeAll(MetadataFilterBuilder.metadataKey("type").isEqualTo("fruit"));
 
         // Then - only vegetables should remain
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(TestData.queryEmbedding())
-                                .maxResults(10)
-                                .build())
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(10)
+                        .build())
                 .matches();
 
         assertThat(matches).hasSize(3);
-        assertThat(matches).extracting(match -> match.embedded().metadata().getString("type"))
+        assertThat(matches)
+                .extracting(match -> match.embedded().metadata().getString("type"))
                 .containsOnly("vegetable");
     }
 
@@ -171,31 +175,33 @@ public class OceanBaseEmbeddingStoreIT {
         embeddingStore.addAll(Arrays.asList(embeddings), Arrays.asList(segments));
 
         // When: filter by fruits only
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(TestData.queryEmbedding())
-                                .maxResults(6)
-                                .filter(MetadataFilterBuilder.metadataKey("type").isEqualTo("fruit"))
-                                .build())
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(6)
+                        .filter(MetadataFilterBuilder.metadataKey("type").isEqualTo("fruit"))
+                        .build())
                 .matches();
 
         // Then
         assertThat(matches).hasSize(3);
-        assertThat(matches).extracting(match -> match.embedded().metadata().getString("type"))
+        assertThat(matches)
+                .extracting(match -> match.embedded().metadata().getString("type"))
                 .containsOnly("fruit");
 
         // When: filter by red color
-        matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(TestData.queryEmbedding())
-                                .maxResults(6)
-                                .filter(MetadataFilterBuilder.metadataKey("color").isEqualTo("red"))
-                                .build())
+        matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(6)
+                        .filter(MetadataFilterBuilder.metadataKey("color").isEqualTo("red"))
+                        .build())
                 .matches();
 
         // Then
         assertThat(matches).hasSize(2);
-        assertThat(matches).extracting(match -> match.embedded().metadata().getString("color"))
+        assertThat(matches)
+                .extracting(match -> match.embedded().metadata().getString("color"))
                 .containsOnly("red");
     }
 
@@ -209,11 +215,11 @@ public class OceanBaseEmbeddingStoreIT {
         embeddingStore.remove(id);
 
         // Then
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(embedding)
-                                .maxResults(1)
-                                .build())
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .maxResults(1)
+                        .build())
                 .matches();
 
         assertThat(matches).isEmpty();
@@ -230,11 +236,11 @@ public class OceanBaseEmbeddingStoreIT {
         embeddingStore.removeAll();
 
         // Then
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(
-                        EmbeddingSearchRequest.builder()
-                                .queryEmbedding(TestData.queryEmbedding())
-                                .maxResults(10)
-                                .build())
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(10)
+                        .build())
                 .matches();
 
         assertThat(matches).isEmpty();

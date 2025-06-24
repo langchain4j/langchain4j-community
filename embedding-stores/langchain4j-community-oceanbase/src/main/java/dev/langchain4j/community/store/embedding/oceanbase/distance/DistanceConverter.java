@@ -5,10 +5,10 @@ package dev.langchain4j.community.store.embedding.oceanbase.distance;
  * Different distance metrics require different conversion formulas.
  */
 public interface DistanceConverter {
-    
+
     /**
      * Converts a distance value to a similarity score.
-     * 
+     *
      * @param distance The distance value to convert
      * @return A similarity score between 0 and 1, where 1 means exact match
      */

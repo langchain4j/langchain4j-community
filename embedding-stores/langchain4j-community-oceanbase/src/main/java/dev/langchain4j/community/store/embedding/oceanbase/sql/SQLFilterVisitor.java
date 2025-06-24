@@ -1,10 +1,8 @@
 package dev.langchain4j.community.store.embedding.oceanbase.sql;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.function.BiFunction;
-
+import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilters.MatchAllSQLFilter;
+import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilters.MatchNoSQLFilter;
+import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilters.SimpleSQLFilter;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
@@ -17,9 +15,10 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilters.MatchAllSQLFilter;
-import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilters.MatchNoSQLFilter;
-import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilters.SimpleSQLFilter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.BiFunction;
 
 /**
  * Concrete visitor implementation that converts Filter objects to SQLFilter objects.
@@ -27,10 +26,10 @@ import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilters.Simple
  */
 public class SQLFilterVisitor implements FilterVisitor {
     private final BiFunction<String, Object, String> keyMapper;
-    
+
     /**
      * Creates a new SQLFilterVisitor with the given key mapper.
-     * 
+     *
      * @param keyMapper Function that maps a key and value to a SQL column expression
      */
     public SQLFilterVisitor(BiFunction<String, Object, String> keyMapper) {
@@ -39,7 +38,7 @@ public class SQLFilterVisitor implements FilterVisitor {
 
     /**
      * Helper method to convert a value to its SQL string representation.
-     * 
+     *
      * @param value The value to convert
      * @return SQL string representation of the value
      */
@@ -59,7 +58,7 @@ public class SQLFilterVisitor implements FilterVisitor {
     public SQLFilter visit(IsEqualTo filter) {
         String expr = keyMapper.apply(filter.key(), filter.comparisonValue());
         Object value = filter.comparisonValue();
-        
+
         if (value == null) {
             return new SimpleSQLFilter(expr + " IS NULL");
         } else {
@@ -71,7 +70,7 @@ public class SQLFilterVisitor implements FilterVisitor {
     public SQLFilter visit(IsNotEqualTo filter) {
         String expr = keyMapper.apply(filter.key(), filter.comparisonValue());
         Object value = filter.comparisonValue();
-        
+
         if (value == null) {
             return new SimpleSQLFilter(expr + " IS NOT NULL");
         } else {
@@ -109,12 +108,12 @@ public class SQLFilterVisitor implements FilterVisitor {
         if (values == null || values.isEmpty()) {
             return new MatchNoSQLFilter();
         }
-        
+
         List<String> valueStrings = new ArrayList<>(values.size());
         for (Object value : values) {
             valueStrings.add(valueToSql(value));
         }
-        
+
         String expr = keyMapper.apply(filter.key(), values.iterator().next());
         return new SimpleSQLFilter(expr + " IN (" + String.join(", ", valueStrings) + ")");
     }
@@ -125,42 +124,43 @@ public class SQLFilterVisitor implements FilterVisitor {
         if (values == null || values.isEmpty()) {
             return new MatchAllSQLFilter();
         }
-        
+
         List<String> valueStrings = new ArrayList<>(values.size());
         for (Object value : values) {
             valueStrings.add(valueToSql(value));
         }
-        
+
         String expr = keyMapper.apply(filter.key(), values.iterator().next());
-        return new SimpleSQLFilter("(" + expr + " NOT IN (" + String.join(", ", valueStrings) + ") OR " + expr + " IS NULL)");
+        return new SimpleSQLFilter(
+                "(" + expr + " NOT IN (" + String.join(", ", valueStrings) + ") OR " + expr + " IS NULL)");
     }
 
     @Override
     public SQLFilter visit(And filter) {
         SQLFilter leftFilter = process(filter.left());
-        
+
         // If left side matches no rows, the entire AND also matches no rows
         if (leftFilter.matchesNoRows()) {
             return new MatchNoSQLFilter();
         }
-        
+
         // If left side matches all rows, the result depends on the right side
         if (leftFilter.matchesAllRows()) {
             return process(filter.right());
         }
-        
+
         SQLFilter rightFilter = process(filter.right());
-        
+
         // If right side matches no rows, the entire AND also matches no rows
         if (rightFilter.matchesNoRows()) {
             return new MatchNoSQLFilter();
         }
-        
+
         // If right side matches all rows, the result depends on the left side
         if (rightFilter.matchesAllRows()) {
             return leftFilter;
         }
-        
+
         // Both sides need to participate in the AND operation
         return new SimpleSQLFilter("(" + leftFilter.toSql() + ") AND (" + rightFilter.toSql() + ")");
     }
@@ -168,29 +168,29 @@ public class SQLFilterVisitor implements FilterVisitor {
     @Override
     public SQLFilter visit(Or filter) {
         SQLFilter leftFilter = process(filter.left());
-        
+
         // If left side matches all rows, the entire OR also matches all rows
         if (leftFilter.matchesAllRows()) {
             return new MatchAllSQLFilter();
         }
-        
+
         // If left side matches no rows, the result depends on the right side
         if (leftFilter.matchesNoRows()) {
             return process(filter.right());
         }
-        
+
         SQLFilter rightFilter = process(filter.right());
-        
+
         // If right side matches all rows, the entire OR also matches all rows
         if (rightFilter.matchesAllRows()) {
             return new MatchAllSQLFilter();
         }
-        
+
         // If right side matches no rows, the result depends on the left side
         if (rightFilter.matchesNoRows()) {
             return leftFilter;
         }
-        
+
         // Both sides need to participate in the OR operation
         return new SimpleSQLFilter("(" + leftFilter.toSql() + ") OR (" + rightFilter.toSql() + ")");
     }
@@ -198,7 +198,7 @@ public class SQLFilterVisitor implements FilterVisitor {
     @Override
     public SQLFilter visit(Not filter) {
         SQLFilter expressionFilter = process(filter.expression());
-        
+
         if (expressionFilter.matchesAllRows()) {
             return new MatchNoSQLFilter();
         } else if (expressionFilter.matchesNoRows()) {
@@ -207,10 +207,10 @@ public class SQLFilterVisitor implements FilterVisitor {
             return new SimpleSQLFilter("NOT (" + expressionFilter.toSql() + ")");
         }
     }
-    
+
     /**
      * Process any Filter object by making it accept this visitor.
-     * 
+     *
      * @param filter The filter to process
      * @return The resulting SQLFilter
      */
@@ -238,7 +238,8 @@ public class SQLFilterVisitor implements FilterVisitor {
         } else if (filter instanceof Not) {
             return visit((Not) filter);
         } else {
-            throw new IllegalArgumentException("Unsupported filter type: " + filter.getClass().getName());
+            throw new IllegalArgumentException(
+                    "Unsupported filter type: " + filter.getClass().getName());
         }
     }
 }

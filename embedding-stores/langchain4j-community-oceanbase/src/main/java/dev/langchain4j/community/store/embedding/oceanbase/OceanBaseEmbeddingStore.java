@@ -3,6 +3,11 @@ package dev.langchain4j.community.store.embedding.oceanbase;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.community.store.embedding.oceanbase.search.OceanBaseSearchTemplate;
+import dev.langchain4j.community.store.embedding.oceanbase.search.SearchTemplate;
+import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilter;
 import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilterFactory;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -11,19 +16,11 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
-import dev.langchain4j.community.store.embedding.oceanbase.search.OceanBaseSearchTemplate;
-import dev.langchain4j.community.store.embedding.oceanbase.search.SearchTemplate;
-
-import dev.langchain4j.community.store.embedding.oceanbase.sql.SQLFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.*;
 import java.util.*;
 import javax.sql.DataSource;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * OceanBase Vector EmbeddingStore Implementation
@@ -98,8 +95,8 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
      */
     private static <T> T ensureIndexNotNull(List<T> list, int index, String name) {
         if (index < 0 || index >= list.size()) {
-            throw new IllegalArgumentException(String.format(
-                    "Index %d is out of bounds for %s list of size %d", index, name, list.size()));
+            throw new IllegalArgumentException(
+                    String.format("Index %d is out of bounds for %s list of size %d", index, name, list.size()));
         }
         T item = list.get(index);
         if (item == null) {
@@ -130,13 +127,12 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         ensureNotEmpty(id, "id");
         ensureNotNull(embedding, "embedding");
 
-        String sql = "INSERT INTO " + table.name() + " (" +
-                table.idColumn() + ", " +
-                table.embeddingColumn() +
-                ") VALUES (?, ?)";
+        String sql = "INSERT INTO " + table.name() + " (" + table.idColumn()
+                + ", " + table.embeddingColumn()
+                + ") VALUES (?, ?)";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, id);
             statement.setString(2, vectorToString(embedding.vector()));
             statement.executeUpdate();
@@ -164,13 +160,12 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
 
         List<String> ids = generateIds(embeddings.size());
 
-        String sql = "INSERT INTO " + table.name() + " (" +
-                table.idColumn() + ", " +
-                table.embeddingColumn() +
-                ") VALUES (?, ?)";
+        String sql = "INSERT INTO " + table.name() + " (" + table.idColumn()
+                + ", " + table.embeddingColumn()
+                + ") VALUES (?, ?)";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
 
             for (int i = 0; i < ids.size(); i++) {
                 statement.setString(1, ids.get(i));
@@ -192,15 +187,14 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
 
         String id = randomUUID();
 
-        String sql = "INSERT INTO " + table.name() + " (" +
-                table.idColumn() + ", " +
-                table.embeddingColumn() + ", " +
-                table.textColumn() + ", " +
-                table.metadataColumn() +
-                ") VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO " + table.name() + " (" + table.idColumn()
+                + ", " + table.embeddingColumn()
+                + ", " + table.textColumn()
+                + ", " + table.metadataColumn()
+                + ") VALUES (?, ?, ?, ?)";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, id);
             statement.setString(2, vectorToString(embedding.vector()));
             statement.setString(3, textSegment.text());
@@ -248,15 +242,14 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
                     ids.size(), embeddings.size(), embedded.size()));
         }
 
-        String sql = "INSERT INTO " + table.name() + " (" +
-                table.idColumn() + ", " +
-                table.embeddingColumn() + ", " +
-                table.textColumn() + ", " +
-                table.metadataColumn() +
-                ") VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO " + table.name() + " (" + table.idColumn()
+                + ", " + table.embeddingColumn()
+                + ", " + table.textColumn()
+                + ", " + table.metadataColumn()
+                + ") VALUES (?, ?, ?, ?)";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
 
             for (int i = 0; i < ids.size(); i++) {
                 String id = ensureIndexNotNull(ids, i, "ids");
@@ -289,7 +282,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         String sql = "DELETE FROM " + table.name() + " WHERE " + table.idColumn() + " = ?";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, id);
             statement.executeUpdate();
         } catch (SQLException sqlException) {
@@ -310,7 +303,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         String sql = "DELETE FROM " + table.name() + " WHERE " + table.idColumn() + " IN (" + placeholders + ")";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
 
             int index = 1;
             for (String id : ids) {
@@ -327,8 +320,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
     public void removeAll(Filter filter) {
         ensureNotNull(filter, "filter");
 
-        SQLFilter sqlFilter = SQLFilterFactory.create(
-                filter, (key, value) -> table.mapMetadataKey(key));
+        SQLFilter sqlFilter = SQLFilterFactory.create(filter, (key, value) -> table.mapMetadataKey(key));
 
         if (sqlFilter.matchesNoRows()) {
             return;
@@ -342,7 +334,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         }
 
         try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+                Statement statement = connection.createStatement()) {
             statement.executeUpdate(sql);
         } catch (SQLException sqlException) {
             throw uncheckSQLException(sqlException);
@@ -354,7 +346,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         String sql = "DELETE FROM " + table.name();
 
         try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+                Statement statement = connection.createStatement()) {
             statement.executeUpdate(sql);
         } catch (SQLException sqlException) {
             throw uncheckSQLException(sqlException);
@@ -456,9 +448,8 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         public Builder embeddingTable(String tableName, CreateOption createOption) {
             ensureNotNull(tableName, "tableName");
             ensureNotNull(createOption, "createOption");
-            this.embeddingTable = EmbeddingTable.builder(tableName)
-                    .createOption(createOption)
-                    .build();
+            this.embeddingTable =
+                    EmbeddingTable.builder(tableName).createOption(createOption).build();
             return this;
         }
 

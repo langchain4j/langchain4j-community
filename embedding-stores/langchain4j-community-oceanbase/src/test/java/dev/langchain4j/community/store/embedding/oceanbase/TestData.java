@@ -3,7 +3,6 @@ package dev.langchain4j.community.store.embedding.oceanbase;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-
 import java.util.Map;
 import java.util.Random;
 
@@ -44,13 +43,13 @@ public class TestData {
      * @return An array of sample embeddings.
      */
     public static Embedding[] sampleEmbeddings() {
-        return new Embedding[]{
-                new Embedding(new float[]{1.2f, 0.7f, 1.1f}),
-                new Embedding(new float[]{0.6f, 1.2f, 0.8f}),
-                new Embedding(new float[]{1.1f, 1.1f, 0.9f}),
-                new Embedding(new float[]{5.3f, 4.8f, 5.4f}),
-                new Embedding(new float[]{4.9f, 5.3f, 4.8f}),
-                new Embedding(new float[]{5.2f, 4.9f, 5.1f})
+        return new Embedding[] {
+            new Embedding(new float[] {1.2f, 0.7f, 1.1f}),
+            new Embedding(new float[] {0.6f, 1.2f, 0.8f}),
+            new Embedding(new float[] {1.1f, 1.1f, 0.9f}),
+            new Embedding(new float[] {5.3f, 4.8f, 5.4f}),
+            new Embedding(new float[] {4.9f, 5.3f, 4.8f}),
+            new Embedding(new float[] {5.2f, 4.9f, 5.1f})
         };
     }
 
@@ -60,13 +59,13 @@ public class TestData {
      * @return An array of sample text segments.
      */
     public static TextSegment[] sampleTextSegments() {
-        return new TextSegment[]{
-                TextSegment.from("苹果", Metadata.from(Map.of("type", "fruit", "color", "red"))),
-                TextSegment.from("香蕉", Metadata.from(Map.of("type", "fruit", "color", "yellow"))),
-                TextSegment.from("橙子", Metadata.from(Map.of("type", "fruit", "color", "orange"))),
-                TextSegment.from("胡萝卜", Metadata.from(Map.of("type", "vegetable", "color", "orange"))),
-                TextSegment.from("菠菜", Metadata.from(Map.of("type", "vegetable", "color", "green"))),
-                TextSegment.from("西红柿", Metadata.from(Map.of("type", "vegetable", "color", "red")))
+        return new TextSegment[] {
+            TextSegment.from("苹果", Metadata.from(Map.of("type", "fruit", "color", "red"))),
+            TextSegment.from("香蕉", Metadata.from(Map.of("type", "fruit", "color", "yellow"))),
+            TextSegment.from("橙子", Metadata.from(Map.of("type", "fruit", "color", "orange"))),
+            TextSegment.from("胡萝卜", Metadata.from(Map.of("type", "vegetable", "color", "orange"))),
+            TextSegment.from("菠菜", Metadata.from(Map.of("type", "vegetable", "color", "green"))),
+            TextSegment.from("西红柿", Metadata.from(Map.of("type", "vegetable", "color", "red")))
         };
     }
 
@@ -76,6 +75,6 @@ public class TestData {
      * @return A query embedding.
      */
     public static Embedding queryEmbedding() {
-        return new Embedding(new float[]{0.9f, 1.0f, 0.9f});
+        return new Embedding(new float[] {0.9f, 1.0f, 0.9f});
     }
 }
