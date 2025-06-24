@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -55,6 +54,10 @@ class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     static RedisStackContainer redis = new RedisStackContainer(DEFAULT_IMAGE_NAME.withTag(DEFAULT_TAG))
             .withEnv("REDIS_ARGS", "--requirepass %s".formatted(PASSWORD));
 
+    static JedisPooled jedisPooled = new JedisPooled(
+            new HostAndPort(redis.getHost(), redis.getFirstMappedPort()),
+            DefaultJedisClientConfig.builder().password(PASSWORD).build());
+
     RedisEmbeddingStore embeddingStore;
 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
@@ -67,6 +70,7 @@ class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     @AfterAll
     static void afterAll() {
         redis.stop();
+        jedisPooled.close();
     }
 
     @Override
@@ -99,19 +103,12 @@ class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         });
 
         embeddingStore = RedisEmbeddingStore.builder()
-                .jedisPooled(new JedisPooled(
-                        new HostAndPort(redis.getHost(), redis.getFirstMappedPort()),
-                        DefaultJedisClientConfig.builder().password(PASSWORD).build()))
+                .jedisPooled(jedisPooled)
                 .indexName(randomUUID())
                 .prefix(randomUUID() + ":")
                 .dimension(embeddingModel.dimension())
                 .metadataConfig(metadataConfig)
                 .build();
-    }
-
-    @AfterEach
-    void afterEach() {
-        embeddingStore.close();
     }
 
     @Test

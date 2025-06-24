@@ -65,7 +65,7 @@ import redis.clients.jedis.search.schemafields.TextField;
  *     <li>TextType: eq/neq/in</li>
  * </ul>
  */
-public class RedisEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCloseable {
+public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final Logger log = LoggerFactory.getLogger(RedisEmbeddingStore.class);
 
@@ -169,7 +169,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
 
     @Override
     public List<String> addAll(List<Embedding> embeddings) {
-        List<String> ids = embeddings.stream().map(ignored -> randomUUID()).collect(toList());
+        List<String> ids = embeddings.stream().map(ignored -> randomUUID()).toList();
         addAll(ids, embeddings, null);
         return ids;
     }
@@ -331,19 +331,11 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment>, AutoClo
                     return new EmbeddingMatch<>(score, id, embedding, textSegment);
                 })
                 .filter(embeddingMatch -> embeddingMatch.score() >= minScore)
-                .collect(toList());
+                .toList();
     }
 
     public static Builder builder() {
         return new Builder();
-    }
-
-    /**
-     * Close the connection with Jedis
-     */
-    @Override
-    public void close() {
-        client.close();
     }
 
     public static class Builder {
