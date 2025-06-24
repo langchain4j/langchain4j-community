@@ -23,11 +23,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <version>${jedis.version}</version>
-        </dependency>
+        <!-- Jedis is already included as a transitive dependency from langchain4j-community-redis -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
