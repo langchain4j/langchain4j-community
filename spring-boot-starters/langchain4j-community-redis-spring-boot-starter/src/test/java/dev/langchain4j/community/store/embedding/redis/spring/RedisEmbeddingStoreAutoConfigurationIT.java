@@ -15,7 +15,10 @@ import org.junit.jupiter.api.BeforeEach;
 
 class RedisEmbeddingStoreAutoConfigurationIT extends EmbeddingStoreAutoConfigurationIT {
 
-    static RedisStackContainer redis = new RedisStackContainer(DEFAULT_IMAGE_NAME.withTag(DEFAULT_TAG));
+    static final String PASSWORD = "redis-stack";
+
+    static RedisStackContainer redis = new RedisStackContainer(DEFAULT_IMAGE_NAME.withTag(DEFAULT_TAG))
+            .withEnv("REDIS_ARGS", "--requirepass %s".formatted(PASSWORD));
 
     String indexName;
 
@@ -49,6 +52,7 @@ class RedisEmbeddingStoreAutoConfigurationIT extends EmbeddingStoreAutoConfigura
         return new String[] {
             "langchain4j.community.redis.host=" + redis.getHost(),
             "langchain4j.community.redis.port=" + redis.getFirstMappedPort(),
+            "langchain4j.community.redis.password=" + PASSWORD,
             "langchain4j.community.redis.prefix=" + indexName + ":",
             "langchain4j.community.redis.index-name=" + indexName
         };
