@@ -28,6 +28,10 @@ public final class RerankRequest {
         returnLen = builder.returnLen;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getModel() {
         return model;
     }
@@ -50,10 +54,6 @@ public final class RerankRequest {
 
     public Boolean getReturnLen() {
         return returnLen;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

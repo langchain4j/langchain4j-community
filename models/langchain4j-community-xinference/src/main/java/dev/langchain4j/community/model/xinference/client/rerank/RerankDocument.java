@@ -17,12 +17,12 @@ public final class RerankDocument {
         text = builder.text;
     }
 
-    public String getText() {
-        return text;
-    }
-
     public static Builder builder() {
         return new Builder();
+    }
+
+    public String getText() {
+        return text;
     }
 
     @JsonPOJOBuilder(withPrefix = "")

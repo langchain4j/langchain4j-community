@@ -13,17 +13,13 @@ import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.xinference.client.XinferenceClient;
-import dev.langchain4j.community.model.xinference.client.XinferenceHttpException;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionChoice;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionResponse;
 import dev.langchain4j.community.model.xinference.spi.XinferenceChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -31,7 +27,6 @@ import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,6 +99,13 @@ public class XinferenceChatModel implements ChatModel {
         this.parallelToolCalls = parallelToolCalls;
     }
 
+    public static XinferenceChatModelBuilder builder() {
+        for (XinferenceChatModelBuilderFactory factory : loadFactories(XinferenceChatModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new XinferenceChatModelBuilder();
+    }
+
     @Override
     public ChatRequestParameters defaultRequestParameters() {
         return defaultRequestParameters;
@@ -141,65 +143,17 @@ public class XinferenceChatModel implements ChatModel {
         }
 
         ChatCompletionRequest xinferenceRequest = builder.build();
+        ChatCompletionResponse chatCompletionResponse =
+                withRetry(() -> client.chatCompletions(xinferenceRequest).execute(), maxRetries);
 
-        Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
-        listeners.forEach(listener -> {
-            try {
-                listener.onRequest(requestContext);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        });
+        ChatCompletionChoice completionChoice =
+                chatCompletionResponse.getChoices().get(0);
 
-        try {
-            ChatCompletionResponse chatCompletionResponse =
-                    withRetry(() -> client.chatCompletions(xinferenceRequest).execute(), maxRetries);
-
-            ChatCompletionChoice completionChoice =
-                    chatCompletionResponse.getChoices().get(0);
-            ChatResponse response = ChatResponse.builder()
-                    .aiMessage(aiMessageFrom(completionChoice.getMessage()))
-                    .tokenUsage(tokenUsageFrom(chatCompletionResponse.getUsage()))
-                    .finishReason(finishReasonFrom(completionChoice.getFinishReason()))
-                    .build();
-
-            ChatModelResponseContext responseContext =
-                    new ChatModelResponseContext(response, request, provider(), attributes);
-            listeners.forEach(listener -> {
-                try {
-                    listener.onResponse(responseContext);
-                } catch (Exception e) {
-                    log.warn("Exception while calling model listener", e);
-                }
-            });
-
-            return response;
-        } catch (RuntimeException e) {
-            Throwable error;
-            if (e.getCause() instanceof XinferenceHttpException) {
-                error = e.getCause();
-            } else {
-                error = e;
-            }
-            ChatModelErrorContext errorContext = new ChatModelErrorContext(error, request, provider(), attributes);
-
-            listeners.forEach(listener -> {
-                try {
-                    listener.onError(errorContext);
-                } catch (Exception e2) {
-                    log.warn("Exception while calling model listener", e2);
-                }
-            });
-            throw e;
-        }
-    }
-
-    public static XinferenceChatModelBuilder builder() {
-        for (XinferenceChatModelBuilderFactory factory : loadFactories(XinferenceChatModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new XinferenceChatModelBuilder();
+        return ChatResponse.builder()
+                .aiMessage(aiMessageFrom(completionChoice.getMessage()))
+                .tokenUsage(tokenUsageFrom(chatCompletionResponse.getUsage()))
+                .finishReason(finishReasonFrom(completionChoice.getFinishReason()))
+                .build();
     }
 
     public static class XinferenceChatModelBuilder {

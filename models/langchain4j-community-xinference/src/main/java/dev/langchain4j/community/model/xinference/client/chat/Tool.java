@@ -18,20 +18,20 @@ public final class Tool {
         function = builder.function;
     }
 
-    public ToolType getType() {
-        return type;
-    }
-
-    public Function getFunction() {
-        return function;
-    }
-
     public static Tool of(Function function) {
         return builder().function(function).build();
     }
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public ToolType getType() {
+        return type;
+    }
+
+    public Function getFunction() {
+        return function;
     }
 
     @JsonPOJOBuilder(withPrefix = "")

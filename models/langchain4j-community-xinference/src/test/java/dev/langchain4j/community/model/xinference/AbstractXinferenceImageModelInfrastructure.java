@@ -7,15 +7,25 @@ import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERE
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.resolve;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+
 class AbstractXinferenceImageModelInfrastructure {
+
     private static final String LOCAL_IMAGE = String.format("tc-%s-%s", XINFERENCE_IMAGE, modelName());
     static XinferenceContainer container;
 
-    static {
+    @BeforeAll
+    static void beforeAll() {
         if (isNullOrEmpty(XINFERENCE_BASE_URL)) {
             container = new XinferenceContainer(resolve(XINFERENCE_IMAGE, LOCAL_IMAGE)).withModel(modelName());
             container.start();
         }
+    }
+
+    @AfterAll
+    static void afterAll() {
+        container.stop();
     }
 
     public static String baseUrl() {

@@ -66,6 +66,13 @@ public class XinferenceScoringModel implements ScoringModel {
         this.maxRetries = getOrDefault(maxRetries, 3);
     }
 
+    public static XinferenceScoringModelBuilder builder() {
+        for (XinferenceScoringModelBuilderFactory factory : loadFactories(XinferenceScoringModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new XinferenceScoringModelBuilder();
+    }
+
     @Override
     public Response<List<Double>> scoreAll(List<TextSegment> segments, String query) {
         List<String> documents = segments.stream().map(TextSegment::text).toList();
@@ -85,13 +92,6 @@ public class XinferenceScoringModel implements ScoringModel {
         RerankTokens tokens = Optional.ofNullable(response.getMeta().getTokens())
                 .orElse(RerankTokens.builder().inputTokens(0).outputTokens(0).build());
         return Response.from(scores, new TokenUsage(tokens.getInputTokens(), tokens.getOutputTokens()));
-    }
-
-    public static XinferenceScoringModelBuilder builder() {
-        for (XinferenceScoringModelBuilderFactory factory : loadFactories(XinferenceScoringModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new XinferenceScoringModelBuilder();
     }
 
     public static class XinferenceScoringModelBuilder {

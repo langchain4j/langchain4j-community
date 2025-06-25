@@ -22,6 +22,14 @@ public final class AssistantMessage implements Message {
         toolCalls = builder.toolCalls;
     }
 
+    public static AssistantMessage of(String content, ToolCall... toolCalls) {
+        return builder().content(content).toolCalls(List.of(toolCalls)).build();
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     @Override
     public Role getRole() {
         return role;
@@ -33,14 +41,6 @@ public final class AssistantMessage implements Message {
 
     public List<ToolCall> getToolCalls() {
         return toolCalls;
-    }
-
-    public static AssistantMessage of(String content, ToolCall... toolCalls) {
-        return builder().content(content).toolCalls(List.of(toolCalls)).build();
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

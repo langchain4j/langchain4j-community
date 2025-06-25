@@ -21,7 +21,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
-class XinferenceContainer extends GenericContainer<XinferenceContainer> {
+public class XinferenceContainer extends GenericContainer<XinferenceContainer> {
+
     private static final Logger log = LoggerFactory.getLogger(XinferenceContainer.class);
     private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse("xprobe/xinference");
     private static final Integer EXPOSED_PORT = 9997;

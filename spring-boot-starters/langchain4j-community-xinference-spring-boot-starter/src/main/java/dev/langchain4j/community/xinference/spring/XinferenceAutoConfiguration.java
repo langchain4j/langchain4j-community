@@ -7,6 +7,8 @@ import dev.langchain4j.community.model.xinference.XinferenceLanguageModel;
 import dev.langchain4j.community.model.xinference.XinferenceScoringModel;
 import dev.langchain4j.community.model.xinference.XinferenceStreamingChatModel;
 import dev.langchain4j.community.model.xinference.XinferenceStreamingLanguageModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,7 +29,8 @@ public class XinferenceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(ChatModelProperties.PREFIX + ".base-url")
-    public XinferenceChatModel xinferenceChatModel(ChatModelProperties chatModelProperties) {
+    public XinferenceChatModel xinferenceChatModel(
+            ChatModelProperties chatModelProperties, ObjectProvider<ChatModelListener> listenerProvider) {
         return XinferenceChatModel.builder()
                 .baseUrl(chatModelProperties.getBaseUrl())
                 .apiKey(chatModelProperties.getApiKey())
@@ -48,6 +51,7 @@ public class XinferenceAutoConfiguration {
                 .logRequests(chatModelProperties.getLogRequests())
                 .logResponses(chatModelProperties.getLogResponses())
                 .customHeaders(chatModelProperties.getCustomHeaders())
+                .listeners(listenerProvider.stream().toList())
                 .build();
     }
 
@@ -55,7 +59,8 @@ public class XinferenceAutoConfiguration {
     @ConditionalOnMissingBean
     @ConditionalOnProperty(StreamingChatModelProperties.PREFIX + ".base-url")
     public XinferenceStreamingChatModel xinferenceStreamingChatModel(
-            StreamingChatModelProperties streamingChatModelProperties) {
+            StreamingChatModelProperties streamingChatModelProperties,
+            ObjectProvider<ChatModelListener> listenerProvider) {
         return XinferenceStreamingChatModel.builder()
                 .baseUrl(streamingChatModelProperties.getBaseUrl())
                 .apiKey(streamingChatModelProperties.getApiKey())
@@ -75,6 +80,7 @@ public class XinferenceAutoConfiguration {
                 .logRequests(streamingChatModelProperties.getLogRequests())
                 .logResponses(streamingChatModelProperties.getLogResponses())
                 .customHeaders(streamingChatModelProperties.getCustomHeaders())
+                .listeners(listenerProvider.stream().toList())
                 .build();
     }
 

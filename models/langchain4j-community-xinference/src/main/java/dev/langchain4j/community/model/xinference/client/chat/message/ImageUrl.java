@@ -20,20 +20,20 @@ public final class ImageUrl {
         detail = builder.detail;
     }
 
-    public String getUrl() {
-        return url;
-    }
-
-    public ImageDetail getDetail() {
-        return detail;
-    }
-
     public static Builder builder() {
         return new Builder();
     }
 
     public static ImageUrl of(String url, ImageDetail detail) {
         return builder().url(url).detail(detail).build();
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public ImageDetail getDetail() {
+        return detail;
     }
 
     public enum ImageDetail {

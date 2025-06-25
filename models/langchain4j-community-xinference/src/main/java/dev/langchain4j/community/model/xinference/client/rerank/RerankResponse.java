@@ -22,6 +22,10 @@ public final class RerankResponse {
         meta = builder.meta;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getId() {
         return id;
     }
@@ -32,10 +36,6 @@ public final class RerankResponse {
 
     public RerankMeta getMeta() {
         return meta;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

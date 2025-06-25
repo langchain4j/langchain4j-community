@@ -8,7 +8,7 @@ import java.util.Map;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.utility.DockerImageName;
 
-class XinferenceUtils {
+public class XinferenceUtils {
     public static final String XINFERENCE_BASE_URL = System.getenv("XINFERENCE_BASE_URL");
     public static final String XINFERENCE_API_KEY = System.getenv("XINFERENCE_BASE_URL");
     // CPU

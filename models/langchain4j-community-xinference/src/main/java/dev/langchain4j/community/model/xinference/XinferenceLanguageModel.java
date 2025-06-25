@@ -81,6 +81,14 @@ public class XinferenceLanguageModel implements LanguageModel {
         this.maxRetries = getOrDefault(maxRetries, 3);
     }
 
+    public static XinferenceLanguageModelBuilder builder() {
+        for (XinferenceLanguageModelBuilderFactory factory :
+                loadFactories(XinferenceLanguageModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new XinferenceLanguageModelBuilder();
+    }
+
     @Override
     public Response<String> generate(String prompt) {
         CompletionRequest request = CompletionRequest.builder()
@@ -103,14 +111,6 @@ public class XinferenceLanguageModel implements LanguageModel {
                 completionChoice.getText(),
                 tokenUsageFrom(response.getUsage()),
                 finishReasonFrom(completionChoice.getFinishReason()));
-    }
-
-    public static XinferenceLanguageModelBuilder builder() {
-        for (XinferenceLanguageModelBuilderFactory factory :
-                loadFactories(XinferenceLanguageModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new XinferenceLanguageModelBuilder();
     }
 
     public static class XinferenceLanguageModelBuilder {

@@ -19,16 +19,16 @@ public final class ImageData {
         b64Json = builder.b64Json;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getUrl() {
         return url;
     }
 
     public String getB64Json() {
         return b64Json;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

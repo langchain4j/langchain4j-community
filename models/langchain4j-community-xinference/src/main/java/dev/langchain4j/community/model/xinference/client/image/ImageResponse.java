@@ -20,16 +20,16 @@ public final class ImageResponse {
         data = builder.data;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public Integer getCreated() {
         return created;
     }
 
     public List<ImageData> getData() {
         return data;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

@@ -21,6 +21,14 @@ public final class UserMessage implements Message {
         name = builder.name;
     }
 
+    public static UserMessage of(String content) {
+        return builder().content(content).build();
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     @Override
     public Role getRole() {
         return role;
@@ -32,14 +40,6 @@ public final class UserMessage implements Message {
 
     public String getName() {
         return name;
-    }
-
-    public static UserMessage of(String content) {
-        return builder().content(content).build();
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

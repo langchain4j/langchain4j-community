@@ -24,6 +24,10 @@ public final class ChatCompletionChoice {
         delta = builder.delta;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public Integer getIndex() {
         return index;
     }
@@ -38,10 +42,6 @@ public final class ChatCompletionChoice {
 
     public Delta getDelta() {
         return delta;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

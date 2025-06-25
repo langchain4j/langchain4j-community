@@ -23,6 +23,10 @@ public final class EmbeddingResponse {
         usage = builder.usage;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getModel() {
         return model;
     }
@@ -33,10 +37,6 @@ public final class EmbeddingResponse {
 
     public CompletionUsage getUsage() {
         return usage;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

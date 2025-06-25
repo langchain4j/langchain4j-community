@@ -27,6 +27,10 @@ public final class ChatCompletionResponse {
         usage = builder.usage;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getId() {
         return id;
     }
@@ -49,10 +53,6 @@ public final class ChatCompletionResponse {
 
     public String content() {
         return choices.get(0).getMessage().getContent();
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

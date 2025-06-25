@@ -20,16 +20,16 @@ public final class RerankMeta {
         warnings = builder.warnings;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public RerankTokens getTokens() {
         return tokens;
     }
 
     public List<String> getWarnings() {
         return warnings;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")
