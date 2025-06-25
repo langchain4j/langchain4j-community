@@ -14,7 +14,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.redis.testcontainers.RedisContainer;
+import com.redis.testcontainers.RedisStackContainer;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -40,6 +40,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.search.schemafields.NumericField;
 import redis.clients.jedis.search.schemafields.SchemaField;
 import redis.clients.jedis.search.schemafields.TagField;
@@ -47,7 +50,14 @@ import redis.clients.jedis.search.schemafields.TextField;
 
 class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
-    static RedisContainer redis = new RedisContainer(DEFAULT_IMAGE_NAME.withTag(DEFAULT_TAG));
+    static final String PASSWORD = "redis-stack";
+
+    static RedisStackContainer redis = new RedisStackContainer(DEFAULT_IMAGE_NAME.withTag(DEFAULT_TAG))
+            .withEnv("REDIS_ARGS", "--requirepass %s".formatted(PASSWORD));
+
+    JedisPooled jedisPooled = new JedisPooled(
+            new HostAndPort(redis.getHost(), redis.getFirstMappedPort()),
+            DefaultJedisClientConfig.builder().password(PASSWORD).build());
 
     RedisEmbeddingStore embeddingStore;
 
@@ -93,8 +103,10 @@ class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         });
 
         embeddingStore = RedisEmbeddingStore.builder()
-                .host(redis.getHost())
-                .port(redis.getFirstMappedPort())
+                .jedisPooled(jedisPooled)
+                //                .host(redis.getHost())
+                //                .port(redis.getFirstMappedPort())
+                //                .password(PASSWORD)
                 .indexName(randomUUID())
                 .prefix(randomUUID() + ":")
                 .dimension(embeddingModel.dimension())
@@ -104,7 +116,7 @@ class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     @AfterEach
     void afterEach() {
-        embeddingStore.close();
+        jedisPooled.close();
     }
 
     @Test
