@@ -14,7 +14,7 @@ public class DistanceConverterFactory {
      */
     public static DistanceConverter getConverter(String metric) {
         if (metric == null) {
-            return new EuclideanDistanceConverter();
+            return new CosineDistanceConverter();
         }
 
         metric = metric.toLowerCase();
