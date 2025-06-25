@@ -128,7 +128,6 @@ class StreamingRequestExecutor<Request, Response, ResponseContent> {
                 }
 
                 if ("[DONE]".equals(data)) {
-                    streamingCompletionCallback.run();
                     return;
                 }
 

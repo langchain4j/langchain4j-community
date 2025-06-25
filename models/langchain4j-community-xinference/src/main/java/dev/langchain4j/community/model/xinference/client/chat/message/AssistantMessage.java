@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.xinference.client.chat.message;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -18,7 +20,8 @@ public final class AssistantMessage implements Message {
     private final List<ToolCall> toolCalls;
 
     private AssistantMessage(Builder builder) {
-        content = builder.content;
+        // content should not be null
+        content = getOrDefault(builder.content, "");
         toolCalls = builder.toolCalls;
     }
 

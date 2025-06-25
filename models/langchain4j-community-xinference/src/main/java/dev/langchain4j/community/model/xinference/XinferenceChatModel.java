@@ -23,6 +23,7 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
@@ -151,8 +152,12 @@ public class XinferenceChatModel implements ChatModel {
 
         return ChatResponse.builder()
                 .aiMessage(aiMessageFrom(completionChoice.getMessage()))
-                .tokenUsage(tokenUsageFrom(chatCompletionResponse.getUsage()))
-                .finishReason(finishReasonFrom(completionChoice.getFinishReason()))
+                .metadata(ChatResponseMetadata.builder()
+                        .id(chatCompletionResponse.getId())
+                        .modelName(request.modelName())
+                        .finishReason(finishReasonFrom(completionChoice.getFinishReason()))
+                        .tokenUsage(tokenUsageFrom(chatCompletionResponse.getUsage()))
+                        .build())
                 .build();
     }
 

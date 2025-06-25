@@ -25,7 +25,9 @@ class AbstractXinferenceEmbeddingModelInfrastructure {
 
     @AfterAll
     static void afterAll() {
-        container.stop();
+        if (container != null) {
+            container.stop();
+        }
     }
 
     public static String baseUrl() {

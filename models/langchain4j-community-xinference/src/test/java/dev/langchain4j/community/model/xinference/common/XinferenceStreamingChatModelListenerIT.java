@@ -32,7 +32,9 @@ class XinferenceStreamingChatModelListenerIT extends AbstractStreamingChatModelL
 
     @AfterAll
     static void afterAll() {
-        xinference.stop();
+        if (xinference != null) {
+            xinference.stop();
+        }
     }
 
     @Override
