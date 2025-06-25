@@ -1,5 +1,7 @@
 package dev.langchain4j.community.store.embedding.oceanbase;
 
+import static dev.langchain4j.community.store.embedding.oceanbase.ValidationUtils.ensureIndexNotNull;
+import static dev.langchain4j.community.store.embedding.oceanbase.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
@@ -71,46 +73,8 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         try {
             table.create(dataSource);
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
-    }
-
-    /**
-     * Transforms a SQLException into a RuntimeException.
-     * @param sqlException SQLException to transform. Not null.
-     * @return A RuntimeException that wraps the SQLException.
-     */
-    private static RuntimeException uncheckSQLException(SQLException sqlException) {
-        return new RuntimeException("SQL error: " + sqlException.getMessage(), sqlException);
-    }
-
-    /**
-     * Returns a null-safe item from a List.
-     * @param list List to get an item from.
-     * @param index Index of the item to get.
-     * @param name Name of the parameter, for error messages.
-     * @param <T> Type of the list items.
-     * @return The item at the given index.
-     * @throws IllegalArgumentException If the item is null.
-     */
-    private static <T> T ensureIndexNotNull(List<T> list, int index, String name) {
-        if (index < 0 || index >= list.size()) {
-            throw new IllegalArgumentException(
-                    String.format("Index %d is out of bounds for %s list of size %d", index, name, list.size()));
-        }
-        T item = list.get(index);
-        if (item == null) {
-            throw new IllegalArgumentException(String.format("%s[%d] is null", name, index));
-        }
-        return item;
-    }
-
-    private static String ensureNotEmpty(String value, String name) {
-        ensureNotNull(value, name);
-        if (value.trim().isEmpty()) {
-            throw new IllegalArgumentException(name + " cannot be empty");
-        }
-        return value;
     }
 
     @Override
@@ -137,17 +101,8 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
             statement.setString(2, vectorToString(embedding.vector()));
             statement.executeUpdate();
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
-    }
-
-    @Override
-    public List<String> generateIds(final int n) {
-        List<String> ids = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) {
-            ids.add(randomUUID());
-        }
-        return ids;
     }
 
     @Override
@@ -155,7 +110,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         ensureNotNull(embeddings, "embeddings");
 
         if (embeddings.isEmpty()) {
-            return Collections.emptyList();
+            return List.of();
         }
 
         List<String> ids = generateIds(embeddings.size());
@@ -176,7 +131,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
             statement.executeBatch();
             return ids;
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
     }
 
@@ -202,7 +157,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
             statement.executeUpdate();
             return id;
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
     }
 
@@ -265,7 +220,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
 
             statement.executeBatch();
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
     }
 
@@ -286,7 +241,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
             statement.setString(1, id);
             statement.executeUpdate();
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
     }
 
@@ -312,7 +267,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
 
             statement.executeUpdate();
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
     }
 
@@ -337,7 +292,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
                 Statement statement = connection.createStatement()) {
             statement.executeUpdate(sql);
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
     }
 
@@ -349,7 +304,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
                 Statement statement = connection.createStatement()) {
             statement.executeUpdate(sql);
         } catch (SQLException sqlException) {
-            throw uncheckSQLException(sqlException);
+            throw new UncheckSQLException(sqlException);
         }
     }
 

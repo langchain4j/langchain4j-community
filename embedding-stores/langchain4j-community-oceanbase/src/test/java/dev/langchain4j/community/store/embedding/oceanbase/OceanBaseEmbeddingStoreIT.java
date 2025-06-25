@@ -8,6 +8,7 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -244,5 +245,115 @@ public class OceanBaseEmbeddingStoreIT {
                 .matches();
 
         assertThat(matches).isEmpty();
+    }
+
+    @Test
+    void should_filter_using_sql_filter_expression() {
+        // Given
+        Embedding[] embeddings = TestData.sampleEmbeddings();
+        TextSegment[] segments = TestData.sampleTextSegments();
+        embeddingStore.addAll(Arrays.asList(embeddings), Arrays.asList(segments));
+
+        // When: filter by simple SQL expression for red color
+        Filter redColorFilter = MetadataFilterBuilder.metadataKey("color").isEqualTo("red");
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(6)
+                        .filter(redColorFilter)
+                        .build())
+                .matches();
+
+        // Then
+        assertThat(matches).hasSize(2);
+        assertThat(matches)
+                .extracting(match -> match.embedded().metadata().getString("color"))
+                .containsOnly("red");
+
+        // When: filter by simple SQL expression for fruits
+        Filter fruitFilter = MetadataFilterBuilder.metadataKey("type").isEqualTo("fruit");
+        matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(6)
+                        .filter(fruitFilter)
+                        .build())
+                .matches();
+
+        // Then
+        assertThat(matches).hasSize(3);
+        assertThat(matches)
+                .extracting(match -> match.embedded().metadata().getString("type"))
+                .containsOnly("fruit");
+    }
+
+    @Test
+    void should_use_sql_filter_factory_for_filtering() {
+        // Given
+        Embedding[] embeddings = TestData.sampleEmbeddings();
+        TextSegment[] segments = TestData.sampleTextSegments();
+        embeddingStore.addAll(Arrays.asList(embeddings), Arrays.asList(segments));
+
+        Filter matchAllFilter = MetadataFilterBuilder.metadataKey("type").isIn("fruit", "vegetable");
+
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(10)
+                        .filter(matchAllFilter)
+                        .build())
+                .matches();
+
+        // Then: should return all embeddings
+        assertThat(matches).hasSize(6); // 3 fruits + 3 vegetables
+        assertThat(matches)
+                .extracting(match -> match.embedded().metadata().getString("type"))
+                .containsExactlyInAnyOrder("fruit", "fruit", "fruit", "vegetable", "vegetable", "vegetable");
+    }
+
+    @Test
+    void should_use_sql_filter_factory_for_empty_results() {
+        // Given
+        Embedding[] embeddings = TestData.sampleEmbeddings();
+        TextSegment[] segments = TestData.sampleTextSegments();
+        embeddingStore.addAll(Arrays.asList(embeddings), Arrays.asList(segments));
+
+        Filter nonExistentFilter = MetadataFilterBuilder.metadataKey("type").isEqualTo("non-existent-type");
+
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(10)
+                        .filter(nonExistentFilter)
+                        .build())
+                .matches();
+
+        // Then: should return no embeddings
+        assertThat(matches).isEmpty();
+    }
+
+    @Test
+    void should_remove_embeddings_by_filter_with_sql_filter_factory() {
+        // Given
+        Embedding[] embeddings = TestData.sampleEmbeddings();
+        TextSegment[] segments = TestData.sampleTextSegments();
+        embeddingStore.addAll(Arrays.asList(embeddings), Arrays.asList(segments));
+
+        // When - remove all fruits using Filter
+        Filter fruitFilter = MetadataFilterBuilder.metadataKey("type").isEqualTo("fruit");
+        embeddingStore.removeAll(fruitFilter);
+
+        // Then - only vegetables should remain
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(TestData.queryEmbedding())
+                        .maxResults(10)
+                        .build())
+                .matches();
+
+        assertThat(matches).hasSize(3);
+        assertThat(matches)
+                .extracting(match -> match.embedded().metadata().getString("type"))
+                .containsOnly("vegetable");
     }
 }

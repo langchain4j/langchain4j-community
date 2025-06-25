@@ -91,35 +91,29 @@ public final class EmbeddingTable {
                 statement.addBatch("DROP TABLE IF EXISTS " + name);
             }
 
-            StringBuilder createTableSql = new StringBuilder();
-            createTableSql
-                    .append("CREATE TABLE IF NOT EXISTS ")
-                    .append(name)
-                    .append("(")
-                    .append(idColumn)
-                    .append(" VARCHAR(36) NOT NULL, ")
-                    .append(embeddingColumn)
-                    .append(" VECTOR(")
-                    .append(vectorDimension)
-                    .append("), ")
-                    .append(textColumn)
-                    .append(" VARCHAR(4000), ")
-                    .append(metadataColumn)
-                    .append(" JSON, ")
-                    .append("PRIMARY KEY (")
-                    .append(idColumn)
-                    .append("), ")
-                    .append("VECTOR INDEX ")
-                    .append(vectorIndexName)
-                    .append("(")
-                    .append(embeddingColumn)
-                    .append(") WITH (distance=")
-                    .append(distanceMetric)
-                    .append(", type=")
-                    .append(indexType)
-                    .append("))");
-
-            statement.addBatch(createTableSql.toString());
+            statement.addBatch(
+                    """
+                CREATE TABLE IF NOT EXISTS %s(
+                    %s VARCHAR(36) NOT NULL,
+                    %s VECTOR(%d),
+                    %s VARCHAR(4000),
+                    %s JSON,
+                    PRIMARY KEY (%s),
+                    VECTOR INDEX %s(%s) WITH (distance=%s, type=%s)
+                )
+                """
+                            .formatted(
+                                    name,
+                                    idColumn,
+                                    embeddingColumn,
+                                    vectorDimension,
+                                    textColumn,
+                                    metadataColumn,
+                                    idColumn,
+                                    vectorIndexName,
+                                    embeddingColumn,
+                                    distanceMetric,
+                                    indexType));
             statement.executeBatch();
         }
     }
@@ -246,7 +240,7 @@ public final class EmbeddingTable {
         private String metadataColumn = "metadata";
         private int vectorDimension = 1536;
         private String vectorIndexName = "idx_vector";
-        private String distanceMetric = "L2";
+        private String distanceMetric = "cosine";
         private String indexType = "hnsw";
         private CreateOption createOption = CreateOption.CREATE_IF_NOT_EXISTS;
 

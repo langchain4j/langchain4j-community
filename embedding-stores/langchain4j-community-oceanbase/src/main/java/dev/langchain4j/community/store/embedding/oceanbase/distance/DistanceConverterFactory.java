@@ -9,23 +9,25 @@ public class DistanceConverterFactory {
     /**
      * Returns the appropriate converter for the given distance metric.
      *
-     * @param metric The distance metric name (e.g., "cosine", "euclidean")
+     * @param metric The distance metric name (e.g., "cosine", "manhattan", "euclidean")
      * @return A DistanceConverter appropriate for the given metric
      */
     public static DistanceConverter getConverter(String metric) {
         if (metric == null) {
-            return new DefaultDistanceConverter();
+            return new EuclideanDistanceConverter();
         }
 
         metric = metric.toLowerCase();
 
         switch (metric) {
-            case "cosine":
-                return new CosineDistanceConverter();
+            case "l1":
+            case "manhattan":
+                return new ManhattanDistanceConverter();
+            case "l2":
             case "euclidean":
                 return new EuclideanDistanceConverter();
             default:
-                return new DefaultDistanceConverter();
+                return new CosineDistanceConverter();
         }
     }
 }

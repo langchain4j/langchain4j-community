@@ -87,6 +87,7 @@ public class CommonTestOperations {
                 .embeddingTable(EmbeddingTable.builder(TABLE_NAME)
                         .vectorDimension(VECTOR_DIM)
                         .createOption(CreateOption.CREATE_OR_REPLACE)
+                        .distanceMetric("L2")
                         .build())
                 .build();
     }
