@@ -28,6 +28,11 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
         return reasoningContent;
     }
 
+    @Override
+    public Builder toBuilder() {
+        return ((Builder) super.toBuilder(builder())).searchInfo(searchInfo).reasoningContent(reasoningContent);
+    }
+
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>(5);
         if (id() != null) {

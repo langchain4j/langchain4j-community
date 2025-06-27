@@ -5,6 +5,7 @@ import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static java.util.Collections.singletonList;
 
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.service.common.AbstractStreamingAiServiceIT;
 import java.util.List;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -18,5 +19,10 @@ public class QwenStreamingAiServiceIT extends AbstractStreamingAiServiceIT {
                 .modelName(QWEN_MAX)
                 .temperature(0.0f)
                 .build());
+    }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(StreamingChatModel streamingChatModel) {
+        return QwenChatResponseMetadata.class;
     }
 }
