@@ -168,7 +168,7 @@ class InternalQianfanHelper {
         return ((SystemMessage) systemMessages.get(0)).text();
     }
 
-    static List<Message> toOpenAiMessages(List<ChatMessage> messages) {
+    static List<Message> toQianfanMessages(List<ChatMessage> messages) {
         List<Message> aiMessages = messages.stream()
                 .filter(chatMessage -> !(chatMessage instanceof SystemMessage))
                 .map(InternalQianfanHelper::toQianfanMessage)

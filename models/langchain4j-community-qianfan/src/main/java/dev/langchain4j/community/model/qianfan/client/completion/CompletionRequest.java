@@ -1,18 +1,17 @@
 package dev.langchain4j.community.model.qianfan.client.completion;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.List;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
-public final class CompletionRequest {
+public class CompletionRequest {
 
     private final String prompt;
     private final Boolean stream;
@@ -32,6 +31,10 @@ public final class CompletionRequest {
         this.topP = builder.topP;
         this.penaltyScore = builder.penaltyScore;
         this.stop = builder.stop;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getPrompt() {
@@ -66,10 +69,6 @@ public final class CompletionRequest {
         return stop;
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
     public static final class Builder {
 
         private String prompt;
@@ -81,11 +80,9 @@ public final class CompletionRequest {
         private Double penaltyScore;
         private List<String> stop;
 
-        private Builder() {
-        }
+        private Builder() {}
 
-        public Builder from(
-                CompletionRequest request) {
+        public Builder from(CompletionRequest request) {
             this.prompt(request.prompt);
             this.stream(request.stream);
             this.user(request.userId);
@@ -109,7 +106,6 @@ public final class CompletionRequest {
             this.topK = topK;
             return this;
         }
-
 
         public Builder topP(Double topP) {
             this.topP = topP;

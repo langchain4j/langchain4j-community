@@ -1,5 +1,11 @@
 package dev.langchain4j.community.model.qianfan;
 
+import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.finishReasonFrom;
+import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.tokenUsageFrom;
+import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+
 import dev.langchain4j.community.model.qianfan.client.QianfanClient;
 import dev.langchain4j.community.model.qianfan.client.completion.CompletionRequest;
 import dev.langchain4j.community.model.qianfan.client.completion.CompletionResponse;
@@ -7,14 +13,7 @@ import dev.langchain4j.community.model.qianfan.spi.QianfanLanguageModelBuilderFa
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.output.Response;
-
 import java.net.Proxy;
-
-import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.finishReasonFrom;
-import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.tokenUsageFrom;
-import static dev.langchain4j.internal.RetryUtils.withRetry;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
@@ -31,29 +30,32 @@ public class QianfanLanguageModel implements LanguageModel {
     private final Integer topK;
     private final String endpoint;
 
-    public QianfanLanguageModel(String baseUrl,
-                                String apiKey,
-                                String secretKey,
-                                Double temperature,
-                                Integer maxRetries,
-                                Integer topK,
-                                Double topP,
-                                String modelName,
-                                String endpoint,
-                                Double penaltyScore,
-                                Boolean logRequests,
-                                Boolean logResponses,
-                                Proxy proxy
-    ) {
+    public QianfanLanguageModel(
+            String baseUrl,
+            String apiKey,
+            String secretKey,
+            Double temperature,
+            Integer maxRetries,
+            Integer topK,
+            Double topP,
+            String modelName,
+            String endpoint,
+            Double penaltyScore,
+            Boolean logRequests,
+            Boolean logResponses,
+            Proxy proxy) {
         if (Utils.isNullOrBlank(apiKey) || Utils.isNullOrBlank(secretKey)) {
-            throw new IllegalArgumentException(" api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
+            throw new IllegalArgumentException(
+                    " api key and secret key must be defined. It can be generated here: https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application");
         }
 
         this.modelName = modelName;
-        this.endpoint = Utils.isNullOrBlank(endpoint) ? QianfanLanguageModelNameEnum.fromModelName(modelName) : endpoint;
+        this.endpoint =
+                Utils.isNullOrBlank(endpoint) ? QianfanLanguageModelNameEnum.fromModelName(modelName) : endpoint;
 
         if (Utils.isNullOrBlank(this.endpoint)) {
-            throw new IllegalArgumentException("Qianfan is no such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
+            throw new IllegalArgumentException(
+                    "Qianfan is no such model name. You can see model name here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu");
         }
 
         this.baseUrl = getOrDefault(baseUrl, "https://aip.baidubce.com");
@@ -73,6 +75,13 @@ public class QianfanLanguageModel implements LanguageModel {
         this.penaltyScore = penaltyScore;
     }
 
+    public static QianfanLanguageModelBuilder builder() {
+        for (QianfanLanguageModelBuilderFactory factory : loadFactories(QianfanLanguageModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new QianfanLanguageModelBuilder();
+    }
+
     @Override
     public Response<String> generate(String prompt) {
 
@@ -84,21 +93,11 @@ public class QianfanLanguageModel implements LanguageModel {
                 .penaltyScore(penaltyScore)
                 .build();
 
-
-        CompletionResponse response = withRetry(() -> client.completion(request, false, endpoint).execute(), maxRetries);
+        CompletionResponse response =
+                withRetry(() -> client.completion(request, false, endpoint).execute(), maxRetries);
 
         return Response.from(
-                response.getResult(),
-                tokenUsageFrom(response),
-                finishReasonFrom(response.getFinishReason())
-        );
-    }
-
-    public static QianfanLanguageModelBuilder builder() {
-        for (QianfanLanguageModelBuilderFactory factory : loadFactories(QianfanLanguageModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new QianfanLanguageModelBuilder();
+                response.getResult(), tokenUsageFrom(response), finishReasonFrom(response.getFinishReason()));
     }
 
     public static class QianfanLanguageModelBuilder {
@@ -201,8 +200,7 @@ public class QianfanLanguageModel implements LanguageModel {
                     penaltyScore,
                     logRequests,
                     logResponses,
-                    proxy
-            );
+                    proxy);
         }
     }
 }

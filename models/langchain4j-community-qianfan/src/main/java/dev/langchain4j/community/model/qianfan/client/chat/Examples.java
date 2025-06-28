@@ -1,11 +1,11 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
@@ -22,6 +22,10 @@ public class Examples {
         this.role = builder.role;
         this.content = builder.content;
         this.functionCall = builder.functionCall;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public Role getRole() {
@@ -42,16 +46,11 @@ public class Examples {
 
     @Override
     public String toString() {
-        return "Examples{" +
-                "role=" + role +
-                ", name='" + name + '\'' +
-                ", content='" + content + '\'' +
-                ", functionCall=" + functionCall +
-                '}';
-    }
-
-    public static Builder builder() {
-        return new Builder();
+        return "Examples{" + "role="
+                + role + ", name='"
+                + name + '\'' + ", content='"
+                + content + '\'' + ", functionCall="
+                + functionCall + '}';
     }
 
     public static final class Builder {
@@ -61,8 +60,7 @@ public class Examples {
         private String content;
         private FunctionCall functionCall;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder role(Role role) {
             this.role = role;

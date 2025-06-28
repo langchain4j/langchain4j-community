@@ -1,31 +1,29 @@
 package dev.langchain4j.community.model.qianfan.client;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
-public final class Usage {
+public class Usage {
 
     private Integer promptTokens;
     private Integer completionTokens;
     private Integer totalTokens;
 
-    public Usage() {
-    }
+    public Usage() {}
 
     public Integer getPromptTokens() {
         return promptTokens;
     }
 
-    public void setPromptTokens(final Integer promptTokens) {
+    public void setPromptTokens(Integer promptTokens) {
         this.promptTokens = promptTokens;
     }
 
@@ -33,7 +31,7 @@ public final class Usage {
         return completionTokens;
     }
 
-    public void setCompletionTokens(final Integer completionTokens) {
+    public void setCompletionTokens(Integer completionTokens) {
         this.completionTokens = completionTokens;
     }
 
@@ -41,7 +39,7 @@ public final class Usage {
         return totalTokens;
     }
 
-    public void setTotalTokens(final Integer totalTokens) {
+    public void setTotalTokens(Integer totalTokens) {
         this.totalTokens = totalTokens;
     }
 
@@ -54,7 +52,9 @@ public final class Usage {
     }
 
     private boolean equalTo(Usage another) {
-        return Objects.equals(this.promptTokens, another.promptTokens) && Objects.equals(this.completionTokens, another.completionTokens) && Objects.equals(this.totalTokens, another.totalTokens);
+        return Objects.equals(this.promptTokens, another.promptTokens)
+                && Objects.equals(this.completionTokens, another.completionTokens)
+                && Objects.equals(this.totalTokens, another.totalTokens);
     }
 
     public int hashCode() {
@@ -67,11 +67,9 @@ public final class Usage {
 
     @Override
     public String toString() {
-        return "Usage{" +
-                "promptTokens=" + promptTokens +
-                ", completionTokens=" + completionTokens +
-                ", totalTokens=" + totalTokens +
-                '}';
+        return "Usage{" + "promptTokens="
+                + promptTokens + ", completionTokens="
+                + completionTokens + ", totalTokens="
+                + totalTokens + '}';
     }
 }
-

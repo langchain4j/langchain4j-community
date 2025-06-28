@@ -9,11 +9,11 @@ import dev.langchain4j.Internal;
 @Internal
 class Json {
 
+    static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
+
     private Json() throws InstantiationException {
         throw new InstantiationException("Can not instantiate utility class");
     }
-
-    static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
 
     static String toJson(Object object) {
         try {

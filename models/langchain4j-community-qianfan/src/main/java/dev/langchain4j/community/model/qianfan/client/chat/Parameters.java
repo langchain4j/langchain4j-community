@@ -1,17 +1,16 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
@@ -26,6 +25,10 @@ public class Parameters {
         this.type = builder.type;
         this.properties = builder.properties;
         this.required = builder.required;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getType() {
@@ -44,13 +47,14 @@ public class Parameters {
         if (this == another) {
             return true;
         } else {
-            return another instanceof Parameters
-                    && this.equalTo((Parameters) another);
+            return another instanceof Parameters && this.equalTo((Parameters) another);
         }
     }
 
     private boolean equalTo(Parameters another) {
-        return Objects.equals(this.type, another.type) && Objects.equals(this.properties, another.properties) && Objects.equals(this.required, another.required);
+        return Objects.equals(this.type, another.type)
+                && Objects.equals(this.properties, another.properties)
+                && Objects.equals(this.required, another.required);
     }
 
     public int hashCode() {
@@ -63,10 +67,6 @@ public class Parameters {
 
     public String toString() {
         return "Parameters{type=" + this.type + ", properties=" + this.properties + ", required=" + this.required + "}";
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static final class Builder {
@@ -101,4 +101,3 @@ public class Parameters {
         }
     }
 }
-
