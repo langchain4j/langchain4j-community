@@ -23,11 +23,6 @@ import java.util.stream.Collectors;
 public class PostgresFilterMapper {
 
     /**
-     * Maps {@link Filter} objects into Cloud SQL filter strings.
-     */
-    public PostgresFilterMapper() {}
-
-    /**
      * Maps {@link Filter} into a string
      *
      * @param filter the filter to be mapped

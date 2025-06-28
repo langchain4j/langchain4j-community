@@ -1,6 +1,5 @@
 package dev.langchain4j.community.store.embedding.cloudsql.index.query;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,15 +20,17 @@ public class HNSWQueryOptions implements QueryOptions {
 
     @Override
     public List<String> getParameterSettings() {
-        List<String> parameters = new ArrayList<>();
-        parameters.add(String.format("nsw.efS_search = %d", efSearch));
-        return parameters;
+        return List.of("nsw.efS_search = " + efSearch);
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
      * Builder which configures and creates instances of {@link HNSWQueryOptions}.
      */
-    public class Builder {
+    public static class Builder {
 
         private Integer efSearch = 40;
 

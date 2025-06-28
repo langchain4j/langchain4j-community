@@ -31,7 +31,7 @@ import java.util.function.BiFunction;
 public class PostgresLoader {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final String DEFAULT_METADATA_COL = "langchain_metadata";
+    private static final String DEFAULT_METADATA_COL = "langchain4j_metadata";
 
     private final PostgresEngine engine;
     private final String query;
