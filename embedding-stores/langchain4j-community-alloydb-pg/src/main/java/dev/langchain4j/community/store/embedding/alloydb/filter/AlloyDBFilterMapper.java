@@ -23,11 +23,6 @@ import java.util.stream.Collectors;
 public class AlloyDBFilterMapper {
 
     /**
-     * Maps {@link Filter} objects into AlloyDB filter strings.
-     */
-    public AlloyDBFilterMapper() {}
-
-    /**
      * Maps {@link Filter} into a string
      *
      * @param filter the filter to be mapped

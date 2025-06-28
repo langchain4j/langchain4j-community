@@ -30,14 +30,14 @@ import java.util.function.BiFunction;
  */
 public class AlloyDBLoader {
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String DEFAULT_METADATA_COL = "langchain_metadata";
     private final AlloyDBEngine engine;
     private final String query;
     private final List<String> contentColumns;
     private final List<String> metadataColumns;
     private final BiFunction<Map<String, Object>, List<String>, String> formatter;
     private final String metadataJsonColumn;
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    private static final String DEFAULT_METADATA_COL = "langchain_metadata";
 
     /**
      * Create a new {@link AlloyDBLoader} from the Builder.
@@ -122,6 +122,16 @@ public class AlloyDBLoader {
     }
 
     /**
+     * Create a new {@link Builder}.
+     *
+     * @param engine The AlloyDB Engine
+     * @return the new {@link Builder}.
+     */
+    public static Builder builder(AlloyDBEngine engine) {
+        return new Builder(engine);
+    }
+
+    /**
      * Executes the configured SQL query against the AlloyDB database and
      * transforms the result set into a list of {@link Document} objects.
      * <p>
@@ -191,16 +201,6 @@ public class AlloyDBLoader {
         }
         Metadata metadata = Metadata.from(metaDataMap);
         return new DefaultDocument(pageContent, metadata);
-    }
-
-    /**
-     * Create a new {@link Builder}.
-     *
-     * @param engine The AlloyDB Engine
-     * @return the new {@link Builder}.
-     */
-    public static Builder builder(AlloyDBEngine engine) {
-        return new Builder(engine);
     }
 
     /**

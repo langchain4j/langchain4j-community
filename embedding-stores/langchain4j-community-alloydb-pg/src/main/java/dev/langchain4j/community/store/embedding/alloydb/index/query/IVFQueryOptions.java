@@ -1,6 +1,5 @@
 package dev.langchain4j.community.store.embedding.alloydb.index.query;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,15 +23,17 @@ public class IVFQueryOptions implements QueryOptions {
      */
     @Override
     public List<String> getParameterSettings() {
-        List<String> parameters = new ArrayList<>();
-        parameters.add(String.format("ivf.probes = %d", probes));
-        return parameters;
+        return List.of("ivf.probes = " + probes);
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
      * Builder which configures and creates instances of {@link IVFQueryOptions}.
      */
-    public class Builder {
+    public static class Builder {
 
         private Integer probes = 1;
 

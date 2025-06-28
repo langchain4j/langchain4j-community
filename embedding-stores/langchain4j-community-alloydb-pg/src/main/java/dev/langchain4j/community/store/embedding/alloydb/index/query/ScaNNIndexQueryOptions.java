@@ -1,6 +1,5 @@
 package dev.langchain4j.community.store.embedding.alloydb.index.query;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,16 +25,19 @@ public class ScaNNIndexQueryOptions implements QueryOptions {
      */
     @Override
     public List<String> getParameterSettings() {
-        List<String> parameters = new ArrayList<>();
-        parameters.add(String.format("scann.num_leaves_to_search = %s", numLeavesToSearch));
-        parameters.add(String.format("scann.pre_reordering_num_neighbors = %s", preOrderingNumNeighbors));
-        return parameters;
+        return List.of(
+                "scann.num_leaves_to_search = " + numLeavesToSearch,
+                "scann.pre_reordering_num_neighbors = " + preOrderingNumNeighbors);
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
      * Builder which configures and creates instances of {@link ScaNNIndexQueryOptions}.
      */
-    public class Builder {
+    public static class Builder {
 
         private Integer numLeavesToSearch = 1;
         private Integer preOrderingNumNeighbors = -1;
