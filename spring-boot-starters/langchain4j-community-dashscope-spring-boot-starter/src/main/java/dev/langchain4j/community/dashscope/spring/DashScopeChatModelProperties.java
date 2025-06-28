@@ -4,7 +4,7 @@ import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import java.util.List;
 
-public class ChatModelProperties {
+public class DashScopeChatModelProperties {
 
     private String baseUrl;
     private String apiKey;

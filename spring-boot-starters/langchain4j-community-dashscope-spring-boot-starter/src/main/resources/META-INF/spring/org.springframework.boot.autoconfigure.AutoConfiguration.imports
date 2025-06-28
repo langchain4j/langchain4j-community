@@ -1,1 +1,1 @@
-dev.langchain4j.community.dashscope.spring.AutoConfig
+dev.langchain4j.community.dashscope.spring.DashScopeAutoConfiguration

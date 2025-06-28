@@ -1,24 +1,19 @@
 package dev.langchain4j.community.qianfan.spring;
 
-import java.util.List;
-
-public class ChatModelProperties {
+public class QianfanLanguageModelProperties {
 
     private String baseUrl;
     private String apiKey;
     private String secretKey;
     private Double temperature;
     private Integer maxRetries;
+    private Integer topK;
     private Double topP;
     private String modelName;
     private String endpoint;
-    private String responseFormat;
     private Double penaltyScore;
     private Boolean logRequests;
     private Boolean logResponses;
-    private Integer maxOutputTokens;
-    private List<String> stop;
-    private String userId;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -60,6 +55,14 @@ public class ChatModelProperties {
         this.maxRetries = maxRetries;
     }
 
+    public Integer getTopK() {
+        return topK;
+    }
+
+    public void setTopK(Integer topK) {
+        this.topK = topK;
+    }
+
     public Double getTopP() {
         return topP;
     }
@@ -84,14 +87,6 @@ public class ChatModelProperties {
         this.endpoint = endpoint;
     }
 
-    public String getResponseFormat() {
-        return responseFormat;
-    }
-
-    public void setResponseFormat(String responseFormat) {
-        this.responseFormat = responseFormat;
-    }
-
     public Double getPenaltyScore() {
         return penaltyScore;
     }
@@ -114,29 +109,5 @@ public class ChatModelProperties {
 
     public void setLogResponses(Boolean logResponses) {
         this.logResponses = logResponses;
-    }
-
-    public Integer getMaxOutputTokens() {
-        return maxOutputTokens;
-    }
-
-    public void setMaxOutputTokens(Integer maxOutputTokens) {
-        this.maxOutputTokens = maxOutputTokens;
-    }
-
-    public List<String> getStop() {
-        return stop;
-    }
-
-    public void setStop(List<String> stop) {
-        this.stop = stop;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 }

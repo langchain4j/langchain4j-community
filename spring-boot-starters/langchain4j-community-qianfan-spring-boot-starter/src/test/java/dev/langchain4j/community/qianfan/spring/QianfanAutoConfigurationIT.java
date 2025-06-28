@@ -23,20 +23,14 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-/**
- * @Author: fanjia
- * @createTime: 2024年04月18日 12:54:25
- * @version: 1.0
- * @Description:
- */
 @EnabledIfEnvironmentVariable(named = "QIANFAN_API_KEY", matches = ".+")
-class AutoConfigIT {
+class QianfanAutoConfigurationIT {
 
     private static final String API_KEY = System.getenv("QIANFAN_API_KEY");
     private static final String SECRET_KEY = System.getenv("QIANFAN_SECRET_KEY");
 
     ApplicationContextRunner contextRunner =
-            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(AutoConfig.class));
+            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(QianfanAutoConfiguration.class));
 
     @Test
     void should_provide_chat_model() {
@@ -92,7 +86,7 @@ class AutoConfigIT {
                 .withPropertyValues(
                         "langchain4j.community.qianfan.languageModel.api-key=" + API_KEY,
                         "langchain4j.community.qianfan.languageModel.secret-key=" + SECRET_KEY,
-                        "langchain4j.community.qianfan.languageModel.modelName=CodeLlama-7b-Instruct",
+                        "langchain4j.community.qianfan.languageModel.modelName=meta-llama-3-8b",
                         "langchain4j.community.qianfan.languageModel.logRequests=true",
                         "langchain4j.community.qianfan.languageModel.logResponses=true")
                 .run(context -> {
@@ -112,7 +106,7 @@ class AutoConfigIT {
                 .withPropertyValues(
                         "langchain4j.community.qianfan.streamingLanguageModel.api-key=" + API_KEY,
                         "langchain4j.community.qianfan.streamingLanguageModel.secret-key=" + SECRET_KEY,
-                        "langchain4j.community.qianfan.streamingLanguageModel.modelName=CodeLlama-7b-Instruct",
+                        "langchain4j.community.qianfan.streamingLanguageModel.modelName=meta-llama-3-8b",
                         "langchain4j.community.qianfan.streamingLanguageModel.logRequests=true",
                         "langchain4j.community.qianfan.streamingLanguageModel.logResponses=true")
                 .run(context -> {

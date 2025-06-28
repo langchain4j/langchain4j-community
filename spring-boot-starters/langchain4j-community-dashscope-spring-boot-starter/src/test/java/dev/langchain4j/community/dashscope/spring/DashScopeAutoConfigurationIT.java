@@ -29,12 +29,12 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
-public class AutoConfigIT {
+public class DashScopeAutoConfigurationIT {
     private static final String API_KEY = System.getenv("DASHSCOPE_API_KEY");
     private static final String CHAT_MODEL = QwenModelName.QWEN_MAX;
 
     ApplicationContextRunner contextRunner =
-            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(AutoConfig.class));
+            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(DashScopeAutoConfiguration.class));
 
     @Test
     void should_provide_chat_model() {

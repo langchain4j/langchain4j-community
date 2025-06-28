@@ -10,22 +10,24 @@ import dev.langchain4j.community.model.dashscope.QwenLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenTokenCountEstimator;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import java.util.Collections;
 import java.util.List;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
-@EnableConfigurationProperties(Properties.class)
-public class AutoConfig {
+@EnableConfigurationProperties(DashScopeProperties.class)
+public class DashScopeAutoConfiguration {
 
     private static List<QwenChatRequestParameters.TranslationOptionTerm> getTmList(
-            ChatModelProperties.TranslationOptions translationOptions) {
-        List<ChatModelProperties.TranslationOptionTerm> tmList = translationOptions.getTmList();
+            DashScopeChatModelProperties.TranslationOptions translationOptions) {
+        List<DashScopeChatModelProperties.TranslationOptionTerm> tmList = translationOptions.getTmList();
         if (isNullOrEmpty(tmList)) {
             return Collections.emptyList();
         }
@@ -39,8 +41,8 @@ public class AutoConfig {
     }
 
     private static List<QwenChatRequestParameters.TranslationOptionTerm> getTerms(
-            ChatModelProperties.TranslationOptions translationOptions) {
-        List<ChatModelProperties.TranslationOptionTerm> terms = translationOptions.getTerms();
+            DashScopeChatModelProperties.TranslationOptions translationOptions) {
+        List<DashScopeChatModelProperties.TranslationOptionTerm> terms = translationOptions.getTerms();
         if (isNullOrEmpty(terms)) {
             return Collections.emptyList();
         }
@@ -54,8 +56,8 @@ public class AutoConfig {
     }
 
     private static QwenChatRequestParameters.TranslationOptions getTranslationOptions(
-            ChatModelProperties.Parameters parameters) {
-        ChatModelProperties.TranslationOptions translationOptions = parameters.getTranslationOptions();
+            DashScopeChatModelProperties.Parameters parameters) {
+        DashScopeChatModelProperties.TranslationOptions translationOptions = parameters.getTranslationOptions();
         if (translationOptions == null) {
             return null;
         }
@@ -69,8 +71,9 @@ public class AutoConfig {
                 .build();
     }
 
-    private static QwenChatRequestParameters.SearchOptions getSearchOption(ChatModelProperties.Parameters parameters) {
-        ChatModelProperties.SearchOptions searchOptions = parameters.getSearchOptions();
+    private static QwenChatRequestParameters.SearchOptions getSearchOption(
+            DashScopeChatModelProperties.Parameters parameters) {
+        DashScopeChatModelProperties.SearchOptions searchOptions = parameters.getSearchOptions();
         if (searchOptions == null) {
             return null;
         }
@@ -84,7 +87,7 @@ public class AutoConfig {
                 .build();
     }
 
-    private static ResponseFormat getResponseFormat(ChatModelProperties.Parameters parameters) {
+    private static ResponseFormat getResponseFormat(DashScopeChatModelProperties.Parameters parameters) {
         ResponseFormatType responseFormatType = parameters.getResponseFormat();
         if (responseFormatType == null) {
             return null;
@@ -93,8 +96,8 @@ public class AutoConfig {
         return ResponseFormat.builder().type(responseFormatType).build();
     }
 
-    private QwenChatRequestParameters getParameters(ChatModelProperties properties) {
-        ChatModelProperties.Parameters parameters = properties.getParameters();
+    private QwenChatRequestParameters getParameters(DashScopeChatModelProperties properties) {
+        DashScopeChatModelProperties.Parameters parameters = properties.getParameters();
         if (parameters == null) {
             return null;
         }
@@ -124,9 +127,9 @@ public class AutoConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(Properties.PREFIX + ".chat-model.api-key")
-    QwenChatModel qwenChatModel(Properties properties) {
-        ChatModelProperties chatModelProperties = properties.getChatModel();
+    @ConditionalOnProperty(DashScopeProperties.PREFIX + ".chat-model.api-key")
+    QwenChatModel qwenChatModel(DashScopeProperties properties, ObjectProvider<ChatModelListener> listenerProvider) {
+        DashScopeChatModelProperties chatModelProperties = properties.getChatModel();
         return QwenChatModel.builder()
                 .baseUrl(chatModelProperties.getBaseUrl())
                 .apiKey(chatModelProperties.getApiKey())
@@ -142,13 +145,15 @@ public class AutoConfig {
                 .maxTokens(chatModelProperties.getMaxTokens())
                 .defaultRequestParameters(getParameters(chatModelProperties))
                 .isMultimodalModel(chatModelProperties.getIsMultimodalModel())
+                .listeners(listenerProvider.stream().toList())
                 .build();
     }
 
     @Bean
-    @ConditionalOnProperty(Properties.PREFIX + ".streaming-chat-model.api-key")
-    QwenStreamingChatModel qwenStreamingChatModel(Properties properties) {
-        ChatModelProperties chatModelProperties = properties.getStreamingChatModel();
+    @ConditionalOnProperty(DashScopeProperties.PREFIX + ".streaming-chat-model.api-key")
+    QwenStreamingChatModel qwenStreamingChatModel(
+            DashScopeProperties properties, ObjectProvider<ChatModelListener> listenerProvider) {
+        DashScopeChatModelProperties chatModelProperties = properties.getStreamingChatModel();
         return QwenStreamingChatModel.builder()
                 .baseUrl(chatModelProperties.getBaseUrl())
                 .apiKey(chatModelProperties.getApiKey())
@@ -164,13 +169,14 @@ public class AutoConfig {
                 .maxTokens(chatModelProperties.getMaxTokens())
                 .defaultRequestParameters(getParameters(chatModelProperties))
                 .isMultimodalModel(chatModelProperties.getIsMultimodalModel())
+                .listeners(listenerProvider.stream().toList())
                 .build();
     }
 
     @Bean
-    @ConditionalOnProperty(Properties.PREFIX + ".language-model.api-key")
-    QwenLanguageModel qwenLanguageModel(Properties properties) {
-        LanguageModelProperties languageModelProperties = properties.getLanguageModel();
+    @ConditionalOnProperty(DashScopeProperties.PREFIX + ".language-model.api-key")
+    QwenLanguageModel qwenLanguageModel(DashScopeProperties properties) {
+        DashScopeLanguageModelProperties languageModelProperties = properties.getLanguageModel();
         return QwenLanguageModel.builder()
                 .baseUrl(languageModelProperties.getBaseUrl())
                 .apiKey(languageModelProperties.getApiKey())
@@ -188,9 +194,9 @@ public class AutoConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(Properties.PREFIX + ".streaming-language-model.api-key")
-    QwenStreamingLanguageModel qwenStreamingLanguageModel(Properties properties) {
-        LanguageModelProperties languageModelProperties = properties.getStreamingLanguageModel();
+    @ConditionalOnProperty(DashScopeProperties.PREFIX + ".streaming-language-model.api-key")
+    QwenStreamingLanguageModel qwenStreamingLanguageModel(DashScopeProperties properties) {
+        DashScopeLanguageModelProperties languageModelProperties = properties.getStreamingLanguageModel();
         return QwenStreamingLanguageModel.builder()
                 .baseUrl(languageModelProperties.getBaseUrl())
                 .apiKey(languageModelProperties.getApiKey())
@@ -208,9 +214,9 @@ public class AutoConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(Properties.PREFIX + ".embedding-model.api-key")
-    QwenEmbeddingModel qwenEmbeddingModel(Properties properties) {
-        EmbeddingModelProperties embeddingModelProperties = properties.getEmbeddingModel();
+    @ConditionalOnProperty(DashScopeProperties.PREFIX + ".embedding-model.api-key")
+    QwenEmbeddingModel qwenEmbeddingModel(DashScopeProperties properties) {
+        DashScopeEmbeddingModelProperties embeddingModelProperties = properties.getEmbeddingModel();
         return QwenEmbeddingModel.builder()
                 .baseUrl(embeddingModelProperties.getBaseUrl())
                 .apiKey(embeddingModelProperties.getApiKey())
@@ -220,9 +226,9 @@ public class AutoConfig {
     }
 
     @Bean
-    @ConditionalOnProperty(Properties.PREFIX + ".tokenizer.api-key")
-    QwenTokenCountEstimator qwenTokenizer(Properties properties) {
-        TokenizerProperties tokenizerProperties = properties.getTokenizer();
+    @ConditionalOnProperty(DashScopeProperties.PREFIX + ".tokenizer.api-key")
+    QwenTokenCountEstimator qwenTokenizer(DashScopeProperties properties) {
+        DashScopeTokenizerProperties tokenizerProperties = properties.getTokenizer();
         return QwenTokenCountEstimator.builder()
                 .apiKey(tokenizerProperties.getApiKey())
                 .modelName(tokenizerProperties.getModelName())
