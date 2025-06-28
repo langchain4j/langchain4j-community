@@ -1,13 +1,14 @@
 package dev.langchain4j.community.model.xinference.common;
 
 import static dev.langchain4j.community.model.xinference.AbstractInferenceChatModelInfrastructure.LOCAL_IMAGE;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.CHAT_MODEL_NAME;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_API_KEY;
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_BASE_URL;
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_IMAGE;
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.resolve;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static java.util.Collections.singletonList;
 
-import dev.langchain4j.community.model.xinference.AbstractInferenceChatModelInfrastructure;
 import dev.langchain4j.community.model.xinference.XinferenceContainer;
 import dev.langchain4j.community.model.xinference.XinferenceStreamingChatModel;
 import dev.langchain4j.community.model.xinference.client.XinferenceHttpException;
@@ -24,8 +25,7 @@ class XinferenceStreamingChatModelListenerIT extends AbstractStreamingChatModelL
     @BeforeAll
     static void beforeAll() {
         if (isNullOrEmpty(XINFERENCE_BASE_URL)) {
-            xinference = new XinferenceContainer(resolve(XINFERENCE_IMAGE, LOCAL_IMAGE))
-                    .withModel(AbstractInferenceChatModelInfrastructure.modelName());
+            xinference = new XinferenceContainer(resolve(XINFERENCE_IMAGE, LOCAL_IMAGE)).withModel(CHAT_MODEL_NAME);
             xinference.start();
         }
     }
@@ -40,8 +40,8 @@ class XinferenceStreamingChatModelListenerIT extends AbstractStreamingChatModelL
     @Override
     protected StreamingChatModel createModel(ChatModelListener listener) {
         return XinferenceStreamingChatModel.builder()
-                .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
-                .apiKey(AbstractInferenceChatModelInfrastructure.apiKey())
+                .baseUrl(baseUrl())
+                .apiKey(XINFERENCE_API_KEY)
                 .modelName(modelName())
                 .temperature(temperature())
                 .topP(topP())
@@ -65,13 +65,13 @@ class XinferenceStreamingChatModelListenerIT extends AbstractStreamingChatModelL
 
     @Override
     protected String modelName() {
-        return AbstractInferenceChatModelInfrastructure.modelName();
+        return CHAT_MODEL_NAME;
     }
 
     @Override
     protected StreamingChatModel createFailingModel(ChatModelListener listener) {
         return XinferenceStreamingChatModel.builder()
-                .baseUrl(AbstractInferenceChatModelInfrastructure.baseUrl())
+                .baseUrl(baseUrl())
                 .modelName("llama3.1")
                 .logRequests(true)
                 .logResponses(true)
@@ -82,5 +82,13 @@ class XinferenceStreamingChatModelListenerIT extends AbstractStreamingChatModelL
     @Override
     protected Class<? extends Exception> expectedExceptionClass() {
         return XinferenceHttpException.class;
+    }
+
+    public String baseUrl() {
+        if (isNullOrEmpty(XINFERENCE_BASE_URL)) {
+            return xinference.getEndpoint();
+        } else {
+            return XINFERENCE_BASE_URL;
+        }
     }
 }
