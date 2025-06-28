@@ -33,11 +33,11 @@ import org.slf4j.LoggerFactory;
  */
 public class AlloyDBEngine {
 
-    private static final String USER_AGENT = "langchain4j-alloydb-pg";
-    private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
-    private ConnectorConfig namedConnectorConfig;
-    private final HikariDataSource dataSource;
     static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().enable(INDENT_OUTPUT);
+    private static final Logger log = LoggerFactory.getLogger(AlloyDBEngine.class.getName());
+    private static final String USER_AGENT = "langchain4j-alloydb-pg";
+    private final HikariDataSource dataSource;
+    private ConnectorConfig namedConnectorConfig;
 
     /**
      * Constructor for AlloyDBEngine
@@ -150,8 +150,7 @@ public class AlloyDBEngine {
      * @throws SQLException if database error occurs
      */
     public Connection getConnection() throws SQLException {
-        Connection connection = dataSource.getConnection();
-        return connection;
+        return dataSource.getConnection();
     }
 
     /**
@@ -214,15 +213,6 @@ public class AlloyDBEngine {
     }
 
     /**
-     * Create a new {@link Builder}.
-     *
-     * @return the new {@link Builder}.
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
      * Builder which configures and creates instances of {@link AlloyDBEngine}.
      * Connect directly to an instance using projectId, region, cluster, instance, and database params
      * (Optional: user/password, iamAccountEmail, ipType)
@@ -242,11 +232,6 @@ public class AlloyDBEngine {
         private String password;
         private String ipType = "public";
         private String iamAccountEmail;
-
-        /**
-         * Creates a new {@code Builder} instance.
-         */
-        public Builder() {}
 
         /**
          * Project Id

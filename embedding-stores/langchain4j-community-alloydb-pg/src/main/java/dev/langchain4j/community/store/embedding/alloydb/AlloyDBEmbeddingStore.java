@@ -63,9 +63,9 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final List<String> metadataColumns;
     private final DistanceStrategy distanceStrategy;
     private final QueryOptions queryOptions;
-    private String metadataJsonColumn;
     private final String insertQuery;
     private final String deleteQuery;
+    private String metadataJsonColumn;
 
     /**
      * Constructor for AlloyDBEmbeddingStore
@@ -88,6 +88,17 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         verifyEmbeddingStoreColumns(builder.ignoreMetadataColumnNames);
         insertQuery = generateInsertQuery();
         deleteQuery = String.format("DELETE FROM \"%s\".\"%s\" WHERE %s = ANY(?)", schemaName, tableName, idColumn);
+    }
+
+    /**
+     * Create a new {@link Builder}.
+     *
+     * @param engine    required {@link AlloyDBEngine}
+     * @param tableName table to be used as embedding store
+     * @return the new {@link Builder}.
+     */
+    public static Builder builder(AlloyDBEngine engine, String tableName) {
+        return new Builder(engine, tableName);
     }
 
     private void verifyEmbeddingStoreColumns(List<String> ignoredColumns) {
@@ -522,17 +533,6 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                         distanceStrategy.getSearchFunction()));
             }
         }
-    }
-
-    /**
-     * Create a new {@link Builder}.
-     *
-     * @param engine    required {@link AlloyDBEngine}
-     * @param tableName table to be used as embedding store
-     * @return the new {@link Builder}.
-     */
-    public static Builder builder(AlloyDBEngine engine, String tableName) {
-        return new Builder(engine, tableName);
     }
 
     /**

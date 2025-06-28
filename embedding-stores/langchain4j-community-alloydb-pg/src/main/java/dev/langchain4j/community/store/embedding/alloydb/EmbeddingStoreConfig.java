@@ -42,6 +42,15 @@ public class EmbeddingStoreConfig {
     }
 
     /**
+     * Create a new {@link Builder}.
+     *
+     * @return the new {@link Builder}.
+     */
+    public static Builder builder(String tableName, Integer vectorSize) {
+        return new Builder(tableName, vectorSize);
+    }
+
+    /**
      * get table name
      *
      * @return table to be used as embedding store
@@ -129,15 +138,6 @@ public class EmbeddingStoreConfig {
      */
     public Boolean getStoreMetadata() {
         return storeMetadata;
-    }
-
-    /**
-     * Create a new {@link Builder}.
-     *
-     * @return the new {@link Builder}.
-     */
-    public static Builder builder(String tableName, Integer vectorSize) {
-        return new Builder(tableName, vectorSize);
     }
 
     /**

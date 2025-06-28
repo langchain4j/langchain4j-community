@@ -10,7 +10,7 @@ public interface BaseIndex {
     /**
      * base index name suffix
      */
-    String DEFAULT_INDEX_NAME_SUFFIX = "langchainvectorindex";
+    String DEFAULT_INDEX_NAME_SUFFIX = "langchain4j_vector_index";
 
     /**
      * get  index query options

@@ -67,10 +67,14 @@ public class HNSWIndex implements BaseIndex {
         return name;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     /**
      * Builder which configures and creates instances of {@link HNSWIndex}.
      */
-    public class Builder {
+    public static class Builder {
 
         private String name;
         private Integer m = 16;
