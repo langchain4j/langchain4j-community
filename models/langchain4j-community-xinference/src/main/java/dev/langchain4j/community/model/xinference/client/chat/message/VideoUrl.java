@@ -17,16 +17,16 @@ public final class VideoUrl {
         url = builder.url;
     }
 
-    public String getUrl() {
-        return url;
-    }
-
     public static Builder builder() {
         return new Builder();
     }
 
     public static VideoUrl of(String url) {
         return builder().url(url).build();
+    }
+
+    public String getUrl() {
+        return url;
     }
 
     @JsonPOJOBuilder(withPrefix = "")

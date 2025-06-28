@@ -27,6 +27,10 @@ public final class CompletionResponse {
         usage = builder.usage;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getId() {
         return id;
     }
@@ -49,10 +53,6 @@ public final class CompletionResponse {
 
     public String text() {
         return getChoices().get(0).getText();
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

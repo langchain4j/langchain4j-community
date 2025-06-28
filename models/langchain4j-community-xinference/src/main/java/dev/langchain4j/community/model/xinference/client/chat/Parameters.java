@@ -24,6 +24,10 @@ public final class Parameters {
         required = builder.required;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getType() {
         return type;
     }
@@ -38,10 +42,6 @@ public final class Parameters {
 
     public List<String> getRequired() {
         return required;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

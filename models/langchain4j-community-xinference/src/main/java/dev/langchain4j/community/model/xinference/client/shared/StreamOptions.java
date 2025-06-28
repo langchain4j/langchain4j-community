@@ -17,16 +17,16 @@ public final class StreamOptions {
         includeUsage = builder.includeUsage;
     }
 
-    public Boolean getIncludeUsage() {
-        return includeUsage;
-    }
-
     public static StreamOptions of(boolean includeUsage) {
         return builder().includeUsage(includeUsage).build();
     }
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public Boolean getIncludeUsage() {
+        return includeUsage;
     }
 
     @JsonPOJOBuilder(withPrefix = "")

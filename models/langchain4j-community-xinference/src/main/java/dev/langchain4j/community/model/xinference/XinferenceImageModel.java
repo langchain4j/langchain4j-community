@@ -68,6 +68,21 @@ public class XinferenceImageModel implements ImageModel {
         this.maxRetries = getOrDefault(maxRetries, 3);
     }
 
+    private static Image fromImageData(ImageData data) {
+        Image.Builder builder = Image.builder().base64Data(data.getB64Json());
+        if (isNotNullOrBlank(data.getUrl())) {
+            builder.url(data.getUrl());
+        }
+        return builder.build();
+    }
+
+    public static XinferenceImageModelBuilder builder() {
+        for (XinferenceImageModelBuilderFactory factory : loadFactories(XinferenceImageModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new XinferenceImageModelBuilder();
+    }
+
     @Override
     public Response<Image> generate(String prompt) {
         ImageRequest request = ImageRequest.builder()
@@ -135,21 +150,6 @@ public class XinferenceImageModel implements ImageModel {
                         () -> client.inpainting(request, imageByteArray(image), imageByteArray(mask)), maxRetries)
                 .execute();
         return Response.from(fromImageData(response.getData().get(0)));
-    }
-
-    private static Image fromImageData(ImageData data) {
-        Image.Builder builder = Image.builder().base64Data(data.getB64Json());
-        if (isNotNullOrBlank(data.getUrl())) {
-            builder.url(data.getUrl());
-        }
-        return builder.build();
-    }
-
-    public static XinferenceImageModelBuilder builder() {
-        for (XinferenceImageModelBuilderFactory factory : loadFactories(XinferenceImageModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new XinferenceImageModelBuilder();
     }
 
     public static class XinferenceImageModelBuilder {

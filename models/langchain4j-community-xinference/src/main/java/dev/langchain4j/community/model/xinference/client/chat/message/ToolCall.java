@@ -22,6 +22,10 @@ public final class ToolCall {
         function = builder.function;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getId() {
         return id;
     }
@@ -32,10 +36,6 @@ public final class ToolCall {
 
     public FunctionCall getFunction() {
         return function;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

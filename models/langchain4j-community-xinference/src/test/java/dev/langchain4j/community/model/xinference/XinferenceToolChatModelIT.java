@@ -19,6 +19,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastructure {
@@ -40,14 +41,19 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
             .description("Get the current time")
             .build();
 
-    ChatModel chatModel = XinferenceChatModel.builder()
-            .baseUrl(baseUrl())
-            .modelName(modelName())
-            .apiKey(apiKey())
-            .temperature(0.0)
-            .logRequests(true)
-            .logResponses(true)
-            .build();
+    ChatModel chatModel;
+
+    @BeforeEach
+    public void beforeEach() {
+        chatModel = XinferenceChatModel.builder()
+                .baseUrl(baseUrl())
+                .modelName(modelName())
+                .apiKey(apiKey())
+                .temperature(0.0)
+                .logRequests(true)
+                .logResponses(true)
+                .build();
+    }
 
     @Override
     protected List<ChatModel> models() {

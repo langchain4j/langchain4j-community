@@ -16,6 +16,7 @@ import dev.langchain4j.community.model.xinference.client.completion.CompletionRe
 import dev.langchain4j.community.model.xinference.client.shared.CompletionUsage;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
@@ -129,15 +130,23 @@ public class XinferenceStreamingResponseBuilder {
             AiMessage aiMessage = isNullOrBlank(text) ? AiMessage.from(list) : AiMessage.from(text, list);
             return ChatResponse.builder()
                     .aiMessage(aiMessage)
-                    .tokenUsage(tokenUsage)
-                    .finishReason(finishReason)
+                    .metadata(ChatResponseMetadata.builder()
+                            .id(getResponseId())
+                            .modelName(getResponseModel())
+                            .finishReason(finishReason)
+                            .tokenUsage(tokenUsage)
+                            .build())
                     .build();
         }
         if (!isNullOrBlank(text)) {
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(text))
-                    .tokenUsage(tokenUsage)
-                    .finishReason(finishReason)
+                    .metadata(ChatResponseMetadata.builder()
+                            .id(getResponseId())
+                            .modelName(getResponseModel())
+                            .finishReason(finishReason)
+                            .tokenUsage(tokenUsage)
+                            .build())
                     .build();
         }
         return null;

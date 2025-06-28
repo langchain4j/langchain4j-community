@@ -20,16 +20,16 @@ public final class Embedding {
         embedding = builder.embedding;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public Integer getIndex() {
         return index;
     }
 
     public List<Float> getEmbedding() {
         return embedding;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

@@ -21,6 +21,14 @@ public final class ToolMessage implements Message {
         toolCallId = builder.toolCallId;
     }
 
+    public static ToolMessage of(String toolCallId, String content) {
+        return builder().content(content).toolCallId(toolCallId).build();
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     @Override
     public Role getRole() {
         return role;
@@ -32,14 +40,6 @@ public final class ToolMessage implements Message {
 
     public String getToolCallId() {
         return toolCallId;
-    }
-
-    public static ToolMessage of(String toolCallId, String content) {
-        return builder().content(content).toolCallId(toolCallId).build();
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

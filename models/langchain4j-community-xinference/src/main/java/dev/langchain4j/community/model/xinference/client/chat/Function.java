@@ -21,6 +21,10 @@ public final class Function {
         parameters = builder.parameters;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getName() {
         return name;
     }
@@ -31,10 +35,6 @@ public final class Function {
 
     public Parameters getParameters() {
         return parameters;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

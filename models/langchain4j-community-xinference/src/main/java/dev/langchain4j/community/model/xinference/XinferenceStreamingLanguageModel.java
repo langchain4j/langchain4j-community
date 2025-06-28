@@ -79,6 +79,14 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
         this.user = user;
     }
 
+    public static XinferenceStreamingLanguageModelBuilder builder() {
+        for (XinferenceStreamingLanguageModelBuilderFactory factory :
+                loadFactories(XinferenceStreamingLanguageModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new XinferenceStreamingLanguageModelBuilder();
+    }
+
     @Override
     public void generate(String prompt, StreamingResponseHandler<String> handler) {
         CompletionRequest request = CompletionRequest.builder().stream(true)
@@ -114,14 +122,6 @@ public class XinferenceStreamingLanguageModel implements StreamingLanguageModel 
                 })
                 .onError(handler::onError)
                 .execute();
-    }
-
-    public static XinferenceStreamingLanguageModelBuilder builder() {
-        for (XinferenceStreamingLanguageModelBuilderFactory factory :
-                loadFactories(XinferenceStreamingLanguageModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new XinferenceStreamingLanguageModelBuilder();
     }
 
     public static class XinferenceStreamingLanguageModelBuilder {

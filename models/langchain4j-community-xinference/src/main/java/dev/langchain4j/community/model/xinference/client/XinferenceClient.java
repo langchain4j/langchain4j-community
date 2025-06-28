@@ -74,6 +74,31 @@ public class XinferenceClient {
         this.xinferenceApi = retrofitBuilder.build().create(XinferenceApi.class);
     }
 
+    private static MultipartBody.Builder toMultipartBuilder(ImageRequest request) {
+        MultipartBody.Builder builder = new MultipartBody.Builder()
+                .setType(MediaType.get("multipart/form-data"))
+                .addFormDataPart("model", request.getModel())
+                .addFormDataPart("prompt", request.getPrompt())
+                .addFormDataPart("response_format", request.getResponseFormat().getValue());
+        if (Utils.isNotNullOrBlank(request.getNegativePrompt())) {
+            builder.addFormDataPart("negative_prompt", request.getNegativePrompt());
+        }
+        if (Objects.nonNull(request.getN())) {
+            builder.addFormDataPart("n", String.valueOf(request.getN()));
+        }
+        if (Utils.isNotNullOrBlank(request.getSize())) {
+            builder.addFormDataPart("size", request.getSize());
+        }
+        if (Utils.isNotNullOrBlank(request.getKwargs())) {
+            builder.addFormDataPart("kwargs", request.getKwargs());
+        }
+        return builder;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public void shutdown() {
         okHttpClient.dispatcher().executorService().shutdown();
         okHttpClient.connectionPool().evictAll();
@@ -155,31 +180,6 @@ public class XinferenceClient {
 
     private String formatUrl(String endpoint) {
         return this.baseUrl + endpoint;
-    }
-
-    private static MultipartBody.Builder toMultipartBuilder(ImageRequest request) {
-        MultipartBody.Builder builder = new MultipartBody.Builder()
-                .setType(MediaType.get("multipart/form-data"))
-                .addFormDataPart("model", request.getModel())
-                .addFormDataPart("prompt", request.getPrompt())
-                .addFormDataPart("response_format", request.getResponseFormat().getValue());
-        if (Utils.isNotNullOrBlank(request.getNegativePrompt())) {
-            builder.addFormDataPart("negative_prompt", request.getNegativePrompt());
-        }
-        if (Objects.nonNull(request.getN())) {
-            builder.addFormDataPart("n", String.valueOf(request.getN()));
-        }
-        if (Utils.isNotNullOrBlank(request.getSize())) {
-            builder.addFormDataPart("size", request.getSize());
-        }
-        if (Utils.isNotNullOrBlank(request.getKwargs())) {
-            builder.addFormDataPart("kwargs", request.getKwargs());
-        }
-        return builder;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static class Builder {

@@ -21,6 +21,10 @@ public final class FunctionCall {
         arguments = builder.arguments;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getId() {
         return id;
     }
@@ -31,10 +35,6 @@ public final class FunctionCall {
 
     public String getArguments() {
         return arguments;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

@@ -23,6 +23,10 @@ public final class CompletionChoice {
         finishReason = builder.finishReason;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getText() {
         return text;
     }
@@ -37,10 +41,6 @@ public final class CompletionChoice {
 
     public String getFinishReason() {
         return finishReason;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

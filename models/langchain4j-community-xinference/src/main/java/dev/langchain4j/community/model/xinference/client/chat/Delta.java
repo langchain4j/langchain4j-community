@@ -23,6 +23,10 @@ public final class Delta {
         toolCalls = builder.toolCalls;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public Role getRole() {
         return role;
     }
@@ -33,10 +37,6 @@ public final class Delta {
 
     public List<ToolCall> getToolCalls() {
         return toolCalls;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")
