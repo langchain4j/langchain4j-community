@@ -1,16 +1,24 @@
 package dev.langchain4j.community.qianfan.spring;
 
-public class EmbeddingModelProperties {
+import java.util.List;
+
+public class QianfanChatModelProperties {
 
     private String baseUrl;
     private String apiKey;
     private String secretKey;
+    private Double temperature;
     private Integer maxRetries;
+    private Double topP;
     private String modelName;
     private String endpoint;
-    private String user;
+    private String responseFormat;
+    private Double penaltyScore;
     private Boolean logRequests;
     private Boolean logResponses;
+    private Integer maxOutputTokens;
+    private List<String> stop;
+    private String userId;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -36,12 +44,28 @@ public class EmbeddingModelProperties {
         this.secretKey = secretKey;
     }
 
+    public Double getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(Double temperature) {
+        this.temperature = temperature;
+    }
+
     public Integer getMaxRetries() {
         return maxRetries;
     }
 
     public void setMaxRetries(Integer maxRetries) {
         this.maxRetries = maxRetries;
+    }
+
+    public Double getTopP() {
+        return topP;
+    }
+
+    public void setTopP(Double topP) {
+        this.topP = topP;
     }
 
     public String getModelName() {
@@ -60,12 +84,20 @@ public class EmbeddingModelProperties {
         this.endpoint = endpoint;
     }
 
-    public String getUser() {
-        return user;
+    public String getResponseFormat() {
+        return responseFormat;
     }
 
-    public void setUser(String user) {
-        this.user = user;
+    public void setResponseFormat(String responseFormat) {
+        this.responseFormat = responseFormat;
+    }
+
+    public Double getPenaltyScore() {
+        return penaltyScore;
+    }
+
+    public void setPenaltyScore(Double penaltyScore) {
+        this.penaltyScore = penaltyScore;
     }
 
     public Boolean getLogRequests() {
@@ -82,5 +114,29 @@ public class EmbeddingModelProperties {
 
     public void setLogResponses(Boolean logResponses) {
         this.logResponses = logResponses;
+    }
+
+    public Integer getMaxOutputTokens() {
+        return maxOutputTokens;
+    }
+
+    public void setMaxOutputTokens(Integer maxOutputTokens) {
+        this.maxOutputTokens = maxOutputTokens;
+    }
+
+    public List<String> getStop() {
+        return stop;
+    }
+
+    public void setStop(List<String> stop) {
+        this.stop = stop;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

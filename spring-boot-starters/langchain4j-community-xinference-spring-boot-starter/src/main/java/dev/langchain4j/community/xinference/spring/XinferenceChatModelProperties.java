@@ -6,8 +6,8 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
-@ConfigurationProperties(prefix = ChatModelProperties.PREFIX)
-public class ChatModelProperties {
+@ConfigurationProperties(prefix = XinferenceChatModelProperties.PREFIX)
+public class XinferenceChatModelProperties {
     static final String PREFIX = "langchain4j.community.xinference.chat-model";
     private String baseUrl;
     private String apiKey;
@@ -26,7 +26,7 @@ public class ChatModelProperties {
     private Duration timeout;
 
     @NestedConfigurationProperty
-    private ProxyProperties proxy;
+    private XinferenceProxyProperties proxy;
 
     private Boolean logRequests;
     private Boolean logResponses;
@@ -152,11 +152,11 @@ public class ChatModelProperties {
         this.timeout = timeout;
     }
 
-    public ProxyProperties getProxy() {
+    public XinferenceProxyProperties getProxy() {
         return proxy;
     }
 
-    public void setProxy(final ProxyProperties proxy) {
+    public void setProxy(final XinferenceProxyProperties proxy) {
         this.proxy = proxy;
     }
 

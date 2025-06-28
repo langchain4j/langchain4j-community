@@ -1,25 +1,28 @@
 package dev.langchain4j.community.qianfan.spring;
 
-import static dev.langchain4j.community.qianfan.spring.Properties.PREFIX;
+import static dev.langchain4j.community.qianfan.spring.QianfanProperties.PREFIX;
 
 import dev.langchain4j.community.model.qianfan.QianfanChatModel;
 import dev.langchain4j.community.model.qianfan.QianfanEmbeddingModel;
 import dev.langchain4j.community.model.qianfan.QianfanLanguageModel;
 import dev.langchain4j.community.model.qianfan.QianfanStreamingChatModel;
 import dev.langchain4j.community.model.qianfan.QianfanStreamingLanguageModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
-@EnableConfigurationProperties(Properties.class)
-public class AutoConfig {
+@EnableConfigurationProperties(QianfanProperties.class)
+public class QianfanAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".chat-model.api-key")
-    QianfanChatModel qianfanChatModel(Properties properties) {
-        ChatModelProperties chatModelProperties = properties.getChatModel();
+    QianfanChatModel qianfanChatModel(
+            QianfanProperties properties, ObjectProvider<ChatModelListener> listenerProvider) {
+        QianfanChatModelProperties chatModelProperties = properties.getChatModel();
         return QianfanChatModel.builder()
                 .baseUrl(chatModelProperties.getBaseUrl())
                 .apiKey(chatModelProperties.getApiKey())
@@ -36,13 +39,15 @@ public class AutoConfig {
                 .userId(chatModelProperties.getUserId())
                 .maxOutputTokens(chatModelProperties.getMaxOutputTokens())
                 .stop(chatModelProperties.getStop())
+                .listeners(listenerProvider.stream().toList())
                 .build();
     }
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".streaming-chat-model.api-key")
-    QianfanStreamingChatModel qianfanStreamingChatModel(Properties properties) {
-        ChatModelProperties chatModelProperties = properties.getStreamingChatModel();
+    QianfanStreamingChatModel qianfanStreamingChatModel(
+            QianfanProperties properties, ObjectProvider<ChatModelListener> listenerProvider) {
+        QianfanChatModelProperties chatModelProperties = properties.getStreamingChatModel();
         return QianfanStreamingChatModel.builder()
                 .endpoint(chatModelProperties.getEndpoint())
                 .penaltyScore(chatModelProperties.getPenaltyScore())
@@ -58,13 +63,14 @@ public class AutoConfig {
                 .userId(chatModelProperties.getUserId())
                 .maxOutputTokens(chatModelProperties.getMaxOutputTokens())
                 .stop(chatModelProperties.getStop())
+                .listeners(listenerProvider.stream().toList())
                 .build();
     }
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".language-model.api-key")
-    QianfanLanguageModel qianfanLanguageModel(Properties properties) {
-        LanguageModelProperties languageModelProperties = properties.getLanguageModel();
+    QianfanLanguageModel qianfanLanguageModel(QianfanProperties properties) {
+        QianfanLanguageModelProperties languageModelProperties = properties.getLanguageModel();
         return QianfanLanguageModel.builder()
                 .endpoint(languageModelProperties.getEndpoint())
                 .penaltyScore(languageModelProperties.getPenaltyScore())
@@ -83,8 +89,8 @@ public class AutoConfig {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".streaming-language-model.api-key")
-    QianfanStreamingLanguageModel openAiStreamingLanguageModel(Properties properties) {
-        LanguageModelProperties languageModelProperties = properties.getStreamingLanguageModel();
+    QianfanStreamingLanguageModel openAiStreamingLanguageModel(QianfanProperties properties) {
+        QianfanLanguageModelProperties languageModelProperties = properties.getStreamingLanguageModel();
         return QianfanStreamingLanguageModel.builder()
                 .endpoint(languageModelProperties.getEndpoint())
                 .penaltyScore(languageModelProperties.getPenaltyScore())
@@ -102,18 +108,18 @@ public class AutoConfig {
 
     @Bean
     @ConditionalOnProperty(PREFIX + ".embedding-model.api-key")
-    QianfanEmbeddingModel qianfanEmbeddingModel(Properties properties) {
-        EmbeddingModelProperties embeddingModelProperties = properties.getEmbeddingModel();
+    QianfanEmbeddingModel qianfanEmbeddingModel(QianfanProperties properties) {
+        QianfanEmbeddingModelProperties qianfanEmbeddingModelProperties = properties.getEmbeddingModel();
         return QianfanEmbeddingModel.builder()
-                .baseUrl(embeddingModelProperties.getBaseUrl())
-                .endpoint(embeddingModelProperties.getEndpoint())
-                .apiKey(embeddingModelProperties.getApiKey())
-                .secretKey(embeddingModelProperties.getSecretKey())
-                .modelName(embeddingModelProperties.getModelName())
-                .user(embeddingModelProperties.getUser())
-                .maxRetries(embeddingModelProperties.getMaxRetries())
-                .logRequests(embeddingModelProperties.getLogRequests())
-                .logResponses(embeddingModelProperties.getLogResponses())
+                .baseUrl(qianfanEmbeddingModelProperties.getBaseUrl())
+                .endpoint(qianfanEmbeddingModelProperties.getEndpoint())
+                .apiKey(qianfanEmbeddingModelProperties.getApiKey())
+                .secretKey(qianfanEmbeddingModelProperties.getSecretKey())
+                .modelName(qianfanEmbeddingModelProperties.getModelName())
+                .user(qianfanEmbeddingModelProperties.getUser())
+                .maxRetries(qianfanEmbeddingModelProperties.getMaxRetries())
+                .logRequests(qianfanEmbeddingModelProperties.getLogRequests())
+                .logResponses(qianfanEmbeddingModelProperties.getLogResponses())
                 .build();
     }
 }

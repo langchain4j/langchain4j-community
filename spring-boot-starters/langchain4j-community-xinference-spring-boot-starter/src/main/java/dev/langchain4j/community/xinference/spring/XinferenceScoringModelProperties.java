@@ -5,19 +5,21 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
-@ConfigurationProperties(prefix = EmbeddingModelProperties.PREFIX)
-public class EmbeddingModelProperties {
-    static final String PREFIX = "langchain4j.community.xinference.embedding-model";
+@ConfigurationProperties(prefix = XinferenceScoringModelProperties.PREFIX)
+public class XinferenceScoringModelProperties {
+    static final String PREFIX = "langchain4j.community.xinference.scoring-model";
 
     private String baseUrl;
     private String apiKey;
     private String modelName;
-    private String user;
+    private Integer topN;
+    private Boolean returnDocuments;
+    private Boolean returnLen;
     private Integer maxRetries;
     private Duration timeout;
 
     @NestedConfigurationProperty
-    private ProxyProperties proxy;
+    private XinferenceProxyProperties proxy;
 
     private Boolean logRequests;
     private Boolean logResponses;
@@ -47,12 +49,28 @@ public class EmbeddingModelProperties {
         this.modelName = modelName;
     }
 
-    public String getUser() {
-        return user;
+    public Integer getTopN() {
+        return topN;
     }
 
-    public void setUser(final String user) {
-        this.user = user;
+    public void setTopN(final Integer topN) {
+        this.topN = topN;
+    }
+
+    public Boolean getReturnDocuments() {
+        return returnDocuments;
+    }
+
+    public void setReturnDocuments(final Boolean returnDocuments) {
+        this.returnDocuments = returnDocuments;
+    }
+
+    public Boolean getReturnLen() {
+        return returnLen;
+    }
+
+    public void setReturnLen(final Boolean returnLen) {
+        this.returnLen = returnLen;
     }
 
     public Integer getMaxRetries() {
@@ -71,11 +89,11 @@ public class EmbeddingModelProperties {
         this.timeout = timeout;
     }
 
-    public ProxyProperties getProxy() {
+    public XinferenceProxyProperties getProxy() {
         return proxy;
     }
 
-    public void setProxy(final ProxyProperties proxy) {
+    public void setProxy(final XinferenceProxyProperties proxy) {
         this.proxy = proxy;
     }
 

@@ -1,6 +1,6 @@
 package dev.langchain4j.community.dashscope.spring;
 
-public class TokenizerProperties {
+public class DashScopeTokenizerProperties {
 
     private String apiKey;
     private String modelName;

@@ -1,32 +1,28 @@
 package dev.langchain4j.community.xinference.spring;
 
+import dev.langchain4j.community.model.xinference.client.image.ResponseFormat;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
-@ConfigurationProperties(prefix = LanguageModelProperties.PREFIX)
-public class LanguageModelProperties {
-    static final String PREFIX = "langchain4j.community.xinference.language-model";
+@ConfigurationProperties(prefix = XinferenceImageModelProperties.PREFIX)
+public class XinferenceImageModelProperties {
+    static final String PREFIX = "langchain4j.community.xinference.image-model";
 
     private String baseUrl;
     private String apiKey;
     private String modelName;
-    private Integer maxTokens;
-    private Double temperature;
-    private Double topP;
-    private Integer logprobs;
-    private Boolean echo;
-    private List<String> stop;
-    private Double presencePenalty;
-    private Double frequencyPenalty;
+    private String negativePrompt;
+    private ResponseFormat responseFormat;
+    private String size;
+    private String kwargs;
     private String user;
     private Integer maxRetries;
     private Duration timeout;
 
     @NestedConfigurationProperty
-    private ProxyProperties proxy;
+    private XinferenceProxyProperties proxy;
 
     private Boolean logRequests;
     private Boolean logResponses;
@@ -56,68 +52,36 @@ public class LanguageModelProperties {
         this.modelName = modelName;
     }
 
-    public Integer getMaxTokens() {
-        return maxTokens;
+    public String getNegativePrompt() {
+        return negativePrompt;
     }
 
-    public void setMaxTokens(final Integer maxTokens) {
-        this.maxTokens = maxTokens;
+    public void setNegativePrompt(final String negativePrompt) {
+        this.negativePrompt = negativePrompt;
     }
 
-    public Double getTemperature() {
-        return temperature;
+    public ResponseFormat getResponseFormat() {
+        return responseFormat;
     }
 
-    public void setTemperature(final Double temperature) {
-        this.temperature = temperature;
+    public void setResponseFormat(final ResponseFormat responseFormat) {
+        this.responseFormat = responseFormat;
     }
 
-    public Double getTopP() {
-        return topP;
+    public String getSize() {
+        return size;
     }
 
-    public void setTopP(final Double topP) {
-        this.topP = topP;
+    public void setSize(final String size) {
+        this.size = size;
     }
 
-    public Integer getLogprobs() {
-        return logprobs;
+    public String getKwargs() {
+        return kwargs;
     }
 
-    public void setLogprobs(final Integer logprobs) {
-        this.logprobs = logprobs;
-    }
-
-    public Boolean getEcho() {
-        return echo;
-    }
-
-    public void setEcho(final Boolean echo) {
-        this.echo = echo;
-    }
-
-    public List<String> getStop() {
-        return stop;
-    }
-
-    public void setStop(final List<String> stop) {
-        this.stop = stop;
-    }
-
-    public Double getPresencePenalty() {
-        return presencePenalty;
-    }
-
-    public void setPresencePenalty(final Double presencePenalty) {
-        this.presencePenalty = presencePenalty;
-    }
-
-    public Double getFrequencyPenalty() {
-        return frequencyPenalty;
-    }
-
-    public void setFrequencyPenalty(final Double frequencyPenalty) {
-        this.frequencyPenalty = frequencyPenalty;
+    public void setKwargs(final String kwargs) {
+        this.kwargs = kwargs;
     }
 
     public String getUser() {
@@ -144,11 +108,11 @@ public class LanguageModelProperties {
         this.timeout = timeout;
     }
 
-    public ProxyProperties getProxy() {
+    public XinferenceProxyProperties getProxy() {
         return proxy;
     }
 
-    public void setProxy(final ProxyProperties proxy) {
+    public void setProxy(final XinferenceProxyProperties proxy) {
         this.proxy = proxy;
     }
 

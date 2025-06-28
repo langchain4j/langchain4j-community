@@ -7,6 +7,8 @@ import dev.langchain4j.community.model.xinference.XinferenceLanguageModel;
 import dev.langchain4j.community.model.xinference.XinferenceScoringModel;
 import dev.langchain4j.community.model.xinference.XinferenceStreamingChatModel;
 import dev.langchain4j.community.model.xinference.XinferenceStreamingLanguageModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -15,19 +17,20 @@ import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
 @EnableConfigurationProperties({
-    ChatModelProperties.class,
-    StreamingChatModelProperties.class,
-    LanguageModelProperties.class,
-    StreamingLanguageModelProperties.class,
-    EmbeddingModelProperties.class,
-    ImageModelProperties.class,
-    ScoringModelProperties.class
+    XinferenceChatModelProperties.class,
+    XinferenceStreamingChatModelProperties.class,
+    XinferenceLanguageModelProperties.class,
+    XinferenceStreamingLanguageModelProperties.class,
+    XinferenceEmbeddingModelProperties.class,
+    XinferenceImageModelProperties.class,
+    XinferenceScoringModelProperties.class
 })
 public class XinferenceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(ChatModelProperties.PREFIX + ".base-url")
-    public XinferenceChatModel xinferenceChatModel(ChatModelProperties chatModelProperties) {
+    @ConditionalOnProperty(XinferenceChatModelProperties.PREFIX + ".base-url")
+    public XinferenceChatModel xinferenceChatModel(
+            XinferenceChatModelProperties chatModelProperties, ObjectProvider<ChatModelListener> listenerProvider) {
         return XinferenceChatModel.builder()
                 .baseUrl(chatModelProperties.getBaseUrl())
                 .apiKey(chatModelProperties.getApiKey())
@@ -44,18 +47,20 @@ public class XinferenceAutoConfiguration {
                 .parallelToolCalls(chatModelProperties.getParallelToolCalls())
                 .maxRetries(chatModelProperties.getMaxRetries())
                 .timeout(chatModelProperties.getTimeout())
-                .proxy(ProxyProperties.convert(chatModelProperties.getProxy()))
+                .proxy(XinferenceProxyProperties.convert(chatModelProperties.getProxy()))
                 .logRequests(chatModelProperties.getLogRequests())
                 .logResponses(chatModelProperties.getLogResponses())
                 .customHeaders(chatModelProperties.getCustomHeaders())
+                .listeners(listenerProvider.stream().toList())
                 .build();
     }
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(StreamingChatModelProperties.PREFIX + ".base-url")
+    @ConditionalOnProperty(XinferenceStreamingChatModelProperties.PREFIX + ".base-url")
     public XinferenceStreamingChatModel xinferenceStreamingChatModel(
-            StreamingChatModelProperties streamingChatModelProperties) {
+            XinferenceStreamingChatModelProperties streamingChatModelProperties,
+            ObjectProvider<ChatModelListener> listenerProvider) {
         return XinferenceStreamingChatModel.builder()
                 .baseUrl(streamingChatModelProperties.getBaseUrl())
                 .apiKey(streamingChatModelProperties.getApiKey())
@@ -71,17 +76,18 @@ public class XinferenceAutoConfiguration {
                 .toolChoice(streamingChatModelProperties.getToolChoice())
                 .parallelToolCalls(streamingChatModelProperties.getParallelToolCalls())
                 .timeout(streamingChatModelProperties.getTimeout())
-                .proxy(ProxyProperties.convert(streamingChatModelProperties.getProxy()))
+                .proxy(XinferenceProxyProperties.convert(streamingChatModelProperties.getProxy()))
                 .logRequests(streamingChatModelProperties.getLogRequests())
                 .logResponses(streamingChatModelProperties.getLogResponses())
                 .customHeaders(streamingChatModelProperties.getCustomHeaders())
+                .listeners(listenerProvider.stream().toList())
                 .build();
     }
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(LanguageModelProperties.PREFIX + ".base-url")
-    public XinferenceLanguageModel xinferenceLanguageModel(LanguageModelProperties languageModelProperties) {
+    @ConditionalOnProperty(XinferenceLanguageModelProperties.PREFIX + ".base-url")
+    public XinferenceLanguageModel xinferenceLanguageModel(XinferenceLanguageModelProperties languageModelProperties) {
         return XinferenceLanguageModel.builder()
                 .baseUrl(languageModelProperties.getBaseUrl())
                 .apiKey(languageModelProperties.getApiKey())
@@ -97,7 +103,7 @@ public class XinferenceAutoConfiguration {
                 .user(languageModelProperties.getUser())
                 .maxRetries(languageModelProperties.getMaxRetries())
                 .timeout(languageModelProperties.getTimeout())
-                .proxy(ProxyProperties.convert(languageModelProperties.getProxy()))
+                .proxy(XinferenceProxyProperties.convert(languageModelProperties.getProxy()))
                 .logRequests(languageModelProperties.getLogRequests())
                 .logResponses(languageModelProperties.getLogResponses())
                 .customHeaders(languageModelProperties.getCustomHeaders())
@@ -106,9 +112,9 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(StreamingLanguageModelProperties.PREFIX + ".base-url")
+    @ConditionalOnProperty(XinferenceStreamingLanguageModelProperties.PREFIX + ".base-url")
     public XinferenceStreamingLanguageModel xinferenceStreamingLanguageModel(
-            StreamingLanguageModelProperties streamingLanguageModelProperties) {
+            XinferenceStreamingLanguageModelProperties streamingLanguageModelProperties) {
         return XinferenceStreamingLanguageModel.builder()
                 .baseUrl(streamingLanguageModelProperties.getBaseUrl())
                 .apiKey(streamingLanguageModelProperties.getApiKey())
@@ -123,7 +129,7 @@ public class XinferenceAutoConfiguration {
                 .frequencyPenalty(streamingLanguageModelProperties.getFrequencyPenalty())
                 .user(streamingLanguageModelProperties.getUser())
                 .timeout(streamingLanguageModelProperties.getTimeout())
-                .proxy(ProxyProperties.convert(streamingLanguageModelProperties.getProxy()))
+                .proxy(XinferenceProxyProperties.convert(streamingLanguageModelProperties.getProxy()))
                 .logRequests(streamingLanguageModelProperties.getLogRequests())
                 .logResponses(streamingLanguageModelProperties.getLogResponses())
                 .customHeaders(streamingLanguageModelProperties.getCustomHeaders())
@@ -132,8 +138,9 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(EmbeddingModelProperties.PREFIX + ".base-url")
-    public XinferenceEmbeddingModel xinferenceEmbeddingModel(EmbeddingModelProperties embeddingModelProperties) {
+    @ConditionalOnProperty(XinferenceEmbeddingModelProperties.PREFIX + ".base-url")
+    public XinferenceEmbeddingModel xinferenceEmbeddingModel(
+            XinferenceEmbeddingModelProperties embeddingModelProperties) {
         return XinferenceEmbeddingModel.builder()
                 .baseUrl(embeddingModelProperties.getBaseUrl())
                 .apiKey(embeddingModelProperties.getApiKey())
@@ -141,7 +148,7 @@ public class XinferenceAutoConfiguration {
                 .user(embeddingModelProperties.getUser())
                 .maxRetries(embeddingModelProperties.getMaxRetries())
                 .timeout(embeddingModelProperties.getTimeout())
-                .proxy(ProxyProperties.convert(embeddingModelProperties.getProxy()))
+                .proxy(XinferenceProxyProperties.convert(embeddingModelProperties.getProxy()))
                 .logRequests(embeddingModelProperties.getLogRequests())
                 .logResponses(embeddingModelProperties.getLogResponses())
                 .customHeaders(embeddingModelProperties.getCustomHeaders())
@@ -150,8 +157,8 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(ImageModelProperties.PREFIX + ".base-url")
-    public XinferenceImageModel xinferenceImageModel(ImageModelProperties imageModelProperties) {
+    @ConditionalOnProperty(XinferenceImageModelProperties.PREFIX + ".base-url")
+    public XinferenceImageModel xinferenceImageModel(XinferenceImageModelProperties imageModelProperties) {
         return XinferenceImageModel.builder()
                 .baseUrl(imageModelProperties.getBaseUrl())
                 .apiKey(imageModelProperties.getApiKey())
@@ -163,7 +170,7 @@ public class XinferenceAutoConfiguration {
                 .user(imageModelProperties.getUser())
                 .maxRetries(imageModelProperties.getMaxRetries())
                 .timeout(imageModelProperties.getTimeout())
-                .proxy(ProxyProperties.convert(imageModelProperties.getProxy()))
+                .proxy(XinferenceProxyProperties.convert(imageModelProperties.getProxy()))
                 .logRequests(imageModelProperties.getLogRequests())
                 .logResponses(imageModelProperties.getLogResponses())
                 .customHeaders(imageModelProperties.getCustomHeaders())
@@ -172,8 +179,8 @@ public class XinferenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(ScoringModelProperties.PREFIX + ".base-url")
-    public XinferenceScoringModel xinferenceScoringModel(ScoringModelProperties scoringModelProperties) {
+    @ConditionalOnProperty(XinferenceScoringModelProperties.PREFIX + ".base-url")
+    public XinferenceScoringModel xinferenceScoringModel(XinferenceScoringModelProperties scoringModelProperties) {
         return XinferenceScoringModel.builder()
                 .baseUrl(scoringModelProperties.getBaseUrl())
                 .apiKey(scoringModelProperties.getApiKey())
@@ -183,7 +190,7 @@ public class XinferenceAutoConfiguration {
                 .returnLen(scoringModelProperties.getReturnLen())
                 .maxRetries(scoringModelProperties.getMaxRetries())
                 .timeout(scoringModelProperties.getTimeout())
-                .proxy(ProxyProperties.convert(scoringModelProperties.getProxy()))
+                .proxy(XinferenceProxyProperties.convert(scoringModelProperties.getProxy()))
                 .logRequests(scoringModelProperties.getLogRequests())
                 .logResponses(scoringModelProperties.getLogResponses())
                 .customHeaders(scoringModelProperties.getCustomHeaders())

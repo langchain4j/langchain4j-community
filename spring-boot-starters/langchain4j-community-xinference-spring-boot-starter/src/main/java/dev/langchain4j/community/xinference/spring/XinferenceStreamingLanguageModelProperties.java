@@ -6,27 +6,26 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
-@ConfigurationProperties(prefix = StreamingChatModelProperties.PREFIX)
-public class StreamingChatModelProperties {
-    static final String PREFIX = "langchain4j.community.xinference.streaming-chat-model";
+@ConfigurationProperties(prefix = XinferenceStreamingLanguageModelProperties.PREFIX)
+public class XinferenceStreamingLanguageModelProperties {
+    static final String PREFIX = "langchain4j.community.xinference.streaming-language-model";
 
     private String baseUrl;
     private String apiKey;
     private String modelName;
+    private Integer maxTokens;
     private Double temperature;
     private Double topP;
+    private Integer logprobs;
+    private Boolean echo;
     private List<String> stop;
-    private Integer maxTokens;
     private Double presencePenalty;
     private Double frequencyPenalty;
-    private Integer seed;
     private String user;
-    private Object toolChoice;
-    private Boolean parallelToolCalls;
     private Duration timeout;
 
     @NestedConfigurationProperty
-    private ProxyProperties proxy;
+    private XinferenceProxyProperties proxy;
 
     private Boolean logRequests;
     private Boolean logResponses;
@@ -56,6 +55,14 @@ public class StreamingChatModelProperties {
         this.modelName = modelName;
     }
 
+    public Integer getMaxTokens() {
+        return maxTokens;
+    }
+
+    public void setMaxTokens(final Integer maxTokens) {
+        this.maxTokens = maxTokens;
+    }
+
     public Double getTemperature() {
         return temperature;
     }
@@ -72,20 +79,28 @@ public class StreamingChatModelProperties {
         this.topP = topP;
     }
 
+    public Integer getLogprobs() {
+        return logprobs;
+    }
+
+    public void setLogprobs(final Integer logprobs) {
+        this.logprobs = logprobs;
+    }
+
+    public Boolean getEcho() {
+        return echo;
+    }
+
+    public void setEcho(final Boolean echo) {
+        this.echo = echo;
+    }
+
     public List<String> getStop() {
         return stop;
     }
 
     public void setStop(final List<String> stop) {
         this.stop = stop;
-    }
-
-    public Integer getMaxTokens() {
-        return maxTokens;
-    }
-
-    public void setMaxTokens(final Integer maxTokens) {
-        this.maxTokens = maxTokens;
     }
 
     public Double getPresencePenalty() {
@@ -104,36 +119,12 @@ public class StreamingChatModelProperties {
         this.frequencyPenalty = frequencyPenalty;
     }
 
-    public Integer getSeed() {
-        return seed;
-    }
-
-    public void setSeed(final Integer seed) {
-        this.seed = seed;
-    }
-
     public String getUser() {
         return user;
     }
 
     public void setUser(final String user) {
         this.user = user;
-    }
-
-    public Object getToolChoice() {
-        return toolChoice;
-    }
-
-    public void setToolChoice(final Object toolChoice) {
-        this.toolChoice = toolChoice;
-    }
-
-    public Boolean getParallelToolCalls() {
-        return parallelToolCalls;
-    }
-
-    public void setParallelToolCalls(final Boolean parallelToolCalls) {
-        this.parallelToolCalls = parallelToolCalls;
     }
 
     public Duration getTimeout() {
@@ -144,11 +135,11 @@ public class StreamingChatModelProperties {
         this.timeout = timeout;
     }
 
-    public ProxyProperties getProxy() {
+    public XinferenceProxyProperties getProxy() {
         return proxy;
     }
 
-    public void setProxy(final ProxyProperties proxy) {
+    public void setProxy(final XinferenceProxyProperties proxy) {
         this.proxy = proxy;
     }
 

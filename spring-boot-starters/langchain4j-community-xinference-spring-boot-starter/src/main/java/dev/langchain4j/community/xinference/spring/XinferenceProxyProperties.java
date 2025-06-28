@@ -4,7 +4,7 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Objects;
 
-public class ProxyProperties {
+public class XinferenceProxyProperties {
     private Proxy.Type type;
     private String host;
     private Integer port;
@@ -13,7 +13,7 @@ public class ProxyProperties {
         return type;
     }
 
-    public void setType(final Proxy.Type type) {
+    public void setType(Proxy.Type type) {
         this.type = type;
     }
 
@@ -21,7 +21,7 @@ public class ProxyProperties {
         return host;
     }
 
-    public void setHost(final String host) {
+    public void setHost(String host) {
         this.host = host;
     }
 
@@ -29,11 +29,11 @@ public class ProxyProperties {
         return port;
     }
 
-    public void setPort(final Integer port) {
+    public void setPort(Integer port) {
         this.port = port;
     }
 
-    public static Proxy convert(ProxyProperties properties) {
+    public static Proxy convert(XinferenceProxyProperties properties) {
         if (Objects.isNull(properties)) {
             return null;
         }
