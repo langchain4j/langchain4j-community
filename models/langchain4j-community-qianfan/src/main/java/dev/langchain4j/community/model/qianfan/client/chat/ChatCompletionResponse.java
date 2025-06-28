@@ -1,17 +1,17 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.qianfan.client.Usage;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
-public final class ChatCompletionResponse {
+public class ChatCompletionResponse {
 
     private String id;
     private Integer errorCode;
@@ -28,8 +28,7 @@ public final class ChatCompletionResponse {
     private FunctionCall functionCall;
     private String finishReason;
 
-    public ChatCompletionResponse() {
-    }
+    public ChatCompletionResponse() {}
 
     public String getId() {
         return id;
@@ -145,22 +144,20 @@ public final class ChatCompletionResponse {
 
     @Override
     public String toString() {
-        return "ChatCompletionResponse{" +
-                "id='" + id + '\'' +
-                ", errorCode=" + errorCode +
-                ", errorMsg='" + errorMsg + '\'' +
-                ", object='" + object + '\'' +
-                ", created=" + created +
-                ", sentenceId=" + sentenceId +
-                ", isEnd=" + isEnd +
-                ", isTruncated=" + isTruncated +
-                ", result='" + result + '\'' +
-                ", needClearHistory=" + needClearHistory +
-                ", banRound=" + banRound +
-                ", usage=" + usage +
-                ", functionCall=" + functionCall +
-                ", finishReason=" + finishReason +
-                '}';
+        return "ChatCompletionResponse{" + "id='"
+                + id + '\'' + ", errorCode="
+                + errorCode + ", errorMsg='"
+                + errorMsg + '\'' + ", object='"
+                + object + '\'' + ", created="
+                + created + ", sentenceId="
+                + sentenceId + ", isEnd="
+                + isEnd + ", isTruncated="
+                + isTruncated + ", result='"
+                + result + '\'' + ", needClearHistory="
+                + needClearHistory + ", banRound="
+                + banRound + ", usage="
+                + usage + ", functionCall="
+                + functionCall + ", finishReason="
+                + finishReason + '}';
     }
 }
-

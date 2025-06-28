@@ -1,11 +1,11 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
@@ -24,6 +24,10 @@ public class Function {
         this.parameters = builder.parameters;
         this.examples = builder.examples;
         this.responses = builder.responses;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getName() {
@@ -48,17 +52,12 @@ public class Function {
 
     @Override
     public String toString() {
-        return "Function{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", parameters=" + parameters +
-                ", responses=" + responses +
-                ", examples=" + examples +
-                '}';
-    }
-
-    public static Builder builder() {
-        return new Builder();
+        return "Function{" + "name='"
+                + name + '\'' + ", description='"
+                + description + '\'' + ", parameters="
+                + parameters + ", responses="
+                + responses + ", examples="
+                + examples + '}';
     }
 
     public static final class Builder {
@@ -69,8 +68,7 @@ public class Function {
         private Responses responses;
         private Examples examples;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder name(String name) {
             this.name = name;
@@ -102,4 +100,3 @@ public class Function {
         }
     }
 }
-

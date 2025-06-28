@@ -4,14 +4,13 @@ import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.aiMe
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.getSystemMessage;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.toFunctions;
-import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.toOpenAiMessages;
+import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.toQianfanMessages;
 import static dev.langchain4j.community.model.qianfan.InternalQianfanHelper.tokenUsageFrom;
 import static dev.langchain4j.community.model.qianfan.QianfanChatModelNameEnum.fromModelName;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -26,6 +25,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import java.net.Proxy;
 import java.util.List;
 
@@ -90,7 +90,7 @@ public class QianfanChatModel implements ChatModel {
                 .temperature(temperature)
                 .topP(topP)
                 .stopSequences(stop)
-                .modelName(ensureNotNull(modelName, "modelName"))
+                .modelName(modelName)
                 .maxOutputTokens(maxOutputTokens)
                 .responseFormat("json_object".equals(responseFormat) ? ResponseFormat.JSON : ResponseFormat.TEXT)
                 .presencePenalty(penaltyScore)
@@ -98,6 +98,13 @@ public class QianfanChatModel implements ChatModel {
 
         this.userId = userId;
         this.system = system;
+    }
+
+    public static QianfanChatModelBuilder builder() {
+        for (QianfanChatModelBuilderFactory factory : loadFactories(QianfanChatModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new QianfanChatModelBuilder();
     }
 
     @Override
@@ -117,7 +124,7 @@ public class QianfanChatModel implements ChatModel {
         ChatRequestParameters parameters = chatRequest.parameters();
 
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
-                .messages(toOpenAiMessages(messages))
+                .messages(toQianfanMessages(messages))
                 .temperature(parameters.temperature())
                 .topP(parameters.topP())
                 .maxOutputTokens(parameters.maxOutputTokens())
@@ -134,21 +141,19 @@ public class QianfanChatModel implements ChatModel {
         }
 
         ChatCompletionRequest param = builder.build();
+        String curEndpoint = parameters.modelName() != null ? fromModelName(parameters.modelName()) : endpoint;
         ChatCompletionResponse response =
-                withRetry(() -> client.chatCompletion(param, endpoint).execute(), maxRetries);
+                withRetry(() -> client.chatCompletion(param, curEndpoint).execute(), maxRetries);
 
         return ChatResponse.builder()
                 .aiMessage(aiMessageFrom(response))
-                .tokenUsage(tokenUsageFrom(response))
-                .finishReason(finishReasonFrom(response.getFinishReason()))
+                .metadata(ChatResponseMetadata.builder()
+                        .id(response.getId())
+                        .modelName(parameters.modelName())
+                        .tokenUsage(tokenUsageFrom(response))
+                        .finishReason(finishReasonFrom(response.getFinishReason()))
+                        .build())
                 .build();
-    }
-
-    public static QianfanChatModelBuilder builder() {
-        for (QianfanChatModelBuilderFactory factory : loadFactories(QianfanChatModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new QianfanChatModelBuilder();
     }
 
     public static class QianfanChatModelBuilder {

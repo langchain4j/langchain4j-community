@@ -1,12 +1,16 @@
 package dev.langchain4j.community.model.qianfan;
 
 public enum QianfanChatModelNameEnum {
-
+    ERNIE_TURBO_4_5_128K("ERNIE-4.5-Turbo-128K", "ernie-4.5-turbo-128k"),
+    ERNIE_TURBO_4_5_32K("ERNIE-4.5-Turbo-32K", "ernie-4.5-turbo-32k"),
     ERNIE_BOT("ERNIE-Bot", "completions"),
     ERNIE_BOT_4("ERNIE-Bot 4.0", "completions_pro"),
     ERNIE_BOT_8("ERNIE-Bot-8K", "ernie_bot_8k"),
     ERNIE_BOT_TURBO("ERNIE-Bot-turbo", "eb-instant"),
     ERNIE_SPEED_128K("ERNIE-Speed-128K", "ernie-speed-128k"),
+    ERNIE_LITE_8K("ERNIE-Lite-8K", "ernie-lite-8k"),
+    ERNIE_LITE_128K("ERNIE-Lite-128K", "ernie-lite-pro-128k"),
+    ERNIE_TINY_8K("ERNIE-Tiny-8K", "ernie-tiny-8k"),
     EB_TURBO_APPBUILDER("EB-turbo-AppBuilder", "ai_apaas"),
     YI_34B_CHAT("Yi-34B-Chat", "yi_34b_chat"),
     BLOOMZ_7B("BLOOMZ-7B", "bloomz_7b1"),
@@ -27,14 +31,6 @@ public enum QianfanChatModelNameEnum {
         this.endpoint = endpoint;
     }
 
-    public String getModelName() {
-        return modelName;
-    }
-
-    public String getEndpoint() {
-        return endpoint;
-    }
-
     public static String fromModelName(String modelName) {
         for (QianfanChatModelNameEnum qianfanChatModelNameEnum : QianfanChatModelNameEnum.values()) {
             if (qianfanChatModelNameEnum.getModelName().equals(modelName)) {
@@ -42,5 +38,13 @@ public enum QianfanChatModelNameEnum {
             }
         }
         return null;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public String getEndpoint() {
+        return endpoint;
     }
 }

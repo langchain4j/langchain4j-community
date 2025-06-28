@@ -1,21 +1,20 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
-public final class ChatCompletionRequest {
+public class ChatCompletionRequest {
 
     private final List<Message> messages;
     private final Double temperature;
@@ -41,6 +40,10 @@ public final class ChatCompletionRequest {
         this.responseFormat = builder.responseFormat;
         this.stop = builder.stop;
         this.maxOutputTokens = builder.maxOutputTokens;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public List<Message> getMessages() {
@@ -89,23 +92,18 @@ public final class ChatCompletionRequest {
 
     @Override
     public String toString() {
-        return "ChatCompletionRequest{" +
-                "messages=" + messages +
-                ", temperature=" + temperature +
-                ", topP=" + topP +
-                ", stream=" + stream +
-                ", penaltyScore=" + penaltyScore +
-                ", userId='" + userId + '\'' +
-                ", functions=" + functions +
-                ", system='" + system + '\'' +
-                ", stop=" + stop +
-                ", maxOutputTokens=" + maxOutputTokens +
-                ", responseFormat='" + responseFormat + '\'' +
-                '}';
-    }
-
-    public static Builder builder() {
-        return new Builder();
+        return "ChatCompletionRequest{" + "messages="
+                + messages + ", temperature="
+                + temperature + ", topP="
+                + topP + ", stream="
+                + stream + ", penaltyScore="
+                + penaltyScore + ", userId='"
+                + userId + '\'' + ", functions="
+                + functions + ", system='"
+                + system + '\'' + ", stop="
+                + stop + ", maxOutputTokens="
+                + maxOutputTokens + ", responseFormat='"
+                + responseFormat + '\'' + '}';
     }
 
     public static final class Builder {
@@ -122,11 +120,9 @@ public final class ChatCompletionRequest {
         private List<String> stop;
         private Integer maxOutputTokens;
 
-        private Builder() {
-        }
+        private Builder() {}
 
-        public Builder from(
-                ChatCompletionRequest instance) {
+        public Builder from(ChatCompletionRequest instance) {
             this.messages(instance.messages);
             this.temperature(instance.temperature);
             this.topP(instance.topP);
@@ -186,7 +182,6 @@ public final class ChatCompletionRequest {
             return this;
         }
 
-
         public Builder temperature(Double temperature) {
             this.temperature = temperature;
             return this;
@@ -212,7 +207,6 @@ public final class ChatCompletionRequest {
             return this;
         }
 
-
         public Builder topP(Double topP) {
             this.topP = topP;
             return this;
@@ -223,12 +217,10 @@ public final class ChatCompletionRequest {
             return this;
         }
 
-
         public Builder penaltyScore(Double penaltyScore) {
             this.penaltyScore = penaltyScore;
             return this;
         }
-
 
         public Builder userId(String userId) {
             this.userId = userId;

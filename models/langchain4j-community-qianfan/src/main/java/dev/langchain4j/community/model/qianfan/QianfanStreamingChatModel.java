@@ -6,7 +6,7 @@ import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -26,7 +26,6 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.net.Proxy;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * see details here: https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
@@ -84,13 +83,36 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
                 .temperature(temperature)
                 .topP(topP)
                 .stopSequences(stop)
-                .modelName(ensureNotNull(modelName, "modelName"))
+                .modelName(modelName)
                 .maxOutputTokens(maxOutputTokens)
                 .responseFormat("json_object".equals(responseFormat) ? ResponseFormat.JSON : ResponseFormat.TEXT)
                 .presencePenalty(penaltyScore)
                 .build();
 
         this.userId = userId;
+    }
+
+    private static void handle(ChatCompletionResponse partialResponse, StreamingChatResponseHandler handler) {
+        if (partialResponse == null) {
+            return;
+        }
+
+        String result = partialResponse.getResult();
+        if (!isNullOrEmpty(result)) {
+            try {
+                handler.onPartialResponse(result);
+            } catch (Exception e) {
+                withLoggingExceptions(() -> handler.onError(e));
+            }
+        }
+    }
+
+    public static QianfanStreamingChatModelBuilder builder() {
+        for (QianfanStreamingChatModelBuilderFactory factory :
+                loadFactories(QianfanStreamingChatModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new QianfanStreamingChatModelBuilder();
     }
 
     @Override
@@ -110,7 +132,7 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
         ChatRequestParameters parameters = chatRequest.parameters();
 
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
-                .messages(InternalQianfanHelper.toOpenAiMessages(messages))
+                .messages(InternalQianfanHelper.toQianfanMessages(messages))
                 .temperature(parameters.temperature())
                 .topP(parameters.topP())
                 .maxOutputTokens(parameters.maxOutputTokens())
@@ -127,9 +149,11 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
 
         ChatCompletionRequest request = builder.build();
 
-        QianfanStreamingResponseBuilder responseBuilder = new QianfanStreamingResponseBuilder(null);
+        QianfanStreamingResponseBuilder responseBuilder =
+                new QianfanStreamingResponseBuilder(parameters.modelName(), null);
 
-        SyncOrAsyncOrStreaming<ChatCompletionResponse> response = client.chatCompletion(request, endpoint);
+        String curEndpoint = parameters.modelName() != null ? fromModelName(parameters.modelName()) : endpoint;
+        SyncOrAsyncOrStreaming<ChatCompletionResponse> response = client.chatCompletion(request, curEndpoint);
 
         response.onPartialResponse(partialResponse -> {
                     try {
@@ -154,22 +178,6 @@ public class QianfanStreamingChatModel implements StreamingChatModel {
                     withLoggingExceptions(() -> handler.onError(mappedException));
                 })
                 .execute();
-    }
-
-    private static void handle(ChatCompletionResponse partialResponse, StreamingChatResponseHandler handler) {
-        String result = partialResponse.getResult();
-        if (Objects.isNull(result) || result.isEmpty()) {
-            return;
-        }
-        handler.onPartialResponse(result);
-    }
-
-    public static QianfanStreamingChatModelBuilder builder() {
-        for (QianfanStreamingChatModelBuilderFactory factory :
-                loadFactories(QianfanStreamingChatModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new QianfanStreamingChatModelBuilder();
     }
 
     public static class QianfanStreamingChatModelBuilder {

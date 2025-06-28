@@ -71,32 +71,6 @@ public class QianfanStreamingLanguageModel implements StreamingLanguageModel {
         this.penaltyScore = penaltyScore;
     }
 
-    @Override
-    public void generate(String prompt, StreamingResponseHandler<String> handler) {
-
-        CompletionRequest request = CompletionRequest.builder()
-                .prompt(prompt)
-                .topK(topK)
-                .topP(topP)
-                .temperature(temperature)
-                .penaltyScore(penaltyScore)
-                .build();
-
-        QianfanStreamingResponseBuilder responseBuilder = new QianfanStreamingResponseBuilder(null);
-        SyncOrAsyncOrStreaming<CompletionResponse> response = client.completion(request, true, endpoint);
-
-        response.onPartialResponse(partialResponse -> {
-                    responseBuilder.append(partialResponse);
-                    handle(partialResponse, handler);
-                })
-                .onComplete(() -> {
-                    Response<String> response1 = responseBuilder.build(null);
-                    handler.onComplete(response1);
-                })
-                .onError(handler::onError)
-                .execute();
-    }
-
     private static void handle(CompletionResponse partialResponse, StreamingResponseHandler<String> handler) {
         String result = partialResponse.getResult();
         if (Utils.isNullOrBlank(result)) {
@@ -111,6 +85,32 @@ public class QianfanStreamingLanguageModel implements StreamingLanguageModel {
             return factory.get();
         }
         return new QianfanStreamingLanguageModelBuilder();
+    }
+
+    @Override
+    public void generate(String prompt, StreamingResponseHandler<String> handler) {
+
+        CompletionRequest request = CompletionRequest.builder()
+                .prompt(prompt)
+                .topK(topK)
+                .topP(topP)
+                .temperature(temperature)
+                .penaltyScore(penaltyScore)
+                .build();
+
+        QianfanStreamingResponseBuilder responseBuilder = new QianfanStreamingResponseBuilder(modelName, null);
+        SyncOrAsyncOrStreaming<CompletionResponse> response = client.completion(request, true, endpoint);
+
+        response.onPartialResponse(partialResponse -> {
+                    responseBuilder.append(partialResponse);
+                    handle(partialResponse, handler);
+                })
+                .onComplete(() -> {
+                    Response<String> response1 = responseBuilder.build(null);
+                    handler.onComplete(response1);
+                })
+                .onError(handler::onError)
+                .execute();
     }
 
     public static class QianfanStreamingLanguageModelBuilder {

@@ -1,21 +1,20 @@
 package dev.langchain4j.community.model.qianfan.client.embedding;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
-public final class EmbeddingRequest {
+public class EmbeddingRequest {
 
     private final String model;
     private final List<String> input;
@@ -25,6 +24,10 @@ public final class EmbeddingRequest {
         this.model = builder.model;
         this.input = builder.input;
         this.user = builder.user;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getModel() {
@@ -43,13 +46,14 @@ public final class EmbeddingRequest {
         if (this == another) {
             return true;
         } else {
-            return another instanceof EmbeddingRequest
-                    && this.equalTo((EmbeddingRequest) another);
+            return another instanceof EmbeddingRequest && this.equalTo((EmbeddingRequest) another);
         }
     }
 
     private boolean equalTo(EmbeddingRequest another) {
-        return Objects.equals(this.model, another.model) && Objects.equals(this.input, another.input) && Objects.equals(this.user, another.user);
+        return Objects.equals(this.model, another.model)
+                && Objects.equals(this.input, another.input)
+                && Objects.equals(this.user, another.user);
     }
 
     public int hashCode() {
@@ -64,25 +68,18 @@ public final class EmbeddingRequest {
         return "EmbeddingRequest{model=" + this.model + ", input=" + this.input + ", user=" + this.user + "}";
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
     public static final class Builder {
 
         private String model;
         private List<String> input;
         private String user;
 
-        private Builder() {
-
-        }
+        private Builder() {}
 
         public Builder model(String model) {
             this.model = model;
             return this;
         }
-
 
         public Builder input(String... input) {
             return this.input(Arrays.asList(input));
@@ -105,4 +102,3 @@ public final class EmbeddingRequest {
         }
     }
 }
-

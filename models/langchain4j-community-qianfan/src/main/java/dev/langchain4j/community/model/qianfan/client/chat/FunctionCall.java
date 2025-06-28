@@ -1,13 +1,12 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
@@ -18,13 +17,16 @@ public class FunctionCall {
     private String thoughts;
     private String arguments;
 
-    public FunctionCall() {
-    }
+    public FunctionCall() {}
 
     private FunctionCall(Builder builder) {
         this.name = builder.name;
         this.thoughts = builder.thoughts;
         this.arguments = builder.arguments;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getName() {
@@ -55,22 +57,22 @@ public class FunctionCall {
         if (this == another) {
             return true;
         } else {
-            return another instanceof FunctionCall
-                    && this.equalTo((FunctionCall) another);
+            return another instanceof FunctionCall && this.equalTo((FunctionCall) another);
         }
     }
 
     private boolean equalTo(FunctionCall another) {
-        return Objects.equals(this.name, another.name) && Objects.equals(this.arguments, another.arguments) && Objects.equals(this.thoughts, another.thoughts);
+        return Objects.equals(this.name, another.name)
+                && Objects.equals(this.arguments, another.arguments)
+                && Objects.equals(this.thoughts, another.thoughts);
     }
 
     @Override
     public String toString() {
-        return "{" +
-                "name='" + name + '\'' +
-                ", thoughts='" + thoughts + '\'' +
-                ", arguments='" + arguments + '\'' +
-                '}';
+        return "{" + "name='"
+                + name + '\'' + ", thoughts='"
+                + thoughts + '\'' + ", arguments='"
+                + arguments + '\'' + '}';
     }
 
     public int hashCode() {
@@ -79,10 +81,6 @@ public class FunctionCall {
         h += (h << 5) + Objects.hashCode(this.arguments);
         h += (h << 5) + Objects.hashCode(this.thoughts);
         return h;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static final class Builder {
@@ -111,4 +109,3 @@ public class FunctionCall {
         }
     }
 }
-

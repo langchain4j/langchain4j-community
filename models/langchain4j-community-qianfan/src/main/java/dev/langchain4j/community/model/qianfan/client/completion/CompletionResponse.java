@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.qianfan.client.completion;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
@@ -7,12 +9,10 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.qianfan.client.Usage;
 import dev.langchain4j.community.model.qianfan.client.chat.FunctionCall;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
-public final class CompletionResponse {
+public class CompletionResponse {
 
     private String id;
     private Integer errorCode;
@@ -29,14 +29,13 @@ public final class CompletionResponse {
     private Usage usage;
     private FunctionCall functionCall;
 
-    public CompletionResponse() {
-    }
+    public CompletionResponse() {}
 
     public String getId() {
         return id;
     }
 
-    public void setId(final String id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -44,7 +43,7 @@ public final class CompletionResponse {
         return errorCode;
     }
 
-    public void setErrorCode(final Integer errorCode) {
+    public void setErrorCode(Integer errorCode) {
         this.errorCode = errorCode;
     }
 
@@ -52,7 +51,7 @@ public final class CompletionResponse {
         return errorMsg;
     }
 
-    public void setErrorMsg(final String errorMsg) {
+    public void setErrorMsg(String errorMsg) {
         this.errorMsg = errorMsg;
     }
 
@@ -60,7 +59,7 @@ public final class CompletionResponse {
         return object;
     }
 
-    public void setObject(final String object) {
+    public void setObject(String object) {
         this.object = object;
     }
 
@@ -68,7 +67,7 @@ public final class CompletionResponse {
         return created;
     }
 
-    public void setCreated(final Integer created) {
+    public void setCreated(Integer created) {
         this.created = created;
     }
 
@@ -76,7 +75,7 @@ public final class CompletionResponse {
         return sentenceId;
     }
 
-    public void setSentenceId(final Integer sentenceId) {
+    public void setSentenceId(Integer sentenceId) {
         this.sentenceId = sentenceId;
     }
 
@@ -84,7 +83,7 @@ public final class CompletionResponse {
         return isEnd;
     }
 
-    public void setIsEnd(final Boolean isEnd) {
+    public void setIsEnd(Boolean isEnd) {
         this.isEnd = isEnd;
     }
 
@@ -92,7 +91,7 @@ public final class CompletionResponse {
         return isTruncated;
     }
 
-    public void setIsTruncated(final Boolean isTruncated) {
+    public void setIsTruncated(Boolean isTruncated) {
         this.isTruncated = isTruncated;
     }
 
@@ -100,7 +99,7 @@ public final class CompletionResponse {
         return result;
     }
 
-    public void setResult(final String result) {
+    public void setResult(String result) {
         this.result = result;
     }
 
@@ -108,7 +107,7 @@ public final class CompletionResponse {
         return finishReason;
     }
 
-    public void setFinishReason(final String finishReason) {
+    public void setFinishReason(String finishReason) {
         this.finishReason = finishReason;
     }
 
@@ -116,7 +115,7 @@ public final class CompletionResponse {
         return needClearHistory;
     }
 
-    public void setNeedClearHistory(final Boolean needClearHistory) {
+    public void setNeedClearHistory(Boolean needClearHistory) {
         this.needClearHistory = needClearHistory;
     }
 
@@ -124,7 +123,7 @@ public final class CompletionResponse {
         return banRound;
     }
 
-    public void setBanRound(final Integer banRound) {
+    public void setBanRound(Integer banRound) {
         this.banRound = banRound;
     }
 
@@ -132,7 +131,7 @@ public final class CompletionResponse {
         return usage;
     }
 
-    public void setUsage(final Usage usage) {
+    public void setUsage(Usage usage) {
         this.usage = usage;
     }
 
@@ -140,27 +139,26 @@ public final class CompletionResponse {
         return functionCall;
     }
 
-    public void setFunctionCall(final FunctionCall functionCall) {
+    public void setFunctionCall(FunctionCall functionCall) {
         this.functionCall = functionCall;
     }
 
     @Override
     public String toString() {
-        return "CompletionResponse{" +
-                "id='" + id + '\'' +
-                ", errorCode=" + errorCode +
-                ", errorMsg='" + errorMsg + '\'' +
-                ", object='" + object + '\'' +
-                ", created=" + created +
-                ", sentenceId=" + sentenceId +
-                ", isEnd=" + isEnd +
-                ", isTruncated=" + isTruncated +
-                ", result='" + result + '\'' +
-                ", finishReason='" + finishReason + '\'' +
-                ", needClearHistory=" + needClearHistory +
-                ", banRound=" + banRound +
-                ", usage=" + usage +
-                ", functionCall=" + functionCall +
-                '}';
+        return "CompletionResponse{" + "id='"
+                + id + '\'' + ", errorCode="
+                + errorCode + ", errorMsg='"
+                + errorMsg + '\'' + ", object='"
+                + object + '\'' + ", created="
+                + created + ", sentenceId="
+                + sentenceId + ", isEnd="
+                + isEnd + ", isTruncated="
+                + isTruncated + ", result='"
+                + result + '\'' + ", finishReason='"
+                + finishReason + '\'' + ", needClearHistory="
+                + needClearHistory + ", banRound="
+                + banRound + ", usage="
+                + usage + ", functionCall="
+                + functionCall + '}';
     }
 }

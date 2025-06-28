@@ -27,6 +27,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+/**
+ * TODO: some ITs failed
+ */
 @EnabledIfEnvironmentVariable(named = "QIANFAN_API_KEY", matches = ".+")
 class QianfanStreamingChatModelIT extends AbstractStreamingChatModelIT {
 

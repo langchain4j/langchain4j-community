@@ -1,17 +1,16 @@
 package dev.langchain4j.community.model.qianfan.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
@@ -26,6 +25,10 @@ public class Responses {
         this.properties = builder.properties;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getType() {
         return type;
     }
@@ -38,8 +41,7 @@ public class Responses {
         if (this == another) {
             return true;
         } else {
-            return another instanceof Responses
-                    && this.equalTo((Responses) another);
+            return another instanceof Responses && this.equalTo((Responses) another);
         }
     }
 
@@ -56,10 +58,6 @@ public class Responses {
 
     public String toString() {
         return "Parameters{type=" + this.type + ", properties=" + this.properties + "}";
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static final class Builder {
@@ -94,4 +92,3 @@ public class Responses {
         }
     }
 }
-

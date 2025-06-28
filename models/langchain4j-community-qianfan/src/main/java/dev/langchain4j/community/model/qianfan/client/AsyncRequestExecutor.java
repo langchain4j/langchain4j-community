@@ -1,10 +1,9 @@
 package dev.langchain4j.community.model.qianfan.client;
 
-import retrofit2.Call;
-
 import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import retrofit2.Call;
 
 public class AsyncRequestExecutor<Response, ResponseContent> {
 
@@ -16,15 +15,16 @@ public class AsyncRequestExecutor<Response, ResponseContent> {
         this.responseContentExtractor = responseContentExtractor;
     }
 
-    AsyncResponseHandling onResponse(final Consumer<ResponseContent> responseHandler) {
+    AsyncResponseHandling onResponse(Consumer<ResponseContent> responseHandler) {
         return new AsyncResponseHandling() {
-            public ErrorHandling onError(final Consumer<Throwable> errorHandler) {
+            public ErrorHandling onError(Consumer<Throwable> errorHandler) {
                 return () -> {
                     try {
                         retrofit2.Response<Response> retrofitResponse = AsyncRequestExecutor.this.call.execute();
                         if (retrofitResponse.isSuccessful()) {
                             Response response = retrofitResponse.body();
-                            ResponseContent responseContent = AsyncRequestExecutor.this.responseContentExtractor.apply(response);
+                            ResponseContent responseContent =
+                                    AsyncRequestExecutor.this.responseContentExtractor.apply(response);
                             responseHandler.accept(responseContent);
                         } else {
                             errorHandler.accept(Utils.toException(retrofitResponse));
@@ -32,7 +32,6 @@ public class AsyncRequestExecutor<Response, ResponseContent> {
                     } catch (IOException e) {
                         errorHandler.accept(e);
                     }
-
                 };
             }
 
@@ -42,7 +41,8 @@ public class AsyncRequestExecutor<Response, ResponseContent> {
                         retrofit2.Response<Response> retrofitResponse = AsyncRequestExecutor.this.call.execute();
                         if (retrofitResponse.isSuccessful()) {
                             Response response = retrofitResponse.body();
-                            ResponseContent responseContent = AsyncRequestExecutor.this.responseContentExtractor.apply(response);
+                            ResponseContent responseContent =
+                                    AsyncRequestExecutor.this.responseContentExtractor.apply(response);
                             responseHandler.accept(responseContent);
                         }
                     } catch (IOException e) {
