@@ -11,6 +11,7 @@ import dev.langchain4j.community.model.qianfan.QianfanStreamingLanguageModel;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -29,8 +30,9 @@ class QianfanAutoConfigurationIT {
     private static final String API_KEY = System.getenv("QIANFAN_API_KEY");
     private static final String SECRET_KEY = System.getenv("QIANFAN_SECRET_KEY");
 
-    ApplicationContextRunner contextRunner =
-            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(QianfanAutoConfiguration.class));
+    ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(
+                    QianfanAutoConfiguration.class, TestChatModelListenerAutoConfiguration.class));
 
     @Test
     void should_provide_chat_model() {
@@ -44,6 +46,8 @@ class QianfanAutoConfigurationIT {
                     assertThat(chatModel).isInstanceOf(QianfanChatModel.class);
                     assertThat(chatModel.chat("What is the capital of Germany?"))
                             .contains("Berlin");
+                    assertThat(chatModel.listeners()).isNotEmpty();
+                    assertThat(chatModel.listeners().get(0)).isSameAs(context.getBean(ChatModelListener.class));
 
                     assertThat(context.getBean(QianfanChatModel.class)).isSameAs(chatModel);
                 });
@@ -59,6 +63,9 @@ class QianfanAutoConfigurationIT {
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
                     assertThat(streamingChatModel).isInstanceOf(QianfanStreamingChatModel.class);
+                    assertThat(streamingChatModel.listeners()).isNotEmpty();
+                    assertThat(streamingChatModel.listeners().get(0))
+                            .isSameAs(context.getBean(ChatModelListener.class));
                     CompletableFuture<ChatResponse> future = new CompletableFuture<>();
                     streamingChatModel.chat("德国的首都是哪里?", new StreamingChatResponseHandler() {
 

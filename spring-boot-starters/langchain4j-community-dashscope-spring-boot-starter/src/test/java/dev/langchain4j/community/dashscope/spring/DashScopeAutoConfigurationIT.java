@@ -14,6 +14,7 @@ import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -33,8 +34,9 @@ public class DashScopeAutoConfigurationIT {
     private static final String API_KEY = System.getenv("DASHSCOPE_API_KEY");
     private static final String CHAT_MODEL = QwenModelName.QWEN_MAX;
 
-    ApplicationContextRunner contextRunner =
-            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(DashScopeAutoConfiguration.class));
+    ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(
+                    DashScopeAutoConfiguration.class, TestChatModelListenerAutoConfiguration.class));
 
     @Test
     void should_provide_chat_model() {
@@ -48,6 +50,8 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(chatModel).isInstanceOf(QwenChatModel.class);
                     assertThat(chatModel.chat("What is the capital of Germany?"))
                             .contains("Berlin");
+                    assertThat(chatModel.listeners()).isNotEmpty();
+                    assertThat(chatModel.listeners().get(0)).isSameAs(context.getBean(ChatModelListener.class));
 
                     assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatModel);
                 });
@@ -63,6 +67,9 @@ public class DashScopeAutoConfigurationIT {
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
                     assertThat(streamingChatModel).isInstanceOf(QwenStreamingChatModel.class);
+                    assertThat(streamingChatModel.listeners()).isNotEmpty();
+                    assertThat(streamingChatModel.listeners().get(0))
+                            .isSameAs(context.getBean(ChatModelListener.class));
                     CompletableFuture<ChatResponse> future = new CompletableFuture<>();
                     streamingChatModel.chat("What is the capital of Germany?", new StreamingChatResponseHandler() {
 

@@ -21,6 +21,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -42,11 +43,13 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
 class XinferenceAutoConfigurationIT {
-    ApplicationContextRunner contextRunner =
-            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(XinferenceAutoConfiguration.class));
 
     @Container
     XinferenceContainer chatModelContainer = new XinferenceContainer(XINFERENCE_IMAGE);
+
+    ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(
+                    XinferenceAutoConfiguration.class, TestChatModelListenerAutoConfiguration.class));
 
     @Test
     void should_provide_chat_model() throws IOException, InterruptedException {
@@ -62,6 +65,8 @@ class XinferenceAutoConfigurationIT {
                     assertThat(chatModel).isInstanceOf(XinferenceChatModel.class);
                     assertThat(chatModel.chat("What is the capital of Germany?"))
                             .contains("Berlin");
+                    assertThat(chatModel.listeners()).isNotEmpty();
+                    assertThat(chatModel.listeners().get(0)).isSameAs(context.getBean(ChatModelListener.class));
                     assertThat(context.getBean(XinferenceChatModel.class)).isSameAs(chatModel);
                 });
     }
@@ -78,6 +83,9 @@ class XinferenceAutoConfigurationIT {
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
                     assertThat(streamingChatModel).isInstanceOf(XinferenceStreamingChatModel.class);
+                    assertThat(streamingChatModel.listeners()).isNotEmpty();
+                    assertThat(streamingChatModel.listeners().get(0))
+                            .isSameAs(context.getBean(ChatModelListener.class));
                     CompletableFuture<ChatResponse> future = new CompletableFuture<>();
                     streamingChatModel.chat("What is the capital of Germany?", new StreamingChatResponseHandler() {
                         @Override
