@@ -114,18 +114,18 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .build();
         this.filterMapper = new RedisMetadataFilterMapper(metadataConfig);
 
-        if (!isIndexExist(schema.indexName())) {
+        if (!isIndexExist(schema.getIndexName())) {
             ensureNotNull(dimension, "dimension");
-            createIndex(schema.indexName());
+            createIndex(schema.getIndexName());
         }
     }
 
     /**
      * Creates an instance of RedisEmbeddingStore
      *
-     * @param uri            Redis Stack Server URI. (e.g. redis://localhost:6379, rediss://localhost:6379)
+     * @param uri            Redis Stack Server URI. (e.g., redis://localhost:6379, rediss://localhost:6379)
      * @param indexName      The name of the index (optional). Default value: "embedding-index".
-     * @param prefix         The prefix of the key, should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
+     * @param prefix         The prefix of the key, which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
      * @param dimension      Embedding vector dimension
      * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
      */
@@ -142,9 +142,9 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .build();
         this.filterMapper = new RedisMetadataFilterMapper(metadataConfig);
 
-        if (!isIndexExist(schema.indexName())) {
+        if (!isIndexExist(schema.getIndexName())) {
             ensureNotNull(dimension, "dimension");
-            createIndex(schema.indexName());
+            createIndex(schema.getIndexName());
         }
     }
 
@@ -181,14 +181,14 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                         QUERY_TEMPLATE,
                         filterMapper.mapToFilter(request.filter()),
                         request.maxResults(),
-                        schema.vectorFieldName(),
+                        schema.getVectorFieldName(),
                         SCORE_FIELD_NAME))
                 .addParam("BLOB", toByteArray(request.queryEmbedding().vector()))
                 .setSortBy(SCORE_FIELD_NAME, true)
                 .limit(0, request.maxResults())
                 .dialect(2);
 
-        SearchResult result = client.ftSearch(schema.indexName(), query);
+        SearchResult result = client.ftSearch(schema.getIndexName(), query);
         List<Document> documents = result.getDocuments();
 
         return new EmbeddingSearchResult<>(toEmbeddingMatch(documents, request.minScore()));
@@ -198,7 +198,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(Collection<String> ids) {
         ensureNotEmpty(ids, "ids");
 
-        String[] redisKeys = ids.stream().map(id -> schema.prefix() + id).toArray(String[]::new);
+        String[] redisKeys = ids.stream().map(id -> schema.getPrefix() + id).toArray(String[]::new);
         client.del(redisKeys);
     }
 
@@ -206,7 +206,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll(Filter filter) {
         ensureNotNull(filter, "filter");
 
-        SearchResult results = client.ftSearch(schema.indexName(), filterMapper.mapToFilter(filter));
+        SearchResult results = client.ftSearch(schema.getIndexName(), filterMapper.mapToFilter(filter));
         String[] keys = results.getDocuments().stream().map(Document::getId).toArray(String[]::new);
 
         client.del(keys);
@@ -216,7 +216,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void removeAll() {
         Set<String> matchingKeys = new HashSet<>();
         ScanParams params = new ScanParams();
-        params.match(schema.prefix() + "*");
+        params.match(schema.getPrefix() + "*");
 
         String nextCursor = "0";
 
@@ -239,7 +239,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
     private void createIndex(String indexName) {
         String res = client.ftCreate(
                 indexName,
-                FTCreateParams.createParams().on(IndexDataType.JSON).addPrefix(schema.prefix()),
+                FTCreateParams.createParams().on(IndexDataType.JSON).addPrefix(schema.getPrefix()),
                 schema.toSchemaFields());
         if (!"OK".equals(res)) {
             if (log.isErrorEnabled()) {
@@ -278,12 +278,12 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                 Embedding embedding = embeddings.get(i);
                 TextSegment textSegment = embedded == null ? null : embedded.get(i);
                 Map<String, Object> fields = new HashMap<>();
-                fields.put(schema.vectorFieldName(), embedding.vector());
+                fields.put(schema.getVectorFieldName(), embedding.vector());
                 if (textSegment != null) {
-                    fields.put(schema.scalarFieldName(), textSegment.text());
+                    fields.put(schema.getScalarFieldName(), textSegment.text());
                     fields.putAll(textSegment.metadata().toMap());
                 }
-                String key = schema.prefix() + id;
+                String key = schema.getPrefix() + id;
                 pipeline.jsonSetWithEscape(key, JSON_SET_PATH, fields);
             }
 
@@ -309,20 +309,20 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
         return documents.stream()
                 .map(document -> {
                     double score = (2 - Double.parseDouble(document.getString(SCORE_FIELD_NAME))) / 2;
-                    String id = document.getId().substring(schema.prefix().length());
+                    String id = document.getId().substring(schema.getPrefix().length());
 
                     Map<String, Object> properties = toProperties(document.getString(JSON_KEY));
 
-                    List<Double> vectors = (List<Double>) properties.get(schema.vectorFieldName());
+                    List<Double> vectors = (List<Double>) properties.get(schema.getVectorFieldName());
                     Embedding embedding = Embedding.from(
                             vectors.stream().map(Double::floatValue).collect(toList()));
 
-                    String text = properties.containsKey(schema.scalarFieldName())
-                            ? (String) properties.get(schema.scalarFieldName())
+                    String text = properties.containsKey(schema.getScalarFieldName())
+                            ? (String) properties.get(schema.getScalarFieldName())
                             : null;
                     TextSegment textSegment = null;
                     if (text != null) {
-                        Map<String, Object> metadata = schema.schemaFieldMap().keySet().stream()
+                        Map<String, Object> metadata = schema.getMetadataConfig().keySet().stream()
                                 .filter(properties::containsKey)
                                 .collect(toMap(metadataKey -> metadataKey, properties::get));
                         textSegment = TextSegment.from(text, Metadata.from(metadata));
@@ -332,6 +332,10 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                 })
                 .filter(embeddingMatch -> embeddingMatch.score() >= minScore)
                 .toList();
+    }
+
+    public RedisSchema getSchema() {
+        return schema;
     }
 
     public static Builder builder() {

@@ -265,6 +265,14 @@ public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, Au
         }
     }
 
+    public ClickHouseSettings getSettings() {
+        return settings;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
     private void createDatabase() {
         client.execute(String.format("CREATE DATABASE IF NOT EXISTS %s", settings.getDatabase()));
     }

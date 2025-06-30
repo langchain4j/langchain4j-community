@@ -19,6 +19,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.testcontainers.clickhouse.ClickHouseContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -88,6 +89,22 @@ class ClickHouseEmbeddingStoreAutoConfigurationIT extends EmbeddingStoreAutoConf
             assertThat(match.embedding()).isEqualTo(embedding);
             assertThat(match.embedded()).isEqualTo(segment);
         });
+    }
+
+    @Test
+    void should_respect_embedding_model_bean() {
+        contextRunner
+                .withConfiguration(AutoConfigurations.of(TestEmbeddingModelAutoConfiguration.class))
+                .withPropertyValues(properties())
+                .run(context -> {
+                    EmbeddingModel embeddingModel = context.getBean(EmbeddingModel.class);
+                    assertThat(embeddingModel)
+                            .isNotNull()
+                            .isExactlyInstanceOf(AllMiniLmL6V2QuantizedEmbeddingModel.class);
+                    ClickHouseEmbeddingStore embeddingStore = context.getBean(ClickHouseEmbeddingStore.class);
+                    assertThat(embeddingStore).isNotNull();
+                    assertThat(embeddingStore.getSettings().getDimension()).isEqualTo(embeddingModel.dimension());
+                });
     }
 
     @Override

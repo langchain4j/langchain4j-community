@@ -5,12 +5,12 @@ import static dev.langchain4j.community.neo4j.spring.Neo4jEmbeddingStoreProperti
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.lang.Nullable;
 
 @AutoConfiguration
 @EnableConfigurationProperties(Neo4jEmbeddingStoreProperties.class)
@@ -20,8 +20,7 @@ public class Neo4jEmbeddingStoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public Neo4jEmbeddingStore neo4jEmbeddingStore(
-            Neo4jEmbeddingStoreProperties properties, @Nullable EmbeddingModel embeddingModel) {
-
+            Neo4jEmbeddingStoreProperties properties, ObjectProvider<EmbeddingModel> embeddingModelProvider) {
         Neo4jEmbeddingStoreProperties.BasicAuth auth = properties.getAuth();
         Neo4jEmbeddingStore.Builder builder = Neo4jEmbeddingStore.builder()
                 .indexName(properties.getIndexName())
@@ -35,7 +34,7 @@ public class Neo4jEmbeddingStoreAutoConfiguration {
                 .config(properties.getConfig())
                 .driver(properties.getDriver())
                 .awaitIndexTimeout(properties.getAwaitIndexTimeout())
-                .dimension(Optional.ofNullable(embeddingModel)
+                .dimension(Optional.ofNullable(embeddingModelProvider.getIfAvailable())
                         .map(EmbeddingModel::dimension)
                         .orElse(properties.getDimension()));
         if (auth != null) {
