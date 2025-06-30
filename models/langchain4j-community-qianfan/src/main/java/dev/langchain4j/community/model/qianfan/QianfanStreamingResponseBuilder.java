@@ -13,6 +13,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
@@ -36,11 +37,16 @@ public class QianfanStreamingResponseBuilder {
 
     private volatile String finishReason;
 
+    private String id;
+
+    private final String modelName;
+
     private Integer inputTokenCount;
 
     private Integer outputTokenCount;
 
-    public QianfanStreamingResponseBuilder(Integer inputTokenCount) {
+    public QianfanStreamingResponseBuilder(String modelName, Integer inputTokenCount) {
+        this.modelName = modelName;
         this.inputTokenCount = inputTokenCount;
     }
 
@@ -58,6 +64,11 @@ public class QianfanStreamingResponseBuilder {
         String content = partialResponse.getResult();
         if (content != null) {
             contentBuilder.append(content);
+        }
+
+        String id = partialResponse.getId();
+        if (id != null) {
+            this.id = id;
         }
 
         Usage usage = partialResponse.getUsage();
@@ -94,6 +105,11 @@ public class QianfanStreamingResponseBuilder {
             this.finishReason = finishReason;
         }
 
+        String id = partialResponse.getId();
+        if (id != null) {
+            this.id = id;
+        }
+
         String token = partialResponse.getResult();
         if (token != null) {
             contentBuilder.append(token);
@@ -106,8 +122,12 @@ public class QianfanStreamingResponseBuilder {
         if (!content.isEmpty()) {
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(content))
-                    .tokenUsage(tokenUsage(content, TokenCountEstimator))
-                    .finishReason(finishReasonFrom(finishReason))
+                    .metadata(ChatResponseMetadata.builder()
+                            .id(id)
+                            .modelName(modelName)
+                            .tokenUsage(tokenUsage(content, TokenCountEstimator))
+                            .finishReason(finishReasonFrom(finishReason))
+                            .build())
                     .build();
         }
 
@@ -119,9 +139,13 @@ public class QianfanStreamingResponseBuilder {
                     .build();
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(toolExecutionRequest))
-                    .tokenUsage(
-                            tokenUsage(singletonList(toolExecutionRequest), TokenCountEstimator, forcefulToolExecution))
-                    .finishReason(finishReasonFrom(finishReason))
+                    .metadata(ChatResponseMetadata.builder()
+                            .id(id)
+                            .modelName(modelName)
+                            .tokenUsage(tokenUsage(
+                                    singletonList(toolExecutionRequest), TokenCountEstimator, forcefulToolExecution))
+                            .finishReason(finishReasonFrom(finishReason))
+                            .build())
                     .build();
         }
 
@@ -135,8 +159,12 @@ public class QianfanStreamingResponseBuilder {
                     .collect(toList());
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(toolExecutionRequests))
-                    .tokenUsage(tokenUsage(toolExecutionRequests, TokenCountEstimator, forcefulToolExecution))
-                    .finishReason(finishReasonFrom(finishReason))
+                    .metadata(ChatResponseMetadata.builder()
+                            .id(id)
+                            .modelName(modelName)
+                            .tokenUsage(tokenUsage(toolExecutionRequests, TokenCountEstimator, forcefulToolExecution))
+                            .finishReason(finishReasonFrom(finishReason))
+                            .build())
                     .build();
         }
 
@@ -173,20 +201,17 @@ public class QianfanStreamingResponseBuilder {
         return new TokenUsage(inputTokenCount, 0);
     }
 
-    private static class ToolExecutionRequestBuilder {
-
-        private final StringBuffer idBuilder = new StringBuffer();
-        private final StringBuffer nameBuilder = new StringBuffer();
-        private final StringBuffer argumentsBuilder = new StringBuffer();
-    }
-
     public ChatResponse build() {
         String content = contentBuilder.toString();
         if (!content.isEmpty()) {
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(content))
-                    .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
-                    .finishReason(finishReasonFrom(finishReason))
+                    .metadata(ChatResponseMetadata.builder()
+                            .id(id)
+                            .modelName(modelName)
+                            .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
+                            .finishReason(finishReasonFrom(finishReason))
+                            .build())
                     .build();
         }
 
@@ -198,8 +223,12 @@ public class QianfanStreamingResponseBuilder {
                     .build();
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(toolExecutionRequest))
-                    .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
-                    .finishReason(finishReasonFrom(finishReason))
+                    .metadata(ChatResponseMetadata.builder()
+                            .id(id)
+                            .modelName(modelName)
+                            .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
+                            .finishReason(finishReasonFrom(finishReason))
+                            .build())
                     .build();
         }
 
@@ -213,11 +242,22 @@ public class QianfanStreamingResponseBuilder {
                     .collect(toList());
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(toolExecutionRequests))
-                    .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
-                    .finishReason(finishReasonFrom(finishReason))
+                    .metadata(ChatResponseMetadata.builder()
+                            .id(id)
+                            .modelName(modelName)
+                            .tokenUsage(new TokenUsage(inputTokenCount, outputTokenCount))
+                            .finishReason(finishReasonFrom(finishReason))
+                            .build())
                     .build();
         }
 
         return null;
+    }
+
+    private static class ToolExecutionRequestBuilder {
+
+        private final StringBuffer idBuilder = new StringBuffer();
+        private final StringBuffer nameBuilder = new StringBuffer();
+        private final StringBuffer argumentsBuilder = new StringBuffer();
     }
 }

@@ -1,7 +1,6 @@
 package dev.langchain4j.community.model.qianfan;
 
 public enum QianfanEmbeddingModelNameEnum {
-
     EMBEDDING_V1("Embedding-V1", "embedding-v1"),
     BGE_LARGE_ZH("bge-large-zh", "bge_large_zh"),
     BGE_LARGE_EN("bge-large-en", "bge_large_en"),
@@ -15,14 +14,6 @@ public enum QianfanEmbeddingModelNameEnum {
         this.endpoint = endpoint;
     }
 
-    public String getModelName() {
-        return modelName;
-    }
-
-    public String getEndpoint() {
-        return endpoint;
-    }
-
     public static String fromModelName(String modelName) {
         for (QianfanEmbeddingModelNameEnum qianfanEmbeddingModelNameEnum : QianfanEmbeddingModelNameEnum.values()) {
             if (qianfanEmbeddingModelNameEnum.getModelName().equals(modelName)) {
@@ -30,5 +21,13 @@ public enum QianfanEmbeddingModelNameEnum {
             }
         }
         return null;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public String getEndpoint() {
+        return endpoint;
     }
 }

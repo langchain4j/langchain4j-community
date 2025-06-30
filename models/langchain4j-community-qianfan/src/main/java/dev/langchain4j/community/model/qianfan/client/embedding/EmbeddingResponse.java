@@ -1,19 +1,18 @@
 package dev.langchain4j.community.model.qianfan.client.embedding;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.qianfan.client.Usage;
-
 import java.util.List;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
-public final class EmbeddingResponse {
+public class EmbeddingResponse {
 
     private String object;
     private String id;
@@ -23,14 +22,13 @@ public final class EmbeddingResponse {
     private String errorCode;
     private String errorMsg;
 
-    public EmbeddingResponse() {
-    }
+    public EmbeddingResponse() {}
 
     public String getObject() {
         return object;
     }
 
-    public void setObject(final String object) {
+    public void setObject(String object) {
         this.object = object;
     }
 
@@ -38,7 +36,7 @@ public final class EmbeddingResponse {
         return id;
     }
 
-    public void setId(final String id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -46,7 +44,7 @@ public final class EmbeddingResponse {
         return created;
     }
 
-    public void setCreated(final Integer created) {
+    public void setCreated(Integer created) {
         this.created = created;
     }
 
@@ -54,7 +52,7 @@ public final class EmbeddingResponse {
         return data;
     }
 
-    public void setData(final List<EmbeddingData> data) {
+    public void setData(List<EmbeddingData> data) {
         this.data = data;
     }
 
@@ -62,7 +60,7 @@ public final class EmbeddingResponse {
         return usage;
     }
 
-    public void setUsage(final Usage usage) {
+    public void setUsage(Usage usage) {
         this.usage = usage;
     }
 
@@ -70,7 +68,7 @@ public final class EmbeddingResponse {
         return errorCode;
     }
 
-    public void setErrorCode(final String errorCode) {
+    public void setErrorCode(String errorCode) {
         this.errorCode = errorCode;
     }
 
@@ -78,19 +76,17 @@ public final class EmbeddingResponse {
         return errorMsg;
     }
 
-    public void setErrorMsg(final String errorMsg) {
+    public void setErrorMsg(String errorMsg) {
         this.errorMsg = errorMsg;
     }
 
     @Override
     public String toString() {
-        return "EmbeddingResponse{" +
-                "object='" + object + '\'' +
-                ", id='" + id + '\'' +
-                ", created=" + created +
-                ", data=" + data +
-                ", usage=" + usage +
-                '}';
+        return "EmbeddingResponse{" + "object='"
+                + object + '\'' + ", id='"
+                + id + '\'' + ", created="
+                + created + ", data="
+                + data + ", usage="
+                + usage + '}';
     }
 }
-
