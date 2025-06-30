@@ -1,17 +1,14 @@
 package dev.langchain4j.community.qianfan.spring;
 
-public class LanguageModelProperties {
+public class QianfanEmbeddingModelProperties {
 
     private String baseUrl;
     private String apiKey;
     private String secretKey;
-    private Double temperature;
     private Integer maxRetries;
-    private Integer topK;
-    private Double topP;
     private String modelName;
     private String endpoint;
-    private Double penaltyScore;
+    private String user;
     private Boolean logRequests;
     private Boolean logResponses;
 
@@ -39,36 +36,12 @@ public class LanguageModelProperties {
         this.secretKey = secretKey;
     }
 
-    public Double getTemperature() {
-        return temperature;
-    }
-
-    public void setTemperature(Double temperature) {
-        this.temperature = temperature;
-    }
-
     public Integer getMaxRetries() {
         return maxRetries;
     }
 
     public void setMaxRetries(Integer maxRetries) {
         this.maxRetries = maxRetries;
-    }
-
-    public Integer getTopK() {
-        return topK;
-    }
-
-    public void setTopK(Integer topK) {
-        this.topK = topK;
-    }
-
-    public Double getTopP() {
-        return topP;
-    }
-
-    public void setTopP(Double topP) {
-        this.topP = topP;
     }
 
     public String getModelName() {
@@ -87,12 +60,12 @@ public class LanguageModelProperties {
         this.endpoint = endpoint;
     }
 
-    public Double getPenaltyScore() {
-        return penaltyScore;
+    public String getUser() {
+        return user;
     }
 
-    public void setPenaltyScore(Double penaltyScore) {
-        this.penaltyScore = penaltyScore;
+    public void setUser(String user) {
+        this.user = user;
     }
 
     public Boolean getLogRequests() {

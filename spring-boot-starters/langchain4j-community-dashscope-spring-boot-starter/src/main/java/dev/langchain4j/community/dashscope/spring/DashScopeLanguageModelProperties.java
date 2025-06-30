@@ -2,7 +2,7 @@ package dev.langchain4j.community.dashscope.spring;
 
 import java.util.List;
 
-public class LanguageModelProperties {
+public class DashScopeLanguageModelProperties {
 
     private String baseUrl;
     private String apiKey;
