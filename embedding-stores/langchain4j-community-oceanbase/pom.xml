@@ -12,6 +12,10 @@
     <name>LangChain4j :: Community :: Integration :: OceanBase</name>
     <description>Community Integration with OceanBase Vector Storage</description>
 
+    <properties>
+        <oceanbase-jdbc.version>2.4.12</oceanbase-jdbc.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -23,7 +27,7 @@
         <dependency>
             <groupId>com.oceanbase</groupId>
             <artifactId>oceanbase-client</artifactId>
-            <version>2.4.12</version>
+            <version>${oceanbase-jdbc.version}</version>
         </dependency>
 
         <dependency>
@@ -83,4 +87,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <!--
+                    OceanBase client library uses LGPL-2.1 license which is not passing the compliance test.
+                    -->
+                    <skipCompliance>true</skipCompliance>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
