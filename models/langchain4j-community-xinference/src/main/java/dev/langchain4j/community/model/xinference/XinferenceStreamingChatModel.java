@@ -18,19 +18,14 @@ import dev.langchain4j.community.model.xinference.client.shared.StreamOptions;
 import dev.langchain4j.community.model.xinference.spi.XinferenceStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
-import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,6 +95,14 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
         this.parallelToolCalls = parallelToolCalls;
     }
 
+    public static XinferenceStreamingChatModelBuilder builder() {
+        for (XinferenceStreamingChatModelBuilderFactory factory :
+                loadFactories(XinferenceStreamingChatModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new XinferenceStreamingChatModelBuilder();
+    }
+
     @Override
     public ChatRequestParameters defaultRequestParameters() {
         return defaultRequestParameters;
@@ -138,16 +141,6 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
         }
 
         ChatCompletionRequest xinferenceRequest = builder.build();
-
-        Map<Object, Object> attributes = new ConcurrentHashMap<>();
-        ChatModelRequestContext requestContext = new ChatModelRequestContext(request, provider(), attributes);
-        listeners.forEach(listener -> {
-            try {
-                listener.onRequest(requestContext);
-            } catch (Exception e) {
-                log.warn("Exception while calling model listener", e);
-            }
-        });
         XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder();
         client.chatCompletions(xinferenceRequest)
                 .onPartialResponse(partialResponse -> {
@@ -161,43 +154,9 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
                         }
                     }
                 })
-                .onComplete(() -> {
-                    ChatResponse response = responseBuilder.build();
-                    ChatModelResponseContext responseContext =
-                            new ChatModelResponseContext(response, request, provider(), attributes);
-                    listeners.forEach(listener -> {
-                        try {
-                            listener.onResponse(responseContext);
-                        } catch (Exception e) {
-                            log.warn("Exception while calling model listener", e);
-                        }
-                    });
-
-                    handler.onCompleteResponse(response);
-                })
-                .onError(throwable -> {
-                    ChatModelErrorContext errorContext =
-                            new ChatModelErrorContext(throwable, request, provider(), attributes);
-
-                    listeners.forEach(listener -> {
-                        try {
-                            listener.onError(errorContext);
-                        } catch (Exception e) {
-                            log.warn("Exception while calling model listener", e);
-                        }
-                    });
-
-                    handler.onError(throwable);
-                })
+                .onComplete(() -> handler.onCompleteResponse(responseBuilder.build()))
+                .onError(handler::onError)
                 .execute();
-    }
-
-    public static XinferenceStreamingChatModelBuilder builder() {
-        for (XinferenceStreamingChatModelBuilderFactory factory :
-                loadFactories(XinferenceStreamingChatModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new XinferenceStreamingChatModelBuilder();
     }
 
     public static class XinferenceStreamingChatModelBuilder {

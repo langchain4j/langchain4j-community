@@ -19,16 +19,16 @@ public final class RerankTokens {
         outputTokens = builder.outputTokens;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public Integer getInputTokens() {
         return inputTokens;
     }
 
     public Integer getOutputTokens() {
         return outputTokens;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

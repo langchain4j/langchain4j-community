@@ -21,6 +21,10 @@ public final class CompletionUsage {
         completionTokens = builder.completionTokens;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public Integer getTotalTokens() {
         return totalTokens;
     }
@@ -31,10 +35,6 @@ public final class CompletionUsage {
 
     public Integer getCompletionTokens() {
         return completionTokens;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

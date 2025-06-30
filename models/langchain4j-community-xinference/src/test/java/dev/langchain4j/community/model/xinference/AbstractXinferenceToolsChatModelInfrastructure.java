@@ -8,16 +8,27 @@ import static dev.langchain4j.community.model.xinference.XinferenceUtils.resolve
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 import dev.langchain4j.service.common.AbstractAiServiceWithToolsIT;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 abstract class AbstractXinferenceToolsChatModelInfrastructure extends AbstractAiServiceWithToolsIT {
+
     private static final String LOCAL_IMAGE = String.format("tc-%s-%s", XINFERENCE_IMAGE, modelName());
 
     static XinferenceContainer container;
 
-    static {
+    @BeforeAll
+    static void beforeAll() {
         if (isNullOrEmpty(XINFERENCE_BASE_URL)) {
             container = new XinferenceContainer(resolve(XINFERENCE_IMAGE, LOCAL_IMAGE)).withModel(modelName());
             container.start();
+        }
+    }
+
+    @AfterAll
+    static void afterAll() {
+        if (container != null) {
+            container.stop();
         }
     }
 

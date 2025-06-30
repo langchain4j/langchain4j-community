@@ -56,6 +56,14 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
         this.maxRetries = getOrDefault(maxRetries, 3);
     }
 
+    public static XinferenceEmbeddingModelBuilder builder() {
+        for (XinferenceEmbeddingModelBuilderFactory factory :
+                loadFactories(XinferenceEmbeddingModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new XinferenceEmbeddingModelBuilder();
+    }
+
     @Override
     public Response<List<Embedding>> embedAll(List<TextSegment> list) {
         List<String> texts = list.stream().map(TextSegment::text).toList();
@@ -73,14 +81,6 @@ public class XinferenceEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .map(embedding -> Embedding.from(embedding.getEmbedding()))
                 .collect(toList());
         return Response.from(embeddings, tokenUsageFrom(response.getUsage()));
-    }
-
-    public static XinferenceEmbeddingModelBuilder builder() {
-        for (XinferenceEmbeddingModelBuilderFactory factory :
-                loadFactories(XinferenceEmbeddingModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new XinferenceEmbeddingModelBuilder();
     }
 
     public static class XinferenceEmbeddingModelBuilder {

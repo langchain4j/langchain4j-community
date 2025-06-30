@@ -67,10 +67,14 @@ public class ScaNNIndex implements BaseIndex {
         return partialIndexes;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     /**
      * Builder which configures and creates instances of {@link ScaNNIndex}.
      */
-    public class Builder {
+    public static class Builder {
 
         private String name;
         private Integer numLeaves = 5;

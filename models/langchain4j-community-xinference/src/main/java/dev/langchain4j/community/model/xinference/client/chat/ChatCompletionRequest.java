@@ -50,6 +50,10 @@ public final class ChatCompletionRequest {
         parallelToolCalls = builder.parallelToolCalls;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getModel() {
         return model;
     }
@@ -112,10 +116,6 @@ public final class ChatCompletionRequest {
 
     public Boolean getParallelToolCalls() {
         return parallelToolCalls;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

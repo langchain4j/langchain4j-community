@@ -22,6 +22,10 @@ public final class EmbeddingRequest {
         user = builder.user;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getModel() {
         return model;
     }
@@ -32,10 +36,6 @@ public final class EmbeddingRequest {
 
     public String getUser() {
         return user;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

@@ -23,22 +23,6 @@ public final class Content {
         videoUrl = builder.videoUrl;
     }
 
-    public ContentType getType() {
-        return type;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public ImageUrl getImageUrl() {
-        return imageUrl;
-    }
-
-    public VideoUrl getVideoUrl() {
-        return videoUrl;
-    }
-
     public static Content text(String text) {
         return builder().type(ContentType.TEXT).text(text).build();
     }
@@ -53,6 +37,22 @@ public final class Content {
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public ContentType getType() {
+        return type;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public ImageUrl getImageUrl() {
+        return imageUrl;
+    }
+
+    public VideoUrl getVideoUrl() {
+        return videoUrl;
     }
 
     @JsonPOJOBuilder(withPrefix = "")

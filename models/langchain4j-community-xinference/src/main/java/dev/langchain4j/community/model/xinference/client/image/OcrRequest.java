@@ -21,6 +21,10 @@ public final class OcrRequest {
         kwargs = builder.kwargs;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getModel() {
         return model;
     }
@@ -31,10 +35,6 @@ public final class OcrRequest {
 
     public String getKwargs() {
         return kwargs;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

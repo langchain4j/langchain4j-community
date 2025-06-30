@@ -25,6 +25,10 @@ public final class CompletionLogprobs {
         textOffset = builder.textOffset;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public List<String> getTokens() {
         return tokens;
     }
@@ -39,10 +43,6 @@ public final class CompletionLogprobs {
 
     public List<Integer> getTextOffset() {
         return textOffset;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")

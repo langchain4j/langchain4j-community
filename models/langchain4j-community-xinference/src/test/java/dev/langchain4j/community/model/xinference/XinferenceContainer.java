@@ -21,7 +21,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
-class XinferenceContainer extends GenericContainer<XinferenceContainer> {
+public class XinferenceContainer extends GenericContainer<XinferenceContainer> {
+
     private static final Logger log = LoggerFactory.getLogger(XinferenceContainer.class);
     private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse("xprobe/xinference");
     private static final Integer EXPOSED_PORT = 9997;
@@ -46,10 +47,7 @@ class XinferenceContainer extends GenericContainer<XinferenceContainer> {
         }
         this.withExposedPorts(EXPOSED_PORT);
         // https://github.com/xorbitsai/inference/issues/2573
-        this.withCommand(
-                "bash",
-                "-c",
-                "pip install tokenizers==0.20.1 transformers==4.45.2 qwen-vl-utils==0.0.8 && xinference-local -H 0.0.0.0");
+        this.withCommand("bash", "-c", "xinference-local -H 0.0.0.0");
         this.waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(10)));
     }
 

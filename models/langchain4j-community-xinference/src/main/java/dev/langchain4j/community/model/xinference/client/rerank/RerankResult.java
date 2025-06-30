@@ -21,6 +21,10 @@ public final class RerankResult {
         document = builder.document;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public Integer getIndex() {
         return index;
     }
@@ -31,10 +35,6 @@ public final class RerankResult {
 
     public RerankDocument getDocument() {
         return document;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     @JsonPOJOBuilder(withPrefix = "")
