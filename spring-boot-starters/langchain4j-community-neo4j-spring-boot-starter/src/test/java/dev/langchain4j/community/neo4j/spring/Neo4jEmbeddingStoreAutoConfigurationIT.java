@@ -3,18 +3,23 @@ package dev.langchain4j.community.neo4j.spring;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
+import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.spring.EmbeddingStoreAutoConfigurationIT;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -58,6 +63,28 @@ class Neo4jEmbeddingStoreAutoConfigurationIT extends EmbeddingStoreAutoConfigura
         String queryDelete = String.format("MATCH (n:%s) DETACH DELETE n", CUSTOM_LABEL);
         session.run(queryDelete);
         session.run("DROP INDEX vector");
+    }
+
+    @Test
+    void should_respect_embedding_model_bean() {
+        contextRunner
+                .withConfiguration(AutoConfigurations.of(TestEmbeddingModelAutoConfiguration.class))
+                .withPropertyValues(properties())
+                .run(context -> {
+                    EmbeddingModel embeddingModel = context.getBean(EmbeddingModel.class);
+                    assertThat(embeddingModel)
+                            .isNotNull()
+                            .isExactlyInstanceOf(AllMiniLmL6V2QuantizedEmbeddingModel.class);
+                    Neo4jEmbeddingStore embeddingStore = context.getBean(Neo4jEmbeddingStore.class);
+                    assertThat(embeddingStore).isNotNull();
+                    assertThat(embeddingStore.getDimension()).isEqualTo(embeddingModel.dimension());
+
+                    // Just for @BeforeEach
+                    TextSegment segment = TextSegment.from("hello");
+                    Embedding embedding = embeddingModel.embed(segment.text()).content();
+                    String id = embeddingStore.add(embedding, segment);
+                    assertThat(id).isNotBlank();
+                });
     }
 
     @Override
