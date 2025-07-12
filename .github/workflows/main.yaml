@@ -24,23 +24,29 @@ on:
 
 jobs:
   java_build:
+    runs-on: ubuntu-latest
+    needs:
+      - spotless
+      - compliance
+    continue-on-error: ${{ !matrix.integration_tests }}
     strategy:
+      fail-fast: false
       matrix:
         java_version:
           - 17
           - 21
           - 24
         include:
-          - java_version: '17'
-            mvn_opts: '-Dtinylog.writer.level=info'
-            experimental: false
-          - java_version: '21'
-            mvn_opts: '-Dtinylog.writer.level=info'
-            experimental: false
-          - java_version: '24'
-            mvn_opts: '-Dtinylog.writer.level=info'
-            experimental: true
-    runs-on: ubuntu-latest
+          - java_version: 17
+            mvn_opts: ''
+            integration_tests: false
+          - java_version: 21
+            mvn_opts: ''
+            # Only run integration tests on JDK21 to save time and cost.
+            integration_tests: true
+          - java_version: 24
+            mvn_opts: ''
+            integration_tests: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,9 +70,9 @@ jobs:
             ${{ matrix.mvn_opts }}
 
       - name: Integration test with JDK ${{ matrix.java_version }}
-        ## The step or job will only run if the `experimental` variable
+        ## The step or job will only run if the `integration_tests` variable is true
         ## in the matrix is false (not set to true)
-        if: ${{ !matrix.experimental }}
+        if: ${{ matrix.integration_tests == true }}
         run: |
           mvn -B -U verify \
             -DskipXinferenceITs \
