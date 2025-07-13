@@ -16,6 +16,7 @@ import dev.langchain4j.community.model.xinference.client.XinferenceClient;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionChoice;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.xinference.client.chat.ChatCompletionResponse;
+import dev.langchain4j.community.model.xinference.client.chat.message.AssistantMessage;
 import dev.langchain4j.community.model.xinference.spi.XinferenceChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -23,7 +24,6 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import java.net.Proxy;
 import java.time.Duration;
 import java.util.List;
@@ -149,14 +149,16 @@ public class XinferenceChatModel implements ChatModel {
 
         ChatCompletionChoice completionChoice =
                 chatCompletionResponse.getChoices().get(0);
+        AssistantMessage assistantMessage = completionChoice.getMessage();
 
         return ChatResponse.builder()
-                .aiMessage(aiMessageFrom(completionChoice.getMessage()))
-                .metadata(ChatResponseMetadata.builder()
+                .aiMessage(aiMessageFrom(assistantMessage))
+                .metadata(XinferenceChatResponseMetadata.builder()
                         .id(chatCompletionResponse.getId())
                         .modelName(request.modelName())
                         .finishReason(finishReasonFrom(completionChoice.getFinishReason()))
                         .tokenUsage(tokenUsageFrom(chatCompletionResponse.getUsage()))
+                        .reasoningContent(assistantMessage.getReasoningContent())
                         .build())
                 .build();
     }

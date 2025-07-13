@@ -243,4 +243,9 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
 
         assertThat(secondResponse.finishReason()).isEqualTo(STOP);
     }
+
+    @Test
+    void should_get_reasoning_content() {
+
+    }
 }

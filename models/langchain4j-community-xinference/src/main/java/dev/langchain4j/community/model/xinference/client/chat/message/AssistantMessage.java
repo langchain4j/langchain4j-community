@@ -15,13 +15,16 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public final class AssistantMessage implements Message {
+
     private final Role role = Role.ASSISTANT;
     private final String content;
+    private final String reasoningContent;
     private final List<ToolCall> toolCalls;
 
     private AssistantMessage(Builder builder) {
         // content should not be null
         content = getOrDefault(builder.content, "");
+        reasoningContent = builder.reasoningContent;
         toolCalls = builder.toolCalls;
     }
 
@@ -42,6 +45,10 @@ public final class AssistantMessage implements Message {
         return content;
     }
 
+    public String getReasoningContent() {
+        return reasoningContent;
+    }
+
     public List<ToolCall> getToolCalls() {
         return toolCalls;
     }
@@ -50,13 +57,20 @@ public final class AssistantMessage implements Message {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static final class Builder {
+
         private String content;
+        private String reasoningContent;
         private List<ToolCall> toolCalls;
 
         private Builder() {}
 
         public Builder content(String val) {
             content = val;
+            return this;
+        }
+
+        public Builder reasoningContent(String val) {
+            reasoningContent = val;
             return this;
         }
 

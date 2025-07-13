@@ -16,7 +16,6 @@ import dev.langchain4j.community.model.xinference.client.completion.CompletionRe
 import dev.langchain4j.community.model.xinference.client.shared.CompletionUsage;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
@@ -30,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class XinferenceStreamingResponseBuilder {
 
     private final StringBuffer contentBuilder = new StringBuffer();
+    private final StringBuffer reasoningContentBuilder = new StringBuffer();
     private final AtomicReference<String> responseId = new AtomicReference<>();
     private final AtomicReference<String> responseModel = new AtomicReference<>();
     private volatile TokenUsage tokenUsage;
@@ -69,6 +69,11 @@ public class XinferenceStreamingResponseBuilder {
         String content = delta.getContent();
         if (content != null) {
             contentBuilder.append(content);
+            return;
+        }
+        String reasoningContent = delta.getReasoningContent();
+        if (reasoningContent != null) {
+            reasoningContentBuilder.append(reasoningContent);
             return;
         }
         if (!isNullOrEmpty(delta.getToolCalls())) {
@@ -130,22 +135,24 @@ public class XinferenceStreamingResponseBuilder {
             AiMessage aiMessage = isNullOrBlank(text) ? AiMessage.from(list) : AiMessage.from(text, list);
             return ChatResponse.builder()
                     .aiMessage(aiMessage)
-                    .metadata(ChatResponseMetadata.builder()
+                    .metadata(XinferenceChatResponseMetadata.builder()
                             .id(getResponseId())
                             .modelName(getResponseModel())
                             .finishReason(finishReason)
                             .tokenUsage(tokenUsage)
+                            .reasoningContent(reasoningContentBuilder.toString())
                             .build())
                     .build();
         }
         if (!isNullOrBlank(text)) {
             return ChatResponse.builder()
                     .aiMessage(AiMessage.from(text))
-                    .metadata(ChatResponseMetadata.builder()
+                    .metadata(XinferenceChatResponseMetadata.builder()
                             .id(getResponseId())
                             .modelName(getResponseModel())
                             .finishReason(finishReason)
                             .tokenUsage(tokenUsage)
+                            .reasoningContent(reasoningContentBuilder.toString())
                             .build())
                     .build();
         }

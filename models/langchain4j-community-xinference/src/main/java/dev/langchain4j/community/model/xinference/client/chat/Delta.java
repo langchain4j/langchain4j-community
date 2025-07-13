@@ -13,13 +13,16 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public final class Delta {
+
     private final Role role;
     private final String content;
+    private final String reasoningContent;
     private final List<ToolCall> toolCalls;
 
     private Delta(Builder builder) {
         role = builder.role;
         content = builder.content;
+        reasoningContent = builder.reasoningContent;
         toolCalls = builder.toolCalls;
     }
 
@@ -35,6 +38,10 @@ public final class Delta {
         return content;
     }
 
+    public String getReasoningContent() {
+        return reasoningContent;
+    }
+
     public List<ToolCall> getToolCalls() {
         return toolCalls;
     }
@@ -43,14 +50,21 @@ public final class Delta {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static final class Builder {
+
         private Role role;
         private String content;
+        private String reasoningContent;
         private List<ToolCall> toolCalls;
 
         private Builder() {}
 
         public Builder role(Role val) {
             role = val;
+            return this;
+        }
+
+        public Builder reasoningContent(String val) {
+            this.reasoningContent = val;
             return this;
         }
 
