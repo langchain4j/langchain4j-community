@@ -245,7 +245,5 @@ class XinferenceChatModelIT extends AbstractInferenceChatModelInfrastructure {
     }
 
     @Test
-    void should_get_reasoning_content() {
-
-    }
+    void should_get_reasoning_content() {}
 }
