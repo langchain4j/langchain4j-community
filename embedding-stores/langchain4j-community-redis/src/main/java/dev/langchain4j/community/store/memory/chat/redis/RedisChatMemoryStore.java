@@ -11,12 +11,14 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import java.util.ArrayList;
 import java.util.List;
 import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.json.DefaultGsonObjectMapper;
+import redis.clients.jedis.json.JsonObjectMapper;
 
 /**
  * Implementation of {@link ChatMemoryStore} that stores chat messages in Redis.
  * Uses Jedis client to connect to Redis and manage message persistence.
  * <p>
- * Messages are stored as JSON strings under keys derived from the memory ID.
+ * Messages are stored as native JSON under keys derived from the memory ID.
  * Optional TTL (time-to-live) can be specified for automatic key expiration.
  */
 public class RedisChatMemoryStore implements ChatMemoryStore {
@@ -37,6 +39,11 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      * A value of 0 or less means keys will not expire.
      */
     private final Long ttl;
+
+    /**
+     * JSON object mapper for serializing and deserializing chat messages.
+     */
+    private JsonObjectMapper jsonMapper;
 
     /**
      * Constructs a new Redis chat memory store with default prefix and TTL.
@@ -72,6 +79,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         }
         this.keyPrefix = ensureNotNull(prefix, "prefix");
         this.ttl = ensureNotNull(ttl, "ttl");
+        this.jsonMapper = new DefaultGsonObjectMapper();
     }
 
     /**
@@ -82,7 +90,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     @Override
     public List<ChatMessage> getMessages(Object memoryId) {
-        String json = client.get(toRedisKey(memoryId));
+        String json = jsonMapper.toJson(client.jsonGet(toRedisKey(memoryId)));
         return json == null ? new ArrayList<>() : ChatMessageDeserializer.messagesFromJson(json);
     }
 
@@ -100,9 +108,14 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         String key = toRedisKey(memoryId);
         String res;
         if (ttl > 0) {
-            res = client.setex(key, ttl, json);
+            try (var pipeline = client.pipelined()) {
+                pipeline.jsonSet(key, json);
+                pipeline.expire(key, ttl);
+                var results = pipeline.syncAndReturnAll();
+                res = (String) results.get(0);
+            }
         } else {
-            res = client.set(key, json);
+            res = client.jsonSet(key, json);
         }
         if (!"OK".equals(res)) {
             throw new RedisChatMemoryStoreException("Set memory error, msg=" + res);
@@ -116,7 +129,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     @Override
     public void deleteMessages(Object memoryId) {
-        client.del(toRedisKey(memoryId));
+        client.jsonDel(toRedisKey(memoryId));
     }
 
     /**
