@@ -88,43 +88,26 @@ public class WanxImageModel implements ImageModel {
 
     @Override
     public Response<Image> generate(String prompt) {
-        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder =
-                requestBuilder(prompt).n(1);
-
-        try {
-            imageSynthesisParamCustomizer.accept(builder);
-            ImageSynthesisResult result = imageSynthesis.call(builder.build());
-            return Response.from(imagesFrom(result).get(0));
-        } catch (NoApiKeyException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return Response.from(doGenerate(requestBuilder(prompt).n(1)).get(0));
     }
 
     @Override
     public Response<List<Image>> generate(String prompt, int n) {
-        ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder =
-                requestBuilder(prompt).n(n);
-
-        try {
-            imageSynthesisParamCustomizer.accept(builder);
-            ImageSynthesisResult result = imageSynthesis.call(builder.build());
-            return Response.from(imagesFrom(result));
-        } catch (NoApiKeyException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return Response.from(doGenerate(requestBuilder(prompt).n(n)));
     }
 
     @Override
     public Response<Image> edit(Image image, String prompt) {
         String imageUrl = imageUrl(image, modelName, apiKey);
-
         ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder =
                 requestBuilder(prompt).refImage(imageUrl).n(1);
-
         if (imageUrl.startsWith("oss://")) {
             builder.header("X-DashScope-OssResourceResolve", "enable");
         }
+        return Response.from(doGenerate(builder).get(0));
+    }
 
+    private List<Image> doGenerate(ImageSynthesisParam.ImageSynthesisParamBuilder<?, ?> builder) {
         try {
             imageSynthesisParamCustomizer.accept(builder);
             ImageSynthesisResult result = imageSynthesis.call(builder.build());
@@ -135,7 +118,7 @@ public class WanxImageModel implements ImageModel {
                         String.format("[%s] %s: %s", output.getTaskStatus(), output.getCode(), output.getMessage());
                 throw new IllegalStateException(errorMessage);
             }
-            return Response.from(images.get(0));
+            return images;
         } catch (NoApiKeyException e) {
             throw new IllegalArgumentException(e);
         }
