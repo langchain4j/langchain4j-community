@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -555,5 +556,23 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @Override
     protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(ChatModel model) {
         return QwenChatResponseMetadata.class;
+    }
+
+    @Disabled("qwen max does not support JSON response format")
+    @Override
+    protected void should_execute_a_tool_then_answer_respecting_JSON_response_format_with_schema(ChatModel model) {
+        super.should_execute_a_tool_then_answer_respecting_JSON_response_format_with_schema(model);
+    }
+
+    @Disabled("qwen max does not support JSON response format")
+    @Override
+    protected void should_respect_JSON_response_format_with_schema(ChatModel model) {
+        super.should_respect_JSON_response_format_with_schema(model);
+    }
+
+    @Disabled("qwen max does not support parallel tool call")
+    @Override
+    protected void should_execute_multiple_tools_in_parallel_then_answer(ChatModel model) {
+        super.should_execute_multiple_tools_in_parallel_then_answer(model);
     }
 }
