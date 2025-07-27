@@ -3,10 +3,12 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalImageData;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.model.output.Response;
 import java.net.URI;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -134,5 +136,18 @@ class WanxImageModelIT {
         URI remoteImage = response.content().url();
         log.info("Your remote image is here: {}", remoteImage);
         assertThat(remoteImage).isNotNull();
+    }
+
+    // This case only occurs when using model WANX2_1_T2I_TURBO.
+    @Test
+    void simple_image_generation_return_error_msg_when_prompt_illegal() {
+        WanxImageModel model = WanxImageModel.builder()
+                .apiKey(apiKey())
+                .modelName(WanxModelName.WANX2_1_T2I_TURBO)
+                .build();
+
+        assertThatThrownBy(() -> model.generate("Draw a Donald Duck."))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("IPInfringementSuspect");
     }
 }
