@@ -350,7 +350,7 @@ class QwenHelper {
 
     static boolean isMultimodalModelName(String modelName) {
         // rough judgment
-        return modelName.contains("-vl-") || modelName.contains("-audio-");
+        return modelName.contains("-vl-") || modelName.contains("-audio-") || modelName.contains("-omni-");
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
