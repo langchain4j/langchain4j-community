@@ -42,6 +42,7 @@ import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -645,5 +646,24 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .modelName(QwenModelName.QWEN_MAX)
                 .listeners(singletonList(chatModelListener))
                 .build();
+    }
+
+    @Disabled("qwen max does not support JSON response format")
+    @Override
+    protected void should_execute_a_tool_then_answer_respecting_JSON_response_format_with_schema(
+            StreamingChatModel model) {
+        super.should_execute_a_tool_then_answer_respecting_JSON_response_format_with_schema(model);
+    }
+
+    @Disabled("qwen max does not support JSON response format")
+    @Override
+    protected void should_respect_JSON_response_format_with_schema(StreamingChatModel model) {
+        super.should_respect_JSON_response_format_with_schema(model);
+    }
+
+    @Disabled("qwen max does not support parallel tool call")
+    @Override
+    protected void should_execute_multiple_tools_in_parallel_then_answer(StreamingChatModel model) {
+        super.should_execute_multiple_tools_in_parallel_then_answer(model);
     }
 }

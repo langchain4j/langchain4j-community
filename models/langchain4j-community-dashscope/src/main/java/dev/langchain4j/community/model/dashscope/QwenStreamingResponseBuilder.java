@@ -3,8 +3,14 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.answerFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.chatResponseFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.hasAnswer;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.hasReasoningContent;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.isFunctionToolCalls;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.reasoningContentFrom;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toolCallFunctionsFrom;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
@@ -25,29 +31,39 @@ import com.alibaba.dashscope.tools.ToolCallFunction;
 import com.alibaba.dashscope.tools.codeinterpretertool.ToolCallCodeInterpreter;
 import com.alibaba.dashscope.tools.search.ToolCallQuarkSearch;
 import com.google.gson.JsonObject;
+import dev.langchain4j.internal.ToolCallBuilder;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.CompleteToolCall;
+import dev.langchain4j.model.chat.response.PartialThinking;
+import dev.langchain4j.model.chat.response.PartialToolCall;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class QwenStreamingResponseBuilder {
+
     private final String modelName;
     private final boolean incrementalOutput;
+    private final ToolCallBuilder toolCallBuilder;
     private GenerationResult accumulatedGenerationResult;
     private MultiModalConversationResult accumulatedMultiModalConversationResult;
 
     public QwenStreamingResponseBuilder(String modelName, boolean incrementalOutput) {
         this.modelName = ensureNotBlank(modelName, "modelName");
         this.incrementalOutput = incrementalOutput;
+        this.toolCallBuilder = new ToolCallBuilder();
     }
 
-    public String append(GenerationResult partialResponse) {
+    public QwenPartialResponse append(GenerationResult partialResponse) {
         if (partialResponse == null) {
             return null;
         }
 
         String partialContent = null;
+        String partialReasoningContent = null;
+        List<PartialToolCall> partialToolCalls = new ArrayList<>();
+        List<CompleteToolCall> completeToolCalls = new ArrayList<>();
         if (hasAnswer(partialResponse)) {
             partialContent = answerFrom(partialResponse);
             if (!incrementalOutput && hasGenerationResult()) {
@@ -55,12 +71,55 @@ public class QwenStreamingResponseBuilder {
                 partialContent = partialContent.substring(generatedContent.length());
             }
         }
+        if (hasReasoningContent(partialResponse)) {
+            partialReasoningContent = reasoningContentFrom(partialResponse);
+            if (!incrementalOutput && hasGenerationResult()) {
+                String generatedReasoningContent = reasoningContentFrom(accumulatedGenerationResult);
+                partialReasoningContent = partialReasoningContent.substring(generatedReasoningContent.length());
+            }
+        }
+        if (isFunctionToolCalls(partialResponse)) {
+            List<ToolCallFunction> toolCalls = toolCallFunctionsFrom(partialResponse);
+            if (!isNullOrEmpty(toolCalls)) {
+                for (ToolCallFunction toolCall : toolCalls) {
+
+                    int index = getOrDefault(toolCall.getIndex(), 0);
+                    if (toolCallBuilder.index() != index) {
+                        completeToolCalls.add(toolCallBuilder.buildAndReset());
+                        toolCallBuilder.updateIndex(index);
+                    }
+
+                    String id = toolCallBuilder.updateId(toolCall.getId());
+                    String name =
+                            toolCallBuilder.updateName(toolCall.getFunction().getName());
+
+                    String partialArguments = toolCall.getFunction().getArguments();
+                    if (isNotNullOrEmpty(partialArguments)) {
+                        toolCallBuilder.appendArguments(partialArguments);
+
+                        PartialToolCall partialToolRequest = PartialToolCall.builder()
+                                .index(index)
+                                .id(id)
+                                .name(name)
+                                .partialArguments(partialArguments)
+                                .build();
+                        partialToolCalls.add(partialToolRequest);
+                    }
+                }
+            }
+        }
 
         accumulatedGenerationResult = hasGenerationResult()
                 ? mergeResult(accumulatedGenerationResult, partialResponse)
                 : mergeResult(newGenerationResult(), partialResponse);
 
-        return partialContent;
+        return QwenPartialResponse.builder()
+                .delta(partialContent)
+                .partialThinking(
+                        isNullOrBlank(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
+                .partialToolCalls(partialToolCalls)
+                .completeToolCalls(completeToolCalls)
+                .build();
     }
 
     public String append(MultiModalConversationResult partialResponse) {
@@ -92,6 +151,15 @@ public class QwenStreamingResponseBuilder {
         } else {
             return null;
         }
+    }
+
+    public CompleteToolCall buildCompleteToolCall() {
+        // build complete tool call if toolCallBuilder has requests.
+        if (toolCallBuilder.hasRequests()) {
+            return toolCallBuilder.buildAndReset();
+        }
+
+        return null;
     }
 
     private boolean hasGenerationResult() {

@@ -10,6 +10,7 @@ import static dev.langchain4j.internal.Utils.copyIfNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.quoted;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
@@ -36,6 +37,8 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import dev.langchain4j.model.chat.response.CompleteToolCall;
+import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.ArrayList;
 import java.util.List;
@@ -146,9 +149,24 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                 @Override
                 public void onEvent(GenerationResult result) {
                     try {
-                        String delta = responseBuilder.append(result);
-                        if (isNotNullOrEmpty(delta)) {
-                            handler.onPartialResponse(delta);
+                        QwenPartialResponse partialResponse = responseBuilder.append(result);
+                        if (isNotNullOrEmpty(partialResponse.delta())) {
+                            handler.onPartialResponse(partialResponse.delta());
+                        }
+                        if (partialResponse.partialThinking() != null) {
+                            handler.onPartialThinking(partialResponse.partialThinking());
+                        }
+                        List<PartialToolCall> partialToolCalls = partialResponse.partialToolCalls();
+                        if (!isNullOrEmpty(partialToolCalls)) {
+                            for (PartialToolCall toolCall : partialToolCalls) {
+                                handler.onPartialToolCall(toolCall);
+                            }
+                        }
+                        List<CompleteToolCall> completeToolCalls = partialResponse.completeToolCalls();
+                        if (!isNullOrEmpty(completeToolCalls)) {
+                            for (CompleteToolCall toolCall : completeToolCalls) {
+                                handler.onCompleteToolCall(toolCall);
+                            }
                         }
                     } catch (Throwable t) {
                         RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(t);
@@ -160,6 +178,10 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                 public void onComplete() {
                     try {
                         handler.onCompleteResponse(responseBuilder.build());
+                        CompleteToolCall completeToolCall = responseBuilder.buildCompleteToolCall();
+                        if (completeToolCall != null) {
+                            handler.onCompleteToolCall(completeToolCall);
+                        }
                     } catch (Throwable t) {
                         RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(t);
                         withLoggingExceptions(() -> handler.onError(mappedException));
