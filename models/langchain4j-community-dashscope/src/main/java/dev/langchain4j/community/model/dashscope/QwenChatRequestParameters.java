@@ -219,7 +219,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 enableSanitizeMessages(getOrDefault(qwenParameters.enableSanitizeMessages(), enableSanitizeMessages));
                 custom(getOrDefault(qwenParameters.custom(), custom));
                 isMultimodalModel(getOrDefault(qwenParameters.isMultimodalModel(), isMultimodalModel));
-                supportIncrementalOutput(getOrDefault(qwenParameters.supportIncrementalOutput(), supportIncrementalOutput));
+                supportIncrementalOutput(
+                        getOrDefault(qwenParameters.supportIncrementalOutput(), supportIncrementalOutput));
             }
             return this;
         }
