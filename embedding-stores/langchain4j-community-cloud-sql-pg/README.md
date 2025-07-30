@@ -32,7 +32,7 @@ steps:
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artificatId>langchain4j-community-cloud-sql-pg</artificatId>
-    <version>1.2.0-beta8-SNAPSHOT</version>
+    <version>1.2.0-beta8</version>
 </dependency>
 ```
 
