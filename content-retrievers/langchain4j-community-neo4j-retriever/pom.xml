@@ -14,7 +14,7 @@
 
     <properties>
         <neo4j.version>5.28.9</neo4j.version>
-        <neo4j.cypher.dsl.version>2024.7.1</neo4j.cypher.dsl.version>
+        <neo4j.cypher.dsl.version>2024.7.2</neo4j.cypher.dsl.version>
     </properties>
 
     <dependencies>
