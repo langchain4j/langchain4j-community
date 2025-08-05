@@ -43,6 +43,7 @@
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
         <module>embedding-stores/langchain4j-community-duckdb</module>
+        <module>embedding-stores/langchain4j-community-hybrid-store</module>
         <module>embedding-stores/langchain4j-community-redis</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
         <module>embedding-stores/langchain4j-community-alloydb-pg</module>
