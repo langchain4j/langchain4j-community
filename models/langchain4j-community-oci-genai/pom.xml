@@ -24,7 +24,7 @@
 
     <properties>
         <skipOciGenAiITs>false</skipOciGenAiITs>
-        <oci-sdk.version>3.69.0</oci-sdk.version>
+        <oci-sdk.version>3.70.1</oci-sdk.version>
         <!-- Stable module name until lc4j switches to JPMS -->
         <automatic-module-name>langchain4j.community.oci.genai</automatic-module-name>
     </properties>
