@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
-        <version>1.3.0-beta9-SNAPSHOT</version>
+        <version>1.3.0-beta9</version>
     </parent>
 
     <artifactId>langchain4j-community-neo4j-spring-boot-starter</artifactId>
