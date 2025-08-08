@@ -1,8 +1,12 @@
-package dev.langchain4j.store.embedding.inmemory;
+package dev.langchain4j.community.store.embedding.memfile;
 
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.util.Comparator.comparingDouble;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -16,6 +20,7 @@ import dev.langchain4j.store.embedding.CosineSimilarity;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
 import java.io.IOException;
@@ -24,15 +29,20 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A hybrid {@link dev.langchain4j.store.embedding.EmbeddingStore} that stores embeddings in memory and embedded content
+ * An {@link EmbeddingStore} that stores embeddings in memory and embedded content
  * (e.g., TextSegment) as files in a local directory.
  * <p>
  * This implementation provides a balance between performance and storage efficiency:
@@ -46,78 +56,100 @@ import org.slf4j.LoggerFactory;
  * @param <Embedded> The class of the object that has been embedded.
  *                   Typically, it is {@link dev.langchain4j.data.segment.TextSegment}.
  */
-public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embedded> {
+public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded> {
 
-    private static final Logger log = LoggerFactory.getLogger(HybridEmbeddingStore.class);
+    private static final Logger log = LoggerFactory.getLogger(MemFileEmbeddingStore.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
 
-    // JSON serialization keys
-    private static final String PARENT_DATA_KEY = "parentData";
-    private static final String HYBRID_DATA_KEY = "hybridData";
-
+    private final CopyOnWriteArrayList<Entry<Embedded>> entries;
     private final Path chunkStorageDirectory;
     private final Map<String, Embedded> chunkCache;
     private final int cacheSize;
-    private final Map<String, String> entryToFileMapping; // Maps entry ID to chunk file path
 
     /**
-     * Creates a new HybridEmbeddingStore with default settings.
+     * Creates a new MemFileEmbeddingStore with default settings.
      * Uses a temporary directory for chunk storage and no caching.
      */
-    public HybridEmbeddingStore() {
+    public MemFileEmbeddingStore() {
         this(createDefaultChunkDirectory(), 0);
     }
 
     /**
-     * Creates a new HybridEmbeddingStore with specified chunk storage directory.
+     * Creates a new MemFileEmbeddingStore with specified chunk storage directory.
      *
      * @param chunkStorageDirectory Directory where embedded content will be stored as files
      */
-    public HybridEmbeddingStore(Path chunkStorageDirectory) {
+    public MemFileEmbeddingStore(Path chunkStorageDirectory) {
         this(chunkStorageDirectory, 0);
     }
 
     /**
-     * Creates a new HybridEmbeddingStore with specified chunk storage directory and cache size.
+     * Creates a new MemFileEmbeddingStore with specified chunk storage directory and cache size.
      *
      * @param chunkStorageDirectory Directory where embedded content will be stored as files
      * @param cacheSize Size of LRU cache for recently loaded chunks (0 = no caching)
      */
-    public HybridEmbeddingStore(Path chunkStorageDirectory, int cacheSize) {
-        super(); // Call parent constructor
+    public MemFileEmbeddingStore(Path chunkStorageDirectory, int cacheSize) {
+        this.entries = new CopyOnWriteArrayList<>();
         this.chunkStorageDirectory = ensureNotNull(chunkStorageDirectory, "chunkStorageDirectory");
         this.cacheSize = Math.max(0, cacheSize);
         this.chunkCache = cacheSize > 0 ? createLRUCache(cacheSize) : new ConcurrentHashMap<>();
-        this.entryToFileMapping = new ConcurrentHashMap<>();
         createChunkStorageDirectory();
         log.debug(
-                "Created HybridEmbeddingStore with storage directory: {} and cache size: {}",
+                "Created MemFileEmbeddingStore with storage directory: {} and cache size: {}",
                 chunkStorageDirectory,
                 cacheSize);
     }
 
-    private HybridEmbeddingStore(Path chunkStorageDirectory, int cacheSize, Map<String, String> entryToFileMapping) {
-        super();
+    private MemFileEmbeddingStore(Collection<Entry<Embedded>> entries, Path chunkStorageDirectory, int cacheSize) {
+        this.entries = new CopyOnWriteArrayList<>(entries);
         this.chunkStorageDirectory = ensureNotNull(chunkStorageDirectory, "chunkStorageDirectory");
         this.cacheSize = Math.max(0, cacheSize);
         this.chunkCache = cacheSize > 0 ? createLRUCache(cacheSize) : new ConcurrentHashMap<>();
-        this.entryToFileMapping = new ConcurrentHashMap<>(entryToFileMapping);
         createChunkStorageDirectory();
     }
 
     @Override
+    public String add(Embedding embedding) {
+        String id = randomUUID();
+        add(id, embedding);
+        return id;
+    }
+
+    @Override
+    public void add(String id, Embedding embedding) {
+        add(id, embedding, null);
+    }
+
+    @Override
+    public String add(Embedding embedding, Embedded embedded) {
+        String id = randomUUID();
+        add(id, embedding, embedded);
+        return id;
+    }
+
     public void add(String id, Embedding embedding, Embedded embedded) {
+        ensureNotBlank(id, "id");
+        ensureNotNull(embedding, "embedding");
+
         String chunkFilePath = null;
         if (embedded != null) {
             chunkFilePath = saveChunkToFile(id, embedded);
-            entryToFileMapping.put(id, chunkFilePath);
         }
 
-        // Add to parent class with null embedded since we store it as a file
-        super.add(id, embedding, null);
+        entries.add(new Entry<>(id, embedding, chunkFilePath));
         log.debug("Added embedding with id: {} and chunk file: {}", id, chunkFilePath);
+    }
+
+    @Override
+    public List<String> addAll(List<Embedding> embeddings) {
+        List<Entry<Embedded>> newEntries = embeddings.stream()
+                .map(embedding -> new Entry<Embedded>(randomUUID(), embedding, null))
+                .collect(ArrayList::new, (list, entry) -> list.add(entry), ArrayList::addAll);
+
+        return add(newEntries);
     }
 
     @Override
@@ -126,9 +158,7 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
             throw new IllegalArgumentException("The list of ids and embeddings and embedded must have the same size");
         }
 
-        List<String> processedIds = new ArrayList<>(ids.size());
-        List<Embedding> processedEmbeddings = new ArrayList<>(embeddings.size());
-        List<Embedded> processedEmbedded = new ArrayList<>(embedded.size());
+        List<Entry<Embedded>> newEntries = new ArrayList<>(ids.size());
 
         for (int i = 0; i < ids.size(); i++) {
             String id = ids.get(i);
@@ -138,161 +168,120 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
             String chunkFilePath = null;
             if (embeddedContent != null) {
                 chunkFilePath = saveChunkToFile(id, embeddedContent);
-                entryToFileMapping.put(id, chunkFilePath);
             }
 
-            processedIds.add(id);
-            processedEmbeddings.add(embedding);
-            processedEmbedded.add(null); // Store null since we use files
+            newEntries.add(new Entry<>(id, embedding, chunkFilePath));
         }
+        add(newEntries);
+    }
 
-        // Add to parent class
-        super.addAll(processedIds, processedEmbeddings, processedEmbedded);
+    private List<String> add(List<Entry<Embedded>> newEntries) {
+        entries.addAll(newEntries);
+
+        return newEntries.stream().map(entry -> entry.id).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
 
     @Override
     public void removeAll(Collection<String> ids) {
-        // Clean up files and cache before removing from parent
-        for (String id : ids) {
-            String chunkFilePath = entryToFileMapping.remove(id);
-            if (chunkFilePath != null) {
-                deleteChunkFile(chunkFilePath);
-            }
-            chunkCache.remove(id);
-        }
+        ensureNotEmpty(ids, "ids");
 
-        // Remove from parent class
-        super.removeAll(ids);
+        entries.removeIf(entry -> {
+            if (ids.contains(entry.id)) {
+                deleteChunkFile(entry.chunkFilePath);
+                chunkCache.remove(entry.id);
+                return true;
+            }
+            return false;
+        });
         log.debug("Removed {} embeddings", ids.size());
     }
 
     @Override
     public void removeAll(Filter filter) {
-        // Find IDs to remove by checking the filter against entries
-        List<String> idsToRemove = new ArrayList<>();
+        ensureNotNull(filter, "filter");
 
-        // Since entries in hybrid store have null embedded content, we need to load from files to check filter
-        for (Entry<Embedded> entry : entries) {
-            if (filter != null) {
-                // Load the embedded content from file to check against filter
-                String chunkFilePath = entryToFileMapping.get(entry.id);
-                if (chunkFilePath != null) {
-                    Embedded embedded = loadChunkFromFile(chunkFilePath);
-                    if (embedded instanceof TextSegment) {
-                        Metadata metadata = ((TextSegment) embedded).metadata();
-                        if (filter.test(metadata)) {
-                            idsToRemove.add(entry.id);
-                        }
+        entries.removeIf(entry -> {
+            if (entry.chunkFilePath != null) {
+                Embedded embedded = loadChunkFromFile(entry.chunkFilePath);
+                if (embedded instanceof TextSegment) {
+                    boolean matches = filter.test(((TextSegment) embedded).metadata());
+                    if (matches) {
+                        deleteChunkFile(entry.chunkFilePath);
+                        chunkCache.remove(entry.id);
                     }
+                    return matches;
                 }
-            } else {
-                // If no filter, remove all
-                idsToRemove.add(entry.id);
             }
-        }
-
-        // Clean up chunk files for identified entries
-        for (String id : idsToRemove) {
-            String chunkFilePath = entryToFileMapping.remove(id);
-            if (chunkFilePath != null) {
-                deleteChunkFile(chunkFilePath);
-            }
-            chunkCache.remove(id);
-        }
-
-        // Remove from parent class using IDs only if there are IDs to remove
-        if (!idsToRemove.isEmpty()) {
-            super.removeAll(idsToRemove);
-        }
-        log.debug("Removed {} embeddings matching filter", idsToRemove.size());
+            return false;
+        });
+        log.debug("Removed embeddings matching filter");
     }
 
     @Override
     public void removeAll() {
-        // Clean up all files and cache
-        for (String chunkFilePath : entryToFileMapping.values()) {
-            deleteChunkFile(chunkFilePath);
+        // Delete all chunk files
+        for (Entry<Embedded> entry : entries) {
+            deleteChunkFile(entry.chunkFilePath);
         }
-        entryToFileMapping.clear();
+        entries.clear();
         chunkCache.clear();
-
-        // Remove from parent class
-        super.removeAll();
-        log.debug("Removed all embeddings");
+        log.debug("Removed all embeddings and chunk files");
     }
 
     @Override
     public EmbeddingSearchResult<Embedded> search(EmbeddingSearchRequest embeddingSearchRequest) {
-        // We need to handle filtering ourselves since parent entries have null embedded content
+        Comparator<EmbeddingMatch<Embedded>> comparator = comparingDouble(EmbeddingMatch::score);
+        PriorityQueue<EmbeddingMatch<Embedded>> matches = new PriorityQueue<>(comparator);
+
         Filter filter = embeddingSearchRequest.filter();
-        List<EmbeddingMatch<Embedded>> matches = new ArrayList<>();
 
         for (Entry<Embedded> entry : entries) {
-            boolean includeEntry = true;
+            Embedded embedded = null;
 
-            // Apply filter if present
-            if (filter != null) {
-                String chunkFilePath = entryToFileMapping.get(entry.id);
-                if (chunkFilePath != null) {
-                    Embedded embedded = loadChunkFromFile(chunkFilePath);
-                    if (embedded instanceof TextSegment) {
-                        Metadata metadata = ((TextSegment) embedded).metadata();
-                        includeEntry = filter.test(metadata);
-                    } else {
-                        includeEntry = false; // Skip non-TextSegment entries when filter is present
+            // Load embedded content from file if needed for filtering
+            if (filter != null && entry.chunkFilePath != null) {
+                embedded = loadChunkFromFile(entry.chunkFilePath);
+                if (embedded instanceof TextSegment) {
+                    Metadata metadata = ((TextSegment) embedded).metadata();
+                    if (!filter.test(metadata)) {
+                        continue;
                     }
-                } else {
-                    includeEntry = false; // Skip entries without chunk files when filter is present
                 }
             }
 
-            if (includeEntry) {
-                // Calculate similarity score
-                double cosineSimilarity =
-                        CosineSimilarity.between(entry.embedding, embeddingSearchRequest.queryEmbedding());
-                double score = RelevanceScore.fromCosineSimilarity(cosineSimilarity);
+            double cosineSimilarity =
+                    CosineSimilarity.between(entry.embedding, embeddingSearchRequest.queryEmbedding());
+            double score = RelevanceScore.fromCosineSimilarity(cosineSimilarity);
 
-                if (score >= embeddingSearchRequest.minScore()) {
-                    // Load embedded content for this match
-                    String chunkFilePath = entryToFileMapping.get(entry.id);
-                    Embedded embedded = null;
-                    if (chunkFilePath != null) {
-                        embedded = loadChunkFromFile(chunkFilePath);
-                    }
+            if (score >= embeddingSearchRequest.minScore()) {
+                // Load embedded content if not already loaded
+                if (embedded == null && entry.chunkFilePath != null) {
+                    embedded = loadChunkFromFile(entry.chunkFilePath);
+                }
 
-                    matches.add(new EmbeddingMatch<>(score, entry.id, entry.embedding, embedded));
+                matches.add(new EmbeddingMatch<>(score, entry.id, entry.embedding, embedded));
+                if (matches.size() > embeddingSearchRequest.maxResults()) {
+                    matches.poll();
                 }
             }
         }
 
-        // Sort by score (highest first) and limit results
-        matches.sort((a, b) -> Double.compare(b.score(), a.score()));
-        if (matches.size() > embeddingSearchRequest.maxResults()) {
-            matches = matches.subList(0, embeddingSearchRequest.maxResults());
-        }
+        List<EmbeddingMatch<Embedded>> result = new ArrayList<>(matches);
+        result.sort(comparator);
+        Collections.reverse(result);
 
-        log.debug("Found {} matches for search request", matches.size());
-        return new EmbeddingSearchResult<>(matches);
+        log.debug("Found {} matches for search request", result.size());
+        return new EmbeddingSearchResult<>(result);
     }
 
     /**
      * Configures the chunk storage base directory.
      *
      * @param chunkStorageDirectory New directory for storing chunk files
-     * @return A new HybridEmbeddingStore instance with the specified directory
+     * @return A new MemFileEmbeddingStore instance with the specified directory
      */
-    public HybridEmbeddingStore<Embedded> withChunkStorageDirectory(Path chunkStorageDirectory) {
-        // Create a new HybridEmbeddingStore with the new directory
-        HybridEmbeddingStore<Embedded> newStore = new HybridEmbeddingStore<>(chunkStorageDirectory, cacheSize);
-
-        // Now we can directly copy the entries since we're in the same package!
-        // This is much more efficient than serialization or search
-        newStore.entries.addAll(this.entries);
-
-        // Copy the file mappings (they reference the same files, so just copy the mapping)
-        newStore.entryToFileMapping.putAll(this.entryToFileMapping);
-
-        return newStore;
+    public MemFileEmbeddingStore<Embedded> withChunkStorageDirectory(Path chunkStorageDirectory) {
+        return new MemFileEmbeddingStore<>(entries, chunkStorageDirectory, cacheSize);
     }
 
     /**
@@ -300,42 +289,10 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
      */
     public String serializeToJson() {
         try {
-            // Create a temporary InMemoryEmbeddingStore to get clean parent serialization
-            InMemoryEmbeddingStore<Embedded> tempParentStore = new InMemoryEmbeddingStore<>();
-
-            // Copy only the entries that have embedded content (loaded from files when needed)
-            for (Entry<Embedded> entry : this.entries) {
-                if (entry.embedded != null) {
-                    tempParentStore.entries.add(entry);
-                } else {
-                    // For entries without embedded content, we need to load it from file to serialize properly
-                    String fileName = entryToFileMapping.get(entry.id);
-                    if (fileName != null) {
-                        Embedded embedded = loadChunkFromFile(fileName);
-                        Entry<Embedded> entryWithContent = new Entry<>(entry.id, entry.embedding, embedded);
-                        tempParentStore.entries.add(entryWithContent);
-                    } else {
-                        // Entry without file mapping - add as-is (this might be an in-memory-only entry)
-                        tempParentStore.entries.add(entry);
-                    }
-                }
-            }
-
-            // Get parent's clean serialization as string
-            String parentJson = tempParentStore.serializeToJson();
-
-            // Create hybrid-specific data
-            HybridStoreData hybridData =
-                    new HybridStoreData(entryToFileMapping, chunkStorageDirectory.toString(), cacheSize);
-
-            // Create combined data structure
-            Map<String, Object> combinedData = new LinkedHashMap<>();
-            combinedData.put(PARENT_DATA_KEY, parentJson);
-            combinedData.put(HYBRID_DATA_KEY, hybridData);
-
-            return OBJECT_MAPPER.writeValueAsString(combinedData);
+            MemFileStoreData data = new MemFileStoreData(entries, chunkStorageDirectory.toString(), cacheSize);
+            return OBJECT_MAPPER.writeValueAsString(data);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize HybridEmbeddingStore to JSON", e);
+            throw new RuntimeException("Failed to serialize MemFileEmbeddingStore to JSON", e);
         }
     }
 
@@ -348,7 +305,7 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
             Files.write(filePath, json.getBytes(), CREATE, TRUNCATE_EXISTING);
             log.debug("Serialized store to file: {}", filePath);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to serialize HybridEmbeddingStore to file: " + filePath, e);
+            throw new RuntimeException("Failed to serialize MemFileEmbeddingStore to file: " + filePath, e);
         }
     }
 
@@ -362,55 +319,64 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
     /**
      * Loads a store from JSON.
      */
-    @SuppressWarnings("unchecked")
-    public static HybridEmbeddingStore<TextSegment> fromJson(String json) {
+    public static MemFileEmbeddingStore<TextSegment> fromJson(String json) {
         try {
-            // Parse the combined data structure
-            Map<String, Object> combinedData = OBJECT_MAPPER.readValue(json, Map.class);
-
-            // Extract parent data and hybrid data
-            String parentJson = (String) combinedData.get(PARENT_DATA_KEY);
-            Map<String, Object> hybridDataMap = (Map<String, Object>) combinedData.get(HYBRID_DATA_KEY);
-
-            // Deserialize hybrid data
-            HybridStoreData hybridData = OBJECT_MAPPER.convertValue(hybridDataMap, HybridStoreData.class);
-
-            // Create the hybrid store with the hybrid-specific data
-            HybridEmbeddingStore<TextSegment> hybridStore = new HybridEmbeddingStore<>(
-                    Paths.get(hybridData.chunkStorageDirectory), hybridData.cacheSize, hybridData.entryToFileMapping);
-
-            // Load the parent data using the parent's deserialization
-            InMemoryEmbeddingStore<TextSegment> parentStore = InMemoryEmbeddingStore.fromJson(parentJson);
-
-            // Now we can directly copy the entries since we're in the same package!
-            hybridStore.entries.addAll(parentStore.entries);
-
-            return hybridStore;
+            MemFileStoreData data = OBJECT_MAPPER.readValue(json, MemFileStoreData.class);
+            return new MemFileEmbeddingStore<>(data.entries, Paths.get(data.chunkStorageDirectory), data.cacheSize);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to deserialize HybridEmbeddingStore from JSON", e);
+            throw new RuntimeException("Failed to deserialize MemFileEmbeddingStore from JSON", e);
         }
     }
 
     /**
      * Loads a store from a file.
      */
-    public static HybridEmbeddingStore<TextSegment> fromFile(Path filePath) {
+    public static MemFileEmbeddingStore<TextSegment> fromFile(Path filePath) {
         try {
             String json = Files.readString(filePath);
             log.debug("Loaded store from file: {}", filePath);
             return fromJson(json);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load HybridEmbeddingStore from file: " + filePath, e);
+            throw new RuntimeException("Failed to load MemFileEmbeddingStore from file: " + filePath, e);
         }
     }
 
     /**
      * Loads a store from a file.
      */
-    public static HybridEmbeddingStore<TextSegment> fromFile(String filePath) {
+    public static MemFileEmbeddingStore<TextSegment> fromFile(String filePath) {
         return fromFile(Paths.get(filePath));
     }
 
+    /**
+     * Saves the provided embedded content to a chunk file within the configured
+     * {@link #chunkStorageDirectory}.
+     * <p>
+     * The content is serialized to JSON using the following rules:
+     * <ul>
+     *   <li>If the object is a {@link dev.langchain4j.data.segment.TextSegment},
+     *       it is stored in a custom {@link ChunkData} JSON format containing
+     *       the text and its optional metadata (as a map).</li>
+     *   <li>For all other object types, default Jackson serialization is used.</li>
+     * </ul>
+     * </p>
+     *
+     * <p>
+     * The file is named using the given {@code id} followed by a {@code .json} extension.
+     * If a file with the same name already exists, it is replaced.
+     * </p>
+     *
+     * <p>
+     * On successful save, the method returns the relative filename (not the full path),
+     * which can later be used to reload the content via
+     * {@link #loadChunkFromFile(String)}.
+     * </p>
+     *
+     * @param id       the unique identifier for the embedded content; must not be blank
+     * @param embedded the embedded content to save; must not be {@code null}
+     * @return the relative filename of the saved chunk (e.g., {@code &lt;id&gt;.json})
+     * @throws RuntimeException if the file cannot be written
+     */
     private String saveChunkToFile(String id, Embedded embedded) {
         try {
             String fileName = id + ".json";
@@ -438,6 +404,20 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
         }
     }
 
+    /**
+     * Loads the embedded content associated with a given chunk file.
+     * <p>
+     * The chunk file is expected to be located within the configured
+     * {@link #chunkStorageDirectory} and contain JSON-serialized data.
+     * This method will first attempt to retrieve the content from the in-memory
+     * cache before reading from disk.
+     * </p>
+     *
+     * @param chunkFilePath the relative path (filename) of the chunk file
+     *                      within the chunk storage directory; may be {@code null}
+     * @return the loaded embedded object, or {@code null} if not found or
+     *         if an error occurs during deserialization
+     */
     @SuppressWarnings("unchecked")
     private Embedded loadChunkFromFile(String chunkFilePath) {
         if (chunkFilePath == null) {
@@ -510,7 +490,7 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
 
     private static Path createDefaultChunkDirectory() {
         try {
-            return Files.createTempDirectory("hybrid-embedding-store");
+            return Files.createTempDirectory("memfile-embedding-store");
         } catch (IOException e) {
             throw new RuntimeException("Failed to create default chunk storage directory", e);
         }
@@ -525,9 +505,40 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
         };
     }
 
-    static class HybridStoreData {
-        @JsonProperty("entryToFileMapping")
-        Map<String, String> entryToFileMapping;
+    static class Entry<Embedded> {
+        String id;
+        Embedding embedding;
+        String chunkFilePath; // File path relative to chunk storage directory
+
+        @JsonCreator
+        Entry(
+                @JsonProperty("id") String id,
+                @JsonProperty("embedding") Embedding embedding,
+                @JsonProperty("chunkFilePath") String chunkFilePath) {
+            this.id = ensureNotBlank(id, "id");
+            this.embedding = ensureNotNull(embedding, "embedding");
+            this.chunkFilePath = chunkFilePath;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Entry<?> that = (Entry<?>) o;
+            return Objects.equals(this.id, that.id)
+                    && Objects.equals(this.embedding, that.embedding)
+                    && Objects.equals(this.chunkFilePath, that.chunkFilePath);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, embedding, chunkFilePath);
+        }
+    }
+
+    static class MemFileStoreData {
+        @JsonProperty("entries")
+        List<Entry<TextSegment>> entries;
 
         @JsonProperty("chunkStorageDirectory")
         String chunkStorageDirectory;
@@ -536,11 +547,22 @@ public class HybridEmbeddingStore<Embedded> extends InMemoryEmbeddingStore<Embed
         int cacheSize;
 
         @JsonCreator
-        HybridStoreData(
-                @JsonProperty("entryToFileMapping") Map<String, String> entryToFileMapping,
+        MemFileStoreData(
+                @JsonProperty("entries") List<Entry<TextSegment>> entries,
                 @JsonProperty("chunkStorageDirectory") String chunkStorageDirectory,
                 @JsonProperty("cacheSize") int cacheSize) {
-            this.entryToFileMapping = entryToFileMapping != null ? entryToFileMapping : new LinkedHashMap<>();
+            this.entries = entries != null ? entries : new ArrayList<>();
+            this.chunkStorageDirectory = chunkStorageDirectory;
+            this.cacheSize = cacheSize;
+        }
+
+        // Constructor for generic entries - converts to TextSegment entries
+        @SuppressWarnings("unchecked")
+        MemFileStoreData(Collection<? extends Entry<?>> genericEntries, String chunkStorageDirectory, int cacheSize) {
+            this.entries = new ArrayList<>();
+            for (Entry<?> entry : genericEntries) {
+                this.entries.add((Entry<TextSegment>) entry);
+            }
             this.chunkStorageDirectory = chunkStorageDirectory;
             this.cacheSize = cacheSize;
         }

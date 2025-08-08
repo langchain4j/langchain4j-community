@@ -1,4 +1,4 @@
-package dev.langchain4j.store.embedding.inmemory;
+package dev.langchain4j.community.store.embedding.memfile;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -9,10 +9,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
-public class HybridEmbeddingStoreIt extends EmbeddingStoreWithFilteringIT {
+public class MemFileEmbeddingStoreIt extends EmbeddingStoreWithFilteringIT {
 
     private EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
-    private HybridEmbeddingStore<TextSegment> embeddingStore = new HybridEmbeddingStore<>(createTempDirectory());
+    private MemFileEmbeddingStore<TextSegment> embeddingStore = new MemFileEmbeddingStore<>(createTempDirectory());
 
     @Override
     protected EmbeddingStore<TextSegment> embeddingStore() {

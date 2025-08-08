@@ -8,8 +8,8 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>langchain4j-community-hybrid-store</artifactId>
-    <name>LangChain4j :: Community :: Integration :: HybridStore</name>
+    <artifactId>langchain4j-community-memfile</artifactId>
+    <name>LangChain4j :: Community :: memfile</name>
 
     <dependencies>
         <dependency>
