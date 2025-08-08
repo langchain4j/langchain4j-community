@@ -1,9 +1,8 @@
 package dev.langchain4j.community.store.embedding;
 
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.store.embedding.CosineSimilarity.between;
 import static java.util.Comparator.comparingDouble;
-import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
@@ -51,7 +50,7 @@ public final class MmrSelector {
         validateParameters(queryEmbedding, lambda, maxResults);
 
         // Handle edge cases
-        if (isNull(candidates) || candidates.isEmpty() || maxResults <= 0) {
+        if (isNullOrEmpty(candidates) || maxResults <= 0) {
             return new ArrayList<>();
         }
 
@@ -67,7 +66,7 @@ public final class MmrSelector {
      * Validates the input parameters for the MMR selection.
      */
     private static void validateParameters(Embedding queryEmbedding, double lambda, int maxResults) {
-        if (isNull(queryEmbedding)) {
+        if (queryEmbedding == null) {
             throw new IllegalArgumentException("Query embedding cannot be null");
         }
         if (lambda < MIN_LAMBDA || lambda > MAX_LAMBDA) {
@@ -96,7 +95,7 @@ public final class MmrSelector {
         while (selected.size() < maxResults && !remaining.isEmpty()) {
             EmbeddingMatch<T> bestCandidate = findBestMmrCandidate(queryEmbedding, remaining, selected, lambda);
 
-            if (nonNull(bestCandidate)) {
+            if (bestCandidate != null) {
                 selected.add(bestCandidate);
                 remaining.remove(bestCandidate);
             } else {
