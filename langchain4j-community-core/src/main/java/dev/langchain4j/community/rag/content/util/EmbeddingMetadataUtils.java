@@ -3,7 +3,6 @@ package dev.langchain4j.community.rag.content.util;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,9 +13,8 @@ public final class EmbeddingMetadataUtils {
 
     private EmbeddingMetadataUtils() {}
 
-    public static TextSegment enrichSegmentWithEmbeddings(TextSegment segment,
-                                                          Embedding queryEmbedding,
-                                                          Embedding documentEmbedding) {
+    public static TextSegment enrichSegmentWithEmbeddings(
+            TextSegment segment, Embedding queryEmbedding, Embedding documentEmbedding) {
         Map<String, Object> metadata = new HashMap<>();
         if (segment.metadata() != null) {
             metadata.putAll(segment.metadata().toMap());
@@ -24,10 +22,7 @@ public final class EmbeddingMetadataUtils {
         metadata.put(DOCUMENT_EMBEDDING_KEY, documentEmbedding);
         metadata.put(QUERY_EMBEDDING_KEY, queryEmbedding);
 
-        return TextSegment.from(
-                segment.text(),
-                Metadata.from(metadata)
-        );
+        return TextSegment.from(segment.text(), Metadata.from(metadata));
     }
 
     public static Embedding extractDocumentEmbedding(TextSegment segment) {
