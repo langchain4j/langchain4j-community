@@ -93,12 +93,7 @@ public interface StoreSerializationStrategy<T> {
      * <li>Store configuration (chunk directory, cache size)</li>
      * <li>Any metadata required for complete restoration</li>
      * </ul>
-     *
-     *
      * <p>
-     * <b>Performance Considerations:</b> This method loads the entire store structure
-     * into memory during serialization. For very large stores, consider using
-     * {@link #serializeToFile(MemFileEmbeddingStore, Path)} to stream directly to disk.
      *
      *
      * @param store the embedding store to serialize; must not be {@code null}
@@ -118,16 +113,6 @@ public interface StoreSerializationStrategy<T> {
      * if it does exist. Parent directories will be created as needed.
      *
      *
-     * <p>
-     * <b>Advantages over string serialization:</b>
-     * <ul>
-     * <li>More memory efficient for large stores (streaming vs in-memory)</li>
-     * <li>Direct file I/O without intermediate string representation</li>
-     * <li>Better performance for file-based backup/restore scenarios</li>
-     * </ul>
-     *
-     *
-     * <p>
      * <b>File Operations:</b> The implementation should handle:
      * <ul>
      * <li>Creating parent directories if they don't exist</li>
@@ -189,7 +174,6 @@ public interface StoreSerializationStrategy<T> {
      * embedding store. The file must contain data that was previously created by
      * {@link #serializeToFile(MemFileEmbeddingStore, Path)} or compatible serialization method.
      *
-     *
      * <p>
      * <b>File Requirements:</b> The file must:
      * <ul>
@@ -198,7 +182,6 @@ public interface StoreSerializationStrategy<T> {
      * <li>Be in the format expected by this strategy implementation</li>
      * <li>Not be corrupted or partially written</li>
      * </ul>
-     *
      *
      *
      * @param filePath the path to the file containing serialized store data; must not be {@code null}
