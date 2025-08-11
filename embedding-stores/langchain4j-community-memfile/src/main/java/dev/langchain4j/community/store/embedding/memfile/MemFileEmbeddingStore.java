@@ -769,13 +769,10 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
     }
 
     public static class Entry<Embedded> {
-        @JsonProperty("id")
         String id;
 
-        @JsonProperty("embedding")
         Embedding embedding;
 
-        @JsonProperty("chunkFilePath")
         String chunkFilePath; // File path relative to chunk storage directory
 
         @JsonCreator
