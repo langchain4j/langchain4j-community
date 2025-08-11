@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
-public class MemFileEmbeddingStoreIt extends EmbeddingStoreWithFilteringIT {
+public class MemFileEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     private EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     private MemFileEmbeddingStore<TextSegment> embeddingStore = new MemFileEmbeddingStore<>(createTempDirectory());
