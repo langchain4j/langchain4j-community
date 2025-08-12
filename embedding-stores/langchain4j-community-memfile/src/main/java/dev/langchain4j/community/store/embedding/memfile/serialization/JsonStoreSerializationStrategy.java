@@ -165,24 +165,6 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
     /**
      * {@inheritDoc}
      * <p>
-     * Convenience method that converts the string file path to a {@link Path}
-     * and delegates to {@link #serializeToFile(MemFileEmbeddingStore, Path)}.
-     * </p>
-     *
-     * @param store the embedding store to serialize; must not be null
-     * @param filePath the file path as a string; must not be null or blank
-     * @throws IllegalArgumentException if store is null or filePath is null/blank
-     * @throws RuntimeException if file I/O operations fail
-     */
-    @Override
-    public void serializeToFile(MemFileEmbeddingStore<T> store, String filePath) {
-        ensureNotNull(filePath, "filePath");
-        serializeToFile(store, Paths.get(filePath));
-    }
-
-    /**
-     * {@inheritDoc}
-     * <p>
      * Deserializes a JSON string back into a {@link MemFileEmbeddingStore} instance.
      * The JSON is parsed and validated, then used to reconstruct the store with
      * all its entries, embeddings, and configuration settings.
@@ -228,23 +210,6 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
         } catch (IOException e) {
             throw new RuntimeException("Failed to load MemFileEmbeddingStore from file: " + filePath, e);
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Convenience method that converts the string file path to a {@link Path}
-     * and delegates to {@link #deserializeFromFile(Path)}.
-     * </p>
-     *
-     * @param filePath the file path as a string; must not be null or blank
-     * @return a new MemFileEmbeddingStore instance restored from the file data
-     * @throws IllegalArgumentException if filePath is null or blank
-     * @throws RuntimeException if file I/O or JSON deserialization fails
-     */
-    @Override
-    public MemFileEmbeddingStore<T> deserializeFromFile(String filePath) {
-        return deserializeFromFile(Paths.get(filePath));
     }
 
     /**

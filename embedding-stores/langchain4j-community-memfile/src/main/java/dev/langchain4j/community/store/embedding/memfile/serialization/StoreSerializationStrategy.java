@@ -1,7 +1,10 @@
 package dev.langchain4j.community.store.embedding.memfile.serialization;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import dev.langchain4j.community.store.embedding.memfile.MemFileEmbeddingStore;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Strategy interface for serializing and deserializing {@link MemFileEmbeddingStore} instances.
@@ -130,7 +133,10 @@ public interface StoreSerializationStrategy<T> {
      */
     void serializeToFile(MemFileEmbeddingStore<T> store, Path filePath);
 
-    void serializeToFile(MemFileEmbeddingStore<T> store, String filePath);
+    default void serializeToFile(MemFileEmbeddingStore<T> store, String filePath) {
+        ensureNotNull(filePath, "filePath");
+        serializeToFile(store, Paths.get(filePath));
+    }
 
     /**
      * Deserializes an embedding store from its string representation.
@@ -193,5 +199,8 @@ public interface StoreSerializationStrategy<T> {
      */
     MemFileEmbeddingStore<T> deserializeFromFile(Path filePath);
 
-    MemFileEmbeddingStore<T> deserializeFromFile(String filePath);
+    default MemFileEmbeddingStore<T> deserializeFromFile(String filePath) {
+        ensureNotNull(filePath, "filePath");
+        return deserializeFromFile(Paths.get(filePath));
+    }
 }
