@@ -411,7 +411,8 @@ class EmbeddingStoreContentRetrieverTest {
         // when & then
         assertThat(EmbeddingMetadataUtils.hasDocumentEmbedding(plainSegment)).isFalse();
         assertThat(EmbeddingMetadataUtils.hasQueryEmbedding(plainSegment)).isFalse();
-        assertThat(EmbeddingMetadataUtils.extractDocumentEmbedding(plainSegment)).isNull();
+        assertThat(EmbeddingMetadataUtils.extractDocumentEmbedding(plainSegment))
+                .isNull();
         assertThat(EmbeddingMetadataUtils.extractQueryEmbedding(plainSegment)).isNull();
     }
 
