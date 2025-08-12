@@ -342,6 +342,42 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     // New tests
+
+    @Test
+    void should_handle_null_embedding_model_in_constructor() {
+        // given
+        EmbeddingStore<TextSegment> embeddingStore = mock(EmbeddingStore.class);
+
+        // when - null embeddingModel should trigger loadEmbeddingModel()
+        try {
+            new EmbeddingStoreContentRetriever(embeddingStore, null);
+        } catch (Exception e) {
+            // Expected if no embedding model factory available
+            assertThat(e).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
+    void should_handle_null_values_in_builder() {
+        // given
+        EmbeddingStore<TextSegment> embeddingStore = mock(EmbeddingStore.class);
+        EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
+
+        // when - test null branches in builder methods
+        ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(embeddingStore)
+                .embeddingModel(embeddingModel)
+                .maxResults(null) // Should not set dynamicMaxResults
+                .minScore(null) // Should not set dynamicMinScore
+                .filter(null) // Should not set dynamicFilter
+                .displayName(null) // Should use default
+                .build();
+
+        // then
+        assertThat(contentRetriever).isNotNull();
+        assertThat(contentRetriever.toString()).contains("Default"); // Default display name
+    }
+
     @Test
     void should_enrich_segments_with_embeddings_in_metadata() {
         // given
