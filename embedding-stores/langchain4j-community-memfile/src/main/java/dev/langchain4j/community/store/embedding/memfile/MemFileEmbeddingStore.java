@@ -760,12 +760,14 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
         // This avoids an unnecessary resize before reaching maxSize entries.
         int capacity = (int) Math.ceil(maxSize / 0.75f) + 1;
 
-        return new LinkedHashMap<K, V>(capacity, 0.75f, true) {
+        Map<K, V> lru = new LinkedHashMap<K, V>(capacity, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
                 return size() > maxSize; // Evict eldest when size exceeds maxSize
             }
         };
+
+        return Collections.synchronizedMap(lru);
     }
 
     public static class Entry<Embedded> {
