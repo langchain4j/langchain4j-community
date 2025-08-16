@@ -75,7 +75,6 @@ import java.nio.file.Paths;
  * }</pre>
  *
  * @param <T> the type of metadata associated with embedded text segments
- *
  * @see StoreSerializationStrategy
  * @see MemFileEmbeddingStore
  * @since 1.0.0
@@ -123,7 +122,7 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
      * @param store the embedding store to serialize; must not be null
      * @return a formatted JSON string representation of the store
      * @throws IllegalArgumentException if store is null
-     * @throws RuntimeException if JSON serialization fails
+     * @throws RuntimeException         if JSON serialization fails
      */
     @Override
     public String serialize(MemFileEmbeddingStore<T> store) {
@@ -144,10 +143,10 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
      * already exists, it will be overwritten.
      * </p>
      *
-     * @param store the embedding store to serialize; must not be null
+     * @param store    the embedding store to serialize; must not be null
      * @param filePath the path where the JSON file will be written; must not be null
      * @throws IllegalArgumentException if store or filePath is null
-     * @throws RuntimeException if file I/O operations fail
+     * @throws RuntimeException         if file I/O operations fail
      */
     @Override
     public void serializeToFile(MemFileEmbeddingStore<T> store, Path filePath) {
@@ -173,7 +172,7 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
      * @param json the JSON string representation of a serialized store; must not be null or blank
      * @return a new MemFileEmbeddingStore instance restored from the JSON data
      * @throws IllegalArgumentException if json is null or blank
-     * @throws RuntimeException if JSON parsing or deserialization fails
+     * @throws RuntimeException         if JSON parsing or deserialization fails
      */
     @Override
     public MemFileEmbeddingStore<T> deserialize(String json) {
@@ -199,7 +198,7 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
      * @param filePath the path to the JSON file containing serialized store data; must not be null
      * @return a new MemFileEmbeddingStore instance restored from the file data
      * @throws IllegalArgumentException if filePath is null
-     * @throws RuntimeException if file I/O or JSON deserialization fails
+     * @throws RuntimeException         if file I/O or JSON deserialization fails
      */
     @Override
     public MemFileEmbeddingStore<T> deserializeFromFile(Path filePath) {
@@ -234,8 +233,8 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
         /**
          * Serializes an {@link Embedding} object to JSON.
          *
-         * @param embedding the embedding to serialize; must not be null
-         * @param gen the JSON generator to write to
+         * @param embedding   the embedding to serialize; must not be null
+         * @param gen         the JSON generator to write to
          * @param serializers the serializer provider (unused)
          * @throws IOException if JSON writing fails
          */
@@ -278,7 +277,7 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
         /**
          * Deserializes an {@link Embedding} object from JSON.
          *
-         * @param p the JSON parser to read from
+         * @param p    the JSON parser to read from
          * @param ctxt the deserialization context (unused)
          * @return a new Embedding instance created from the JSON data
          * @throws IOException if the JSON structure is invalid or parsing fails

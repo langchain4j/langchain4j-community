@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * An {@link EmbeddingStore} implementation that stores embeddings in memory
  * while persisting associated embedded content (e.g.,
- * {@link dev.langchain4j.data.segment.TextSegment}) as JSON files in a local
+ * {@link dev.langchain4j.data.segment.TextSegment}) as files in a local
  * directory.
  *
  * <p>
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  * <li>Embeddings are kept fully in memory for fast similarity search.</li>
- * <li>Embedded content is serialized to JSON and stored as separate files on
+ * <li>Embedded content is serialized and stored as separate files on
  * disk, reducing memory footprint for large content.</li>
  * <li>Optional LRU cache keeps frequently accessed embedded content in
  * memory.</li>
@@ -67,8 +67,7 @@ import org.slf4j.LoggerFactory;
  * to the configured {@code chunkStorageDirectory}.</li>
  * <li>Content is reloaded from disk on demand and optionally cached for
  * reuse.</li>
- * <li>Chunk files are named after the embedding ID with a {@code .json}
- * extension.</li>
+ * <li>Chunk files are named after the embedding ID</li>
  * </ul>
  *
  * <p>
@@ -140,6 +139,29 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
         this.cacheSize = Math.max(0, cacheSize);
         this.chunkCache = cacheSize > 0 ? createLRUCache(cacheSize) : new ConcurrentHashMap<>();
         createChunkStorageDirectory();
+    }
+
+    private static Path createDefaultChunkDirectory() {
+        try {
+            return Files.createTempDirectory("memfile-embedding-store");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create default chunk storage directory", e);
+        }
+    }
+
+    private static <K, V> Map<K, V> createLRUCache(int maxSize) {
+        // Calculate capacity so that (capacity * loadFactor) >= maxSize
+        // This avoids an unnecessary resize before reaching maxSize entries.
+        int capacity = (int) Math.ceil(maxSize / 0.75f) + 1;
+
+        Map<K, V> lru = new LinkedHashMap<K, V>(capacity, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+                return size() > maxSize; // Evict eldest when size exceeds maxSize
+            }
+        };
+
+        return Collections.synchronizedMap(lru);
     }
 
     @Override
@@ -402,7 +424,7 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
      * }</pre>
      *
      * @param storeSerializationStrategy the strategy to use for serialization; must not be {@code null}
-     * @param filePath the path where the serialized data should be written; must not be {@code null}
+     * @param filePath                   the path where the serialized data should be written; must not be {@code null}
      * @throws RuntimeException if the file cannot be created, written to, or if serialization fails
      * @see #deserializeFromFile(StoreSerializationStrategy, Path)
      * @see #serialize(StoreSerializationStrategy)
@@ -439,8 +461,8 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
      * }</pre>
      *
      * @param storeSerializationStrategy the strategy to use for serialization; must not be {@code null}
-     * @param filePath the file path as a string where the serialized data should be written; must not be {@code null} or blank
-     * @throws RuntimeException if the file cannot be created, written to, or if serialization fails
+     * @param filePath                   the file path as a string where the serialized data should be written; must not be {@code null} or blank
+     * @throws RuntimeException         if the file cannot be created, written to, or if serialization fails
      * @throws IllegalArgumentException if the file path is invalid
      * @see #deserializeFromFile(StoreSerializationStrategy, String)
      * @see #serializeToFile(StoreSerializationStrategy, Path)
@@ -490,9 +512,9 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
      * }</pre>
      *
      * @param storeSerializationStrategy the strategy to use for deserialization; must not be {@code null}
-     * @param data the serialized string representation of the embedding store; must not be {@code null} or blank
+     * @param data                       the serialized string representation of the embedding store; must not be {@code null} or blank
      * @return a new {@code MemFileEmbeddingStore} instance restored from the serialized data
-     * @throws RuntimeException if deserialization fails due to invalid data format, I/O errors, or strategy-specific issues
+     * @throws RuntimeException         if deserialization fails due to invalid data format, I/O errors, or strategy-specific issues
      * @throws IllegalArgumentException if the serialized data is malformed or incompatible
      * @see #serialize(StoreSerializationStrategy)
      * @see #deserializeFromFile(StoreSerializationStrategy, Path)
@@ -542,9 +564,9 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
      * }</pre>
      *
      * @param storeSerializationStrategy the strategy to use for deserialization; must not be {@code null}
-     * @param filePath the path to the file containing serialized store data; must not be {@code null}
+     * @param filePath                   the path to the file containing serialized store data; must not be {@code null}
      * @return a new {@code MemFileEmbeddingStore} instance restored from the file data
-     * @throws RuntimeException if the file cannot be read, doesn't exist, or if deserialization fails
+     * @throws RuntimeException         if the file cannot be read, doesn't exist, or if deserialization fails
      * @throws IllegalArgumentException if the file contains malformed or incompatible data
      * @see #serializeToFile(StoreSerializationStrategy, Path)
      * @see #deserialize(StoreSerializationStrategy, String)
@@ -593,9 +615,9 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
      * }</pre>
      *
      * @param storeSerializationStrategy the strategy to use for deserialization; must not be {@code null}
-     * @param filePath the file path as a string containing serialized store data; must not be {@code null} or blank
+     * @param filePath                   the file path as a string containing serialized store data; must not be {@code null} or blank
      * @return a new {@code MemFileEmbeddingStore} instance restored from the file data
-     * @throws RuntimeException if the file cannot be read, doesn't exist, or if deserialization fails
+     * @throws RuntimeException         if the file cannot be read, doesn't exist, or if deserialization fails
      * @throws IllegalArgumentException if the file path is invalid or contains malformed data
      * @see #serializeToFile(StoreSerializationStrategy, String)
      * @see #deserializeFromFile(StoreSerializationStrategy, Path)
@@ -628,12 +650,11 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
      * path), which can later be used to reload the content via
      * {@link #loadChunkFromFile(String)}.
      *
-     *
      * @param id       the unique identifier for the embedded content; must not be
      *                 blank
      * @param embedded the embedded content to save; must not be {@code null}
      * @return the relative filename of the saved chunk (e.g.,
-     *         {@code &lt;id&gt;.json})
+     * {@code &lt;id&gt;.json})
      * @throws RuntimeException if the file cannot be written
      */
     private String saveChunkToFile(String id, Embedded embedded) {
@@ -671,11 +692,10 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
      * will first attempt to retrieve the content from the in-memory cache before
      * reading from disk.
      *
-     *
      * @param chunkFilePath the relative path (filename) of the chunk file within
      *                      the chunk storage directory; may be {@code null}
      * @return the loaded embedded object, or {@code null} if not found or if an
-     *         error occurs during deserialization
+     * error occurs during deserialization
      */
     @SuppressWarnings("unchecked")
     private Embedded loadChunkFromFile(String chunkFilePath) {
@@ -745,29 +765,6 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
         } catch (IOException e) {
             throw new RuntimeException("Failed to create chunk storage directory: " + chunkStorageDirectory, e);
         }
-    }
-
-    private static Path createDefaultChunkDirectory() {
-        try {
-            return Files.createTempDirectory("memfile-embedding-store");
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to create default chunk storage directory", e);
-        }
-    }
-
-    private static <K, V> Map<K, V> createLRUCache(int maxSize) {
-        // Calculate capacity so that (capacity * loadFactor) >= maxSize
-        // This avoids an unnecessary resize before reaching maxSize entries.
-        int capacity = (int) Math.ceil(maxSize / 0.75f) + 1;
-
-        Map<K, V> lru = new LinkedHashMap<K, V>(capacity, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-                return size() > maxSize; // Evict eldest when size exceeds maxSize
-            }
-        };
-
-        return Collections.synchronizedMap(lru);
     }
 
     public static class Entry<Embedded> {

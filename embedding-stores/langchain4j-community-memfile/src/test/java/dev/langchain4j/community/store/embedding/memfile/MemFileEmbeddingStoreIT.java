@@ -14,6 +14,14 @@ public class MemFileEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     private EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     private MemFileEmbeddingStore<TextSegment> embeddingStore = new MemFileEmbeddingStore<>(createTempDirectory());
 
+    public static Path createTempDirectory() {
+        try {
+            return Files.createTempDirectory(UUID.randomUUID().toString());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     protected EmbeddingStore<TextSegment> embeddingStore() {
         return embeddingStore;
@@ -27,13 +35,5 @@ public class MemFileEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     @Override
     protected boolean supportsContains() {
         return true;
-    }
-
-    public static Path createTempDirectory() {
-        try {
-            return Files.createTempDirectory(UUID.randomUUID().toString());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 }

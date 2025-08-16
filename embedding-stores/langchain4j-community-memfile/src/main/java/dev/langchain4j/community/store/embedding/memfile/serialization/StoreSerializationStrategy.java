@@ -74,7 +74,6 @@ import java.nio.file.Paths;
  * }</pre>
  *
  * @param <T> the type of embedded objects stored in the embedding store (typically {@link dev.langchain4j.data.segment.TextSegment})
- *
  * @see JsonStoreSerializationStrategy
  * @see MemFileEmbeddingStore
  */
@@ -98,11 +97,10 @@ public interface StoreSerializationStrategy<T> {
      * </ul>
      * <p>
      *
-     *
      * @param store the embedding store to serialize; must not be {@code null}
      * @return a string representation of the embedding store that can be used with {@link #deserialize(String)}
      * @throws IllegalArgumentException if the store is {@code null}
-     * @throws RuntimeException if serialization fails due to I/O errors or format-specific issues
+     * @throws RuntimeException         if serialization fails due to I/O errors or format-specific issues
      * @see #deserialize(String)
      * @see #serializeToFile(MemFileEmbeddingStore, Path)
      */
@@ -123,11 +121,10 @@ public interface StoreSerializationStrategy<T> {
      * <li>Proper cleanup in case of write failures</li>
      * </ul>
      *
-     *
-     * @param store the embedding store to serialize; must not be {@code null}
+     * @param store    the embedding store to serialize; must not be {@code null}
      * @param filePath the path where the serialized data should be written; must not be {@code null}
      * @throws IllegalArgumentException if either parameter is {@code null}
-     * @throws RuntimeException if the file cannot be created or written to, or if serialization fails
+     * @throws RuntimeException         if the file cannot be created or written to, or if serialization fails
      * @see #deserializeFromFile(Path)
      * @see #serialize(MemFileEmbeddingStore)
      */
@@ -167,7 +164,7 @@ public interface StoreSerializationStrategy<T> {
      * @param data the serialized string representation of an embedding store; must not be {@code null} or blank
      * @return a new {@link MemFileEmbeddingStore} instance restored from the serialized data
      * @throws IllegalArgumentException if the data is {@code null}, blank, or has an invalid format
-     * @throws RuntimeException if deserialization fails due to parsing errors or I/O issues
+     * @throws RuntimeException         if deserialization fails due to parsing errors or I/O issues
      * @see #serialize(MemFileEmbeddingStore)
      * @see #deserializeFromFile(Path)
      */
@@ -189,11 +186,10 @@ public interface StoreSerializationStrategy<T> {
      * <li>Not be corrupted or partially written</li>
      * </ul>
      *
-     *
      * @param filePath the path to the file containing serialized store data; must not be {@code null}
      * @return a new {@link MemFileEmbeddingStore} instance restored from the file data
      * @throws IllegalArgumentException if the file path is {@code null}
-     * @throws RuntimeException if the file doesn't exist, cannot be read, or contains invalid data
+     * @throws RuntimeException         if the file doesn't exist, cannot be read, or contains invalid data
      * @see #serializeToFile(MemFileEmbeddingStore, Path)
      * @see #deserialize(String)
      */
