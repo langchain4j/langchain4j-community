@@ -38,6 +38,7 @@ jobs:
           mvn -B -U verify \
               --fail-at-end \
               -DskipXinferenceITs \
+              -DskipSearXNGITs \
               -Dmaven.test.failure.ignore=true \
               ${{ matrix.mvn_opts }}
 

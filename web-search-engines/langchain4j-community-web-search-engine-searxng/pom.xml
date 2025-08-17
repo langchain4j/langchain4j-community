@@ -23,6 +23,10 @@
         </license>
     </licenses>
 
+    <properties>
+        <skipSearXNGITs>false</skipSearXNGITs>
+    </properties>
+
     <dependencies>
 
         <dependency>
@@ -83,5 +87,17 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <skipTests>${skipSearXNGITs}</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
