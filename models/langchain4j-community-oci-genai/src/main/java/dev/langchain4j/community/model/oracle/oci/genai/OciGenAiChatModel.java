@@ -93,35 +93,36 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
     }
 
     static ChatResponse map(ChatChoice choice, String modelName) {
+        var aiMessageBuilder = AiMessage.builder();
+        var chatResponseMetadataBuilder = ChatResponseMetadata.builder();
+
         var message = choice.getMessage();
 
-        var content = message.getContent();
+        if (message != null) {
+            var content = message.getContent();
 
-        var aiMessageBuilder = AiMessage.builder();
+            if (content != null && !content.isEmpty()) {
+                content.stream()
+                        .map(TextContent.class::cast)
+                        .map(TextContent::getText)
+                        .filter(not(String::isBlank))
+                        .reduce(String::concat)
+                        .ifPresent(aiMessageBuilder::text);
+            }
 
-        if (content != null && !content.isEmpty()) {
-            content.stream()
-                    .map(TextContent.class::cast)
-                    .map(TextContent::getText)
-                    .filter(not(String::isBlank))
-                    .reduce(String::concat)
-                    .ifPresent(aiMessageBuilder::text);
+            if (message instanceof AssistantMessage assistantMessage && assistantMessage.getToolCalls() != null) {
+                var toolExecutionRequests = assistantMessage.getToolCalls().stream()
+                        .map(FunctionCall.class::cast)
+                        .map(functionCall -> ToolExecutionRequest.builder()
+                                .id(functionCall.getId())
+                                .arguments(functionCall.getArguments())
+                                .name(functionCall.getName())
+                                .build())
+                        .toList();
+
+                aiMessageBuilder.toolExecutionRequests(toolExecutionRequests);
+            }
         }
-
-        if (message instanceof AssistantMessage assistantMessage && assistantMessage.getToolCalls() != null) {
-            var toolExecutionRequests = assistantMessage.getToolCalls().stream()
-                    .map(FunctionCall.class::cast)
-                    .map(functionCall -> ToolExecutionRequest.builder()
-                            .id(functionCall.getId())
-                            .arguments(functionCall.getArguments())
-                            .name(functionCall.getName())
-                            .build())
-                    .toList();
-
-            aiMessageBuilder.toolExecutionRequests(toolExecutionRequests);
-        }
-
-        var chatResponseMetadataBuilder = ChatResponseMetadata.builder();
 
         chatResponseMetadataBuilder.finishReason(parseFinishReason(choice.getFinishReason()));
         chatResponseMetadataBuilder.modelName(modelName);
