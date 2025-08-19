@@ -18,7 +18,7 @@ jobs:
       max-parallel: 1
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK ${{ matrix.java_version }}
         uses: actions/setup-java@v4
@@ -38,6 +38,7 @@ jobs:
           mvn -B -U verify \
               --fail-at-end \
               -DskipXinferenceITs \
+              -DskipSearXNGITs \
               -Dmaven.test.failure.ignore=true \
               ${{ matrix.mvn_opts }}
 

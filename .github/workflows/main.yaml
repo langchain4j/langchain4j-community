@@ -48,7 +48,7 @@ jobs:
             mvn_opts: ''
             integration_tests: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Create branch from commit by event name
@@ -76,6 +76,7 @@ jobs:
         run: |
           mvn -B -U verify \
             -DskipXinferenceITs \
+            -DskipSearXNGITs \
             -Dgib.disable=false -Dgib.referenceBranch=__branch_before \
             ${{ matrix.mvn_opts }}
 
@@ -90,7 +91,7 @@ jobs:
   compliance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -104,7 +105,7 @@ jobs:
   spotless:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Set up JDK 17
