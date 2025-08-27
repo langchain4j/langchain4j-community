@@ -14,6 +14,7 @@ import com.oracle.bmc.generativeaiinference.model.FunctionCall;
 import com.oracle.bmc.generativeaiinference.model.GenericChatResponse;
 import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
 import com.oracle.bmc.generativeaiinference.model.TextContent;
+import com.oracle.bmc.generativeaiinference.model.Usage;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.ModelProvider;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> implements ChatModel {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OciGenAiChatModel.class);
+    private static final TokenUsage UNKNOWN_TOKEN_USAGE = new TokenUsage(1, 1, 2);
     private final Builder builder;
 
     OciGenAiChatModel(Builder builder) {
@@ -89,10 +91,10 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
 
         ChatChoice choice = choices.get(0);
 
-        return map(choice, modelName);
+        return map(choice, modelName, map(chatResponse.getUsage()));
     }
 
-    static ChatResponse map(ChatChoice choice, String modelName) {
+    static ChatResponse map(ChatChoice choice, String modelName, TokenUsage tokenUsage) {
         var aiMessageBuilder = AiMessage.builder();
         var chatResponseMetadataBuilder = ChatResponseMetadata.builder();
 
@@ -105,7 +107,7 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
                 content.stream()
                         .map(TextContent.class::cast)
                         .map(TextContent::getText)
-                        .filter(not(String::isBlank))
+                        .filter(not(String::isEmpty))
                         .reduce(String::concat)
                         .ifPresent(aiMessageBuilder::text);
             }
@@ -126,27 +128,19 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
 
         chatResponseMetadataBuilder.finishReason(parseFinishReason(choice.getFinishReason()));
         chatResponseMetadataBuilder.modelName(modelName);
-        // TODO: Token usage is sent from OCI but ignored by SDK
-        // {
-        //    "chatResponse": {
-        //        "apiFormat": "GENERIC",
-        //        "timeCreated": "2025-04-24T14:57:17.740Z",
-        //        "choices": [
-        //            "..."
-        //        ],
-        //        "usage": {
-        //            "completionTokens": 13,
-        //            "promptTokens": 233,
-        //            "totalTokens": 246
-        //        }
-        //    }
-        // }
-        chatResponseMetadataBuilder.tokenUsage(new TokenUsage(1, 1, 2));
+        chatResponseMetadataBuilder.tokenUsage(tokenUsage != null ? tokenUsage : UNKNOWN_TOKEN_USAGE);
 
         return ChatResponse.builder()
                 .aiMessage(aiMessageBuilder.build())
                 .metadata(chatResponseMetadataBuilder.build())
                 .build();
+    }
+
+    static TokenUsage map(Usage usage) {
+        if (usage == null) {
+            return UNKNOWN_TOKEN_USAGE;
+        }
+        return new TokenUsage(usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens());
     }
 
     static FinishReason parseFinishReason(String finishReason) {

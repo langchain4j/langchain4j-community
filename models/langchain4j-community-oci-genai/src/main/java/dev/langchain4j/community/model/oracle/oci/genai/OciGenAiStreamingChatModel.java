@@ -1,15 +1,15 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
-import static java.util.function.Predicate.not;
-
 import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
 import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
 import com.oracle.bmc.http.client.Serializer;
-import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.CompleteToolCall;
+import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -79,17 +79,48 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
                 streamingResponseBuilder.append(chatChoice);
 
                 try {
-                    Optional.ofNullable(
-                                    OciGenAiChatModel.map(chatChoice, modelName).aiMessage())
-                            .map(AiMessage::text)
-                            .filter(not(String::isEmpty))
-                            .ifPresent(handler::onPartialResponse);
+                    var aiMessage =
+                            OciGenAiChatModel.map(chatChoice, modelName, null).aiMessage();
+
+                    if (aiMessage != null) {
+                        if (aiMessage.text() != null) {
+                            handler.onPartialResponse(aiMessage.text());
+                        }
+                        var toolExecutionRequests = aiMessage.toolExecutionRequests();
+                        if (toolExecutionRequests != null) {
+                            for (int i = 0; i < toolExecutionRequests.size(); i++) {
+                                var execReq = toolExecutionRequests.get(i);
+                                if (Utils.isNotNullOrEmpty(execReq.name())
+                                        && Utils.isNotNullOrEmpty(execReq.arguments())) {
+                                    handler.onPartialToolCall(PartialToolCall.builder()
+                                            .id(execReq.id())
+                                            .name(execReq.name())
+                                            .partialArguments(execReq.arguments())
+                                            .index(i)
+                                            .build());
+                                }
+                            }
+                        }
+                    }
                 } catch (Exception userException) {
                     handler.onError(userException);
                 }
             }
 
-            handler.onCompleteResponse(streamingResponseBuilder.build());
+            final var chatResponse = streamingResponseBuilder.build();
+
+            var aiMessage = chatResponse.aiMessage();
+
+            if (aiMessage != null && aiMessage.toolExecutionRequests() != null) {
+                for (int i = 0; i < aiMessage.toolExecutionRequests().size(); i++) {
+                    var execReq = aiMessage.toolExecutionRequests().get(i);
+                    if (Utils.isNotNullOrEmpty(execReq.arguments())) {
+                        handler.onCompleteToolCall(new CompleteToolCall(i, execReq));
+                    }
+                }
+            }
+
+            handler.onCompleteResponse(chatResponse);
         } catch (Exception e) {
             try {
                 handler.onError(e);

@@ -28,7 +28,7 @@ class GenericStreamingResponseBuilder {
 
     ChatResponse build() {
         ChatChoice chatChoice = mergeChoiceParts(choiceParts);
-        return OciGenAiChatModel.map(chatChoice, modelName);
+        return OciGenAiChatModel.map(chatChoice, modelName, null);
     }
 
     /**

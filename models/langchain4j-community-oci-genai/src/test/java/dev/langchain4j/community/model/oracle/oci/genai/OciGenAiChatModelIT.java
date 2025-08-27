@@ -9,6 +9,8 @@ import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_CHAT_MODEL_NAME_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_VISION_MODEL_NAME;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_VISION_MODEL_NAME_PROPERTY;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
@@ -17,18 +19,18 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
+import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.AuthenticationDetailsProvider;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.internal.Utils;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.TokenStream;
-import java.io.IOException;
-import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -47,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @EnabledIfEnvironmentVariables({
+    @EnabledIfEnvironmentVariable(named = OCI_GENAI_MODEL_REGION_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COMPARTMENT_ID_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_GENERIC_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY)
@@ -64,6 +67,7 @@ public class OciGenAiChatModelIT {
                 .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .maxTokens(600)
                 .temperature(0.2)
                 .topP(0.75)
@@ -88,18 +92,15 @@ public class OciGenAiChatModelIT {
 
     @Test
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_GENERIC_VISION_MODEL_NAME_PROPERTY, matches = NON_EMPTY)
-    void image() throws IOException {
-        var uri = URI.create("https://upload.wikimedia.org/wikipedia/commons/7/70/Example.png");
-        String base64image;
-        try (var is = uri.toURL().openStream()) {
-            var bytes = is.readAllBytes();
-            base64image = Base64.getEncoder().encodeToString(bytes);
-        }
+    void image() {
+        var bytes = Utils.readBytes("https://www.gstatic.com/webp/gallery3/2.png");
+        var base64image = Base64.getEncoder().encodeToString(bytes);
 
         try (var chatModel = OciGenAiChatModel.builder()
                 .modelName(OCI_GENAI_GENERIC_VISION_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .build()) {
 
@@ -110,7 +111,7 @@ public class OciGenAiChatModelIT {
             ChatResponse response = chatModel.chat(
                     UserMessage.userMessage("Can you describe what text is on the picture?"), userMessage);
 
-            Assertions.assertThat(response.aiMessage().text()).containsIgnoringCase("This is just an example");
+            Assertions.assertThat(response.aiMessage().text()).containsIgnoringCase("penguin");
         }
     }
 
@@ -120,6 +121,7 @@ public class OciGenAiChatModelIT {
                 .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.2)
@@ -147,6 +149,7 @@ public class OciGenAiChatModelIT {
                 .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.2)
@@ -184,6 +187,7 @@ public class OciGenAiChatModelIT {
                 .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.2)
@@ -221,6 +225,7 @@ public class OciGenAiChatModelIT {
                 .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .build()) {
 
@@ -263,6 +268,7 @@ public class OciGenAiChatModelIT {
                 .topP(0.75)
                 .seed(TestEnvProps.SEED)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .build()) {
 
             var mathService = new MathService();

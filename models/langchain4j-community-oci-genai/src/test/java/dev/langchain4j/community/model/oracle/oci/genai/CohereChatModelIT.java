@@ -7,7 +7,10 @@ import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COMPARTMENT_ID;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COMPARTMENT_ID_PROPERTY;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION_PROPERTY;
 
+import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.AuthenticationDetailsProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelIT;
@@ -18,6 +21,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariables;
 
 @EnabledIfEnvironmentVariables({
+    @EnabledIfEnvironmentVariable(named = OCI_GENAI_MODEL_REGION_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COMPARTMENT_ID_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COHERE_CHAT_MODEL_ALTERNATIVE_NAME_PROPERTY, matches = NON_EMPTY)
@@ -37,6 +41,7 @@ public class CohereChatModelIT extends AbstractChatModelIT {
                 .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.7)
@@ -50,6 +55,7 @@ public class CohereChatModelIT extends AbstractChatModelIT {
                 .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .defaultRequestParameters(parameters)
                 .build();
@@ -58,6 +64,10 @@ public class CohereChatModelIT extends AbstractChatModelIT {
     @Override
     protected ChatRequestParameters createIntegrationSpecificParameters(final int maxOutputTokens) {
         return ChatRequestParameters.builder().maxOutputTokens(maxOutputTokens).build();
+    }
+
+    protected boolean assertToolId(ChatModel model) {
+        return false;
     }
 
     @Disabled("Know issue: response_format is not supported with RAG")
@@ -102,5 +112,11 @@ public class CohereChatModelIT extends AbstractChatModelIT {
 
     protected boolean assertResponseId() {
         return false;
+    }
+
+    @Override
+    @Disabled("Not supported by testing model")
+    protected void should_execute_multiple_tools_in_parallel_then_answer(ChatModel model) {
+        super.should_execute_multiple_tools_in_parallel_then_answer(model);
     }
 }

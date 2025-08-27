@@ -10,6 +10,7 @@ import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.CompleteToolCall;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
 import java.io.BufferedReader;
@@ -80,7 +81,7 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                 if (line.isEmpty()) {
                     continue;
                 }
-                LOGGER.debug("Recv partial response: {}", line);
+                LOGGER.debug("Partial response: {}", line);
 
                 lastCohereChatResponse = Serializer.getDefault()
                         .readValue(
@@ -107,14 +108,22 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
 
                 var toolCalls = lastCohereChatResponse.getToolCalls();
                 if (toolCalls != null && !toolCalls.isEmpty()) {
-                    handler.onCompleteResponse(map(
+                    var lc4jResponse = map(
                                     CohereChatResponse.builder()
                                             .copy(lastCohereChatResponse)
                                             .toolCalls(mergedToolCalls)
                                             .build(),
                                     modelName,
                                     FinishReason.TOOL_EXECUTION)
-                            .build());
+                            .build();
+                    var toolExecutionRequests = lc4jResponse.aiMessage().toolExecutionRequests();
+                    if (toolExecutionRequests != null) {
+                        for (int i = 0; i < toolExecutionRequests.size(); i++) {
+                            var toolExecutionRequest = toolExecutionRequests.get(i);
+                            handler.onCompleteToolCall(new CompleteToolCall(i, toolExecutionRequest));
+                        }
+                    }
+                    handler.onCompleteResponse(lc4jResponse);
                 } else {
                     // Finish
                     handler.onCompleteResponse(map(

@@ -5,6 +5,9 @@ import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider;
 import java.io.IOException;
 
 final class TestEnvProps {
+    static final String OCI_GENAI_MODEL_REGION_PROPERTY = "OCI_GENAI_MODEL_REGION";
+    static final String OCI_GENAI_MODEL_REGION = System.getenv(OCI_GENAI_MODEL_REGION_PROPERTY);
+
     static final String OCI_GENAI_COMPARTMENT_ID_PROPERTY = "OCI_GENAI_COMPARTMENT_ID";
     static final String OCI_GENAI_COMPARTMENT_ID = System.getenv(OCI_GENAI_COMPARTMENT_ID_PROPERTY);
 
