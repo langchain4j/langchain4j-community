@@ -22,7 +22,7 @@
     </licenses>
 
     <properties>
-        <jjwt.version>0.12.7</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <guava.version>33.4.8-jre</guava.version>
     </properties>
 
