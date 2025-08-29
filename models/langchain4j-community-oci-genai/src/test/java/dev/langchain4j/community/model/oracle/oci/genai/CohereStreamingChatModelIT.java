@@ -7,18 +7,26 @@ import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COMPARTMENT_ID;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COMPARTMENT_ID_PROPERTY;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION_PROPERTY;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 
+import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.AuthenticationDetailsProvider;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariables;
+import org.mockito.InOrder;
 
 @EnabledIfEnvironmentVariables({
+    @EnabledIfEnvironmentVariable(named = OCI_GENAI_MODEL_REGION_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COMPARTMENT_ID_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COHERE_CHAT_MODEL_ALTERNATIVE_NAME_PROPERTY, matches = NON_EMPTY)
@@ -32,6 +40,7 @@ public class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .listeners(List.of(listener))
                 .build();
@@ -69,6 +78,12 @@ public class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected ChatRequestParameters createIntegrationSpecificParameters(final int maxOutputTokens) {
         return ChatRequestParameters.builder().maxOutputTokens(maxOutputTokens).build();
+    }
+
+    @Override
+    protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id) {
+        io.verify(handler, atLeastOnce()).onPartialResponse(anyString());
+        io.verify(handler).onCompleteToolCall(complete(0, id, "getWeather", "{\"city\":\"Munich\"}"));
     }
 
     @Disabled("Know issue: response_format is not supported with RAG")
@@ -116,6 +131,16 @@ public class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
         return false;
     }
 
+    @Override
+    protected boolean supportsPartialToolStreaming(StreamingChatModel model) {
+        return false;
+    }
+
+    @Override
+    protected boolean assertToolId(StreamingChatModel model) {
+        return false;
+    }
+
     protected boolean assertResponseId() {
         return false;
     }
@@ -123,5 +148,11 @@ public class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected boolean assertThreads() {
         return false;
+    }
+
+    @Override
+    @Disabled("Not supported by testing model")
+    protected void should_execute_multiple_tools_in_parallel_then_answer(StreamingChatModel model) {
+        super.should_execute_multiple_tools_in_parallel_then_answer(model);
     }
 }

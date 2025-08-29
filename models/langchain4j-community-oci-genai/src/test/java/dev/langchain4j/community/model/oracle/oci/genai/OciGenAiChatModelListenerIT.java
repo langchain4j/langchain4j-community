@@ -5,7 +5,9 @@ import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COMPARTMENT_ID_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_CHAT_MODEL_NAME;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_CHAT_MODEL_NAME_PROPERTY;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION;
 
+import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.AuthenticationDetailsProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelListenerIT;
@@ -38,6 +40,7 @@ public class OciGenAiChatModelListenerIT extends AbstractChatModelListenerIT {
                 .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.7)
@@ -57,6 +60,7 @@ public class OciGenAiChatModelListenerIT extends AbstractChatModelListenerIT {
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .listeners(List.of(listener))
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .build();
 
