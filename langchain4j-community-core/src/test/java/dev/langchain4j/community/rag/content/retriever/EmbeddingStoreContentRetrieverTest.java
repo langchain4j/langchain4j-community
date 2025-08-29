@@ -53,7 +53,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve() {
+    void should_retrieve_content_when_query_provided() {
 
         // given
         ContentRetriever contentRetriever = new EmbeddingStoreContentRetriever(EMBEDDING_STORE, EMBEDDING_MODEL);
@@ -74,7 +74,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_builder() {
+    void should_retrieve_content_when_using_builder() {
 
         // given
         ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
@@ -98,7 +98,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_with_custom_maxResults() {
+    void should_retrieve_content_when_custom_maxResults_configured() {
 
         // given
         ContentRetriever contentRetriever =
@@ -120,7 +120,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_with_custom_maxResults_builder() {
+    void should_retrieve_content_when_custom_maxResults_configured_via_builder() {
 
         // given
         ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
@@ -145,7 +145,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_with_custom_dynamicMaxResults_builder() {
+    void should_retrieve_content_when_custom_dynamicMaxResults_configured_via_builder() {
 
         // given
         ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
@@ -170,7 +170,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_with_custom_minScore_ctor() {
+    void should_retrieve_content_when_custom_minScore_configured_via_constructor() {
 
         // given
         ContentRetriever contentRetriever =
@@ -192,7 +192,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_with_custom_minScore_builder() {
+    void should_retrieve_content_when_custom_minScore_configured_via_builder() {
 
         // given
         ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
@@ -217,7 +217,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_with_custom_dynamicMinScore_builder() {
+    void should_retrieve_content_when_custom_dynamicMinScore_configured_via_builder() {
 
         // given
         ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
@@ -242,7 +242,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_with_custom_filter() {
+    void should_retrieve_content_when_custom_filter_configured() {
 
         // given
         Filter metadataFilter = metadataKey("key").isEqualTo("value");
@@ -270,7 +270,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_retrieve_with_custom_dynamicFilter() {
+    void should_retrieve_content_when_custom_dynamicFilter_configured() {
 
         // given
         Filter metadataFilter = metadataKey("key").isEqualTo("value");
@@ -298,7 +298,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_include_explicit_display_name_in_to_string() {
+    void should_include_explicit_display_name_when_toString_called() {
 
         // given
         double minScore = 0.7;
@@ -321,7 +321,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_include_implicit_display_name_in_to_string() {
+    void should_include_implicit_display_name_when_toString_called() {
 
         // given
         double minScore = 0.7;
@@ -344,7 +344,7 @@ class EmbeddingStoreContentRetrieverTest {
     // New tests
 
     @Test
-    void should_handle_null_embedding_model_in_constructor() {
+    void should_handle_null_embedding_model_when_constructor_used() {
         // given
         EmbeddingStore<TextSegment> embeddingStore = mock(EmbeddingStore.class);
 
@@ -358,7 +358,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_handle_null_values_in_builder() {
+    void should_handle_null_values_when_builder_used() {
         // given
         EmbeddingStore<TextSegment> embeddingStore = mock(EmbeddingStore.class);
         EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
@@ -379,7 +379,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_enrich_segments_with_embeddings_in_metadata() {
+    void should_enrich_segments_with_embeddings_when_metadata_available() {
         // given
         ContentRetriever contentRetriever = new EmbeddingStoreContentRetriever(EMBEDDING_STORE, EMBEDDING_MODEL);
 
@@ -403,7 +403,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_extract_embeddings_from_metadata() {
+    void should_extract_embeddings_when_from_metadata() {
         // given
         ContentRetriever contentRetriever = new EmbeddingStoreContentRetriever(EMBEDDING_STORE, EMBEDDING_MODEL);
 
@@ -424,7 +424,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_detect_embeddings_presence_in_metadata() {
+    void should_detect_embeddings_presence_when_in_metadata() {
         // given
         ContentRetriever contentRetriever = new EmbeddingStoreContentRetriever(EMBEDDING_STORE, EMBEDDING_MODEL);
 
@@ -440,7 +440,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_handle_segments_without_embeddings_in_metadata() {
+    void should_handle_segments_when_without_embeddings_in_metadata() {
         // given
         var plainSegment = TextSegment.from("plain content without embeddings");
 
@@ -453,7 +453,7 @@ class EmbeddingStoreContentRetrieverTest {
     }
 
     @Test
-    void should_store_embeddings_as_base64_strings_in_metadata() {
+    void should_store_embeddings_as_base64_strings_when_in_metadata() {
         // given
         ContentRetriever contentRetriever = new EmbeddingStoreContentRetriever(EMBEDDING_STORE, EMBEDDING_MODEL);
 

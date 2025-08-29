@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 class GraphDocumentTest {
 
     @Test
-    void test_equals_hash_code() {
+    void should_return_true_when_documents_are_equal_and_false_when_not_equal() {
 
         // given
         Document source = mock(Document.class);
@@ -38,7 +38,7 @@ class GraphDocumentTest {
     }
 
     @Test
-    void test_from_all_attributes() {
+    void should_create_graph_document_with_all_attributes_when_provided() {
 
         // given
         GraphNode node = mock(GraphNode.class);
@@ -57,7 +57,7 @@ class GraphDocumentTest {
     }
 
     @Test
-    void test_from_only_source() {
+    void should_create_graph_document_with_empty_collections_when_only_source_provided() {
 
         // given
         Document source = mock(Document.class);
@@ -72,7 +72,7 @@ class GraphDocumentTest {
     }
 
     @Test
-    void test_failed_on_empty_source() {
+    void should_throw_exception_when_source_is_null() {
 
         assertThatThrownBy(() -> new GraphDocument(Set.of(), Set.of(), null))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -80,7 +80,7 @@ class GraphDocumentTest {
     }
 
     @Test
-    void test_to_string() {
+    void should_return_string_representation_when_toString_called() {
 
         // given
         Document source = mock(Document.class);

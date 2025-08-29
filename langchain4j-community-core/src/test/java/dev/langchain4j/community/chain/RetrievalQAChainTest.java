@@ -63,7 +63,7 @@ public class RetrievalQAChainTest {
     }
 
     @Test
-    void should_inject_retrieved_segments() {
+    void should_inject_retrieved_segments_when_content_available() {
 
         // given
         when(contentRetriever.retrieve(any())).thenReturn(asList(Content.from("Segment 1"), Content.from("Segment 2")));
@@ -87,7 +87,7 @@ public class RetrievalQAChainTest {
     }
 
     @Test
-    void should_inject_retrieved_segments_using_custom_prompt_template() {
+    void should_inject_retrieved_segments_when_custom_prompt_template_used() {
 
         // given
         when(contentRetriever.retrieve(any())).thenReturn(asList(Content.from("Segment 1"), Content.from("Segment 2")));
@@ -151,7 +151,7 @@ public class RetrievalQAChainTest {
     }
 
     @Test
-    void should_inject_retrieved_segments_using_custom_prompt_template_and_metadata() {
+    void should_inject_retrieved_segments_when_custom_prompt_template_and_metadata_used() {
         final List<Content> list1 = List.of(
                 Content.from(TextSegment.from("Segment 1 with meta")),
                 Content.from(TextSegment.from("Segment 2  with meta")));
@@ -198,7 +198,7 @@ public class RetrievalQAChainTest {
     }
 
     @Test
-    void should_throws_exception_if_neither_retriever_nor_retrieval_augmentor_is_defined() {
+    void should_throw_exception_when_neither_retriever_nor_retrieval_augmentor_defined() {
         try {
             RetrievalQAChain.builder().chatModel(chatModel).build();
             fail("Should fail due to missing builder configurations");
@@ -208,7 +208,7 @@ public class RetrievalQAChainTest {
     }
 
     @Test
-    void should_throws_exception_if_retriever_is_null() {
+    void should_throw_exception_when_retriever_is_null() {
         try {
             RetrievalQAChain.builder()
                     .chatModel(chatModel)

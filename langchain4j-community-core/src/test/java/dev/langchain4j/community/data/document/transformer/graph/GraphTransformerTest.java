@@ -25,7 +25,7 @@ class GraphTransformerTest {
     }
 
     @Test
-    void should_return_empty_when_null() {
+    void should_return_empty_list_when_input_is_null() {
         GraphTransformer graphTransformer = new MockGraphTransformer();
 
         // when
@@ -36,7 +36,7 @@ class GraphTransformerTest {
     }
 
     @Test
-    void should_return_empty_when_empty() {
+    void should_return_empty_list_when_input_is_empty() {
         GraphTransformer graphTransformer = new MockGraphTransformer();
 
         // when
@@ -47,7 +47,7 @@ class GraphTransformerTest {
     }
 
     @Test
-    void should_return_transformed_documents() {
+    void should_return_transformed_documents_when_input_provided() {
         GraphTransformer graphTransformer = new MockGraphTransformer();
 
         // given

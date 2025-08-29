@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>langchain4j-community-memfile</artifactId>
-    <name>LangChain4j :: Community :: memfile</name>
+    <name>LangChain4j :: Community :: Integration :: MemFile</name>
 
     <dependencies>
         <dependency>

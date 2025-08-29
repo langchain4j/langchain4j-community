@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 class GraphEdgeTest {
 
     @Test
-    void test_constructor_and_getters() {
+    void should_initialize_edge_with_all_attributes_when_constructed() {
         // given
         GraphNode source = mock(GraphNode.class);
         GraphNode target = mock(GraphNode.class);
@@ -27,7 +27,7 @@ class GraphEdgeTest {
     }
 
     @Test
-    void test_copyIfNotNull_behavior_in_constructor() {
+    void should_create_empty_properties_map_when_properties_are_null() {
         // given
         GraphNode source = mock(GraphNode.class);
         GraphNode target = mock(GraphNode.class);
@@ -41,7 +41,7 @@ class GraphEdgeTest {
     }
 
     @Test
-    void test_from_with_properties() {
+    void should_create_edge_with_properties_when_using_from_method() {
         // given
         GraphNode source = mock(GraphNode.class);
         GraphNode target = mock(GraphNode.class);
@@ -59,7 +59,7 @@ class GraphEdgeTest {
     }
 
     @Test
-    void test_from_without_properties() {
+    void should_create_edge_with_empty_properties_when_using_from_method_without_properties() {
         // given
         GraphNode source = mock(GraphNode.class);
         GraphNode target = mock(GraphNode.class);
@@ -76,7 +76,7 @@ class GraphEdgeTest {
     }
 
     @Test
-    void test_equals_and_hashcode() {
+    void should_return_true_when_edges_are_equal_and_false_when_not_equal() {
         // given
         GraphNode source = mock(GraphNode.class);
         GraphNode target = mock(GraphNode.class);
@@ -94,7 +94,7 @@ class GraphEdgeTest {
     }
 
     @Test
-    void test_to_string_contains_all_fields() {
+    void should_return_string_representation_containing_all_fields_when_toString_called() {
         // given
         GraphNode source = mock(GraphNode.class);
         GraphNode target = mock(GraphNode.class);
