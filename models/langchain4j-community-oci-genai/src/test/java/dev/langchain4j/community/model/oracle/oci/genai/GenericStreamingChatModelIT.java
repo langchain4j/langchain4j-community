@@ -165,6 +165,11 @@ public class GenericStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @Override
+    protected boolean assertTokenUsage() {
+        return false;
+    }
+
+    @Override
     @Disabled("Enable when token usage is supported by SDK")
     protected void should_respect_maxOutputTokens_in_default_model_parameters() {
         super.should_respect_maxOutputTokens_in_default_model_parameters();

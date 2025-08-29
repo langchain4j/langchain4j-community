@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> implements ChatModel {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OciGenAiChatModel.class);
-    private static final TokenUsage UNKNOWN_TOKEN_USAGE = new TokenUsage(1, 1, 2);
+    private static final TokenUsage UNKNOWN_TOKEN_USAGE = new TokenUsage();
     private final Builder builder;
 
     OciGenAiChatModel(Builder builder) {
