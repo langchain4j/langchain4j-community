@@ -7,6 +7,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
 import javax.sql.DataSource;
+
+import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -21,13 +23,12 @@ public class CommonTestOperations {
 
     private static final String TABLE_NAME =
             "langchain4j_oceanbase_test_" + UUID.randomUUID().toString().replace("-", "");
-    private static final int VECTOR_DIM = 3;
 
     // OceanBase container configuration
     private static final int OCEANBASE_PORT = 2881; // Default OceanBase port
     private static GenericContainer<?> oceanBaseContainer;
     private static DataSource dataSource;
-    private static EmbeddingModel embeddingModel;
+    private static EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
     static {
         startOceanBaseContainer();
@@ -85,9 +86,9 @@ public class CommonTestOperations {
     public static OceanBaseEmbeddingStore newEmbeddingStore() {
         return OceanBaseEmbeddingStore.builder(getDataSource())
                 .embeddingTable(EmbeddingTable.builder(TABLE_NAME)
-                        .vectorDimension(VECTOR_DIM)
+                        .vectorDimension(embeddingModel.dimension())
                         .createOption(CreateOption.CREATE_OR_REPLACE)
-                        .distanceMetric("L2")
+                        .distanceMetric("cosine")
                         .build())
                 .build();
     }

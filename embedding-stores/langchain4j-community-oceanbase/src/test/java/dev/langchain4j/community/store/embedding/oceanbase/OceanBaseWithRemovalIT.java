@@ -4,19 +4,26 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
-import java.sql.SQLException;
+import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+
+import java.sql.SQLException;
 
 /**
- * Integration tests for {@link OceanBaseEmbeddingStore}.
+ * Tests for {@link OceanBaseEmbeddingStore} with removal.
  */
-public class OceanBaseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
+public class OceanBaseWithRemovalIT extends EmbeddingStoreWithRemovalIT {
 
-    private OceanBaseEmbeddingStore embeddingStore = CommonTestOperations.newEmbeddingStore();
+    private OceanBaseEmbeddingStore embeddingStore;
 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
+
+    @BeforeEach
+    void setUp() {
+        embeddingStore = CommonTestOperations.newEmbeddingStore();
+    }
 
     @AfterAll
     static void cleanUp() throws SQLException {
@@ -26,12 +33,12 @@ public class OceanBaseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
             CommonTestOperations.stopContainer();
         }
     }
-    
+
     @AfterEach
     void tearDown() {
-        clearStore();
+        embeddingStore.removeAll();
     }
-    
+
     @Override
     protected EmbeddingStore<TextSegment> embeddingStore() {
         return embeddingStore;
@@ -40,15 +47,5 @@ public class OceanBaseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     @Override
     protected EmbeddingModel embeddingModel() {
         return embeddingModel;
-    }
-
-    @Override
-    protected void clearStore() {
-        embeddingStore.removeAll();
-    }
-    
-    @Override
-    protected boolean supportsContains() {
-        return true;
     }
 }

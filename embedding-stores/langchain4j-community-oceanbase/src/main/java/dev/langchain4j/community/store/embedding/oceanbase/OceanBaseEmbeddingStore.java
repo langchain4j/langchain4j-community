@@ -1,8 +1,8 @@
 package dev.langchain4j.community.store.embedding.oceanbase;
 
-import static dev.langchain4j.community.store.embedding.oceanbase.ValidationUtils.ensureIndexNotNull;
-import static dev.langchain4j.community.store.embedding.oceanbase.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -88,7 +88,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
 
     @Override
     public void add(String id, Embedding embedding) {
-        ensureNotEmpty(id, "id");
+        ensureNotBlank(id, "id");
         ensureNotNull(embedding, "embedding");
 
         String sql = "INSERT INTO " + table.name() + " (" + table.idColumn()
@@ -232,7 +232,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
 
     @Override
     public void remove(String id) {
-        ensureNotNull(id, "id");
+        ensureNotBlank(id, "id");
 
         String sql = "DELETE FROM " + table.name() + " WHERE " + table.idColumn() + " = ?";
 
@@ -247,11 +247,7 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
 
     @Override
     public void removeAll(Collection<String> ids) {
-        ensureNotNull(ids, "ids");
-
-        if (ids.isEmpty()) {
-            return;
-        }
+        ensureNotEmpty(ids, "ids");
 
         // Use placeholders for each ID in the IN clause
         String placeholders = String.join(", ", Collections.nCopies(ids.size(), "?"));
@@ -347,6 +343,27 @@ public final class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to convert metadata to JSON", e);
         }
+    }
+
+    /**
+     * Returns a null-safe item from a List.
+     * @param list List to get an item from.
+     * @param index Index of the item to get.
+     * @param name Name of the parameter, for error messages.
+     * @param <T> Type of the list items.
+     * @return The item at the given index.
+     * @throws IllegalArgumentException If the item is null.
+     */
+    public static <T> T ensureIndexNotNull(List<T> list, int index, String name) {
+        if (index < 0 || index >= list.size()) {
+            throw new IllegalArgumentException(
+                    String.format("Index %d is out of bounds for %s list of size %d", index, name, list.size()));
+        }
+        T item = list.get(index);
+        if (item == null) {
+            throw new IllegalArgumentException(String.format("%s[%d] is null", name, index));
+        }
+        return item;
     }
 
     /**
