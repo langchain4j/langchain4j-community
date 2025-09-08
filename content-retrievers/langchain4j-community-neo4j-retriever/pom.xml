@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.2.0-beta8-SNAPSHOT</version>
+        <version>1.5.0-beta11-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -13,8 +13,8 @@
     <name>LangChain4j :: Community :: Content Retriever :: Neo4j</name>
 
     <properties>
-        <neo4j.version>5.28.5</neo4j.version>
-        <neo4j.cypher.dsl.version>2024.7.0</neo4j.cypher.dsl.version>
+        <neo4j.version>5.28.9</neo4j.version>
+        <neo4j.cypher.dsl.version>2024.7.3</neo4j.cypher.dsl.version>
     </properties>
 
     <dependencies>

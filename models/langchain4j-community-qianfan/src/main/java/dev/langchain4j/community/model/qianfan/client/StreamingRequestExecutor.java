@@ -41,43 +41,34 @@ public class StreamingRequestExecutor<Request, Response, ResponseContent> {
         this.logStreamingResponses = logStreamingResponses;
     }
 
-    StreamingResponseHandling onPartialResponse(final Consumer<ResponseContent> partialResponseHandler) {
+    StreamingResponseHandling onPartialResponse(Consumer<ResponseContent> partialResponseHandler) {
         return new StreamingResponseHandling() {
-            public StreamingCompletionHandling onComplete(final Runnable runnable) {
+            public StreamingCompletionHandling onComplete(Runnable runnable) {
                 return new StreamingCompletionHandling() {
-                    public ErrorHandling onError(final Consumer<Throwable> errorHandler) {
-                        return () ->
-                                StreamingRequestExecutor.this.stream(partialResponseHandler, runnable, errorHandler);
+                    public ErrorHandling onError(Consumer<Throwable> errorHandler) {
+                        return () -> stream(partialResponseHandler, runnable, errorHandler);
                     }
 
                     public ErrorHandling ignoreErrors() {
-                        return () -> StreamingRequestExecutor.this.stream(partialResponseHandler, runnable, e -> {});
+                        return () -> stream(partialResponseHandler, runnable, e -> {});
                     }
                 };
             }
 
-            public ErrorHandling onError(final Consumer<Throwable> errorHandler) {
-                return new ErrorHandling() {
-                    public void execute() {
-                        StreamingRequestExecutor.this.stream(partialResponseHandler, () -> {}, errorHandler);
-                    }
-                };
+            public ErrorHandling onError(Consumer<Throwable> errorHandler) {
+                return () -> stream(partialResponseHandler, () -> {}, errorHandler);
             }
 
             public ErrorHandling ignoreErrors() {
-                return new ErrorHandling() {
-                    public void execute() {
-                        StreamingRequestExecutor.this.stream(partialResponseHandler, () -> {}, (e) -> {});
-                    }
-                };
+                return () -> stream(partialResponseHandler, () -> {}, (e) -> {});
             }
         };
     }
 
     private void stream(
-            final Consumer<ResponseContent> partialResponseHandler,
-            final Runnable streamingCompletionCallback,
-            final Consumer<Throwable> errorHandler) {
+            Consumer<ResponseContent> partialResponseHandler,
+            Runnable streamingCompletionCallback,
+            Consumer<Throwable> errorHandler) {
         Request request = this.requestWithStreamSupplier.get();
         String requestJson = toJson(request);
         okhttp3.Request okHttpRequest = (new okhttp3.Request.Builder())
@@ -86,23 +77,20 @@ public class StreamingRequestExecutor<Request, Response, ResponseContent> {
                 .build();
         EventSourceListener eventSourceListener = new EventSourceListener() {
             public void onOpen(EventSource eventSource, okhttp3.Response response) {
-                if (StreamingRequestExecutor.this.logStreamingResponses) {
+                if (logStreamingResponses) {
                     ResponseLoggingInterceptor.log(response);
                 }
             }
 
             public void onEvent(EventSource eventSource, String id, String type, String data) {
-                if (StreamingRequestExecutor.this.logStreamingResponses) {
-                    StreamingRequestExecutor.log.debug("onEvent() {}", data);
+                if (logStreamingResponses) {
+                    log.debug("onEvent() {}", data);
                 }
 
-                if ("[DONE]".equals(data)) {
-                    streamingCompletionCallback.run();
-                } else {
+                if (!"[DONE]".equals(data)) {
                     try {
-                        Response response = fromJson(data, StreamingRequestExecutor.this.responseClass);
-                        ResponseContent responseContent =
-                                StreamingRequestExecutor.this.streamEventContentExtractor.apply(response);
+                        Response response = fromJson(data, responseClass);
+                        ResponseContent responseContent = streamEventContentExtractor.apply(response);
                         if (responseContent != null) {
                             partialResponseHandler.accept(responseContent);
                         }
@@ -113,18 +101,17 @@ public class StreamingRequestExecutor<Request, Response, ResponseContent> {
             }
 
             public void onClosed(EventSource eventSource) {
-                if (StreamingRequestExecutor.this.logStreamingResponses) {
-                    StreamingRequestExecutor.log.debug("onClosed()");
+                if (logStreamingResponses) {
+                    log.debug("onClosed()");
                 }
                 streamingCompletionCallback.run();
             }
 
             public void onFailure(EventSource eventSource, Throwable t, okhttp3.Response response) {
-                if (StreamingRequestExecutor.this.logStreamingResponses) {
+                if (logStreamingResponses) {
 
-                    StreamingRequestExecutor.log.debug(
-                            "reqeust url:", response.request().url());
-                    StreamingRequestExecutor.log.debug("onFailure()", t);
+                    log.debug("reqeust url:", response.request().url());
+                    log.debug("onFailure()", t);
                     ResponseLoggingInterceptor.log(response);
                 }
 

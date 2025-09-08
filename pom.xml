@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.2.0-beta8-SNAPSHOT</version>
+        <version>1.5.0-beta11-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -43,6 +43,7 @@
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
         <module>embedding-stores/langchain4j-community-duckdb</module>
+        <module>embedding-stores/langchain4j-community-memfile</module>
         <module>embedding-stores/langchain4j-community-redis</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
         <module>embedding-stores/langchain4j-community-alloydb-pg</module>
@@ -76,10 +77,10 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.2.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.2.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.2.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.2.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.5.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.5.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.5.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.5.0-SNAPSHOT</langchain4j.open-ai.version>
     </properties>
 
     <repositories>
@@ -256,7 +257,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.2</version>
+                <version>3.11.3</version>
                 <reportSets>
                     <reportSet>
                         <id>aggregate</id>
@@ -285,7 +286,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>6.11.0</version>
+                        <version>6.17.0</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
@@ -297,7 +298,7 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>3.10.0</version>
+                                <version>3.16.0</version>
                             </dependency>
                         </dependencies>
                     </plugin>

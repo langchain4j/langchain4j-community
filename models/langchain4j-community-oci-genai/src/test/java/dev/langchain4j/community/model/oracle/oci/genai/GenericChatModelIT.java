@@ -8,7 +8,10 @@ import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_CHAT_MODEL_NAME_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_VISION_MODEL_NAME;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_VISION_MODEL_NAME_PROPERTY;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION;
+import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION_PROPERTY;
 
+import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.AuthenticationDetailsProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelIT;
@@ -19,6 +22,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariables;
 
 @EnabledIfEnvironmentVariables({
+    @EnabledIfEnvironmentVariable(named = OCI_GENAI_MODEL_REGION_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COMPARTMENT_ID_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_GENERIC_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY),
@@ -39,6 +43,7 @@ public class GenericChatModelIT extends AbstractChatModelIT {
                 .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.7)
@@ -52,6 +57,7 @@ public class GenericChatModelIT extends AbstractChatModelIT {
                 .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .defaultRequestParameters(parameters)
                 .build();
@@ -62,6 +68,7 @@ public class GenericChatModelIT extends AbstractChatModelIT {
                 .modelName(OCI_GENAI_GENERIC_VISION_MODEL_NAME)
                 .compartmentId(OCI_GENAI_COMPARTMENT_ID)
                 .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
                 .maxTokens(600)
                 .temperature(0.7)
@@ -76,6 +83,11 @@ public class GenericChatModelIT extends AbstractChatModelIT {
 
     @Override
     protected boolean supportsJsonResponseFormatWithSchema() {
+        return false;
+    }
+
+    @Override
+    protected boolean supportsJsonResponseFormatWithRawSchema() {
         return false;
     }
 
@@ -118,34 +130,14 @@ public class GenericChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
-    @Disabled("Enable when token usage is supported by SDK")
-    protected void should_respect_maxOutputTokens_in_default_model_parameters() {
-        super.should_respect_maxOutputTokens_in_default_model_parameters();
-    }
-
-    @Override
-    @Disabled("Enable when token usage is supported by SDK")
-    protected void
-            should_respect_common_parameters_wrapped_in_integration_specific_class_in_default_model_parameters() {
-        super.should_respect_common_parameters_wrapped_in_integration_specific_class_in_default_model_parameters();
-    }
-
-    @Override
-    @Disabled("Enable when token usage is supported by SDK")
-    protected void should_respect_maxOutputTokens_in_chat_request(ChatModel model) {
-        super.should_respect_maxOutputTokens_in_chat_request(model);
-    }
-
-    @Override
-    @Disabled("Enable when token usage is supported by SDK")
-    protected void should_respect_common_parameters_wrapped_in_integration_specific_class_in_chat_request(
-            ChatModel model) {
-        super.should_respect_common_parameters_wrapped_in_integration_specific_class_in_chat_request(model);
-    }
-
-    @Override
     @Disabled("Model specific behaviour")
     protected void should_fail_if_images_as_public_URLs_are_not_supported(ChatModel model) {
         super.should_fail_if_images_as_public_URLs_are_not_supported(model);
+    }
+
+    @Override
+    @Disabled("Not supported by testing model")
+    protected void should_execute_multiple_tools_in_parallel_then_answer(ChatModel model) {
+        super.should_execute_multiple_tools_in_parallel_then_answer(model);
     }
 }

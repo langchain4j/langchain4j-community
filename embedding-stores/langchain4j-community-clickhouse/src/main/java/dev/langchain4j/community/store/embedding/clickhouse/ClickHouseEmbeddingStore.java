@@ -107,6 +107,7 @@ public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, Au
         this.client = Optional.ofNullable(client)
                 .orElse(new Client.Builder()
                         .addEndpoint(settings.getUrl())
+                        .setDefaultDatabase(settings.getDatabase())
                         .setUsername(settings.getUsername())
                         .setPassword(settings.getPassword())
                         .serverSetting("allow_experimental_vector_similarity_index", "1")
@@ -263,6 +264,14 @@ public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, Au
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public ClickHouseSettings getSettings() {
+        return settings;
+    }
+
+    public Client getClient() {
+        return client;
     }
 
     private void createDatabase() {

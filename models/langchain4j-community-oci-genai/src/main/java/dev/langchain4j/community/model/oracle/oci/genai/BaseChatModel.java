@@ -13,6 +13,7 @@ import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -82,7 +83,9 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     }
 
     static <P, R> void setIfNotNull(P value, Function<P, R> mapper, Consumer<R> consumer) {
-        if ((value instanceof Collection<?> col && col.isEmpty()) || value == null) {
+        if (value == null
+                || (value instanceof Collection<?> col && col.isEmpty())
+                || (value instanceof Map<?, ?> map && map.isEmpty())) {
             return;
         }
         var mapped = mapper.apply(value);

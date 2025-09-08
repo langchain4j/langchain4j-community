@@ -22,17 +22,16 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 
 public class QianfanClient {
 
+    public static final String GRANT_TYPE = "client_credentials";
     private static final Logger log = LoggerFactory.getLogger(QianfanClient.class);
     private final String baseUrl;
-    private String token;
     private final OkHttpClient okHttpClient;
     private final QianfanApi qianfanApi;
     private final String apiKey;
     private final String secretKey;
 
     private final boolean logStreamingResponses;
-
-    public static final String GRANT_TYPE = "client_credentials";
+    private String token;
 
     public QianfanClient(String apiKey, String secretKey) {
         this(builder().apiKey(apiKey).secretKey(secretKey));
@@ -77,6 +76,10 @@ public class QianfanClient {
         }
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public void shutdown() {
         this.okHttpClient.dispatcher().executorService().shutdown();
         this.okHttpClient.connectionPool().evictAll();
@@ -88,10 +91,6 @@ public class QianfanClient {
                 log.error("Failed to close cache", var3);
             }
         }
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public SyncOrAsyncOrStreaming<ChatCompletionResponse> chatCompletion(

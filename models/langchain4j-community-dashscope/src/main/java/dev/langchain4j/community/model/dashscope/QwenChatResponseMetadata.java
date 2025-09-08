@@ -3,6 +3,7 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.internal.Utils.quoted;
 
 import dev.langchain4j.Experimental;
+import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +13,10 @@ import java.util.Objects;
 @Experimental
 public class QwenChatResponseMetadata extends ChatResponseMetadata {
     private final SearchInfo searchInfo;
+    /**
+     * @deprecated Please use {@link AiMessage#thinking} instead.
+     */
+    @Deprecated(since = "1.2.0", forRemoval = true)
     private final String reasoningContent;
 
     protected QwenChatResponseMetadata(Builder builder) {
@@ -24,6 +29,10 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
         return searchInfo;
     }
 
+    /**
+     * @deprecated Please use {@link AiMessage#thinking()} instead.
+     */
+    @Deprecated(since = "1.2.0", forRemoval = true)
     public String reasoningContent() {
         return reasoningContent;
     }
@@ -93,6 +102,10 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
             return this;
         }
 
+        /**
+         * @deprecated Please use {@link AiMessage#thinking()} instead.
+         */
+        @Deprecated(since = "1.2.0", forRemoval = true)
         public Builder reasoningContent(String reasoningContent) {
             this.reasoningContent = reasoningContent;
             return this;
@@ -133,12 +146,12 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
      * Results from online searches.
      *
      * @param siteName the name of the website from which the search results came
-     * @param icon the URL of the icon from the source website, or an empty string if there is
-     * no icon
-     * @param index the sequence number of the search result, indicating the index of the
-     * search result in search_results
-     * @param title the title of the search result
-     * @param url the URL of the search result
+     * @param icon     the URL of the icon from the source website, or an empty string if there is
+     *                 no icon
+     * @param index    the sequence number of the search result, indicating the index of the
+     *                 search result in search_results
+     * @param title    the title of the search result
+     * @param url      the URL of the search result
      */
     public record SearchResult(String siteName, String icon, Integer index, String title, String url) {
         public static Builder builder() {

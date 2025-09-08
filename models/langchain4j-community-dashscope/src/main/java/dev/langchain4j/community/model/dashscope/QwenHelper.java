@@ -61,6 +61,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -236,6 +237,18 @@ class QwenHelper {
                 .isPresent();
     }
 
+    static boolean hasReasoningContent(GenerationResult result) {
+        return Optional.of(result)
+                .map(GenerationResult::getOutput)
+                .map(GenerationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(Choice::getMessage)
+                .map(Message::getReasoningContent)
+                .filter(Utils::isNotNullOrEmpty)
+                .isPresent();
+    }
+
     static String answerFrom(GenerationResult result) {
         return Optional.of(result)
                 .map(GenerationResult::getOutput)
@@ -350,7 +363,7 @@ class QwenHelper {
 
     static boolean isMultimodalModelName(String modelName) {
         // rough judgment
-        return modelName.contains("-vl-") || modelName.contains("-audio-");
+        return modelName.contains("-vl-") || modelName.contains("-audio-") || modelName.contains("-omni-");
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
@@ -423,14 +436,16 @@ class QwenHelper {
     }
 
     static AiMessage aiMessageFrom(GenerationResult result) {
+        String text = answerFrom(result);
+        String reasoningContentFrom = reasoningContentFrom(result);
+        AiMessage.Builder aiMessageBuilder = AiMessage.builder()
+                .text(isNullOrBlank(text) ? null : text)
+                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom);
         if (isFunctionToolCalls(result)) {
-            String text = answerFrom(result);
-            return isNullOrBlank(text)
-                    ? new AiMessage(toolExecutionRequestsFrom(result))
-                    : new AiMessage(text, toolExecutionRequestsFrom(result));
-        } else {
-            return new AiMessage(answerFrom(result));
+            aiMessageBuilder = aiMessageBuilder.toolExecutionRequests(toolExecutionRequestsFrom(result));
         }
+
+        return aiMessageBuilder.build();
     }
 
     private static List<ToolExecutionRequest> toolExecutionRequestsFrom(GenerationResult result) {
@@ -442,6 +457,22 @@ class QwenHelper {
                         .name(toolCall.getFunction().getName())
                         .arguments(toolCall.getFunction().getArguments())
                         .build())
+                .collect(toList());
+    }
+
+    static List<ToolCallFunction> toolCallFunctionsFrom(GenerationResult result) {
+        List<ToolCallBase> toolCalls = Optional.of(result)
+                .map(GenerationResult::getOutput)
+                .map(GenerationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(Choice::getMessage)
+                .map(Message::getToolCalls)
+                .orElse(new ArrayList<>());
+
+        return toolCalls.stream()
+                .filter(ToolCallFunction.class::isInstance)
+                .map(ToolCallFunction.class::cast)
                 .collect(toList());
     }
 
@@ -488,6 +519,7 @@ class QwenHelper {
                         .modelName(modelName)
                         .tokenUsage(tokenUsageFrom(result))
                         .finishReason(finishReasonFrom(result))
+                        // deprecated
                         .reasoningContent(reasoningContentFrom(result))
                         .build())
                 .build();

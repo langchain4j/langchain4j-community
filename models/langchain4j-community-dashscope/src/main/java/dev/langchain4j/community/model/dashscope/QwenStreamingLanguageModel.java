@@ -109,9 +109,9 @@ public class QwenStreamingLanguageModel implements StreamingLanguageModel {
             generation.streamCall(builder.build(), new ResultCallback<>() {
                 @Override
                 public void onEvent(GenerationResult result) {
-                    String delta = responseBuilder.append(result);
-                    if (Utils.isNotNullOrBlank(delta)) {
-                        handler.onNext(delta);
+                    QwenPartialResponse partialResponse = responseBuilder.append(result);
+                    if (Utils.isNotNullOrBlank(partialResponse.delta())) {
+                        handler.onNext(partialResponse.delta());
                     }
                 }
 

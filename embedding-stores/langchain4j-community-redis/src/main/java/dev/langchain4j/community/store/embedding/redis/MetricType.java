@@ -3,7 +3,7 @@ package dev.langchain4j.community.store.embedding.redis;
 /**
  * Similarity metric used by Redis
  */
-enum MetricType {
+public enum MetricType {
 
     /**
      * cosine similarity

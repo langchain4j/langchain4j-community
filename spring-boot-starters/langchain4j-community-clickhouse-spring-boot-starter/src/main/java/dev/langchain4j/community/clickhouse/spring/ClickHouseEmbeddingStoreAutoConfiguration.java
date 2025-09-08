@@ -7,12 +7,12 @@ import dev.langchain4j.community.store.embedding.clickhouse.ClickHouseEmbeddingS
 import dev.langchain4j.community.store.embedding.clickhouse.ClickHouseSettings;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.lang.Nullable;
 
 @AutoConfiguration
 @EnableConfigurationProperties(ClickHouseEmbeddingStoreProperties.class)
@@ -23,11 +23,10 @@ public class ClickHouseEmbeddingStoreAutoConfiguration {
     @ConditionalOnMissingBean
     public ClickHouseEmbeddingStore clickHouseEmbeddingStore(
             ClickHouseEmbeddingStoreProperties properties,
-            @Nullable Client client,
-            @Nullable EmbeddingModel embeddingModel) {
-
+            ObjectProvider<Client> clientProvider,
+            ObjectProvider<EmbeddingModel> embeddingModelProvider) {
         return ClickHouseEmbeddingStore.builder()
-                .client(client)
+                .client(clientProvider.getIfAvailable())
                 .settings(ClickHouseSettings.builder()
                         .url(properties.getUrl())
                         .username(properties.getUsername())
@@ -37,7 +36,7 @@ public class ClickHouseEmbeddingStoreAutoConfiguration {
                         .columnMap(properties.getColumnMap())
                         .metadataTypeMap(properties.getMetadataTypeMap())
                         .timeout(properties.getTimeout())
-                        .dimension(Optional.ofNullable(embeddingModel)
+                        .dimension(Optional.ofNullable(embeddingModelProvider.getIfAvailable())
                                 .map(EmbeddingModel::dimension)
                                 .orElse(properties.getDimension()))
                         .build())

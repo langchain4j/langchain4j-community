@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.2.0-beta8-SNAPSHOT</version>
+        <version>1.5.0-beta11-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-bom</artifactId>
@@ -70,6 +70,12 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-duckdb</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-memfile</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -149,6 +155,7 @@
                 <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-neo4j-spring-boot-starter</artifactId>
@@ -187,5 +194,36 @@
 
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <configuration>
+                    <flattenMode>bom</flattenMode>
+                    <pomElements>
+                        <properties>remove</properties>
+                        <distributionManagement>remove</distributionManagement>
+                    </pomElements>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                        <phase>process-resources</phase>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
-public class ParentChildEmbeddingStoreIngestorTest {
+class ParentChildEmbeddingStoreIngestorTest {
 
     @Test
-    void should_extract_text_then_split_into_segments_then_embed_them_and_store_in_embedding_store() {
+    void should_extract_text_split_into_segments_embed_them_and_store_in_embedding_store() {
 
         Document firstDocument = Document.from("First sentence.");
         Document secondDocument = Document.from("Second sentence. Third sentence.");
@@ -217,7 +217,7 @@ public class ParentChildEmbeddingStoreIngestorTest {
     }
 
     @Test
-    void should_not_split_when_no_splitter_is_specified() {
+    void should_not_split_when_no_splitter_specified() {
 
         // given
         String text = "Some text";

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 class GraphNodeTest {
 
     @Test
-    void test_constructor_and_getters() {
+    void should_initialize_node_with_all_attributes_when_constructed() {
         // given
         String id = "node1";
         String type = "Person";
@@ -24,7 +24,7 @@ class GraphNodeTest {
     }
 
     @Test
-    void test_constructor_with_null_type_and_properties() {
+    void should_use_default_values_when_type_and_properties_are_null() {
         // given
         String id = "node2";
 
@@ -38,7 +38,7 @@ class GraphNodeTest {
     }
 
     @Test
-    void test_static_factory_method_with_all_fields() {
+    void should_create_node_with_all_fields_when_using_from_method() {
         // given
         String id = "node3";
         String type = "City";
@@ -54,7 +54,7 @@ class GraphNodeTest {
     }
 
     @Test
-    void test_static_factory_method_with_only_id() {
+    void should_create_node_with_default_type_and_empty_properties_when_using_from_method_with_only_id() {
         // given
         String id = "node4";
 
@@ -68,7 +68,7 @@ class GraphNodeTest {
     }
 
     @Test
-    void test_equals_and_hashcode() {
+    void should_return_true_when_nodes_are_equal_and_false_when_not_equal() {
         // given
         Map<String, String> props = Map.of("k", "v");
 
@@ -88,7 +88,7 @@ class GraphNodeTest {
     }
 
     @Test
-    void test_to_string_contains_all_fields() {
+    void should_return_string_representation_containing_all_fields_when_toString_called() {
         // given
         GraphNode node = new GraphNode("id123", "Label", Map.of("x", "y"));
 
