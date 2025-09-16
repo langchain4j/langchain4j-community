@@ -16,6 +16,7 @@ import com.oracle.bmc.generativeaiinference.model.ToolCall;
 import com.oracle.bmc.generativeaiinference.model.ToolChoice;
 import com.oracle.bmc.generativeaiinference.model.ToolChoiceAuto;
 import com.oracle.bmc.generativeaiinference.model.ToolChoiceFunction;
+import com.oracle.bmc.generativeaiinference.model.ToolChoiceNone;
 import com.oracle.bmc.generativeaiinference.model.ToolChoiceRequired;
 import com.oracle.bmc.generativeaiinference.model.ToolDefinition;
 import com.oracle.bmc.generativeaiinference.model.ToolMessage;
@@ -139,6 +140,7 @@ abstract class BaseGenericChatModel<T extends BaseGenericChatModel<T>> extends B
     private ToolChoice map(
             dev.langchain4j.model.chat.request.ToolChoice choice, List<ToolSpecification> toolSpecifications) {
         return switch (choice) {
+            case NONE -> ToolChoiceNone.builder().build();
             case AUTO -> ToolChoiceAuto.builder().build();
             case REQUIRED -> {
                 if (toolSpecifications.size() == 1) {
