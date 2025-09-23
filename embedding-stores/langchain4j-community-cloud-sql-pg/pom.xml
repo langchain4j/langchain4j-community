@@ -34,7 +34,7 @@
         <guava.version>33.4.8-jre</guava.version>
         <google.http.client.version>1.47.1</google.http.client.version>
         <opencensus.version>0.31.1</opencensus.version>
-        <truth.version>1.4.4</truth.version>
+        <truth.version>1.4.5</truth.version>
     </properties>
 
     <dependencies>
