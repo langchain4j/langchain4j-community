@@ -24,7 +24,7 @@
 
     <properties>
         <pgvector-java.version>0.1.6</pgvector-java.version>
-        <postgres.version>42.7.7</postgres.version>
+        <postgres.version>42.7.8</postgres.version>
         <pg-socket.version>1.25.3</pg-socket.version>
         <jdbc-socket.version>1.25.3</jdbc-socket.version>
         <hikaricp.version>6.3.3</hikaricp.version>
