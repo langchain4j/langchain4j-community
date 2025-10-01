@@ -91,6 +91,68 @@ public class OciGenAiChatModelIT {
     }
 
     @Test
+    void magicalNumber() {
+        try (var chatModel = OciGenAiChatModel.builder()
+                .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
+                .compartmentId(OCI_GENAI_COMPARTMENT_ID)
+                .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
+                .maxTokens(1800)
+                .temperature(0.2)
+                .topP(0.75)
+                .seed(TestEnvProps.SEED)
+                .build()) {
+
+            var mathService = new MathService();
+
+            Assistant assistant = AiServices.builder(Assistant.class)
+                    .chatModel(chatModel)
+                    .tools(mathService)
+                    .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
+                    .build();
+
+            assertThat(
+                    assistant.chat("Extract the magical number from 556 and 778."),
+                    either(containsString("58"))
+                            .or(containsStringIgnoringCase("fifty eight"))
+                            .or(containsStringIgnoringCase("fifty-eight")));
+
+            assertThat(mathService.results, hasItem(58.0));
+        }
+    }
+
+    @Test
+    void getNumberOfTheDay() {
+        try (var chatModel = OciGenAiChatModel.builder()
+                .modelName(OCI_GENAI_GENERIC_CHAT_MODEL_NAME)
+                .compartmentId(OCI_GENAI_COMPARTMENT_ID)
+                .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
+                .maxTokens(1800)
+                .temperature(0.2)
+                .topP(0.75)
+                .seed(TestEnvProps.SEED)
+                .build()) {
+
+            var mathService = new MathService();
+
+            Assistant assistant = AiServices.builder(Assistant.class)
+                    .chatModel(chatModel)
+                    .tools(mathService)
+                    .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
+                    .build();
+
+            assertThat(
+                    assistant.chat("Get the lucky number of the day."),
+                    either(containsString("21"))
+                            .or(containsStringIgnoringCase("twenty one"))
+                            .or(containsStringIgnoringCase("twenty-one")));
+
+            assertThat(mathService.results, hasItem(21.0));
+        }
+    }
+
+    @Test
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_GENERIC_VISION_MODEL_NAME_PROPERTY, matches = NON_EMPTY)
     void image() {
         var bytes = Utils.readBytes("https://www.gstatic.com/webp/gallery3/2.png");
@@ -139,6 +201,37 @@ public class OciGenAiChatModelIT {
             assertThat(assistant.chat("Calculate square root of 16 and return the result."), containsString("four"));
 
             assertThat(mathService.results, hasItem(4.0));
+        }
+    }
+
+    @Test
+    void magicalNumberCohere() {
+        try (var chatModel = OciGenAiCohereChatModel.builder()
+                .modelName(OCI_GENAI_COHERE_CHAT_MODEL_NAME)
+                .compartmentId(OCI_GENAI_COMPARTMENT_ID)
+                .authProvider(authProvider)
+                .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
+                .maxTokens(1800)
+                .temperature(0.2)
+                .topP(0.75)
+                .seed(TestEnvProps.SEED)
+                .build()) {
+
+            var mathService = new MathService();
+
+            Assistant assistant = AiServices.builder(Assistant.class)
+                    .chatModel(chatModel)
+                    .tools(mathService)
+                    .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
+                    .build();
+
+            assertThat(
+                    assistant.chat("Extract the magical number from 556 and 778."),
+                    either(containsString("58"))
+                            .or(containsStringIgnoringCase("fifty eight"))
+                            .or(containsStringIgnoringCase("fifty-eight")));
+
+            assertThat(mathService.results, hasItem(58.0));
         }
     }
 
@@ -330,6 +423,23 @@ public class OciGenAiChatModelIT {
             if (number != null) {
                 result = Math.sqrt(number);
             }
+            results.add(result);
+            future.complete(results);
+            return result;
+        }
+
+        @Tool("Extracts magical number out of the two numbers provided as parameters.")
+        double extractMagicalNumber(@P("First number to sum") int a, @P("Second number to sum") int b) {
+            var str = String.format("%d%d", a, b);
+            var result = Double.parseDouble(str.charAt(0) + "" + str.charAt(str.length() - 1));
+            results.add(result);
+            future.complete(results);
+            return result;
+        }
+
+        @Tool("Extracts the lucky number of the day.")
+        double getNumberOfTheDay() {
+            double result = 21;
             results.add(result);
             future.complete(results);
             return result;

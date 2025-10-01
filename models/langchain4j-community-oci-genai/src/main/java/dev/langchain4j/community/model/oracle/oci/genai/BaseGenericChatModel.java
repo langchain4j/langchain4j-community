@@ -243,19 +243,18 @@ abstract class BaseGenericChatModel<T extends BaseGenericChatModel<T>> extends B
 
     private ToolDefinition map(ToolSpecification toolSpecification) {
         var b = FunctionDefinition.builder();
+        ToolFunctionParameters result = new ToolFunctionParameters();
 
         if (toolSpecification.parameters() != null) {
             final JsonObjectSchema lc4jParams = toolSpecification.parameters();
-
-            ToolFunctionParameters result = new ToolFunctionParameters();
-
             for (var entry : lc4jParams.properties().entrySet()) {
                 Map<String, Object> map = JsonSchemaElementUtils.toMap(entry.getValue());
-                result.setProperties(Map.of(entry.getKey(), map));
-                result.required.add(entry.getKey());
+                result.addProperty(entry.getKey(), map);
+                result.addRequired(entry.getKey());
             }
-            b.parameters(result);
         }
+
+        b.parameters(result);
 
         return b.name(toolSpecification.name())
                 .description(toolSpecification.description())
@@ -297,8 +296,12 @@ abstract class BaseGenericChatModel<T extends BaseGenericChatModel<T>> extends B
         @JsonProperty("required")
         private List<String> required = new ArrayList<>();
 
-        public void setProperties(Map<String, Object> properties) {
-            this.properties = properties;
+        void addProperty(String key, Object value) {
+            this.properties.put(key, value);
+        }
+
+        void addRequired(String required) {
+            this.required.add(required);
         }
 
         @Override
