@@ -115,11 +115,7 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
             if (message instanceof AssistantMessage assistantMessage && assistantMessage.getToolCalls() != null) {
                 var toolExecutionRequests = assistantMessage.getToolCalls().stream()
                         .map(FunctionCall.class::cast)
-                        .map(functionCall -> ToolExecutionRequest.builder()
-                                .id(functionCall.getId())
-                                .arguments(functionCall.getArguments())
-                                .name(functionCall.getName())
-                                .build())
+                        .map(OciGenAiChatModel::map)
                         .toList();
 
                 aiMessageBuilder.toolExecutionRequests(toolExecutionRequests);
@@ -133,6 +129,14 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
         return ChatResponse.builder()
                 .aiMessage(aiMessageBuilder.build())
                 .metadata(chatResponseMetadataBuilder.build())
+                .build();
+    }
+
+    static ToolExecutionRequest map(FunctionCall functionCall) {
+        return ToolExecutionRequest.builder()
+                .id(functionCall.getId())
+                .arguments(functionCall.getArguments())
+                .name(functionCall.getName())
                 .build();
     }
 
