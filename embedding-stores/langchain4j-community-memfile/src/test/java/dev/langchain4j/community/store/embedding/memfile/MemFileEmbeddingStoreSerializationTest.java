@@ -10,7 +10,6 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterEach;
@@ -18,7 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-public class MemFileEmbeddingStoreSerializationTest {
+class MemFileEmbeddingStoreSerializationTest {
 
     @TempDir
     Path tempDir;
@@ -42,7 +41,7 @@ public class MemFileEmbeddingStoreSerializationTest {
     }
 
     @Test
-    void should_serialize_deserialize_json_roundtrip() throws IOException {
+    void should_serialize_deserialize_json_roundtrip() throws Exception {
         // given - add some comprehensive test data
         String text1 = "Machine learning enables computers to learn patterns from data";
         String text2 = "Natural language processing helps understand human communication";
@@ -106,7 +105,7 @@ public class MemFileEmbeddingStoreSerializationTest {
     }
 
     @Test
-    void should_serialize_deserialize_file_roundtrip() throws IOException {
+    void should_serialize_deserialize_file_roundtrip() throws Exception {
         // given - add test data with different scenarios
         String text1 = "Artificial intelligence transforms various industries worldwide";
         String text2 = "Deep learning uses neural networks for complex pattern recognition";
@@ -127,10 +126,11 @@ public class MemFileEmbeddingStoreSerializationTest {
         // then - validate file was created and content preserved
         assertThat(Files.exists(file)).isTrue();
         String fileContent = Files.readString(file);
-        assertThat(fileContent).contains("custom-id-1");
-        assertThat(fileContent).contains("custom-id-2");
-        assertThat(fileContent).contains("entries");
-        assertThat(fileContent).contains("chunkStorageDirectory");
+        assertThat(fileContent)
+                .contains("custom-id-1")
+                .contains("custom-id-2")
+                .contains("entries")
+                .contains("chunkStorageDirectory");
 
         // Validate deserialized store has all data
         assertThat(deserializedStore).isNotNull();
@@ -171,7 +171,7 @@ public class MemFileEmbeddingStoreSerializationTest {
     }
 
     @Test
-    void should_handle_empty_store_serialization() throws IOException {
+    void should_handle_empty_store_serialization() throws Exception {
         // given - empty store
 
         // when - serialize and deserialize empty store
@@ -179,7 +179,7 @@ public class MemFileEmbeddingStoreSerializationTest {
         MemFileEmbeddingStore<TextSegment> deserializedStore = embeddingStore.deserialize(strategy, json);
 
         // then - validate empty store structure and functionality
-        assertThat(json).isNotNull().isNotEmpty();
+        assertThat(json).isNotEmpty();
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(json);
@@ -187,7 +187,7 @@ public class MemFileEmbeddingStoreSerializationTest {
         assertThat(rootNode.has("chunkStorageDirectory")).isTrue();
         assertThat(rootNode.has("cacheSize")).isTrue();
         assertThat(rootNode.get("entries").isArray()).isTrue();
-        assertThat(rootNode.get("entries").size()).isEqualTo(0);
+        assertThat(rootNode.get("entries").size()).isZero();
 
         // Validate deserialized empty store works
         assertThat(deserializedStore).isNotNull();

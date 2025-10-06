@@ -16,7 +16,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import redis.clients.jedis.search.schemafields.TagField;
 
-public class RedisEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
+class RedisEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     static RedisContainer redis = new RedisContainer(DEFAULT_IMAGE_NAME.withTag(DEFAULT_TAG));
 

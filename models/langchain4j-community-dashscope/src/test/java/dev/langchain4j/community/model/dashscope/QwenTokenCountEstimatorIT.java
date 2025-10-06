@@ -48,14 +48,14 @@ class QwenTokenCountEstimatorIT {
 
     @Test
     void should_count_tokens_in_short_texts() {
-        assertThat(tokenCountEstimator.estimateTokenCountInText("Hello")).isEqualTo(1);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("Hello")).isOne();
         assertThat(tokenCountEstimator.estimateTokenCountInText("Hello!")).isEqualTo(2);
         assertThat(tokenCountEstimator.estimateTokenCountInText("Hello, how are you?"))
                 .isEqualTo(6);
 
-        assertThat(tokenCountEstimator.estimateTokenCountInText("")).isEqualTo(0);
-        assertThat(tokenCountEstimator.estimateTokenCountInText("\n")).isEqualTo(1);
-        assertThat(tokenCountEstimator.estimateTokenCountInText("\n\n")).isEqualTo(1);
+        assertThat(tokenCountEstimator.estimateTokenCountInText("")).isZero();
+        assertThat(tokenCountEstimator.estimateTokenCountInText("\n")).isOne();
+        assertThat(tokenCountEstimator.estimateTokenCountInText("\n\n")).isOne();
         assertThat(tokenCountEstimator.estimateTokenCountInText("\n \n\n")).isEqualTo(2);
     }
 

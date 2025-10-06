@@ -35,7 +35,7 @@ import org.neo4j.cypherdsl.support.schema_name.SchemaNames;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.types.Node;
 
-public class Neo4jEmbeddingStoreTest extends Neo4jEmbeddingStoreBaseTest {
+class Neo4jEmbeddingStoreTest extends Neo4jEmbeddingStoreBaseTest {
 
     @Test
     void should_add_embedding_and_check_entity_creation() {

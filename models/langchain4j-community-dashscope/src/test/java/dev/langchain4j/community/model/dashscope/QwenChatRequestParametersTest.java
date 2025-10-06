@@ -6,9 +6,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import org.junit.jupiter.api.Test;
 
-public class QwenChatRequestParametersTest {
+class QwenChatRequestParametersTest {
+
     @Test
-    void test_override_with() {
+    void should_override_when_using_qwen_chat_request_parameters() {
         // given
         QwenChatRequestParameters original = QwenChatRequestParameters.builder()
                 .modelName(QWEN_MAX)

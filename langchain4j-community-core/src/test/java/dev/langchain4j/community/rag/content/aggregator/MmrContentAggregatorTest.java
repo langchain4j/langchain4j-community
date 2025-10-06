@@ -246,9 +246,11 @@ class MmrContentAggregatorTest {
         // when
         List<Content> aggregated = aggregator.aggregate(queryToContents);
 
-        // then
-        assertThat(aggregated).hasSize(2); // content3 should be filtered out
-        assertThat(aggregated).containsExactly(content1, content2);
+        assertThat(aggregated)
+                // then
+                .hasSize(2)
+                // content3 should be filtered out
+                .containsExactly(content1, content2);
     }
 
     @Test
@@ -421,9 +423,10 @@ class MmrContentAggregatorTest {
             // when
             List<Content> aggregated = aggregator.aggregate(queryToContents);
 
-            // then
-            assertThat(aggregated).hasSize(2);
-            assertThat(aggregated).containsExactly(content1, content2);
+            assertThat(aggregated)
+                    // then
+                    .hasSize(2)
+                    .containsExactly(content1, content2);
         }
     }
 
@@ -476,9 +479,10 @@ class MmrContentAggregatorTest {
             // when
             List<Content> aggregated = aggregator.aggregate(queryToContents);
 
-            // then
-            assertThat(aggregated).hasSize(2);
-            assertThat(aggregated).containsExactlyInAnyOrder(contentWithEmbedding, contentWithoutEmbedding);
+            assertThat(aggregated)
+                    // then
+                    .hasSize(2)
+                    .containsExactlyInAnyOrder(contentWithEmbedding, contentWithoutEmbedding);
         }
     }
 
