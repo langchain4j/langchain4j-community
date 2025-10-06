@@ -23,7 +23,7 @@
 
     <properties>
         <jjwt.version>0.13.0</jjwt.version>
-        <guava.version>33.4.8-jre</guava.version>
+        <guava.version>33.5.0-jre</guava.version>
     </properties>
 
     <dependencies>
