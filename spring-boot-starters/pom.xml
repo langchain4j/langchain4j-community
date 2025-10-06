@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.7.0-beta13-SNAPSHOT</version>
+        <version>1.7.1-beta14</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
