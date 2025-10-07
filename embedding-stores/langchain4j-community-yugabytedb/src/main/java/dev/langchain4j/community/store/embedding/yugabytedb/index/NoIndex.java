@@ -8,7 +8,7 @@ import java.util.List;
  * Represents no vector index - performs sequential scans for similarity search.
  *
  * Use this when:
- * - Dataset is very small (< 10,000 vectors)
+ * - Dataset is very small (&lt; 10,000 vectors)
  * - Index creation time is a concern
  * - Testing or development without index overhead
  *

@@ -32,10 +32,12 @@ import java.util.List;
  * This implementation leverages the pgvector extension for vector similarity
  * search.
  * Instances of this store are created by configuring a builder:
+ * <pre>{@code
  * EmbeddingStore<TextSegment> store = YugabyteDBEmbeddingStore.builder()
- * .engine(yugabyteDBEngine)
- * .schema(schema)
- * .build();}
+ *     .engine(yugabyteDBEngine)
+ *     .schema(schema)
+ *     .build();
+ * }</pre>
  */
 public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
