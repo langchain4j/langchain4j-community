@@ -11,9 +11,9 @@ jobs:
     strategy:
       matrix:
         java_version:
-          - 17
+          - 25
         include:
-          - java_version: '17'
+          - java_version: '25'
             mvn_opts: '-Dtinylog.writer.level=info'
       max-parallel: 1
     runs-on: ubuntu-latest

@@ -35,7 +35,7 @@ jobs:
         java_version:
           - 17
           - 21
-          - 24
+          - 25
         include:
           - java_version: 17
             mvn_opts: ''
@@ -44,7 +44,7 @@ jobs:
             mvn_opts: ''
             # Only run integration tests on JDK21 to save time and cost.
             integration_tests: true
-          - java_version: 24
+          - java_version: 25
             mvn_opts: ''
             integration_tests: false
     steps:
