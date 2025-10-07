@@ -353,8 +353,8 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
      */
     static class ColumnPerKeyConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
 
-      // Listing all the columns are important to ensure that the test is comprehensive
-      // and that all the columns are supported by the metadata storage mode
+        // Listing all the columns are important to ensure that the test is comprehensive
+        // and that all the columns are supported by the metadata storage mode
         static {
             MetadataStorageConfig config = DefaultMetadataStorageConfig.columnPerKey(Arrays.asList(
                     // Original test columns
