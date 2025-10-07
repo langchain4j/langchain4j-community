@@ -16,14 +16,12 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 import dev.langchain4j.store.embedding.filter.Filter;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -174,31 +172,20 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
         // Note: TestContainers will automatically clean up the container
     }
 
-    @BeforeEach
-    void setupTable() {
-        logger.info("🔧 [SETUP] Setting up table: {} for test", TABLE_NAME);
-        try (var connection = engine.getConnection()) {
-            // Drop and recreate table to ensure correct schema
-            logger.info("🗑️ [SETUP] Dropping existing table if exists: {}", TABLE_NAME);
-            try {
-                connection.createStatement().executeUpdate("DROP TABLE IF EXISTS " + TABLE_NAME + " CASCADE");
-                logger.info("✅ [SETUP] Table dropped successfully");
-            } catch (SQLException e) {
-                logger.debug("ℹ️ [SETUP] Table didn't exist (this is normal): {}", e.getMessage());
-            }
-            // Recreate table with current schema
-            logger.info("🏗️ [SETUP] Creating table with current schema...");
-            embeddingStore.createTableIfNotExists();
-            logger.info("✅ [SETUP] Table setup completed successfully");
-        } catch (SQLException e) {
-            logger.error("❌ [SETUP] Failed to setup table: {}", e.getMessage());
-            throw new RuntimeException(e);
-        }
-    }
-
     @Override
     protected void ensureStoreIsEmpty() {
-        // it's not necessary to clear the store before every test
+        // Clear data without dropping/recreating table (much faster!)
+        // This runs before each test from the parent class
+        if (embeddingStore != null) {
+            try {
+                embeddingStore.removeAll();
+                logger.debug("🧹 [TEST-SETUP] Cleared all data from table: {}", TABLE_NAME);
+            } catch (Exception e) {
+                logger.warn("⚠️ [TEST-SETUP] Failed to clear store: {}", e.getMessage());
+                // If removeAll fails, table might not exist yet - create it
+                embeddingStore.createTableIfNotExists();
+            }
+        }
     }
 
     @Override
@@ -366,6 +353,8 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
      */
     static class ColumnPerKeyConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
 
+      // Listing all the columns are important to ensure that the test is comprehensive
+      // and that all the columns are supported by the metadata storage mode
         static {
             MetadataStorageConfig config = DefaultMetadataStorageConfig.columnPerKey(Arrays.asList(
                     // Original test columns

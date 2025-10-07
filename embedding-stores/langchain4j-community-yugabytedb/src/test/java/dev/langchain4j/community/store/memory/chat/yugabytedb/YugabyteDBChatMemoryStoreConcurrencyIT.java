@@ -298,7 +298,7 @@ class YugabyteDBChatMemoryStoreConcurrencyIT extends YugabyteDBTestBase {
         log.info("{}   - Total expected updates: {}", logPrefix, totalExpectedUpdates);
         log.info("{}   - Successful updates: {}", logPrefix, successfulUpdates.get());
         log.info("{}   - Failed updates: {}", logPrefix, failedUpdates.get());
-        log.info("{}   - Update success rate: {:.2f}%", logPrefix, updateSuccessRate);
+        log.info("{}   - Update success rate: {}%", logPrefix, String.format("%.2f", updateSuccessRate));
         log.info("{}   - Final message count: {}", logPrefix, finalMessages.size());
 
         // Assertions
