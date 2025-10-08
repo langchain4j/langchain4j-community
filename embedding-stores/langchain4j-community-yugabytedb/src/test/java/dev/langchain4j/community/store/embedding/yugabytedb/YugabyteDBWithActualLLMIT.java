@@ -192,11 +192,19 @@ class YugabyteDBWithActualLLMIT extends YugabyteDBTestBase {
         private static final Logger smartLogger = LoggerFactory.getLogger(SmartDriverLLMIT.class);
         private static YugabyteDBEngine smartEngine;
 
-        @BeforeAll
-        static void setupSmartDriver() {
+        private static void setupSmartDriver() {
+            if (smartEngine != null) {
+                return; // Already initialized
+            }
+            
             smartLogger.info("🚀 [SMART-DRIVER-LLM] Initializing Smart Driver for LLM integration tests...");
             smartLogger.info(
                     "🔧 [SMART-DRIVER-LLM] Driver Type: YugabyteDB Smart Driver (com.yugabyte.ysql.YBClusterAwareDataSource)");
+
+            // Ensure container is started before accessing ports
+            if (!yugabyteContainer.isRunning()) {
+                throw new IllegalStateException("YugabyteDB container is not running. Make sure the parent test class setup is complete.");
+            }
 
             String host = yugabyteContainer.getHost();
             int port = yugabyteContainer.getMappedPort(5433);
@@ -235,6 +243,7 @@ class YugabyteDBWithActualLLMIT extends YugabyteDBTestBase {
         @Disabled("OpenAI API quota exceeded - disable to avoid test failures")
         @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
         void should_work_with_openai_in_rag_pipeline() {
+            setupSmartDriver();
             smartLogger.info("🚀 [SMART-DRIVER] Testing OpenAI RAG pipeline with Smart Driver...");
 
             YugabyteDBEmbeddingStore store = YugabyteDBEmbeddingStore.builder()
@@ -251,6 +260,7 @@ class YugabyteDBWithActualLLMIT extends YugabyteDBTestBase {
         @Test
         @EnabledIfEnvironmentVariable(named = "OLLAMA_BASE_URL", matches = ".+")
         void should_work_with_claude_in_rag_pipeline() {
+            setupSmartDriver();
             smartLogger.info("🚀 [SMART-DRIVER] Testing Claude RAG pipeline with Smart Driver...");
 
             YugabyteDBEmbeddingStore store = YugabyteDBEmbeddingStore.builder()
@@ -267,6 +277,7 @@ class YugabyteDBWithActualLLMIT extends YugabyteDBTestBase {
         @Test
         @EnabledIfEnvironmentVariable(named = "OLLAMA_BASE_URL", matches = ".+")
         void should_work_with_ollama_in_rag_pipeline() {
+            setupSmartDriver();
             smartLogger.info("🚀 [SMART-DRIVER] Testing Ollama RAG pipeline with Smart Driver...");
 
             YugabyteDBEmbeddingStore store = YugabyteDBEmbeddingStore.builder()
@@ -282,6 +293,7 @@ class YugabyteDBWithActualLLMIT extends YugabyteDBTestBase {
 
         @Test
         void should_demonstrate_rag_context_quality() {
+            setupSmartDriver();
             smartLogger.info("🚀 [SMART-DRIVER] Testing RAG context quality with Smart Driver...");
 
             YugabyteDBEmbeddingStore store = YugabyteDBEmbeddingStore.builder()
