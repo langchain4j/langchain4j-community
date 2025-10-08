@@ -12,8 +12,6 @@ on:
       - '.github/*.yaml'
       - '.github/ISSUE_TEMPLATE/*.md'
   pull_request:
-    branches:
-      - main
     paths-ignore:
       - '.gitignore'
       - '*.md'
