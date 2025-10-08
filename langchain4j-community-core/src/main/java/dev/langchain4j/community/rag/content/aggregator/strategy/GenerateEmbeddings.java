@@ -57,8 +57,8 @@ public final class GenerateEmbeddings implements EmbeddingStrategy {
 
     private String getEmbeddingId(Content content) {
         Object embeddingId = content.metadata().get(ContentMetadata.EMBEDDING_ID);
-        if (embeddingId instanceof String && !((String) embeddingId).isBlank()) {
-            return (String) embeddingId;
+        if (embeddingId instanceof String string && !string.isBlank()) {
+            return string;
         }
         return TEMP_EMBEDDING_ID_PREFIX + Math.abs(content.hashCode());
     }

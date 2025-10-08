@@ -82,7 +82,13 @@ public class RetrievalQAChainTest {
 
         verify(chatModel).chat(messagesCaptor.capture());
         String expectedUserMessage =
-                "query\n" + "\n" + "Answer using the following information:\n" + "Segment 1\n" + "\n" + "Segment 2";
+                """
+                query
+                
+                Answer using the following information:
+                Segment 1
+                
+                Segment 2""";
         assertThat(messagesCaptor.getValue()).isEqualTo(expectedUserMessage);
     }
 

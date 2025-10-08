@@ -291,6 +291,7 @@
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
                                 <recipe>org.openrewrite.java.testing.assertj.Assertj</recipe>
+                                <recipe>org.openrewrite.java.migrate.UpgradeToJava17</recipe>
                             </activeRecipes>
                             <failOnDryRunResults>true</failOnDryRunResults>
                         </configuration>
@@ -298,6 +299,11 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
+                                <version>3.18.0</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.openrewrite.recipe</groupId>
+                                <artifactId>rewrite-migrate-java</artifactId>
                                 <version>3.18.0</version>
                             </dependency>
                         </dependencies>
