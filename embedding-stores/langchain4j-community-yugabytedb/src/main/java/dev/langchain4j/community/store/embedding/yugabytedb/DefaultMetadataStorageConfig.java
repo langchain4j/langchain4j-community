@@ -1,11 +1,10 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 /**
  * Default implementation of MetadataStorageConfig for YugabyteDB embedding store.
@@ -25,26 +24,6 @@ public class DefaultMetadataStorageConfig implements MetadataStorageConfig {
         this.columnDefinitions = ensureNotEmpty(builder.columnDefinitions, "columnDefinitions");
         this.indexes = builder.indexes;
         this.indexType = builder.indexType;
-    }
-
-    @Override
-    public MetadataStorageMode storageMode() {
-        return storageMode;
-    }
-
-    @Override
-    public List<String> columnDefinitions() {
-        return columnDefinitions;
-    }
-
-    @Override
-    public List<String> indexes() {
-        return indexes;
-    }
-
-    @Override
-    public String indexType() {
-        return indexType;
     }
 
     /**
@@ -106,10 +85,30 @@ public class DefaultMetadataStorageConfig implements MetadataStorageConfig {
         return new Builder();
     }
 
+    @Override
+    public MetadataStorageMode storageMode() {
+        return storageMode;
+    }
+
+    @Override
+    public List<String> columnDefinitions() {
+        return columnDefinitions;
+    }
+
+    @Override
+    public List<String> indexes() {
+        return indexes;
+    }
+
+    @Override
+    public String indexType() {
+        return indexType;
+    }
+
     public static class Builder {
         private MetadataStorageMode storageMode = MetadataStorageMode.COMBINED_JSONB;
-        private List<String> columnDefinitions = Arrays.asList("metadata JSONB");
-        private List<String> indexes = Arrays.asList("metadata");
+        private List<String> columnDefinitions = List.of("metadata JSONB");
+        private List<String> indexes = List.of("metadata");
         private String indexType = "GIN";
 
         public Builder storageMode(MetadataStorageMode storageMode) {

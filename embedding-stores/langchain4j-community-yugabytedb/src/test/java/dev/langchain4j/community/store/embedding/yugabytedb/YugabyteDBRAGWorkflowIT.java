@@ -1,8 +1,5 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
-import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.langchain4j.data.document.Document;
@@ -17,8 +14,6 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.filter.Filter;
-import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -27,11 +22,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * Tests for complete RAG workflow with YugabyteDB.
  * Tests document processing, chunking, embedding generation, storage, and retrieval.
  * Uses YugabyteDB TestContainer for isolated testing.
- *
+ * <p>
  * Main class tests use PostgreSQL JDBC Driver.
  * Nested SmartDriverRAGIT class tests use YugabyteDB Smart Driver.
  */
@@ -99,14 +100,14 @@ class YugabyteDBRAGWorkflowIT extends YugabyteDBTestBase {
 
         // Step 1: Create sample documents (like user would)
         String[] rawDocuments = {
-            "YugabyteDB is a distributed SQL database designed for cloud-native applications. "
-                    + "It provides PostgreSQL compatibility while offering horizontal scalability and high availability. "
-                    + "The database automatically shards data across multiple nodes for optimal performance. "
-                    + "Connection pooling with HikariCP optimizes resource usage and improves application performance.",
-            "Vector embeddings are numerical representations of text that capture semantic meaning and context. "
-                    + "These high-dimensional vectors enable semantic search capabilities by measuring similarity between "
-                    + "different pieces of text content. YugabyteDB supports the pgvector extension for efficient vector operations. "
-                    + "RAG combines information retrieval with language model generation for better AI responses."
+                "YugabyteDB is a distributed SQL database designed for cloud-native applications. "
+                        + "It provides PostgreSQL compatibility while offering horizontal scalability and high availability. "
+                        + "The database automatically shards data across multiple nodes for optimal performance. "
+                        + "Connection pooling with HikariCP optimizes resource usage and improves application performance.",
+                "Vector embeddings are numerical representations of text that capture semantic meaning and context. "
+                        + "These high-dimensional vectors enable semantic search capabilities by measuring similarity between "
+                        + "different pieces of text content. YugabyteDB supports the pgvector extension for efficient vector operations. "
+                        + "RAG combines information retrieval with language model generation for better AI responses."
         };
 
         String[] categories = {"database", "ai"};
@@ -181,9 +182,9 @@ class YugabyteDBRAGWorkflowIT extends YugabyteDBTestBase {
 
         // Test different LangChain4j Core splitter configurations
         DocumentSplitter[] splitters = {
-            DocumentSplitters.recursive(150, 30), // Small chunks with overlap
-            DocumentSplitters.recursive(300, 50), // Medium chunks with overlap
-            DocumentSplitters.recursive(500, 100) // Large chunks with overlap
+                DocumentSplitters.recursive(150, 30), // Small chunks with overlap
+                DocumentSplitters.recursive(300, 50), // Medium chunks with overlap
+                DocumentSplitters.recursive(500, 100) // Large chunks with overlap
         };
 
         List<String> allIds = new ArrayList<>();
@@ -241,11 +242,11 @@ class YugabyteDBRAGWorkflowIT extends YugabyteDBTestBase {
 
         // Store documents with different categories
         String[] documents = {
-            "YugabyteDB connection setup and configuration",
-            "Vector similarity search algorithms",
-            "Database performance optimization techniques",
-            "Machine learning embedding models",
-            "Distributed database architecture patterns"
+                "YugabyteDB connection setup and configuration",
+                "Vector similarity search algorithms",
+                "Database performance optimization techniques",
+                "Machine learning embedding models",
+                "Distributed database architecture patterns"
         };
 
         String[] categories = {"database", "ai", "database", "ai", "database"};
@@ -446,371 +447,23 @@ class YugabyteDBRAGWorkflowIT extends YugabyteDBTestBase {
         }
     }
 
-    /**
-     * Nested test class for YugabyteDB Smart Driver RAG workflow tests.
-     * Runs the same RAG tests using Smart Driver for comprehensive coverage.
-     */
-    @Nested
-    @Testcontainers
-    class SmartDriverRAGIT {
-
-        private static final Logger smartLogger = LoggerFactory.getLogger(SmartDriverRAGIT.class);
-        private static YugabyteDBEngine smartEngine;
-        private static EmbeddingModel smartEmbeddingModel;
-        private static DocumentSplitter smartDocumentSplitter;
-
-        @BeforeAll
-        static void setupSmartDriver() {
-            smartLogger.info("🚀 [RAG-SMART-DRIVER] Initializing Smart Driver for RAG workflow tests...");
-            smartLogger.info(
-                    "🔧 [RAG-SMART-DRIVER] Driver Type: YugabyteDB Smart Driver (com.yugabyte.ysql.YBClusterAwareDataSource)");
-
-            String host = yugabyteContainer.getHost();
-            int port = yugabyteContainer.getMappedPort(5433);
-
-            smartLogger.info("📋 [RAG-SMART-DRIVER] Container details:");
-            smartLogger.info("[RAG-SMART-DRIVER]   - Host: {}", host);
-            smartLogger.info("[RAG-SMART-DRIVER]   - Port: {}", port);
-            smartLogger.info("[RAG-SMART-DRIVER]   - Database: {}", DB_NAME);
-
-            // Create Smart Driver engine
-            smartLogger.info("🔧 [RAG-SMART-DRIVER] Creating Smart Driver engine...");
-            smartEngine = YugabyteDBEngine.builder()
-                    .host(host)
-                    .port(port)
-                    .database(DB_NAME)
-                    .username(DB_USER)
-                    .password(DB_PASSWORD)
-                    .usePostgreSQLDriver(false) // Use Smart Driver
-                    .maxPoolSize(10)
-                    .build();
-            smartLogger.info("✅ [RAG-SMART-DRIVER] Smart Driver engine created successfully");
-
-            smartLogger.info("🧠 [RAG-SMART-DRIVER] Creating embedding model...");
-            smartEmbeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
-
-            smartLogger.info("✂️ [RAG-SMART-DRIVER] Creating document splitter...");
-            smartDocumentSplitter = DocumentSplitters.recursive(300, 50);
-
-            smartLogger.info("✅ [RAG-SMART-DRIVER] Smart Driver RAG workflow test setup completed");
-        }
-
-        @AfterAll
-        static void cleanupSmartDriver() {
-            smartLogger.info("🧹 [RAG-SMART-DRIVER] Starting Smart Driver cleanup...");
-            if (smartEngine != null) {
-                smartLogger.info("[RAG-SMART-DRIVER] Closing Smart Driver engine...");
-                smartEngine.close();
-            }
-            smartLogger.info("✅ [RAG-SMART-DRIVER] Smart Driver cleanup completed");
-        }
-
-        @Test
-        void should_process_complete_rag_workflow_with_real_chunking() {
-            smartLogger.info("📋 [RAG-SMART-DRIVER] Testing complete RAG workflow with real chunking...");
-
-            // Test complete RAG workflow: Document → LangChain4j Chunking → YugabyteDB Storage → Retrieval
-            YugabyteDBEmbeddingStore store = createSmartStore("rag_workflow_smart");
-
-            // Step 1: Create sample documents (like user would)
-            String[] rawDocuments = {
-                "YugabyteDB is a distributed SQL database designed for cloud-native applications. "
-                        + "It provides PostgreSQL compatibility while offering horizontal scalability and high availability. "
-                        + "The database automatically shards data across multiple nodes for optimal performance. "
-                        + "Connection pooling with HikariCP optimizes resource usage and improves application performance.",
-                "Vector embeddings are numerical representations of text that capture semantic meaning and context. "
-                        + "These high-dimensional vectors enable semantic search capabilities by measuring similarity between "
-                        + "different pieces of text content. YugabyteDB supports the pgvector extension for efficient vector operations. "
-                        + "RAG combines information retrieval with language model generation for better AI responses."
-            };
-
-            String[] categories = {"database", "ai"};
-            List<String> allIds = new ArrayList<>();
-
-            // Step 2: Process documents through complete pipeline
-            for (int i = 0; i < rawDocuments.length; i++) {
-                smartLogger.info("📄 [SMART-DRIVER] Processing document {} [{}]...", i + 1, categories[i]);
-
-                // Create Document (LangChain4j Core)
-                Metadata documentMetadata = new Metadata()
-                        .put("source", "test_document")
-                        .put("category", categories[i])
-                        .put("document_id", String.valueOf(i + 1));
-
-                Document document = Document.from(rawDocuments[i], documentMetadata);
-
-                // Real chunking with LangChain4j Core DocumentSplitters
-                List<TextSegment> chunks = smartDocumentSplitter.split(document);
-                smartLogger.info("  ✅ [SMART-DRIVER] LangChain4j chunked into {} segments", chunks.size());
-
-                // Process each chunk
-                for (int j = 0; j < chunks.size(); j++) {
-                    TextSegment chunk = chunks.get(j);
-
-                    // Add chunk-specific metadata
-                    Metadata chunkMetadata = new Metadata();
-                    // Copy existing metadata
-                    for (String key : chunk.metadata().toMap().keySet()) {
-                        Object value = chunk.metadata().toMap().get(key);
-                        chunkMetadata.put(key, value.toString());
-                    }
-                    chunkMetadata.put("chunk_id", String.valueOf(j + 1));
-                    chunkMetadata.put("chunk_count", String.valueOf(chunks.size()));
-
-                    TextSegment enrichedChunk = TextSegment.from(chunk.text(), chunkMetadata);
-
-                    // Generate embedding (LangChain4j Core)
-                    Embedding embedding =
-                            smartEmbeddingModel.embed(enrichedChunk).content();
-
-                    // Store in YugabyteDB (our responsibility)
-                    String id = store.add(embedding, enrichedChunk);
-                    allIds.add(id);
-                    assertThat(id).isNotNull();
-
-                    smartLogger.info(
-                            "    📦 [SMART-DRIVER] Chunk {}/{} stored (ID: {})",
-                            j + 1,
-                            chunks.size(),
-                            id.substring(0, 8));
-                }
-            }
-
-            smartLogger.info(
-                    "✅ [SMART-DRIVER] Complete RAG pipeline: LangChain4j chunking → YugabyteDB storage successful");
-
-            // Step 3: Test RAG retrieval functionality
-            testSmartRAGRetrieval(store, "How does YugabyteDB handle scalability?");
-            testSmartRAGRetrieval(store, "What are vector embeddings used for?");
-
-            // Cleanup
-            store.removeAll(allIds);
-            smartLogger.info(
-                    "✅ [SMART-DRIVER] RAG workflow test completed with cleanup ({} chunks removed)", allIds.size());
-        }
-
-        @Test
-        void should_test_different_langchain4j_splitters() {
-            smartLogger.info("📋 [RAG-SMART-DRIVER] Testing different LangChain4j splitters...");
-
-            // Test YugabyteDB with different LangChain4j Core splitters
-            YugabyteDBEmbeddingStore store = createSmartStore("splitter_test_smart");
-
-            String longDocument = "YugabyteDB is a distributed SQL database designed for cloud-native applications. "
-                    + "It provides PostgreSQL compatibility while offering horizontal scalability and high availability. "
-                    + "The database automatically shards data across multiple nodes for optimal performance. "
-                    + "Vector embeddings are numerical representations of text that capture semantic meaning. "
-                    + "These high-dimensional vectors enable semantic search capabilities. "
-                    + "RAG combines information retrieval with language model generation for better responses.";
-
-            // Test different LangChain4j Core splitter configurations
-            DocumentSplitter[] splitters = {
-                DocumentSplitters.recursive(150, 30), // Small chunks with overlap
-                DocumentSplitters.recursive(300, 50), // Medium chunks with overlap
-                DocumentSplitters.recursive(500, 100) // Large chunks with overlap
-            };
-
-            List<String> allIds = new ArrayList<>();
-
-            for (int i = 0; i < splitters.length; i++) {
-                DocumentSplitter splitter = splitters[i];
-
-                Metadata documentMetadata = new Metadata()
-                        .put("splitter_type", String.valueOf(i))
-                        .put("chunk_size", i == 0 ? "small" : i == 1 ? "medium" : "large");
-
-                Document document = Document.from(longDocument, documentMetadata);
-
-                // Real chunking with LangChain4j Core
-                List<TextSegment> chunks = splitter.split(document);
-                assertThat(chunks).isNotEmpty();
-
-                smartLogger.info("📄 [SMART-DRIVER] LangChain4j splitter {}: {} chunks created", i + 1, chunks.size());
-
-                // Store chunks in YugabyteDB
-                for (int j = 0; j < chunks.size(); j++) {
-                    TextSegment chunk = chunks.get(j);
-
-                    // Enrich with chunk metadata
-                    Metadata chunkMetadata = new Metadata();
-                    for (String key : chunk.metadata().toMap().keySet()) {
-                        Object value = chunk.metadata().toMap().get(key);
-                        chunkMetadata.put(key, value.toString());
-                    }
-                    chunkMetadata.put("chunk_index", String.valueOf(j));
-
-                    TextSegment enrichedChunk = TextSegment.from(chunk.text(), chunkMetadata);
-                    Embedding embedding =
-                            smartEmbeddingModel.embed(enrichedChunk).content();
-                    String id = store.add(embedding, enrichedChunk);
-                    allIds.add(id);
-
-                    smartLogger.info(
-                            "    📦 [SMART-DRIVER] Stored chunk {}: {}...",
-                            j + 1,
-                            chunk.text().substring(0, Math.min(50, chunk.text().length())));
-                }
-            }
-
-            smartLogger.info("✅ [SMART-DRIVER] Tested {} LangChain4j splitter strategies", splitters.length);
-
-            // Cleanup
-            store.removeAll(allIds);
-            smartLogger.info(
-                    "✅ [SMART-DRIVER] Splitter test completed with cleanup ({} chunks removed)", allIds.size());
-        }
-
-        @Test
-        void should_support_metadata_based_rag() {
-            smartLogger.info("📋 [RAG-SMART-DRIVER] Testing metadata-based RAG...");
-
-            // Test RAG with metadata filtering
-            YugabyteDBEmbeddingStore store = createSmartStore("metadata_rag_smart");
-
-            // Store documents with different categories
-            String[] documents = {
-                "YugabyteDB connection setup and configuration",
-                "Vector similarity search algorithms",
-                "Database performance optimization techniques",
-                "Machine learning embedding models",
-                "Distributed database architecture patterns"
-            };
-
-            String[] categories = {"database", "ai", "database", "ai", "database"};
-            String[] topics = {"setup", "search", "performance", "models", "architecture"};
-
-            for (int i = 0; i < documents.length; i++) {
-                Metadata metadata = new Metadata()
-                        .put("category", categories[i])
-                        .put("topic", topics[i])
-                        .put("priority", i % 2 == 0 ? "high" : "low");
-
-                TextSegment segment = TextSegment.from(documents[i], metadata);
-                Embedding embedding = smartEmbeddingModel.embed(segment).content();
-                store.add(embedding, segment);
-            }
-
-            // Test filtered RAG queries
-            testSmartFilteredRAGQuery(
-                    store, "database optimization", metadataKey("category").isEqualTo("database"));
-
-            testSmartFilteredRAGQuery(
-                    store, "AI and machine learning", metadataKey("category").isEqualTo("ai"));
-
-            testSmartFilteredRAGQuery(
-                    store, "high priority topics", metadataKey("priority").isEqualTo("high"));
-
-            smartLogger.info("✅ [SMART-DRIVER] Metadata-based RAG test completed");
-        }
-
-        @Test
-        void should_handle_rag_with_no_results() {
-            smartLogger.info("📋 [RAG-SMART-DRIVER] Testing RAG with no results...");
-
-            // Test RAG behavior when no relevant documents are found
-            YugabyteDBEmbeddingStore store = createSmartStore("no_results_smart");
-
-            // Store only database-related documents
-            String[] documents = {
-                "Database connection pooling", "SQL query optimization", "Database indexing strategies"
-            };
-
-            for (String doc : documents) {
-                TextSegment segment = TextSegment.from(doc, new Metadata().put("category", "database"));
-                Embedding embedding = smartEmbeddingModel.embed(segment).content();
-                store.add(embedding, segment);
-            }
-
-            // Query for completely unrelated topic
-            Embedding queryEmbedding = smartEmbeddingModel
-                    .embed("cooking recipes and food preparation")
-                    .content();
-
-            EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
-                    .queryEmbedding(queryEmbedding)
-                    .maxResults(5)
-                    .minScore(0.8) // High threshold
-                    .build());
-
-            // Should return few or no results due to high threshold
-            assertThat(result.matches()).hasSizeLessThanOrEqualTo(3);
-            smartLogger.info("✅ [SMART-DRIVER] No relevant results handling working correctly");
-        }
-
-        private YugabyteDBEmbeddingStore createSmartStore(String tableName) {
-            return YugabyteDBEmbeddingStore.builder()
-                    .engine(smartEngine)
-                    .tableName(tableName)
-                    .dimension(384)
-                    .metricType(MetricType.COSINE)
-                    .createTableIfNotExists(true)
-                    .build();
-        }
-
-        private void testSmartRAGRetrieval(YugabyteDBEmbeddingStore store, String query) {
-            Embedding queryEmbedding = smartEmbeddingModel.embed(query).content();
-
-            EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
-                    .queryEmbedding(queryEmbedding)
-                    .maxResults(3)
-                    .minScore(0.5)
-                    .build());
-
-            List<EmbeddingMatch<TextSegment>> matches = result.matches();
-            assertThat(matches).isNotEmpty();
-
-            smartLogger.info("✅ [SMART-DRIVER] RAG query '{}' found {} relevant chunks", query, matches.size());
-
-            // Verify chunks have proper metadata
-            for (EmbeddingMatch<TextSegment> match : matches) {
-                TextSegment segment = match.embedded();
-                assertThat(segment.metadata()).isNotNull();
-                assertThat(match.score()).isGreaterThan(0.5);
-            }
-        }
-
-        private void testSmartFilteredRAGQuery(YugabyteDBEmbeddingStore store, String query, Filter filter) {
-            Embedding queryEmbedding = smartEmbeddingModel.embed(query).content();
-
-            EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
-                    .queryEmbedding(queryEmbedding)
-                    .filter(filter)
-                    .maxResults(5)
-                    .build());
-
-            List<EmbeddingMatch<TextSegment>> matches = result.matches();
-
-            smartLogger.info(
-                    "✅ [SMART-DRIVER] Filtered RAG query '{}' with filter '{}' found {} results",
-                    query,
-                    filter.toString(),
-                    matches.size());
-
-            // Verify all results match the filter
-            for (EmbeddingMatch<TextSegment> match : matches) {
-                // Filter validation would depend on specific filter type
-                assertThat(match.embedded().metadata()).isNotNull();
-            }
-        }
-    }
-
     private List<String> performRAGWorkflow(YugabyteDBEmbeddingStore store, String driverName) {
         logger.info("📄 [{}] Processing RAG documents...", driverName);
 
         // Sample RAG documents
         String[] ragDocuments = {
-            "YugabyteDB is a distributed SQL database that provides PostgreSQL compatibility. "
-                    + "It offers horizontal scalability and high availability for cloud-native applications. "
-                    + "The database supports ACID transactions and provides strong consistency guarantees.",
-            "Vector embeddings enable semantic search by converting text into numerical representations. "
-                    + "These high-dimensional vectors capture the meaning and context of text content. "
-                    + "Similarity search using cosine distance helps find semantically related documents.",
-            "RAG (Retrieval-Augmented Generation) combines information retrieval with language models. "
-                    + "It first retrieves relevant documents using vector similarity search. "
-                    + "Then it uses these documents as context for generating more accurate responses.",
-            "Connection pooling optimizes database performance by reusing connections. "
-                    + "HikariCP provides efficient connection pool management for Java applications. "
-                    + "Proper pool sizing and configuration are crucial for optimal performance."
+                "YugabyteDB is a distributed SQL database that provides PostgreSQL compatibility. "
+                        + "It offers horizontal scalability and high availability for cloud-native applications. "
+                        + "The database supports ACID transactions and provides strong consistency guarantees.",
+                "Vector embeddings enable semantic search by converting text into numerical representations. "
+                        + "These high-dimensional vectors capture the meaning and context of text content. "
+                        + "Similarity search using cosine distance helps find semantically related documents.",
+                "RAG (Retrieval-Augmented Generation) combines information retrieval with language models. "
+                        + "It first retrieves relevant documents using vector similarity search. "
+                        + "Then it uses these documents as context for generating more accurate responses.",
+                "Connection pooling optimizes database performance by reusing connections. "
+                        + "HikariCP provides efficient connection pool management for Java applications. "
+                        + "Proper pool sizing and configuration are crucial for optimal performance."
         };
 
         String[] categories = {"database", "ai", "rag", "performance"};
@@ -882,10 +535,10 @@ class YugabyteDBRAGWorkflowIT extends YugabyteDBTestBase {
         logger.info("🔍 [{}] Testing RAG retrieval performance...", driverName);
 
         String[] testQueries = {
-            "How does YugabyteDB handle distributed transactions?",
-            "What are vector embeddings and how do they work?",
-            "Explain RAG and its benefits for AI applications",
-            "How to optimize database connection pooling?"
+                "How does YugabyteDB handle distributed transactions?",
+                "What are vector embeddings and how do they work?",
+                "Explain RAG and its benefits for AI applications",
+                "How to optimize database connection pooling?"
         };
 
         for (int i = 0; i < testQueries.length; i++) {
@@ -985,5 +638,353 @@ class YugabyteDBRAGWorkflowIT extends YugabyteDBTestBase {
                 .metricType(MetricType.COSINE)
                 .createTableIfNotExists(true)
                 .build();
+    }
+
+    /**
+     * Nested test class for YugabyteDB Smart Driver RAG workflow tests.
+     * Runs the same RAG tests using Smart Driver for comprehensive coverage.
+     */
+    @Nested
+    @Testcontainers
+    class SmartDriverRAGIT {
+
+        private static final Logger smartLogger = LoggerFactory.getLogger(SmartDriverRAGIT.class);
+        private static YugabyteDBEngine smartEngine;
+        private static EmbeddingModel smartEmbeddingModel;
+        private static DocumentSplitter smartDocumentSplitter;
+
+        @BeforeAll
+        static void setupSmartDriver() {
+            smartLogger.info("🚀 [RAG-SMART-DRIVER] Initializing Smart Driver for RAG workflow tests...");
+            smartLogger.info(
+                    "🔧 [RAG-SMART-DRIVER] Driver Type: YugabyteDB Smart Driver (com.yugabyte.ysql.YBClusterAwareDataSource)");
+
+            String host = yugabyteContainer.getHost();
+            int port = yugabyteContainer.getMappedPort(5433);
+
+            smartLogger.info("📋 [RAG-SMART-DRIVER] Container details:");
+            smartLogger.info("[RAG-SMART-DRIVER]   - Host: {}", host);
+            smartLogger.info("[RAG-SMART-DRIVER]   - Port: {}", port);
+            smartLogger.info("[RAG-SMART-DRIVER]   - Database: {}", DB_NAME);
+
+            // Create Smart Driver engine
+            smartLogger.info("🔧 [RAG-SMART-DRIVER] Creating Smart Driver engine...");
+            smartEngine = YugabyteDBEngine.builder()
+                    .host(host)
+                    .port(port)
+                    .database(DB_NAME)
+                    .username(DB_USER)
+                    .password(DB_PASSWORD)
+                    .usePostgreSQLDriver(false) // Use Smart Driver
+                    .maxPoolSize(10)
+                    .build();
+            smartLogger.info("✅ [RAG-SMART-DRIVER] Smart Driver engine created successfully");
+
+            smartLogger.info("🧠 [RAG-SMART-DRIVER] Creating embedding model...");
+            smartEmbeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
+
+            smartLogger.info("✂️ [RAG-SMART-DRIVER] Creating document splitter...");
+            smartDocumentSplitter = DocumentSplitters.recursive(300, 50);
+
+            smartLogger.info("✅ [RAG-SMART-DRIVER] Smart Driver RAG workflow test setup completed");
+        }
+
+        @AfterAll
+        static void cleanupSmartDriver() {
+            smartLogger.info("🧹 [RAG-SMART-DRIVER] Starting Smart Driver cleanup...");
+            if (smartEngine != null) {
+                smartLogger.info("[RAG-SMART-DRIVER] Closing Smart Driver engine...");
+                smartEngine.close();
+            }
+            smartLogger.info("✅ [RAG-SMART-DRIVER] Smart Driver cleanup completed");
+        }
+
+        @Test
+        void should_process_complete_rag_workflow_with_real_chunking() {
+            smartLogger.info("📋 [RAG-SMART-DRIVER] Testing complete RAG workflow with real chunking...");
+
+            // Test complete RAG workflow: Document → LangChain4j Chunking → YugabyteDB Storage → Retrieval
+            YugabyteDBEmbeddingStore store = createSmartStore("rag_workflow_smart");
+
+            // Step 1: Create sample documents (like user would)
+            String[] rawDocuments = {
+                    "YugabyteDB is a distributed SQL database designed for cloud-native applications. "
+                            + "It provides PostgreSQL compatibility while offering horizontal scalability and high availability. "
+                            + "The database automatically shards data across multiple nodes for optimal performance. "
+                            + "Connection pooling with HikariCP optimizes resource usage and improves application performance.",
+                    "Vector embeddings are numerical representations of text that capture semantic meaning and context. "
+                            + "These high-dimensional vectors enable semantic search capabilities by measuring similarity between "
+                            + "different pieces of text content. YugabyteDB supports the pgvector extension for efficient vector operations. "
+                            + "RAG combines information retrieval with language model generation for better AI responses."
+            };
+
+            String[] categories = {"database", "ai"};
+            List<String> allIds = new ArrayList<>();
+
+            // Step 2: Process documents through complete pipeline
+            for (int i = 0; i < rawDocuments.length; i++) {
+                smartLogger.info("📄 [SMART-DRIVER] Processing document {} [{}]...", i + 1, categories[i]);
+
+                // Create Document (LangChain4j Core)
+                Metadata documentMetadata = new Metadata()
+                        .put("source", "test_document")
+                        .put("category", categories[i])
+                        .put("document_id", String.valueOf(i + 1));
+
+                Document document = Document.from(rawDocuments[i], documentMetadata);
+
+                // Real chunking with LangChain4j Core DocumentSplitters
+                List<TextSegment> chunks = smartDocumentSplitter.split(document);
+                smartLogger.info("  ✅ [SMART-DRIVER] LangChain4j chunked into {} segments", chunks.size());
+
+                // Process each chunk
+                for (int j = 0; j < chunks.size(); j++) {
+                    TextSegment chunk = chunks.get(j);
+
+                    // Add chunk-specific metadata
+                    Metadata chunkMetadata = new Metadata();
+                    // Copy existing metadata
+                    for (String key : chunk.metadata().toMap().keySet()) {
+                        Object value = chunk.metadata().toMap().get(key);
+                        chunkMetadata.put(key, value.toString());
+                    }
+                    chunkMetadata.put("chunk_id", String.valueOf(j + 1));
+                    chunkMetadata.put("chunk_count", String.valueOf(chunks.size()));
+
+                    TextSegment enrichedChunk = TextSegment.from(chunk.text(), chunkMetadata);
+
+                    // Generate embedding (LangChain4j Core)
+                    Embedding embedding =
+                            smartEmbeddingModel.embed(enrichedChunk).content();
+
+                    // Store in YugabyteDB (our responsibility)
+                    String id = store.add(embedding, enrichedChunk);
+                    allIds.add(id);
+                    assertThat(id).isNotNull();
+
+                    smartLogger.info(
+                            "    📦 [SMART-DRIVER] Chunk {}/{} stored (ID: {})",
+                            j + 1,
+                            chunks.size(),
+                            id.substring(0, 8));
+                }
+            }
+
+            smartLogger.info(
+                    "✅ [SMART-DRIVER] Complete RAG pipeline: LangChain4j chunking → YugabyteDB storage successful");
+
+            // Step 3: Test RAG retrieval functionality
+            testSmartRAGRetrieval(store, "How does YugabyteDB handle scalability?");
+            testSmartRAGRetrieval(store, "What are vector embeddings used for?");
+
+            // Cleanup
+            store.removeAll(allIds);
+            smartLogger.info(
+                    "✅ [SMART-DRIVER] RAG workflow test completed with cleanup ({} chunks removed)", allIds.size());
+        }
+
+        @Test
+        void should_test_different_langchain4j_splitters() {
+            smartLogger.info("📋 [RAG-SMART-DRIVER] Testing different LangChain4j splitters...");
+
+            // Test YugabyteDB with different LangChain4j Core splitters
+            YugabyteDBEmbeddingStore store = createSmartStore("splitter_test_smart");
+
+            String longDocument = "YugabyteDB is a distributed SQL database designed for cloud-native applications. "
+                    + "It provides PostgreSQL compatibility while offering horizontal scalability and high availability. "
+                    + "The database automatically shards data across multiple nodes for optimal performance. "
+                    + "Vector embeddings are numerical representations of text that capture semantic meaning. "
+                    + "These high-dimensional vectors enable semantic search capabilities. "
+                    + "RAG combines information retrieval with language model generation for better responses.";
+
+            // Test different LangChain4j Core splitter configurations
+            DocumentSplitter[] splitters = {
+                    DocumentSplitters.recursive(150, 30), // Small chunks with overlap
+                    DocumentSplitters.recursive(300, 50), // Medium chunks with overlap
+                    DocumentSplitters.recursive(500, 100) // Large chunks with overlap
+            };
+
+            List<String> allIds = new ArrayList<>();
+
+            for (int i = 0; i < splitters.length; i++) {
+                DocumentSplitter splitter = splitters[i];
+
+                Metadata documentMetadata = new Metadata()
+                        .put("splitter_type", String.valueOf(i))
+                        .put("chunk_size", i == 0 ? "small" : i == 1 ? "medium" : "large");
+
+                Document document = Document.from(longDocument, documentMetadata);
+
+                // Real chunking with LangChain4j Core
+                List<TextSegment> chunks = splitter.split(document);
+                assertThat(chunks).isNotEmpty();
+
+                smartLogger.info("📄 [SMART-DRIVER] LangChain4j splitter {}: {} chunks created", i + 1, chunks.size());
+
+                // Store chunks in YugabyteDB
+                for (int j = 0; j < chunks.size(); j++) {
+                    TextSegment chunk = chunks.get(j);
+
+                    // Enrich with chunk metadata
+                    Metadata chunkMetadata = new Metadata();
+                    for (String key : chunk.metadata().toMap().keySet()) {
+                        Object value = chunk.metadata().toMap().get(key);
+                        chunkMetadata.put(key, value.toString());
+                    }
+                    chunkMetadata.put("chunk_index", String.valueOf(j));
+
+                    TextSegment enrichedChunk = TextSegment.from(chunk.text(), chunkMetadata);
+                    Embedding embedding =
+                            smartEmbeddingModel.embed(enrichedChunk).content();
+                    String id = store.add(embedding, enrichedChunk);
+                    allIds.add(id);
+
+                    smartLogger.info(
+                            "    📦 [SMART-DRIVER] Stored chunk {}: {}...",
+                            j + 1,
+                            chunk.text().substring(0, Math.min(50, chunk.text().length())));
+                }
+            }
+
+            smartLogger.info("✅ [SMART-DRIVER] Tested {} LangChain4j splitter strategies", splitters.length);
+
+            // Cleanup
+            store.removeAll(allIds);
+            smartLogger.info(
+                    "✅ [SMART-DRIVER] Splitter test completed with cleanup ({} chunks removed)", allIds.size());
+        }
+
+        @Test
+        void should_support_metadata_based_rag() {
+            smartLogger.info("📋 [RAG-SMART-DRIVER] Testing metadata-based RAG...");
+
+            // Test RAG with metadata filtering
+            YugabyteDBEmbeddingStore store = createSmartStore("metadata_rag_smart");
+
+            // Store documents with different categories
+            String[] documents = {
+                    "YugabyteDB connection setup and configuration",
+                    "Vector similarity search algorithms",
+                    "Database performance optimization techniques",
+                    "Machine learning embedding models",
+                    "Distributed database architecture patterns"
+            };
+
+            String[] categories = {"database", "ai", "database", "ai", "database"};
+            String[] topics = {"setup", "search", "performance", "models", "architecture"};
+
+            for (int i = 0; i < documents.length; i++) {
+                Metadata metadata = new Metadata()
+                        .put("category", categories[i])
+                        .put("topic", topics[i])
+                        .put("priority", i % 2 == 0 ? "high" : "low");
+
+                TextSegment segment = TextSegment.from(documents[i], metadata);
+                Embedding embedding = smartEmbeddingModel.embed(segment).content();
+                store.add(embedding, segment);
+            }
+
+            // Test filtered RAG queries
+            testSmartFilteredRAGQuery(
+                    store, "database optimization", metadataKey("category").isEqualTo("database"));
+
+            testSmartFilteredRAGQuery(
+                    store, "AI and machine learning", metadataKey("category").isEqualTo("ai"));
+
+            testSmartFilteredRAGQuery(
+                    store, "high priority topics", metadataKey("priority").isEqualTo("high"));
+
+            smartLogger.info("✅ [SMART-DRIVER] Metadata-based RAG test completed");
+        }
+
+        @Test
+        void should_handle_rag_with_no_results() {
+            smartLogger.info("📋 [RAG-SMART-DRIVER] Testing RAG with no results...");
+
+            // Test RAG behavior when no relevant documents are found
+            YugabyteDBEmbeddingStore store = createSmartStore("no_results_smart");
+
+            // Store only database-related documents
+            String[] documents = {
+                    "Database connection pooling", "SQL query optimization", "Database indexing strategies"
+            };
+
+            for (String doc : documents) {
+                TextSegment segment = TextSegment.from(doc, new Metadata().put("category", "database"));
+                Embedding embedding = smartEmbeddingModel.embed(segment).content();
+                store.add(embedding, segment);
+            }
+
+            // Query for completely unrelated topic
+            Embedding queryEmbedding = smartEmbeddingModel
+                    .embed("cooking recipes and food preparation")
+                    .content();
+
+            EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .maxResults(5)
+                    .minScore(0.8) // High threshold
+                    .build());
+
+            // Should return few or no results due to high threshold
+            assertThat(result.matches()).hasSizeLessThanOrEqualTo(3);
+            smartLogger.info("✅ [SMART-DRIVER] No relevant results handling working correctly");
+        }
+
+        private YugabyteDBEmbeddingStore createSmartStore(String tableName) {
+            return YugabyteDBEmbeddingStore.builder()
+                    .engine(smartEngine)
+                    .tableName(tableName)
+                    .dimension(384)
+                    .metricType(MetricType.COSINE)
+                    .createTableIfNotExists(true)
+                    .build();
+        }
+
+        private void testSmartRAGRetrieval(YugabyteDBEmbeddingStore store, String query) {
+            Embedding queryEmbedding = smartEmbeddingModel.embed(query).content();
+
+            EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .maxResults(3)
+                    .minScore(0.5)
+                    .build());
+
+            List<EmbeddingMatch<TextSegment>> matches = result.matches();
+            assertThat(matches).isNotEmpty();
+
+            smartLogger.info("✅ [SMART-DRIVER] RAG query '{}' found {} relevant chunks", query, matches.size());
+
+            // Verify chunks have proper metadata
+            for (EmbeddingMatch<TextSegment> match : matches) {
+                TextSegment segment = match.embedded();
+                assertThat(segment.metadata()).isNotNull();
+                assertThat(match.score()).isGreaterThan(0.5);
+            }
+        }
+
+        private void testSmartFilteredRAGQuery(YugabyteDBEmbeddingStore store, String query, Filter filter) {
+            Embedding queryEmbedding = smartEmbeddingModel.embed(query).content();
+
+            EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .filter(filter)
+                    .maxResults(5)
+                    .build());
+
+            List<EmbeddingMatch<TextSegment>> matches = result.matches();
+
+            smartLogger.info(
+                    "✅ [SMART-DRIVER] Filtered RAG query '{}' with filter '{}' found {} results",
+                    query,
+                    filter.toString(),
+                    matches.size());
+
+            // Verify all results match the filter
+            for (EmbeddingMatch<TextSegment> match : matches) {
+                // Filter validation would depend on specific filter type
+                assertThat(match.embedded().metadata()).isNotNull();
+            }
+        }
     }
 }

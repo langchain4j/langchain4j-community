@@ -1,8 +1,5 @@
 package dev.langchain4j.community.store.memory.chat.yugabytedb;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import dev.langchain4j.community.store.embedding.yugabytedb.YugabyteDBEngine;
 import dev.langchain4j.community.store.embedding.yugabytedb.YugabyteDBTestBase;
 import dev.langchain4j.data.message.AiMessage;
@@ -10,10 +7,6 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -22,10 +15,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 /**
  * Basic functionality integration tests for YugabyteDBChatMemoryStore using TestContainers.
  * Tests core operations: store, retrieve, update, and delete messages.
- *
+ * <p>
  * Main class tests use PostgreSQL JDBC Driver.
  * Nested SmartDriverChatMemoryIT class tests use YugabyteDB Smart Driver.
  */
@@ -144,7 +145,7 @@ class YugabyteDBChatMemoryStoreIT extends YugabyteDBTestBase {
 
         // Given
         String memoryId = "update-test-" + memoryIdSuffix;
-        List<ChatMessage> initialMessages = Arrays.asList(UserMessage.from("Hello"));
+        List<ChatMessage> initialMessages = List.of(UserMessage.from("Hello"));
 
         List<ChatMessage> updatedMessages = Arrays.asList(
                 UserMessage.from("Hello"),

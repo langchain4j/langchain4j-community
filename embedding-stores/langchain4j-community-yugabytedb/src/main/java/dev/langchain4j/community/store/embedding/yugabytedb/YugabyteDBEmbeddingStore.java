@@ -1,10 +1,5 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
-import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.Utils.randomUUID;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-
 import com.pgvector.PGvector;
 import dev.langchain4j.community.store.embedding.yugabytedb.index.BaseIndex;
 import dev.langchain4j.data.document.Metadata;
@@ -16,6 +11,7 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,6 +20,11 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 
 /**
  * YugabyteDB EmbeddingStore Implementation
@@ -58,6 +59,10 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         if (schema.isCreateTableIfNotExists()) {
             createTableIfNotExists();
         }
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -130,7 +135,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         sql += String.format(" ORDER BY %s %s ? LIMIT ?", schema.getEmbeddingColumn(), schema.getDistanceFunction());
 
         try (Connection connection = engine.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
             // Register PGvector types for this connection before using prepared statements
             registerPGVectorTypes(connection);
@@ -192,7 +197,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         try (Connection connection = engine.getConnection();
-                PreparedStatement statement = connection.prepareStatement(schema.getDeleteSql())) {
+             PreparedStatement statement = connection.prepareStatement(schema.getDeleteSql())) {
 
             for (String id : ids) {
                 statement.setString(1, id);
@@ -219,7 +224,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         String sql = String.format("DELETE FROM %s WHERE %s", schema.getFullTableName(), whereClause);
 
         try (Connection connection = engine.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
             metadataHandler.setFilterParameters(statement, filter, 1);
             statement.executeUpdate();
@@ -235,7 +240,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public void removeAll() {
         try (Connection connection = engine.getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
             statement.executeUpdate(schema.getDeleteAllSql());
         } catch (SQLException e) {
             throw new YugabyteDBRequestFailedException("Failed to remove all embeddings", e);
@@ -256,7 +261,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         String insertSql = createInsertSql();
 
         try (Connection connection = engine.getConnection();
-                PreparedStatement statement = connection.prepareStatement(insertSql)) {
+             PreparedStatement statement = connection.prepareStatement(insertSql)) {
 
             // Register PGvector types for this connection before using prepared statements
             registerPGVectorTypes(connection);
@@ -342,9 +347,8 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private Embedding extractEmbeddingFromResultSet(ResultSet resultSet, String columnName) throws SQLException {
         Object vectorObject = resultSet.getObject(columnName);
 
-        if (vectorObject instanceof PGvector) {
+        if (vectorObject instanceof final PGvector pgvector) {
             // PostgreSQL JDBC driver returns PGvector objects
-            PGvector pgvector = (PGvector) vectorObject;
             return Embedding.from(pgvector.toArray());
         } else if (vectorObject != null && vectorObject.getClass().getName().equals("com.yugabyte.util.PGobject")) {
             // YugabyteDB Smart Driver returns PGobject - extract the vector string and parse it
@@ -414,8 +418,8 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         return String.format(
                 "INSERT INTO %s (%s) VALUES (%s) " + "ON CONFLICT (%s) DO UPDATE SET %s",
                 schema.getFullTableName(),
-                columns.toString(),
-                placeholders.toString(),
+                columns,
+                placeholders,
                 schema.getIdColumn(),
                 updateClause);
     }
@@ -438,12 +442,12 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .append(schema.getDistanceFunction())
                 .append(" ? AS distance");
 
-        return String.format("SELECT %s FROM %s", columns.toString(), schema.getFullTableName());
+        return String.format("SELECT %s FROM %s", columns, schema.getFullTableName());
     }
 
     public void createTableIfNotExists() {
         try (Connection connection = engine.getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
 
             // Ensure pgvector extension is enabled
             statement.execute("CREATE EXTENSION IF NOT EXISTS vector");
@@ -493,19 +497,16 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             case DOT_PRODUCT ->
                 // DOT_PRODUCT returns negative distances, convert to positive similarity score
                 // Higher dot product (less negative) = higher similarity
-                Math.abs(distance) + 1.0; // Convert -1 to 2.0, -0.5 to 1.5, 0 to 1.0
+                    Math.abs(distance) + 1.0; // Convert -1 to 2.0, -0.5 to 1.5, 0 to 1.0
             default -> RelevanceScore.fromCosineSimilarity(1.0 - distance);
         };
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static class Builder {
         private YugabyteDBEngine engine;
         private YugabyteDBSchema schema;
         private MetadataStorageConfig metadataStorageConfig;
+        private YugabyteDBSchema.Builder schemaBuilder;
 
         public Builder engine(YugabyteDBEngine engine) {
             this.engine = engine;
@@ -602,8 +603,6 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             ensureSchemaBuilder().createTableIfNotExists(createTableIfNotExists);
             return this;
         }
-
-        private YugabyteDBSchema.Builder schemaBuilder;
 
         private YugabyteDBSchema.Builder ensureSchemaBuilder() {
             if (schemaBuilder == null) {

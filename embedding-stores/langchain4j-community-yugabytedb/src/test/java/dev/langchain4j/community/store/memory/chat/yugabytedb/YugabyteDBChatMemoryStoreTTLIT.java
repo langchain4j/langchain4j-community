@@ -1,16 +1,11 @@
 package dev.langchain4j.community.store.memory.chat.yugabytedb;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.community.store.embedding.yugabytedb.YugabyteDBEngine;
 import dev.langchain4j.community.store.embedding.yugabytedb.YugabyteDBTestBase;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -20,10 +15,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * TTL (Time-To-Live) and cleanup functionality tests for YugabyteDBChatMemoryStore using TestContainers.
  * Tests message expiration, cleanup operations, and TTL-related behavior.
- *
+ * <p>
  * Main class tests use PostgreSQL JDBC Driver.
  * Nested SmartDriverTTLIT class tests use YugabyteDB Smart Driver.
  */
@@ -200,7 +201,7 @@ class YugabyteDBChatMemoryStoreTTLIT extends YugabyteDBTestBase {
         log.info("🧹 {} Running cleanup on fresh messages...", logPrefix);
         int cleanedUp = cleanupStore.cleanupExpiredMessages();
         log.info("🧹 {} Cleaned up {} expired records (should be 0)", logPrefix, cleanedUp);
-        assertThat(cleanedUp).isEqualTo(0);
+        assertThat(cleanedUp).isZero();
 
         // Verify messages still exist
         List<ChatMessage> afterCleanup = ttlMemoryStore.getMessages(memoryId);
@@ -219,7 +220,7 @@ class YugabyteDBChatMemoryStoreTTLIT extends YugabyteDBTestBase {
 
         // Store messages in non-TTL store
         String memoryId = memoryIdPrefix + "-no-ttl-cleanup-test";
-        List<ChatMessage> messages = Arrays.asList(UserMessage.from("Message in non-TTL store"));
+        List<ChatMessage> messages = List.of(UserMessage.from("Message in non-TTL store"));
 
         log.info("💾 {} Storing message in non-TTL store...", logPrefix);
         noTTLStore.updateMessages(memoryId, messages);
@@ -231,11 +232,10 @@ class YugabyteDBChatMemoryStoreTTLIT extends YugabyteDBTestBase {
 
         // Try to run cleanup (should handle gracefully)
         log.info("🧹 {} Attempting cleanup on non-TTL store...", logPrefix);
-        if (noTTLStore instanceof YugabyteDBChatMemoryStore) {
-            YugabyteDBChatMemoryStore nonTTLStore = (YugabyteDBChatMemoryStore) noTTLStore;
+        if (noTTLStore instanceof final YugabyteDBChatMemoryStore nonTTLStore) {
             int cleanedUp = nonTTLStore.cleanupExpiredMessages();
             log.info("🧹 {} Cleanup result: {} (should be 0 for non-TTL store)", logPrefix, cleanedUp);
-            assertThat(cleanedUp).isEqualTo(0);
+            assertThat(cleanedUp).isZero();
         }
 
         // Verify message still exists
@@ -255,12 +255,12 @@ class YugabyteDBChatMemoryStoreTTLIT extends YugabyteDBTestBase {
 
     @Test
     @Timeout(30)
-    void should_handle_ttl_expiration() throws InterruptedException {
+    void should_handle_ttl_expiration() throws Exception {
         testTTLExpiration(memoryStoreWithTTL, ttlStore, logger, "[POSTGRESQL]", "pg");
     }
 
     @Test
-    void should_not_expire_messages_without_ttl() throws InterruptedException {
+    void should_not_expire_messages_without_ttl() throws Exception {
         testMessagesWithoutTTL(memoryStoreWithoutTTL, logger, "[POSTGRESQL]", "pg");
     }
 
@@ -350,12 +350,12 @@ class YugabyteDBChatMemoryStoreTTLIT extends YugabyteDBTestBase {
 
         @Test
         @Timeout(30)
-        void should_handle_ttl_expiration() throws InterruptedException {
+        void should_handle_ttl_expiration() throws Exception {
             testTTLExpiration(smartMemoryStoreWithTTL, smartTTLStore, smartLogger, "[SMART-DRIVER]", "smart");
         }
 
         @Test
-        void should_not_expire_messages_without_ttl() throws InterruptedException {
+        void should_not_expire_messages_without_ttl() throws Exception {
             testMessagesWithoutTTL(smartMemoryStoreWithoutTTL, smartLogger, "[SMART-DRIVER]", "smart");
         }
 

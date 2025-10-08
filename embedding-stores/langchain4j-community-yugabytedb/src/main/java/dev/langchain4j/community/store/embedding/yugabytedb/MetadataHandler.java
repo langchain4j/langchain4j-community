@@ -2,6 +2,7 @@ package dev.langchain4j.community.store.embedding.yugabytedb;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.store.embedding.filter.Filter;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,7 +37,7 @@ public interface MetadataHandler {
      * based on the storage mode and configuration.
      *
      * @param statement the SQL statement executor
-     * @param table the table name
+     * @param table     the table name
      * @throws SQLException if index creation fails
      */
     void createMetadataIndexes(Statement statement, String table) throws SQLException;
@@ -89,9 +90,9 @@ public interface MetadataHandler {
      * Binds the metadata values to the prepared statement parameters
      * starting from the specified index.
      *
-     * @param statement the prepared statement
+     * @param statement           the prepared statement
      * @param parameterStartIndex the starting parameter index
-     * @param metadata the metadata to bind
+     * @param metadata            the metadata to bind
      * @return the next parameter index after binding metadata
      * @throws SQLException if parameter binding fails
      */
@@ -103,8 +104,8 @@ public interface MetadataHandler {
      * Binds filter values to the prepared statement parameters
      * for WHERE clauses.
      *
-     * @param statement the prepared statement
-     * @param filter the filter containing values to bind
+     * @param statement           the prepared statement
+     * @param filter              the filter containing values to bind
      * @param parameterStartIndex the starting parameter index
      * @return the next parameter index after binding filter parameters
      * @throws SQLException if parameter binding fails

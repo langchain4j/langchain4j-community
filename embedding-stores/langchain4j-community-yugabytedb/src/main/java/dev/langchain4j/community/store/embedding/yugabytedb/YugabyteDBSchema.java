@@ -1,16 +1,16 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
+import dev.langchain4j.community.store.embedding.yugabytedb.index.BaseIndex;
+import dev.langchain4j.community.store.embedding.yugabytedb.index.NoIndex;
+
 import static dev.langchain4j.community.store.embedding.yugabytedb.MetricType.COSINE;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 
-import dev.langchain4j.community.store.embedding.yugabytedb.index.BaseIndex;
-import dev.langchain4j.community.store.embedding.yugabytedb.index.NoIndex;
-
 /**
  * YugabyteDB Schema Configuration
- *
+ * <p>
  * This class encapsulates the database schema configuration for YugabyteDB embedding storage,
  * including table structure, column names, indexing strategy, and vector configuration.
  */
@@ -56,6 +56,10 @@ public class YugabyteDBSchema {
         this.createTableIfNotExists = builder.createTableIfNotExists;
 
         ensureTrue(dimension > 0, "dimension must be positive");
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getTableName() {
@@ -233,10 +237,6 @@ public class YugabyteDBSchema {
         return String.format(
                 "SELECT %s, %s, %s, %s %s ? AS distance FROM %s",
                 idColumn, contentColumn, metadataColumn, embeddingColumn, distanceFunction, tableName);
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static class Builder {

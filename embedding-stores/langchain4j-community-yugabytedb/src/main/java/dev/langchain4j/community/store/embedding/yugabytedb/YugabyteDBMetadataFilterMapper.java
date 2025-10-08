@@ -13,6 +13,7 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
+
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -22,33 +23,12 @@ import java.util.UUID;
 
 /**
  * Maps LangChain4j Filter objects to YugabyteDB SQL WHERE clauses with parameterized queries.
- *
+ * <p>
  * This mapper converts the filter tree into PostgreSQL-compatible JSON queries
  * since YugabyteDB supports JSONB operations similar to PostgreSQL.
  * Uses parameterized queries to prevent SQL injection attacks.
  */
 public class YugabyteDBMetadataFilterMapper {
-
-    /**
-     * Result of filter mapping containing SQL clause and parameter values
-     */
-    public static class FilterResult {
-        private final String sqlClause;
-        private final List<Object> parameters;
-
-        public FilterResult(String sqlClause, List<Object> parameters) {
-            this.sqlClause = sqlClause;
-            this.parameters = parameters;
-        }
-
-        public String getSqlClause() {
-            return sqlClause;
-        }
-
-        public List<Object> getParameters() {
-            return parameters;
-        }
-    }
 
     /**
      * Maps a Filter to a SQL WHERE clause with parameters for YugabyteDB
@@ -66,8 +46,8 @@ public class YugabyteDBMetadataFilterMapper {
     /**
      * Sets parameters in the prepared statement based on filter mapping
      *
-     * @param statement the prepared statement
-     * @param filter the filter
+     * @param statement  the prepared statement
+     * @param filter     the filter
      * @param startIndex the starting parameter index
      * @return the next parameter index
      * @throws SQLException if parameter setting fails
@@ -76,7 +56,7 @@ public class YugabyteDBMetadataFilterMapper {
         FilterResult result = map(filter);
         int paramIndex = startIndex;
 
-        for (Object param : result.getParameters()) {
+        for (Object param : result.parameters()) {
             if (param instanceof String) {
                 statement.setString(paramIndex, (String) param);
             } else if (param instanceof Integer) {
@@ -136,7 +116,7 @@ public class YugabyteDBMetadataFilterMapper {
                 "metadata->>'%s' IS NOT NULL AND metadata->>'%s' ~ ?",
                 sanitizeKey(filter.key()), sanitizeKey(filter.key()));
         List<Object> params = new ArrayList<>();
-        params.add(filter.comparisonValue().toString());
+        params.add(filter.comparisonValue());
         return new FilterResult(clause, params);
     }
 
@@ -229,7 +209,7 @@ public class YugabyteDBMetadataFilterMapper {
             placeholders.append("?");
         }
 
-        String clause = String.format("metadata->>'%s' IN (%s)", key, placeholders.toString());
+        String clause = String.format("metadata->>'%s' IN (%s)", key, placeholders);
         List<Object> params = new ArrayList<>(values);
         return new FilterResult(clause, params);
     }
@@ -250,7 +230,7 @@ public class YugabyteDBMetadataFilterMapper {
         }
 
         String clause = String.format(
-                "metadata->>'%s' IS NULL OR metadata->>'%s' NOT IN (%s)", key, key, placeholders.toString());
+                "metadata->>'%s' IS NULL OR metadata->>'%s' NOT IN (%s)", key, key, placeholders);
         List<Object> params = new ArrayList<>(values);
         return new FilterResult(clause, params);
     }
@@ -259,9 +239,9 @@ public class YugabyteDBMetadataFilterMapper {
         FilterResult left = mapFilter(filter.left());
         FilterResult right = mapFilter(filter.right());
 
-        String clause = String.format("(%s AND %s)", left.getSqlClause(), right.getSqlClause());
-        List<Object> params = new ArrayList<>(left.getParameters());
-        params.addAll(right.getParameters());
+        String clause = String.format("(%s AND %s)", left.sqlClause(), right.sqlClause());
+        List<Object> params = new ArrayList<>(left.parameters());
+        params.addAll(right.parameters());
 
         return new FilterResult(clause, params);
     }
@@ -270,12 +250,12 @@ public class YugabyteDBMetadataFilterMapper {
         FilterResult left = mapFilter(filter.left());
         FilterResult right = mapFilter(filter.right());
 
-        String clause = String.format("(%s OR %s)", left.getSqlClause(), right.getSqlClause());
+        String clause = String.format("(%s OR %s)", left.sqlClause(), right.sqlClause());
         List<Object> params = new ArrayList<>();
-        for (Object param : left.getParameters()) {
+        for (Object param : left.parameters()) {
             params.add(param);
         }
-        for (Object param : right.getParameters()) {
+        for (Object param : right.parameters()) {
             params.add(param);
         }
 
@@ -284,8 +264,8 @@ public class YugabyteDBMetadataFilterMapper {
 
     private FilterResult mapNot(Not filter) {
         FilterResult result = mapFilter(filter.expression());
-        String clause = String.format("NOT (%s)", result.getSqlClause());
-        return new FilterResult(clause, result.getParameters());
+        String clause = String.format("NOT (%s)", result.sqlClause());
+        return new FilterResult(clause, result.parameters());
     }
 
     /**
@@ -304,5 +284,11 @@ public class YugabyteDBMetadataFilterMapper {
         }
 
         return key;
+    }
+
+    /**
+         * Result of filter mapping containing SQL clause and parameter values
+         */
+        public record FilterResult(String sqlClause, List<Object> parameters) {
     }
 }

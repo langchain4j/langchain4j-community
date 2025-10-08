@@ -1,17 +1,18 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for YugabyteDB connection handling using Testcontainers.
@@ -248,16 +249,16 @@ class YugabyteDBConnectionIT extends YugabyteDBTestBase {
 
         // Test connection failure handling
         assertThatThrownBy(() -> {
-                    YugabyteDBEngine.builder()
-                            .host("invalid-host")
-                            .port(9999)
-                            .database("invalid-db")
-                            .username("invalid-user")
-                            .password("invalid-pass")
-                            .usePostgreSQLDriver(true)
-                            .build();
-                    // The exception should be thrown during engine creation, not connection
-                })
+            YugabyteDBEngine.builder()
+                    .host("invalid-host")
+                    .port(9999)
+                    .database("invalid-db")
+                    .username("invalid-user")
+                    .password("invalid-pass")
+                    .usePostgreSQLDriver(true)
+                    .build();
+            // The exception should be thrown during engine creation, not connection
+        })
                 .isInstanceOf(YugabyteDBRequestFailedException.class)
                 .hasMessageContaining("Failed to create YugabyteDB connection pool");
 
@@ -280,16 +281,16 @@ class YugabyteDBConnectionIT extends YugabyteDBTestBase {
 
         // Test connection failure handling with Smart Driver
         assertThatThrownBy(() -> {
-                    YugabyteDBEngine.builder()
-                            .host("invalid-host")
-                            .port(9999)
-                            .database("invalid-db")
-                            .username("invalid-user")
-                            .password("invalid-pass")
-                            .usePostgreSQLDriver(false) // Use Smart Driver
-                            .build();
-                    // The exception should be thrown during engine creation, not connection
-                })
+            YugabyteDBEngine.builder()
+                    .host("invalid-host")
+                    .port(9999)
+                    .database("invalid-db")
+                    .username("invalid-user")
+                    .password("invalid-pass")
+                    .usePostgreSQLDriver(false) // Use Smart Driver
+                    .build();
+            // The exception should be thrown during engine creation, not connection
+        })
                 .isInstanceOf(YugabyteDBRequestFailedException.class)
                 .hasMessageContaining("Failed to create YugabyteDB connection pool");
 
@@ -420,7 +421,7 @@ class YugabyteDBConnectionIT extends YugabyteDBTestBase {
         logger.info("[TEST] YugabyteDBEngine created successfully");
 
         try (Connection connection = engine.getConnection();
-                Statement stmt = connection.createStatement()) {
+             Statement stmt = connection.createStatement()) {
 
             logger.info("[TEST] Connection obtained, checking pgvector extension...");
 
@@ -471,7 +472,7 @@ class YugabyteDBConnectionIT extends YugabyteDBTestBase {
         logger.info("✅ [SMART-DRIVER] Engine created successfully");
 
         try (Connection connection = engine.getConnection();
-                Statement stmt = connection.createStatement()) {
+             Statement stmt = connection.createStatement()) {
 
             logger.info("[SMART-DRIVER] Connection obtained, checking pgvector extension...");
 

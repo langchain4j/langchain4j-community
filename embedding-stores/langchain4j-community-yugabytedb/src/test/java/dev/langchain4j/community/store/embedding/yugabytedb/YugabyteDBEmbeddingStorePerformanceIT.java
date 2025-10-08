@@ -1,17 +1,9 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
-import static dev.langchain4j.internal.Utils.randomUUID;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,6 +11,15 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Performance tests for YugabyteDBEmbeddingStore.
@@ -81,7 +82,7 @@ class YugabyteDBEmbeddingStorePerformanceIT extends YugabyteDBTestBase {
     }
 
     @Test
-    void should_handle_concurrent_operations() throws InterruptedException {
+    void should_handle_concurrent_operations() throws Exception {
         logger.info("🚀 [TEST] Starting concurrent operations performance test...");
 
         YugabyteDBEmbeddingStore store = createStore("concurrent_test");
@@ -474,7 +475,7 @@ class YugabyteDBEmbeddingStorePerformanceIT extends YugabyteDBTestBase {
         }
 
         @Test
-        void should_handle_concurrent_operations_with_smart_driver() throws InterruptedException {
+        void should_handle_concurrent_operations_with_smart_driver() throws Exception {
             smartLogger.info("🚀 [SMART-DRIVER] Starting concurrent operations performance test...");
 
             YugabyteDBEmbeddingStore store = createSmartDriverStore("concurrent_test_smart");

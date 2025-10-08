@@ -1,7 +1,5 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.community.store.embedding.yugabytedb.index.HNSWIndex;
 import dev.langchain4j.community.store.embedding.yugabytedb.index.NoIndex;
 import dev.langchain4j.data.document.Metadata;
@@ -9,9 +7,6 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,52 +15,22 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * Integration tests for vector index types using TestContainers.
  * Tests both standard PostgreSQL hnsw and YugabyteDB ybhnsw implementations, plus NoIndex.
- *
+ * <p>
  * Note: YugabyteDB supports 'ybhnsw' as its optimized vector index implementation.
  * Standard PostgreSQL uses 'hnsw'. IVFFlat is not tested as it's not supported by YugabyteDB.
  */
 class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(YugabyteDBVectorIndexIT.class);
-
-    @AfterEach
-    void cleanupTables() {
-        logger.info("🧹 [CLEANUP] Dropping test tables...");
-        try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement()) {
-            // PostgreSQL driver test tables
-            stmt.execute("DROP TABLE IF EXISTS test_hnsw_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_ybhnsw_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_hnsw_euclidean_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_no_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_custom_params CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_dot_product CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_cosine_metric CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_pg_gin_hnsw_hybrid CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_pg_hybrid CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_default_index_name CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_custom_index_name CASCADE");
-
-            // Smart driver test tables
-            stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_ybhnsw_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_no_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_gin_hnsw_hybrid CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_hybrid CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw CASCADE");
-
-            stmt.execute("DROP TABLE IF EXISTS test_custom_schema.test_index CASCADE");
-            stmt.execute("DROP SCHEMA IF EXISTS test_custom_schema CASCADE");
-            logger.info("✅ [CLEANUP] Tables dropped successfully");
-        } catch (Exception e) {
-            logger.warn("⚠️ [CLEANUP] Error dropping tables: {}", e.getMessage());
-        }
-    }
-
-    // ==================== MODULAR HELPER METHODS ====================
 
     /**
      * Test hybrid search with metadata filtering (GIN index) + vector similarity (ybhnsw index)
@@ -125,10 +90,12 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Cleanup
         try (Connection conn = testEngine.getConnection();
-                Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS test_" + tableSuffix + "_hybrid CASCADE");
         }
     }
+
+    // ==================== MODULAR HELPER METHODS ====================
 
     /**
      * Test HNSW index creation and search
@@ -159,10 +126,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Verify index exists (check for both hnsw and ybhnsw)
         try (Connection conn = testEngine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs =
-                        stmt.executeQuery("SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_"
-                                + tableSuffix + "_hnsw' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs =
+                     stmt.executeQuery("SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_"
+                             + tableSuffix + "_hnsw' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
             assertThat(rs.next()).isTrue();
             String indexName = rs.getString("indexname");
@@ -186,7 +153,7 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Cleanup
         try (Connection conn = testEngine.getConnection();
-                Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS test_" + tableSuffix + "_hnsw CASCADE");
         }
     }
@@ -267,11 +234,11 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Verify the vector index was created (as ybhnsw since YugabyteDB auto-converts)
         try (Connection conn = testEngine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs =
-                        stmt.executeQuery("SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_"
-                                + tableSuffix + "_gin_hnsw_hybrid' " + "AND indexdef LIKE '%embedding%' "
-                                + "AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs =
+                     stmt.executeQuery("SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_"
+                             + tableSuffix + "_gin_hnsw_hybrid' " + "AND indexdef LIKE '%embedding%' "
+                             + "AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
             assertThat(rs.next()).isTrue();
             String indexName = rs.getString("indexname");
@@ -287,8 +254,42 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Cleanup
         try (Connection conn = testEngine.getConnection();
-                Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS test_" + tableSuffix + "_gin_hnsw_hybrid CASCADE");
+        }
+    }
+
+    @AfterEach
+    void cleanupTables() {
+        logger.info("🧹 [CLEANUP] Dropping test tables...");
+        try (Connection conn = engine.getConnection();
+             Statement stmt = conn.createStatement()) {
+            // PostgreSQL driver test tables
+            stmt.execute("DROP TABLE IF EXISTS test_hnsw_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_ybhnsw_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_hnsw_euclidean_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_no_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_custom_params CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_dot_product CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_cosine_metric CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_pg_gin_hnsw_hybrid CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_pg_hybrid CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_default_index_name CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_custom_index_name CASCADE");
+
+            // Smart driver test tables
+            stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_ybhnsw_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_no_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_gin_hnsw_hybrid CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_hybrid CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw CASCADE");
+
+            stmt.execute("DROP TABLE IF EXISTS test_custom_schema.test_index CASCADE");
+            stmt.execute("DROP SCHEMA IF EXISTS test_custom_schema CASCADE");
+            logger.info("✅ [CLEANUP] Tables dropped successfully");
+        } catch (Exception e) {
+            logger.warn("⚠️ [CLEANUP] Error dropping tables: {}", e.getMessage());
         }
     }
 
@@ -324,11 +325,11 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Then - Verify standard hnsw index exists on embedding column
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_hnsw_index' "
-                                + "AND indexdef LIKE '%embedding%' "
-                                + "AND indexdef LIKE '%hnsw%'")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_hnsw_index' "
+                             + "AND indexdef LIKE '%embedding%' "
+                             + "AND indexdef LIKE '%hnsw%'")) {
 
             boolean hnswIndexFound = false;
             while (rs.next()) {
@@ -337,9 +338,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                 logger.info("📋 [TEST] Found HNSW index: {}", indexName);
                 logger.info("📋 [TEST] Index definition: {}", indexDef);
 
-                // Verify it's standard hnsw (not ybhnsw) and has vector operator
-                assertThat(indexDef).containsIgnoringCase("hnsw");
-                assertThat(indexDef).containsAnyOf("vector_cosine_ops", "embedding");
+                assertThat(indexDef)
+                        // Verify it's standard hnsw (not ybhnsw) and has vector operator
+                        .containsIgnoringCase("hnsw")
+                        .containsAnyOf("vector_cosine_ops", "embedding");
                 hnswIndexFound = true;
             }
 
@@ -390,11 +392,11 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Then - Verify ybhnsw index exists on embedding column
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_ybhnsw_index' "
-                                + "AND indexdef LIKE '%embedding%' "
-                                + "AND indexdef LIKE '%ybhnsw%'")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_ybhnsw_index' "
+                             + "AND indexdef LIKE '%embedding%' "
+                             + "AND indexdef LIKE '%ybhnsw%'")) {
 
             boolean ybhnswIndexFound = false;
             while (rs.next()) {
@@ -403,9 +405,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                 logger.info("📋 [TEST] Found ybhnsw index: {}", indexName);
                 logger.info("📋 [TEST] Index definition: {}", indexDef);
 
-                // Verify it's ybhnsw (YugabyteDB optimized) and has vector operator
-                assertThat(indexDef).contains("ybhnsw");
-                assertThat(indexDef).containsAnyOf("vector_cosine_ops", "embedding");
+                assertThat(indexDef)
+                        // Verify it's ybhnsw (YugabyteDB optimized) and has vector operator
+                        .contains("ybhnsw")
+                        .containsAnyOf("vector_cosine_ops", "embedding");
                 ybhnswIndexFound = true;
             }
 
@@ -456,11 +459,11 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
         // Then - Verify index exists with EUCLIDEAN distance (check for both hnsw and ybhnsw)
         // Note: YugabyteDB may not always show operator class in pg_indexes
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_hnsw_euclidean_index' "
-                                + "AND indexdef LIKE '%embedding%' "
-                                + "AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_hnsw_euclidean_index' "
+                             + "AND indexdef LIKE '%embedding%' "
+                             + "AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
             boolean hnswIndexFound = false;
             while (rs.next()) {
@@ -520,10 +523,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Then - Verify NO vector index exists (check for both hnsw and ybhnsw)
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs =
-                        stmt.executeQuery("SELECT indexname FROM pg_indexes " + "WHERE tablename = 'test_no_index' AND "
-                                + "(indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs =
+                     stmt.executeQuery("SELECT indexname FROM pg_indexes " + "WHERE tablename = 'test_no_index' AND "
+                             + "(indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
             assertThat(rs.next()).isFalse();
             logger.info("✅ [TEST] Confirmed no vector index exists (checked both hnsw and ybhnsw)");
@@ -569,10 +572,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
         // Then - Verify index with custom parameters (check for both hnsw and ybhnsw)
         // Note: YugabyteDB's pg_indexes doesn't show index parameters in the definition
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT indexdef FROM pg_indexes "
-                                + "WHERE tablename = 'test_custom_params' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT indexdef FROM pg_indexes "
+                             + "WHERE tablename = 'test_custom_params' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
             assertThat(rs.next()).isTrue();
             String indexDef = rs.getString("indexdef");
@@ -581,9 +584,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                     "📋 [TEST] Index type: {}",
                     indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
 
-            // Check that it's one of the supported HNSW types
-            assertThat(indexDef).matches(".*\\b(hnsw|ybhnsw)\\b.*");
-            assertThat(indexDef).contains("vector_ip_ops"); // DOT_PRODUCT
+            assertThat(indexDef)
+                    // Check that it's one of the supported HNSW types
+                    .matches(".*\\b(hnsw|ybhnsw)\\b.*")
+                    .contains("vector_ip_ops"); // DOT_PRODUCT
 
             // Note: YugabyteDB doesn't show m/ef_construction in pg_indexes view
             // The parameters are set during index creation but not visible in pg_indexes
@@ -625,10 +629,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Then - Verify index with DOT_PRODUCT metric (check for both hnsw and ybhnsw)
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT indexdef FROM pg_indexes "
-                                + "WHERE tablename = 'test_dot_product' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT indexdef FROM pg_indexes "
+                             + "WHERE tablename = 'test_dot_product' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
             assertThat(rs.next()).isTrue();
             String indexDef = rs.getString("indexdef");
@@ -637,9 +641,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                     "📋 [TEST] Index type: {}",
                     indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
 
-            // Check that it's one of the supported HNSW types
-            assertThat(indexDef).matches(".*\\b(hnsw|ybhnsw)\\b.*");
-            assertThat(indexDef).contains("vector_ip_ops"); // DOT_PRODUCT (inner product)
+            assertThat(indexDef)
+                    // Check that it's one of the supported HNSW types
+                    .matches(".*\\b(hnsw|ybhnsw)\\b.*")
+                    .contains("vector_ip_ops"); // DOT_PRODUCT (inner product)
 
             logger.info("✅ [TEST] HNSW with DOT_PRODUCT metric verified");
         }
@@ -676,18 +681,19 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Verify COSINE operator (check for both hnsw and ybhnsw)
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT indexdef FROM pg_indexes "
-                                + "WHERE tablename = 'test_cosine_metric' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT indexdef FROM pg_indexes "
+                             + "WHERE tablename = 'test_cosine_metric' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
             assertThat(rs.next()).isTrue();
             String indexDef = rs.getString("indexdef");
             logger.info(
                     "📋 [TEST] Index type: {}",
                     indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
-            assertThat(indexDef).matches(".*\\b(hnsw|ybhnsw)\\b.*");
-            assertThat(indexDef).contains("vector_cosine_ops");
+            assertThat(indexDef)
+                    .matches(".*\\b(hnsw|ybhnsw)\\b.*")
+                    .contains("vector_cosine_ops");
             logger.info("✅ [TEST] COSINE distance metric verified");
         }
 
@@ -725,10 +731,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
         defaultStore.add(embedding, TextSegment.from("Default index"));
 
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT indexname, indexdef FROM pg_indexes "
-                                + "WHERE tablename = 'test_default_index_name' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT indexname, indexdef FROM pg_indexes "
+                             + "WHERE tablename = 'test_default_index_name' AND (indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
             assertThat(rs.next()).isTrue();
             String indexName = rs.getString("indexname");
@@ -736,9 +742,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
             logger.info(
                     "📋 [TEST] Index type: {}",
                     indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
-            assertThat(indexName).contains("test_default_index_name");
-            assertThat(indexName).contains("embedding");
-            assertThat(indexName).contains("idx");
+            assertThat(indexName)
+                    .contains("test_default_index_name")
+                    .contains("embedding")
+                    .contains("idx");
             logger.info("✅ [TEST] Default index name: {}", indexName);
         }
 
@@ -760,9 +767,9 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
         customStore.add(embedding, TextSegment.from("Custom index"));
 
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(
-                        "SELECT indexname FROM pg_indexes " + "WHERE indexname = 'my_custom_vector_index'")) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT indexname FROM pg_indexes " + "WHERE indexname = 'my_custom_vector_index'")) {
 
             assertThat(rs.next()).isTrue();
             logger.info("✅ [TEST] Custom index name verified: my_custom_vector_index");
@@ -770,7 +777,7 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
         // Cleanup
         try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS test_default_index_name CASCADE");
             stmt.execute("DROP TABLE IF EXISTS test_custom_index_name CASCADE");
         }
@@ -780,7 +787,7 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
     /**
      * Smart Driver Vector Index Tests
-     *
+     * <p>
      * This nested class runs the same vector index tests using YugabyteDB Smart Driver
      * instead of PostgreSQL JDBC driver to verify compatibility across both drivers.
      */
@@ -837,11 +844,11 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
             // Then - Verify standard hnsw index exists on embedding column
             try (Connection conn = smartEngine.getConnection();
-                    Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery(
-                            "SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_smart_hnsw_index' "
-                                    + "AND indexdef LIKE '%embedding%' "
-                                    + "AND indexdef LIKE '%hnsw%'")) {
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         "SELECT indexname, indexdef FROM pg_indexes " + "WHERE tablename = 'test_smart_hnsw_index' "
+                                 + "AND indexdef LIKE '%embedding%' "
+                                 + "AND indexdef LIKE '%hnsw%'")) {
 
                 boolean hnswIndexFound = false;
                 while (rs.next()) {
@@ -853,9 +860,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                             "📋 [SMART-DRIVER] Index type: {}",
                             indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
 
-                    // Verify it's an HNSW variant and has vector operator
-                    assertThat(indexDef).containsIgnoringCase("hnsw");
-                    assertThat(indexDef).containsAnyOf("vector_cosine_ops", "embedding");
+                    assertThat(indexDef)
+                            // Verify it's an HNSW variant and has vector operator
+                            .containsIgnoringCase("hnsw")
+                            .containsAnyOf("vector_cosine_ops", "embedding");
                     hnswIndexFound = true;
                 }
 
@@ -875,7 +883,7 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
             // Cleanup
             try (Connection conn = smartEngine.getConnection();
-                    Statement stmt = conn.createStatement()) {
+                 Statement stmt = conn.createStatement()) {
                 stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw_index CASCADE");
             }
         }
@@ -912,11 +920,11 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
             // Then - Verify ybhnsw index exists on embedding column
             try (Connection conn = smartEngine.getConnection();
-                    Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT indexname, indexdef FROM pg_indexes "
-                            + "WHERE tablename = 'test_smart_ybhnsw_index' "
-                            + "AND indexdef LIKE '%embedding%' "
-                            + "AND indexdef LIKE '%ybhnsw%'")) {
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT indexname, indexdef FROM pg_indexes "
+                         + "WHERE tablename = 'test_smart_ybhnsw_index' "
+                         + "AND indexdef LIKE '%embedding%' "
+                         + "AND indexdef LIKE '%ybhnsw%'")) {
 
                 boolean ybhnswIndexFound = false;
                 while (rs.next()) {
@@ -925,9 +933,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                     smartLogger.info("📋 [SMART-DRIVER] Found ybhnsw index: {}", indexName);
                     smartLogger.info("📋 [SMART-DRIVER] Index definition: {}", indexDef);
 
-                    // Verify it's ybhnsw (YugabyteDB optimized) and has vector operator
-                    assertThat(indexDef).contains("ybhnsw");
-                    assertThat(indexDef).containsAnyOf("vector_cosine_ops", "embedding");
+                    assertThat(indexDef)
+                            // Verify it's ybhnsw (YugabyteDB optimized) and has vector operator
+                            .contains("ybhnsw")
+                            .containsAnyOf("vector_cosine_ops", "embedding");
                     ybhnswIndexFound = true;
                 }
 
@@ -947,7 +956,7 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
             // Cleanup
             try (Connection conn = smartEngine.getConnection();
-                    Statement stmt = conn.createStatement()) {
+                 Statement stmt = conn.createStatement()) {
                 stmt.execute("DROP TABLE IF EXISTS test_smart_ybhnsw_index CASCADE");
             }
         }
@@ -979,10 +988,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
             // Then - Verify NO vector index exists (check for both hnsw and ybhnsw)
             try (Connection conn = smartEngine.getConnection();
-                    Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery(
-                            "SELECT indexname FROM pg_indexes " + "WHERE tablename = 'test_smart_no_index' AND "
-                                    + "(indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(
+                         "SELECT indexname FROM pg_indexes " + "WHERE tablename = 'test_smart_no_index' AND "
+                                 + "(indexdef LIKE '%hnsw%' OR indexdef LIKE '%ybhnsw%')")) {
 
                 assertThat(rs.next()).isFalse();
                 smartLogger.info("✅ [SMART-DRIVER] Confirmed no vector index exists (checked both hnsw and ybhnsw)");
@@ -1000,7 +1009,7 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
             // Cleanup
             try (Connection conn = smartEngine.getConnection();
-                    Statement stmt = conn.createStatement()) {
+                 Statement stmt = conn.createStatement()) {
                 stmt.execute("DROP TABLE IF EXISTS test_smart_no_index CASCADE");
             }
         }

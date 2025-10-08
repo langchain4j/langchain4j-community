@@ -1,16 +1,23 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
-import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.toStringValueMap;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.store.embedding.filter.Filter;
-import java.sql.*;
-import java.util.*;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.toStringValueMap;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 
 /**
  * Metadata handler for COMBINED_JSONB storage mode in YugabyteDB.

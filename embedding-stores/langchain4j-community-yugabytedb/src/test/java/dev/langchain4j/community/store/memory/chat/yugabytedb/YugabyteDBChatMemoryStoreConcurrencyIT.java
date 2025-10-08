@@ -1,21 +1,11 @@
 package dev.langchain4j.community.store.memory.chat.yugabytedb;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.community.store.embedding.yugabytedb.YugabyteDBEngine;
 import dev.langchain4j.community.store.embedding.yugabytedb.YugabyteDBTestBase;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -25,25 +15,34 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * Concurrency and thread safety tests for YugabyteDBChatMemoryStore using TestContainers.
  * Tests concurrent access, thread safety, and race condition handling.
- *
+ * <p>
  * Main class tests use PostgreSQL JDBC Driver.
  * Nested SmartDriverConcurrencyIT class tests use YugabyteDB Smart Driver.
  */
 class YugabyteDBChatMemoryStoreConcurrencyIT extends YugabyteDBTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(YugabyteDBChatMemoryStoreConcurrencyIT.class);
-
-    private static YugabyteDBEngine engine;
-    private static ChatMemoryStore memoryStore;
-
     // Concurrency test constants
     private static final int CONCURRENT_THREADS = 10;
     private static final int CONCURRENT_OPERATIONS_PER_THREAD = 50;
     private static final int STRESS_TEST_THREADS = 20;
     private static final int STRESS_TEST_OPERATIONS = 25;
+    private static YugabyteDBEngine engine;
+    private static ChatMemoryStore memoryStore;
 
     @BeforeAll
     static void setUp() {
@@ -131,7 +130,7 @@ class YugabyteDBChatMemoryStoreConcurrencyIT extends YugabyteDBTestBase {
                     for (int i = 0; i < CONCURRENT_OPERATIONS_PER_THREAD; i++) {
                         try {
                             String memoryId = String.format("%s-thread-%d-op-%d", memoryIdPrefix, finalThreadId, i);
-                            List<ChatMessage> messages = Arrays.asList(UserMessage.from(
+                            List<ChatMessage> messages = List.of(UserMessage.from(
                                     String.format("Message from thread %d, operation %d", finalThreadId, i)));
 
                             long opStart = System.currentTimeMillis();
@@ -369,7 +368,7 @@ class YugabyteDBChatMemoryStoreConcurrencyIT extends YugabyteDBTestBase {
                             String memoryId =
                                     memoryIdPrefix + "-mixed-ops-" + ((threadId * operationsPerThread + j) % 50);
                             List<ChatMessage> messages =
-                                    Arrays.asList(UserMessage.from(String.format("Writer %d message %d", threadId, j)));
+                                    List.of(UserMessage.from(String.format("Writer %d message %d", threadId, j)));
                             store.updateMessages(memoryId, messages);
                             writeOperations.incrementAndGet();
                         } catch (Exception e) {

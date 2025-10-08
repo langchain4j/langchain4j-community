@@ -1,13 +1,13 @@
 package dev.langchain4j.community.store.memory.chat.yugabytedb;
 
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-
 import dev.langchain4j.community.store.embedding.yugabytedb.YugabyteDBEngine;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
 import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,8 +18,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 /**
  * Implementation of {@link ChatMemoryStore} that stores chat messages in YugabyteDB.
@@ -78,6 +79,15 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
     }
 
     /**
+     * Creates a new builder instance for constructing a YugabyteDBChatMemoryStore.
+     *
+     * @return A new Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
      * Retrieves all chat messages associated with the given memory ID.
      *
      * @param memoryId The identifier for the memory to retrieve
@@ -93,7 +103,7 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
                 schema.getMessagesColumn(), schema.getFullTableName(), schema.getIdColumn());
 
         try (Connection connection = engine.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, memoryIdString);
 
@@ -160,7 +170,7 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
         }
 
         try (Connection connection = engine.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, memoryIdString);
             statement.setString(2, messagesJson);
@@ -199,7 +209,7 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
         String sql = String.format("DELETE FROM %s WHERE %s = ?", schema.getFullTableName(), schema.getIdColumn());
 
         try (Connection connection = engine.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, memoryIdString);
             int rowsAffected = statement.executeUpdate();
@@ -232,7 +242,7 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
                 schema.getFullTableName(), schema.getExpiresAtColumn(), schema.getExpiresAtColumn());
 
         try (Connection connection = engine.getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
 
             int deletedCount = statement.executeUpdate(sql);
             if (deletedCount > 0) {
@@ -267,7 +277,7 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
      */
     private void createTableIfNotExists() {
         try (Connection connection = engine.getConnection();
-                Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
 
             statement.execute(schema.getCreateTableSql());
             statement.execute(schema.getCreateIndexSql());
@@ -278,15 +288,6 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
         } catch (Exception e) {
             throw new YugabyteDBChatMemoryStoreException("Failed to create chat memory table", e);
         }
-    }
-
-    /**
-     * Creates a new builder instance for constructing a YugabyteDBChatMemoryStore.
-     *
-     * @return A new Builder instance
-     */
-    public static Builder builder() {
-        return new Builder();
     }
 
     /**

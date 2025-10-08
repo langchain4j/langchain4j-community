@@ -1,9 +1,5 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
-import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
-import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.langchain4j.data.document.Metadata;
@@ -16,12 +12,9 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 import dev.langchain4j.store.embedding.filter.Filter;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,37 +24,42 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
+import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * Configuration-based integration tests for YugabyteDBEmbeddingStore.
  * Tests all three metadata storage modes and SQL injection prevention.
- *
+ * <p>
  * Uses TestContainers for isolated YugabyteDB instance
  */
 @Testcontainers
 abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilteringIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBEmbeddingStoreConfigIT.class);
-
     @Container
     @SuppressWarnings("resource")
     static final GenericContainer<?> yugabyteContainer = new GenericContainer<>(
-                    DockerImageName.parse("yugabytedb/yugabyte:2025.1.0.1-b3"))
+            DockerImageName.parse("yugabytedb/yugabyte:2025.1.0.1-b3"))
             .withExposedPorts(5433, 7000, 9000, 15433, 9042)
             .withCommand("bin/yugabyted", "start", "--background=false")
             .waitingFor(Wait.forListeningPorts(5433).withStartupTimeout(Duration.ofMinutes(5)));
-
-    static YugabyteDBEmbeddingStore embeddingStore;
-    static YugabyteDBEngine engine;
-    static HikariDataSource dataSource;
-    static EmbeddingModel embeddingModel;
-
-    static String TABLE_NAME = "test_config"; // Will be overridden by each test class
     static final int TABLE_DIMENSION = 384;
-
+    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBEmbeddingStoreConfigIT.class);
     // TestContainers connection details
     private static final String DB_NAME = "yugabyte";
     private static final String DB_USER = "yugabyte";
     private static final String DB_PASSWORD = "yugabyte";
+    static YugabyteDBEmbeddingStore embeddingStore;
+    static YugabyteDBEngine engine;
+    static HikariDataSource dataSource;
+    static EmbeddingModel embeddingModel;
+    static String TABLE_NAME = "test_config"; // Will be overridden by each test class
 
     @BeforeAll
     static void setup() {
@@ -326,7 +324,7 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
      * Tests that metadata is correctly stored and retrieved from individual columns.
      */
     @Test
-    public void should_add_embedding_with_segment_with_column_metadata() {
+    void should_add_embedding_with_segment_with_column_metadata() {
         EmbeddingStore<TextSegment> store = embeddingStore();
         EmbeddingModel model = embeddingModel();
 
@@ -351,7 +349,8 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
     /**
      * Concrete test class for COLUMN_PER_KEY metadata storage mode.
      */
-    static class ColumnPerKeyConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
+    @Nested
+    class ColumnPerKeyConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
 
         // Listing all the columns are important to ensure that the test is comprehensive
         // and that all the columns are supported by the metadata storage mode
@@ -459,7 +458,8 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
     /**
      * Concrete test class for COMBINED_JSON metadata storage mode.
      */
-    static class CombinedJsonConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
+    @Nested
+    class CombinedJsonConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
 
         static {
             MetadataStorageConfig config = DefaultMetadataStorageConfig.combinedJson();
@@ -529,7 +529,8 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
     /**
      * Concrete test class for COMBINED_JSONB metadata storage mode.
      */
-    static class CombinedJsonbConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
+    @Nested
+    class CombinedJsonbConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
 
         static {
             MetadataStorageConfig config = DefaultMetadataStorageConfig.combinedJsonb();
@@ -602,7 +603,8 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
     /**
      * Test configuration with YugabyteDB Smart Driver
      */
-    static class SmartDriverConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
+    @Nested
+    class SmartDriverConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
 
         @BeforeAll
         static void setupSmartDriver() {
@@ -764,7 +766,8 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
      * Test COLUMN_PER_KEY metadata storage mode with YugabyteDB Smart Driver.
      * Tests that individual metadata columns work correctly with Smart Driver.
      */
-    static class SmartDriverColumnPerKeyConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
+    @Nested
+    class SmartDriverColumnPerKeyConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
 
         @BeforeAll
         static void setupSmartDriver() {
@@ -948,7 +951,8 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
      * Test COMBINED_JSONB metadata storage mode with YugabyteDB Smart Driver.
      * Tests that JSONB metadata works correctly with Smart Driver.
      */
-    static class SmartDriverCombinedJsonbConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
+    @Nested
+    class SmartDriverCombinedJsonbConfigIT extends YugabyteDBEmbeddingStoreConfigIT {
 
         @BeforeAll
         static void setupSmartDriver() {

@@ -7,7 +7,6 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
-import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,6 +21,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
+
 /**
  * Integration tests for YugabyteDBEmbeddingStore removal operations.
  * Tests both PostgreSQL JDBC driver (recommended) and YugabyteDB Smart Driver.
@@ -30,25 +31,22 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class YugabyteDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBEmbeddingStoreRemovalIT.class);
-
     @Container
     @SuppressWarnings("resource")
     static final GenericContainer<?> yugabyteContainer = new GenericContainer<>(
-                    DockerImageName.parse("yugabytedb/yugabyte:2025.1.0.1-b3"))
+            DockerImageName.parse("yugabytedb/yugabyte:2025.1.0.1-b3"))
             .withExposedPorts(5433, 7000, 9000, 15433, 9042)
             .withCommand("bin/yugabyted", "start", "--background=false")
             .waitingFor(Wait.forListeningPorts(5433).withStartupTimeout(Duration.ofMinutes(5)));
-
-    static YugabyteDBEngine engine;
-    static HikariDataSource dataSource;
-    static EmbeddingModel embeddingModel;
-    static YugabyteDBEmbeddingStore store;
-
+    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBEmbeddingStoreRemovalIT.class);
     // TestContainers connection details
     private static final String DB_NAME = "yugabyte";
     private static final String DB_USER = "yugabyte";
     private static final String DB_PASSWORD = "yugabyte";
+    static YugabyteDBEngine engine;
+    static HikariDataSource dataSource;
+    static EmbeddingModel embeddingModel;
+    static YugabyteDBEmbeddingStore store;
 
     @BeforeAll
     static void setup() throws Exception {
@@ -97,7 +95,7 @@ class YugabyteDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
         // Enable pgvector extension using JDBC
         logger.info("🔧 [POSTGRESQL] Enabling pgvector extension via JDBC...");
         try (var connection = engine.getConnection();
-                var stmt = connection.createStatement()) {
+             var stmt = connection.createStatement()) {
             stmt.execute("CREATE EXTENSION IF NOT EXISTS vector;");
             logger.info("✅ [POSTGRESQL] pgvector extension enabled successfully");
         } catch (Exception e) {

@@ -1,20 +1,21 @@
 package dev.langchain4j.community.store.embedding.yugabytedb.index;
 
 import dev.langchain4j.community.store.embedding.yugabytedb.MetricType;
+
 import java.util.Collections;
 import java.util.List;
 
 /**
  * Represents no vector index - performs sequential scans for similarity search.
- *
+ * <p>
  * Use this when:
  * - Dataset is very small (&lt; 10,000 vectors)
  * - Index creation time is a concern
  * - Testing or development without index overhead
- *
+ * <p>
  * Note: Sequential scan can be acceptably fast for small datasets
  * but becomes very slow as the dataset grows.
- *
+ * <p>
  * Example usage:
  * <pre>
  * YugabyteDBSchema schema = YugabyteDBSchema.builder()

@@ -2,11 +2,12 @@ package dev.langchain4j.community.store.embedding.yugabytedb;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import java.sql.Connection;
-import java.sql.SQLException;
-import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * YugabyteDBEngine is a wrapper around a {@link DataSource} that provides
@@ -25,6 +26,25 @@ public class YugabyteDBEngine {
      */
     public YugabyteDBEngine(DataSource dataSource) {
         this.dataSource = dataSource;
+    }
+
+    /**
+     * Create a builder for YugabyteDBEngine
+     *
+     * @return Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Create YugabyteDBEngine from existing DataSource
+     *
+     * @param dataSource the DataSource to use
+     * @return YugabyteDBEngine instance
+     */
+    public static YugabyteDBEngine from(DataSource dataSource) {
+        return new YugabyteDBEngine(dataSource);
     }
 
     /**
@@ -206,24 +226,5 @@ public class YugabyteDBEngine {
                 throw new YugabyteDBRequestFailedException("Failed to create YugabyteDB connection pool", e);
             }
         }
-    }
-
-    /**
-     * Create a builder for YugabyteDBEngine
-     *
-     * @return Builder instance
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
-     * Create YugabyteDBEngine from existing DataSource
-     *
-     * @param dataSource the DataSource to use
-     * @return YugabyteDBEngine instance
-     */
-    public static YugabyteDBEngine from(DataSource dataSource) {
-        return new YugabyteDBEngine(dataSource);
     }
 }

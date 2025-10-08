@@ -6,8 +6,6 @@ import dev.langchain4j.community.store.memory.chat.yugabytedb.YugabyteDBChatMemo
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import java.time.Duration;
-import java.util.Properties;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
@@ -18,6 +16,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
+import java.util.Properties;
+
 /**
  * Base class for YugabyteDB integration tests using Testcontainers.
  * Provides common container setup, driver configuration, and cleanup functionality.
@@ -25,20 +26,17 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public abstract class YugabyteDBTestBase {
 
-    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBTestBase.class);
-
     protected static final String DB_NAME = "yugabyte";
     protected static final String DB_USER = "yugabyte";
     protected static final String DB_PASSWORD = "yugabyte";
-
     @Container
     @SuppressWarnings("resource")
     protected static final GenericContainer<?> yugabyteContainer = new GenericContainer<>(
-                    DockerImageName.parse("yugabytedb/yugabyte:2025.1.0.1-b3"))
+            DockerImageName.parse("yugabytedb/yugabyte:2025.1.0.1-b3"))
             .withExposedPorts(5433, 7000, 9000, 15433, 9042)
             .withCommand("bin/yugabyted", "start", "--background=false")
             .waitingFor(Wait.forListeningPorts(5433).withStartupTimeout(Duration.ofMinutes(5)));
-
+    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBTestBase.class);
     protected static EmbeddingModel embeddingModel;
     protected static YugabyteDBEngine engine;
     protected static HikariDataSource dataSource;
@@ -76,7 +74,7 @@ public abstract class YugabyteDBTestBase {
         // Enable pgvector extension using JDBC (more reliable than ysqlsh in containers)
         logger.info("🔧 [SETUP] Enabling pgvector extension via JDBC...");
         try (var connection = engine.getConnection();
-                var stmt = connection.createStatement()) {
+             var stmt = connection.createStatement()) {
             stmt.execute("CREATE EXTENSION IF NOT EXISTS vector;");
             logger.info("✅ [SETUP] pgvector extension enabled successfully");
         } catch (Exception e) {
@@ -270,7 +268,7 @@ public abstract class YugabyteDBTestBase {
         logger.info("🧹 [CLEANUP] Dropping test tables...");
 
         try (var connection = engine.getConnection();
-                var statement = connection.createStatement()) {
+             var statement = connection.createStatement()) {
 
             for (String tableName : tableNames) {
                 try {
