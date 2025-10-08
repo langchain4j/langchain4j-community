@@ -49,6 +49,7 @@
         <module>embedding-stores/langchain4j-community-alloydb-pg</module>
         <module>embedding-stores/langchain4j-community-cloud-sql-pg</module>
         <module>embedding-stores/langchain4j-community-neo4j</module>
+        <module>embedding-stores/langchain4j-community-yugabytedb</module>
 
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
