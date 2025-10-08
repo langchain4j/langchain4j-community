@@ -28,6 +28,25 @@ public class YugabyteDBEngine {
     }
 
     /**
+     * Create a builder for YugabyteDBEngine
+     *
+     * @return Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Create YugabyteDBEngine from existing DataSource
+     *
+     * @param dataSource the DataSource to use
+     * @return YugabyteDBEngine instance
+     */
+    public static YugabyteDBEngine from(DataSource dataSource) {
+        return new YugabyteDBEngine(dataSource);
+    }
+
+    /**
      * Get a connection from the pool
      *
      * @return SQL Connection
@@ -206,24 +225,5 @@ public class YugabyteDBEngine {
                 throw new YugabyteDBRequestFailedException("Failed to create YugabyteDB connection pool", e);
             }
         }
-    }
-
-    /**
-     * Create a builder for YugabyteDBEngine
-     *
-     * @return Builder instance
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
-     * Create YugabyteDBEngine from existing DataSource
-     *
-     * @param dataSource the DataSource to use
-     * @return YugabyteDBEngine instance
-     */
-    public static YugabyteDBEngine from(DataSource dataSource) {
-        return new YugabyteDBEngine(dataSource);
     }
 }

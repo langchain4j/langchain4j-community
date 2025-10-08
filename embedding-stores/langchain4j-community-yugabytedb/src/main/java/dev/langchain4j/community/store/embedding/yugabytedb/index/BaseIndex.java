@@ -25,7 +25,7 @@ public interface BaseIndex {
 
     /**
      * Get the index-specific options string for CREATE INDEX statement.
-     *
+     * <p>
      * For example:
      * - HNSW (ybhnsw): "(m = 16, ef_construction = 64)"
      * - NoIndex: null

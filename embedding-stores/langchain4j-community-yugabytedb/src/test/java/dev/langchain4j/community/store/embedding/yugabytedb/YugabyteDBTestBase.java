@@ -25,8 +25,6 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public abstract class YugabyteDBTestBase {
 
-    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBTestBase.class);
-
     protected static final String DB_NAME = "yugabyte";
     protected static final String DB_USER = "yugabyte";
     protected static final String DB_PASSWORD = "yugabyte";
@@ -39,6 +37,7 @@ public abstract class YugabyteDBTestBase {
             .withCommand("bin/yugabyted", "start", "--background=false")
             .waitingFor(Wait.forListeningPorts(5433).withStartupTimeout(Duration.ofMinutes(5)));
 
+    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBTestBase.class);
     protected static EmbeddingModel embeddingModel;
     protected static YugabyteDBEngine engine;
     protected static HikariDataSource dataSource;

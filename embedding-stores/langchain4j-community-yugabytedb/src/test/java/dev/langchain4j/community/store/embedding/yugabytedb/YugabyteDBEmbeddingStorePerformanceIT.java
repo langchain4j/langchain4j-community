@@ -81,7 +81,7 @@ class YugabyteDBEmbeddingStorePerformanceIT extends YugabyteDBTestBase {
     }
 
     @Test
-    void should_handle_concurrent_operations() throws InterruptedException {
+    void should_handle_concurrent_operations() throws Exception {
         logger.info("🚀 [TEST] Starting concurrent operations performance test...");
 
         YugabyteDBEmbeddingStore store = createStore("concurrent_test");
@@ -474,7 +474,7 @@ class YugabyteDBEmbeddingStorePerformanceIT extends YugabyteDBTestBase {
         }
 
         @Test
-        void should_handle_concurrent_operations_with_smart_driver() throws InterruptedException {
+        void should_handle_concurrent_operations_with_smart_driver() throws Exception {
             smartLogger.info("🚀 [SMART-DRIVER] Starting concurrent operations performance test...");
 
             YugabyteDBEmbeddingStore store = createSmartDriverStore("concurrent_test_smart");

@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * JSON utility class for YugabyteDB operations
- *
+ * <p>
  * Provides serialization and deserialization utilities for handling metadata
  * and other JSON operations in YugabyteDB embedding storage.
  */
@@ -40,8 +40,8 @@ public class YugabyteDBJsonUtils {
      * Convert JSON string to object of specified class
      *
      * @param jsonStr the JSON string
-     * @param clazz the target class
-     * @param <T> the type parameter
+     * @param clazz   the target class
+     * @param <T>     the type parameter
      * @return deserialized object
      * @throws YugabyteDBRequestFailedException if deserialization fails
      */
@@ -56,9 +56,9 @@ public class YugabyteDBJsonUtils {
     /**
      * Convert JSON string to object using TypeReference
      *
-     * @param jsonStr the JSON string
+     * @param jsonStr       the JSON string
      * @param typeReference the type reference
-     * @param <T> the type parameter
+     * @param <T>           the type parameter
      * @return deserialized object
      * @throws YugabyteDBRequestFailedException if deserialization fails
      */

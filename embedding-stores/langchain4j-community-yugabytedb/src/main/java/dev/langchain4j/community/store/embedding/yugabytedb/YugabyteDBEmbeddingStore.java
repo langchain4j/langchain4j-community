@@ -60,6 +60,10 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     @Override
     public String add(Embedding embedding) {
         String id = randomUUID();
@@ -342,9 +346,8 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     private Embedding extractEmbeddingFromResultSet(ResultSet resultSet, String columnName) throws SQLException {
         Object vectorObject = resultSet.getObject(columnName);
 
-        if (vectorObject instanceof PGvector) {
+        if (vectorObject instanceof final PGvector pgvector) {
             // PostgreSQL JDBC driver returns PGvector objects
-            PGvector pgvector = (PGvector) vectorObject;
             return Embedding.from(pgvector.toArray());
         } else if (vectorObject != null && vectorObject.getClass().getName().equals("com.yugabyte.util.PGobject")) {
             // YugabyteDB Smart Driver returns PGobject - extract the vector string and parse it
@@ -413,11 +416,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         return String.format(
                 "INSERT INTO %s (%s) VALUES (%s) " + "ON CONFLICT (%s) DO UPDATE SET %s",
-                schema.getFullTableName(),
-                columns.toString(),
-                placeholders.toString(),
-                schema.getIdColumn(),
-                updateClause);
+                schema.getFullTableName(), columns, placeholders, schema.getIdColumn(), updateClause);
     }
 
     /**
@@ -438,7 +437,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .append(schema.getDistanceFunction())
                 .append(" ? AS distance");
 
-        return String.format("SELECT %s FROM %s", columns.toString(), schema.getFullTableName());
+        return String.format("SELECT %s FROM %s", columns, schema.getFullTableName());
     }
 
     public void createTableIfNotExists() {
@@ -498,14 +497,11 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         };
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
     public static class Builder {
         private YugabyteDBEngine engine;
         private YugabyteDBSchema schema;
         private MetadataStorageConfig metadataStorageConfig;
+        private YugabyteDBSchema.Builder schemaBuilder;
 
         public Builder engine(YugabyteDBEngine engine) {
             this.engine = engine;
@@ -602,8 +598,6 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             ensureSchemaBuilder().createTableIfNotExists(createTableIfNotExists);
             return this;
         }
-
-        private YugabyteDBSchema.Builder schemaBuilder;
 
         private YugabyteDBSchema.Builder ensureSchemaBuilder() {
             if (schemaBuilder == null) {

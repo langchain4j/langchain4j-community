@@ -31,7 +31,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * Tests for complete RAG workflow with YugabyteDB.
  * Tests document processing, chunking, embedding generation, storage, and retrieval.
  * Uses YugabyteDB TestContainer for isolated testing.
- *
+ * <p>
  * Main class tests use PostgreSQL JDBC Driver.
  * Nested SmartDriverRAGIT class tests use YugabyteDB Smart Driver.
  */
@@ -446,6 +446,199 @@ class YugabyteDBRAGWorkflowIT extends YugabyteDBTestBase {
         }
     }
 
+    private List<String> performRAGWorkflow(YugabyteDBEmbeddingStore store, String driverName) {
+        logger.info("📄 [{}] Processing RAG documents...", driverName);
+
+        // Sample RAG documents
+        String[] ragDocuments = {
+            "YugabyteDB is a distributed SQL database that provides PostgreSQL compatibility. "
+                    + "It offers horizontal scalability and high availability for cloud-native applications. "
+                    + "The database supports ACID transactions and provides strong consistency guarantees.",
+            "Vector embeddings enable semantic search by converting text into numerical representations. "
+                    + "These high-dimensional vectors capture the meaning and context of text content. "
+                    + "Similarity search using cosine distance helps find semantically related documents.",
+            "RAG (Retrieval-Augmented Generation) combines information retrieval with language models. "
+                    + "It first retrieves relevant documents using vector similarity search. "
+                    + "Then it uses these documents as context for generating more accurate responses.",
+            "Connection pooling optimizes database performance by reusing connections. "
+                    + "HikariCP provides efficient connection pool management for Java applications. "
+                    + "Proper pool sizing and configuration are crucial for optimal performance."
+        };
+
+        String[] categories = {"database", "ai", "rag", "performance"};
+        List<String> allIds = new ArrayList<>();
+
+        for (int i = 0; i < ragDocuments.length; i++) {
+            logger.info(
+                    "  📦 [{}] Processing document {}/{} [{}]...",
+                    driverName,
+                    i + 1,
+                    ragDocuments.length,
+                    categories[i]);
+
+            // Create document with metadata
+            Metadata documentMetadata = new Metadata()
+                    .put("source", "rag_test")
+                    .put("category", categories[i])
+                    .put("document_id", String.valueOf(i + 1))
+                    .put("driver_type", driverName.toLowerCase().replace(" ", "_"));
+
+            Document document = Document.from(ragDocuments[i], documentMetadata);
+
+            // Split document into chunks
+            List<TextSegment> chunks = documentSplitter.split(document);
+            logger.info("    ✂️ [{}] Split into {} chunks", driverName, chunks.size());
+
+            // Process each chunk
+            for (int j = 0; j < chunks.size(); j++) {
+                TextSegment chunk = chunks.get(j);
+
+                // Enrich chunk metadata
+                Metadata chunkMetadata = new Metadata();
+                for (String key : chunk.metadata().toMap().keySet()) {
+                    Object value = chunk.metadata().toMap().get(key);
+                    chunkMetadata.put(key, value.toString());
+                }
+                chunkMetadata.put("chunk_id", String.valueOf(j + 1));
+                chunkMetadata.put("total_chunks", String.valueOf(chunks.size()));
+
+                TextSegment enrichedChunk = TextSegment.from(chunk.text(), chunkMetadata);
+
+                // Generate embedding and store
+                long embeddingStart = System.currentTimeMillis();
+                Embedding embedding = embeddingModel.embed(enrichedChunk).content();
+                long embeddingEnd = System.currentTimeMillis();
+
+                long storeStart = System.currentTimeMillis();
+                String id = store.add(embedding, enrichedChunk);
+                long storeEnd = System.currentTimeMillis();
+
+                allIds.add(id);
+
+                logger.info(
+                        "      💾 [{}] Chunk {} stored: embed={}ms, store={}ms (ID: {})",
+                        driverName,
+                        j + 1,
+                        embeddingEnd - embeddingStart,
+                        storeEnd - storeStart,
+                        id.substring(0, 8));
+            }
+        }
+
+        logger.info("✅ [{}] RAG document processing completed: {} total chunks stored", driverName, allIds.size());
+
+        return allIds;
+    }
+
+    private void testRAGRetrievalPerformance(YugabyteDBEmbeddingStore store, String driverName) {
+        logger.info("🔍 [{}] Testing RAG retrieval performance...", driverName);
+
+        String[] testQueries = {
+            "How does YugabyteDB handle distributed transactions?",
+            "What are vector embeddings and how do they work?",
+            "Explain RAG and its benefits for AI applications",
+            "How to optimize database connection pooling?"
+        };
+
+        for (int i = 0; i < testQueries.length; i++) {
+            String query = testQueries[i];
+            logger.info("  🔎 [{}] Query {}: {}", driverName, i + 1, query);
+
+            long queryStart = System.currentTimeMillis();
+            Embedding queryEmbedding = embeddingModel.embed(query).content();
+            long embeddingTime = System.currentTimeMillis() - queryStart;
+
+            long searchStart = System.currentTimeMillis();
+            EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .maxResults(3)
+                    .minScore(0.5)
+                    .build());
+            long searchTime = System.currentTimeMillis() - searchStart;
+
+            List<EmbeddingMatch<TextSegment>> matches = result.matches();
+
+            logger.info(
+                    "[{}] Found {} matches: embed={}ms, search={}ms, total={}ms",
+                    driverName,
+                    matches.size(),
+                    embeddingTime,
+                    searchTime,
+                    embeddingTime + searchTime);
+
+            // Verify results quality
+            for (int j = 0; j < Math.min(matches.size(), 2); j++) {
+                EmbeddingMatch<TextSegment> match = matches.get(j);
+                logger.info(
+                        "      📄 [{}] Match {}: score={}, category={}",
+                        driverName,
+                        j + 1,
+                        String.format("%.3f", match.score()),
+                        match.embedded().metadata().getString("category"));
+            }
+
+            assertThat(matches).isNotEmpty();
+        }
+
+        logger.info("✅ [{}] RAG retrieval performance testing completed", driverName);
+    }
+
+    private void testRAGRetrieval(YugabyteDBEmbeddingStore store, String query) {
+        Embedding queryEmbedding = embeddingModel.embed(query).content();
+
+        EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(3)
+                .minScore(0.5)
+                .build());
+
+        List<EmbeddingMatch<TextSegment>> matches = result.matches();
+        assertThat(matches).isNotEmpty();
+
+        logger.info("✅ RAG query '{}' found {} relevant chunks", query, matches.size());
+
+        // Verify chunks have proper metadata
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            TextSegment segment = match.embedded();
+            assertThat(segment.metadata()).isNotNull();
+            assertThat(match.score()).isGreaterThan(0.5);
+        }
+    }
+
+    private void testFilteredRAGQuery(YugabyteDBEmbeddingStore store, String query, Filter filter) {
+        Embedding queryEmbedding = embeddingModel.embed(query).content();
+
+        EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .filter(filter)
+                .maxResults(5)
+                .build());
+
+        List<EmbeddingMatch<TextSegment>> matches = result.matches();
+
+        logger.info(
+                "✅ Filtered RAG query '{}' with filter '{}' found {} results",
+                query,
+                filter.toString(),
+                matches.size());
+
+        // Verify all results match the filter
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            // Filter validation would depend on specific filter type
+            assertThat(match.embedded().metadata()).isNotNull();
+        }
+    }
+
+    protected YugabyteDBEmbeddingStore createStore(String tableName) {
+        return YugabyteDBEmbeddingStore.builder()
+                .engine(engine)
+                .tableName(tableName)
+                .dimension(384)
+                .metricType(MetricType.COSINE)
+                .createTableIfNotExists(true)
+                .build();
+    }
+
     /**
      * Nested test class for YugabyteDB Smart Driver RAG workflow tests.
      * Runs the same RAG tests using Smart Driver for comprehensive coverage.
@@ -792,198 +985,5 @@ class YugabyteDBRAGWorkflowIT extends YugabyteDBTestBase {
                 assertThat(match.embedded().metadata()).isNotNull();
             }
         }
-    }
-
-    private List<String> performRAGWorkflow(YugabyteDBEmbeddingStore store, String driverName) {
-        logger.info("📄 [{}] Processing RAG documents...", driverName);
-
-        // Sample RAG documents
-        String[] ragDocuments = {
-            "YugabyteDB is a distributed SQL database that provides PostgreSQL compatibility. "
-                    + "It offers horizontal scalability and high availability for cloud-native applications. "
-                    + "The database supports ACID transactions and provides strong consistency guarantees.",
-            "Vector embeddings enable semantic search by converting text into numerical representations. "
-                    + "These high-dimensional vectors capture the meaning and context of text content. "
-                    + "Similarity search using cosine distance helps find semantically related documents.",
-            "RAG (Retrieval-Augmented Generation) combines information retrieval with language models. "
-                    + "It first retrieves relevant documents using vector similarity search. "
-                    + "Then it uses these documents as context for generating more accurate responses.",
-            "Connection pooling optimizes database performance by reusing connections. "
-                    + "HikariCP provides efficient connection pool management for Java applications. "
-                    + "Proper pool sizing and configuration are crucial for optimal performance."
-        };
-
-        String[] categories = {"database", "ai", "rag", "performance"};
-        List<String> allIds = new ArrayList<>();
-
-        for (int i = 0; i < ragDocuments.length; i++) {
-            logger.info(
-                    "  📦 [{}] Processing document {}/{} [{}]...",
-                    driverName,
-                    i + 1,
-                    ragDocuments.length,
-                    categories[i]);
-
-            // Create document with metadata
-            Metadata documentMetadata = new Metadata()
-                    .put("source", "rag_test")
-                    .put("category", categories[i])
-                    .put("document_id", String.valueOf(i + 1))
-                    .put("driver_type", driverName.toLowerCase().replace(" ", "_"));
-
-            Document document = Document.from(ragDocuments[i], documentMetadata);
-
-            // Split document into chunks
-            List<TextSegment> chunks = documentSplitter.split(document);
-            logger.info("    ✂️ [{}] Split into {} chunks", driverName, chunks.size());
-
-            // Process each chunk
-            for (int j = 0; j < chunks.size(); j++) {
-                TextSegment chunk = chunks.get(j);
-
-                // Enrich chunk metadata
-                Metadata chunkMetadata = new Metadata();
-                for (String key : chunk.metadata().toMap().keySet()) {
-                    Object value = chunk.metadata().toMap().get(key);
-                    chunkMetadata.put(key, value.toString());
-                }
-                chunkMetadata.put("chunk_id", String.valueOf(j + 1));
-                chunkMetadata.put("total_chunks", String.valueOf(chunks.size()));
-
-                TextSegment enrichedChunk = TextSegment.from(chunk.text(), chunkMetadata);
-
-                // Generate embedding and store
-                long embeddingStart = System.currentTimeMillis();
-                Embedding embedding = embeddingModel.embed(enrichedChunk).content();
-                long embeddingEnd = System.currentTimeMillis();
-
-                long storeStart = System.currentTimeMillis();
-                String id = store.add(embedding, enrichedChunk);
-                long storeEnd = System.currentTimeMillis();
-
-                allIds.add(id);
-
-                logger.info(
-                        "      💾 [{}] Chunk {} stored: embed={}ms, store={}ms (ID: {})",
-                        driverName,
-                        j + 1,
-                        embeddingEnd - embeddingStart,
-                        storeEnd - storeStart,
-                        id.substring(0, 8));
-            }
-        }
-
-        logger.info("✅ [{}] RAG document processing completed: {} total chunks stored", driverName, allIds.size());
-
-        return allIds;
-    }
-
-    private void testRAGRetrievalPerformance(YugabyteDBEmbeddingStore store, String driverName) {
-        logger.info("🔍 [{}] Testing RAG retrieval performance...", driverName);
-
-        String[] testQueries = {
-            "How does YugabyteDB handle distributed transactions?",
-            "What are vector embeddings and how do they work?",
-            "Explain RAG and its benefits for AI applications",
-            "How to optimize database connection pooling?"
-        };
-
-        for (int i = 0; i < testQueries.length; i++) {
-            String query = testQueries[i];
-            logger.info("  🔎 [{}] Query {}: {}", driverName, i + 1, query);
-
-            long queryStart = System.currentTimeMillis();
-            Embedding queryEmbedding = embeddingModel.embed(query).content();
-            long embeddingTime = System.currentTimeMillis() - queryStart;
-
-            long searchStart = System.currentTimeMillis();
-            EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
-                    .queryEmbedding(queryEmbedding)
-                    .maxResults(3)
-                    .minScore(0.5)
-                    .build());
-            long searchTime = System.currentTimeMillis() - searchStart;
-
-            List<EmbeddingMatch<TextSegment>> matches = result.matches();
-
-            logger.info(
-                    "[{}] Found {} matches: embed={}ms, search={}ms, total={}ms",
-                    driverName,
-                    matches.size(),
-                    embeddingTime,
-                    searchTime,
-                    embeddingTime + searchTime);
-
-            // Verify results quality
-            for (int j = 0; j < Math.min(matches.size(), 2); j++) {
-                EmbeddingMatch<TextSegment> match = matches.get(j);
-                logger.info(
-                        "      📄 [{}] Match {}: score={}, category={}",
-                        driverName,
-                        j + 1,
-                        String.format("%.3f", match.score()),
-                        match.embedded().metadata().getString("category"));
-            }
-
-            assertThat(matches).isNotEmpty();
-        }
-
-        logger.info("✅ [{}] RAG retrieval performance testing completed", driverName);
-    }
-
-    private void testRAGRetrieval(YugabyteDBEmbeddingStore store, String query) {
-        Embedding queryEmbedding = embeddingModel.embed(query).content();
-
-        EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
-                .queryEmbedding(queryEmbedding)
-                .maxResults(3)
-                .minScore(0.5)
-                .build());
-
-        List<EmbeddingMatch<TextSegment>> matches = result.matches();
-        assertThat(matches).isNotEmpty();
-
-        logger.info("✅ RAG query '{}' found {} relevant chunks", query, matches.size());
-
-        // Verify chunks have proper metadata
-        for (EmbeddingMatch<TextSegment> match : matches) {
-            TextSegment segment = match.embedded();
-            assertThat(segment.metadata()).isNotNull();
-            assertThat(match.score()).isGreaterThan(0.5);
-        }
-    }
-
-    private void testFilteredRAGQuery(YugabyteDBEmbeddingStore store, String query, Filter filter) {
-        Embedding queryEmbedding = embeddingModel.embed(query).content();
-
-        EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
-                .queryEmbedding(queryEmbedding)
-                .filter(filter)
-                .maxResults(5)
-                .build());
-
-        List<EmbeddingMatch<TextSegment>> matches = result.matches();
-
-        logger.info(
-                "✅ Filtered RAG query '{}' with filter '{}' found {} results",
-                query,
-                filter.toString(),
-                matches.size());
-
-        // Verify all results match the filter
-        for (EmbeddingMatch<TextSegment> match : matches) {
-            // Filter validation would depend on specific filter type
-            assertThat(match.embedded().metadata()).isNotNull();
-        }
-    }
-
-    protected YugabyteDBEmbeddingStore createStore(String tableName) {
-        return YugabyteDBEmbeddingStore.builder()
-                .engine(engine)
-                .tableName(tableName)
-                .dimension(384)
-                .metricType(MetricType.COSINE)
-                .createTableIfNotExists(true)
-                .build();
     }
 }

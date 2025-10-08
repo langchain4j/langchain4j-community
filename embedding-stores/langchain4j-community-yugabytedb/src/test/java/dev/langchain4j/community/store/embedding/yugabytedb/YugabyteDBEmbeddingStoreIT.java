@@ -27,12 +27,6 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class YugabyteDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBEmbeddingStoreIT.class);
-
-    private static final String DB_NAME = "yugabyte";
-    private static final String DB_USER = "yugabyte";
-    private static final String DB_PASSWORD = "yugabyte";
-
     @Container
     @SuppressWarnings("resource")
     static final GenericContainer<?> yugabyteContainer = new GenericContainer<>(
@@ -41,6 +35,10 @@ class YugabyteDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
             .withCommand("bin/yugabyted", "start", "--background=false")
             .waitingFor(Wait.forListeningPorts(5433).withStartupTimeout(Duration.ofMinutes(5)));
 
+    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBEmbeddingStoreIT.class);
+    private static final String DB_NAME = "yugabyte";
+    private static final String DB_USER = "yugabyte";
+    private static final String DB_PASSWORD = "yugabyte";
     static YugabyteDBEngine engine;
     static YugabyteDBEngine smartEngine;
     static HikariDataSource dataSource;

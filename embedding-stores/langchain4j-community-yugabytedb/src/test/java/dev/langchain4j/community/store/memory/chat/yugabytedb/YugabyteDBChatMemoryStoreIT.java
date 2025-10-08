@@ -25,7 +25,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 /**
  * Basic functionality integration tests for YugabyteDBChatMemoryStore using TestContainers.
  * Tests core operations: store, retrieve, update, and delete messages.
- *
+ * <p>
  * Main class tests use PostgreSQL JDBC Driver.
  * Nested SmartDriverChatMemoryIT class tests use YugabyteDB Smart Driver.
  */
@@ -144,7 +144,7 @@ class YugabyteDBChatMemoryStoreIT extends YugabyteDBTestBase {
 
         // Given
         String memoryId = "update-test-" + memoryIdSuffix;
-        List<ChatMessage> initialMessages = Arrays.asList(UserMessage.from("Hello"));
+        List<ChatMessage> initialMessages = List.of(UserMessage.from("Hello"));
 
         List<ChatMessage> updatedMessages = Arrays.asList(
                 UserMessage.from("Hello"),

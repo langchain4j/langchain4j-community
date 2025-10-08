@@ -10,7 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.store.embedding.filter.Filter;
 import java.sql.*;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Metadata handler for COMBINED_JSON storage mode in YugabyteDB.

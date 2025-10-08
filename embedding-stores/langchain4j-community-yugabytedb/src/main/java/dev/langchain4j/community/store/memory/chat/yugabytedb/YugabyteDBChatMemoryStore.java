@@ -78,6 +78,15 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
     }
 
     /**
+     * Creates a new builder instance for constructing a YugabyteDBChatMemoryStore.
+     *
+     * @return A new Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
      * Retrieves all chat messages associated with the given memory ID.
      *
      * @param memoryId The identifier for the memory to retrieve
@@ -278,15 +287,6 @@ public class YugabyteDBChatMemoryStore implements ChatMemoryStore {
         } catch (Exception e) {
             throw new YugabyteDBChatMemoryStoreException("Failed to create chat memory table", e);
         }
-    }
-
-    /**
-     * Creates a new builder instance for constructing a YugabyteDBChatMemoryStore.
-     *
-     * @return A new Builder instance
-     */
-    public static Builder builder() {
-        return new Builder();
     }
 
     /**

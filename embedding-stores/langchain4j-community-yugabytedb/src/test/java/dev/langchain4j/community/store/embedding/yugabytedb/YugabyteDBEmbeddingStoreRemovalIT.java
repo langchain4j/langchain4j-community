@@ -30,8 +30,6 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 class YugabyteDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
-    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBEmbeddingStoreRemovalIT.class);
-
     @Container
     @SuppressWarnings("resource")
     static final GenericContainer<?> yugabyteContainer = new GenericContainer<>(
@@ -40,15 +38,15 @@ class YugabyteDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
             .withCommand("bin/yugabyted", "start", "--background=false")
             .waitingFor(Wait.forListeningPorts(5433).withStartupTimeout(Duration.ofMinutes(5)));
 
-    static YugabyteDBEngine engine;
-    static HikariDataSource dataSource;
-    static EmbeddingModel embeddingModel;
-    static YugabyteDBEmbeddingStore store;
-
+    private static final Logger logger = LoggerFactory.getLogger(YugabyteDBEmbeddingStoreRemovalIT.class);
     // TestContainers connection details
     private static final String DB_NAME = "yugabyte";
     private static final String DB_USER = "yugabyte";
     private static final String DB_PASSWORD = "yugabyte";
+    static YugabyteDBEngine engine;
+    static HikariDataSource dataSource;
+    static EmbeddingModel embeddingModel;
+    static YugabyteDBEmbeddingStore store;
 
     @BeforeAll
     static void setup() throws Exception {

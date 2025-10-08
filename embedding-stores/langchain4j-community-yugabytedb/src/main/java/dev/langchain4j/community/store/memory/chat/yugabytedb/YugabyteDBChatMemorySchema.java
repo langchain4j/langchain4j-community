@@ -4,7 +4,7 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 /**
  * Schema configuration for YugabyteDB chat memory table
- *
+ * <p>
  * This class encapsulates the database schema configuration for YugabyteDB chat memory storage,
  * including table structure, column names, and indexing strategy.
  */
@@ -35,6 +35,10 @@ public class YugabyteDBChatMemorySchema {
         this.createdAtColumn = ensureNotBlank(builder.createdAtColumn, "createdAtColumn");
         this.expiresAtColumn = ensureNotBlank(builder.expiresAtColumn, "expiresAtColumn");
         this.createTableIfNotExists = builder.createTableIfNotExists;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getTableName() {
@@ -92,10 +96,6 @@ public class YugabyteDBChatMemorySchema {
         return String.format(
                 "CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s) WHERE %s IS NOT NULL",
                 tableName, expiresAtColumn, getFullTableName(), expiresAtColumn, expiresAtColumn);
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static class Builder {

@@ -40,12 +40,12 @@ class YugabyteDBMetadataFilterMapperTest {
 
         // when
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
-        logger.info("Generated SQL: {}", result.getSqlClause());
-        logger.info("Parameters: {}", result.getParameters());
+        logger.info("Generated SQL: {}", result.sqlClause());
+        logger.info("Parameters: {}", result.parameters());
 
         // then
-        assertThat(result.getSqlClause()).isEqualTo("metadata->>'genre' IS NOT NULL AND metadata->>'genre' = ?");
-        assertThat(result.getParameters()).containsExactly("comedy");
+        assertThat(result.sqlClause()).isEqualTo("metadata->>'genre' IS NOT NULL AND metadata->>'genre' = ?");
+        assertThat(result.parameters()).containsExactly("comedy");
         logger.info("Test passed successfully!");
     }
 
@@ -58,8 +58,8 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause()).isEqualTo("metadata->>'genre' IS NULL OR metadata->>'genre' != ?");
-        assertThat(result.getParameters()).containsExactly("drama");
+        assertThat(result.sqlClause()).isEqualTo("metadata->>'genre' IS NULL OR metadata->>'genre' != ?");
+        assertThat(result.parameters()).containsExactly("drama");
     }
 
     @Test
@@ -71,8 +71,8 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause()).isEqualTo("(metadata->>'year')::numeric > ?");
-        assertThat(result.getParameters()).containsExactly(2000);
+        assertThat(result.sqlClause()).isEqualTo("(metadata->>'year')::numeric > ?");
+        assertThat(result.parameters()).containsExactly(2000);
     }
 
     @Test
@@ -84,8 +84,8 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause()).isEqualTo("metadata->>'title' > ?");
-        assertThat(result.getParameters()).containsExactly("A");
+        assertThat(result.sqlClause()).isEqualTo("metadata->>'title' > ?");
+        assertThat(result.parameters()).containsExactly("A");
     }
 
     @Test
@@ -97,8 +97,8 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause()).isEqualTo("(metadata->>'rating')::numeric < ?");
-        assertThat(result.getParameters()).containsExactly(5.0);
+        assertThat(result.sqlClause()).isEqualTo("(metadata->>'rating')::numeric < ?");
+        assertThat(result.parameters()).containsExactly(5.0);
     }
 
     @Test
@@ -110,10 +110,10 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause()).isEqualTo("metadata->>'genre' IN (?,?,?)");
+        assertThat(result.sqlClause()).isEqualTo("metadata->>'genre' IN (?,?,?)");
         // The order should match the order in the ArrayList constructor
-        assertThat(result.getParameters()).hasSize(3);
-        assertThat(result.getParameters()).contains("comedy", "action", "drama");
+        assertThat(result.parameters()).hasSize(3);
+        assertThat(result.parameters()).contains("comedy", "action", "drama");
     }
 
     @Test
@@ -127,10 +127,10 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause())
+        assertThat(result.sqlClause())
                 .isEqualTo(
                         "(metadata->>'genre' IS NOT NULL AND metadata->>'genre' = ? AND (metadata->>'year')::numeric > ?)");
-        assertThat(result.getParameters()).containsExactly("comedy", 2000);
+        assertThat(result.parameters()).containsExactly("comedy", 2000);
     }
 
     @Test
@@ -144,10 +144,10 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause())
+        assertThat(result.sqlClause())
                 .isEqualTo(
                         "(metadata->>'genre' IS NOT NULL AND metadata->>'genre' = ? OR metadata->>'genre' IS NOT NULL AND metadata->>'genre' = ?)");
-        assertThat(result.getParameters()).containsExactly("comedy", "action");
+        assertThat(result.parameters()).containsExactly("comedy", "action");
     }
 
     @Test
@@ -160,8 +160,8 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause()).isEqualTo("NOT (metadata->>'genre' IS NOT NULL AND metadata->>'genre' = ?)");
-        assertThat(result.getParameters()).containsExactly("horror");
+        assertThat(result.sqlClause()).isEqualTo("NOT (metadata->>'genre' IS NOT NULL AND metadata->>'genre' = ?)");
+        assertThat(result.parameters()).containsExactly("horror");
     }
 
     @Test
@@ -170,8 +170,8 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(null);
 
         // then
-        assertThat(result.getSqlClause()).isEmpty();
-        assertThat(result.getParameters()).isEmpty();
+        assertThat(result.sqlClause()).isEmpty();
+        assertThat(result.parameters()).isEmpty();
     }
 
     @Test
@@ -183,7 +183,7 @@ class YugabyteDBMetadataFilterMapperTest {
         YugabyteDBMetadataFilterMapper.FilterResult result = mapper.map(filter);
 
         // then
-        assertThat(result.getSqlClause()).isEqualTo("metadata->>'title' IS NOT NULL AND metadata->>'title' = ?");
-        assertThat(result.getParameters()).containsExactly("It's a Wonderful Life");
+        assertThat(result.sqlClause()).isEqualTo("metadata->>'title' IS NOT NULL AND metadata->>'title' = ?");
+        assertThat(result.parameters()).containsExactly("It's a Wonderful Life");
     }
 }

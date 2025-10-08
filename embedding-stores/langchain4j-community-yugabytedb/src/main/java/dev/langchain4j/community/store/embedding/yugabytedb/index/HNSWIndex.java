@@ -57,6 +57,15 @@ public class HNSWIndex implements BaseIndex {
         this.partialIndexes = builder.partialIndexes != null ? builder.partialIndexes : new ArrayList<>();
     }
 
+    /**
+     * Create a new builder instance.
+     *
+     * @return a new builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
     @Override
     public String getIndexOptions() {
         return String.format("(m = %d, ef_construction = %d)", m, efConstruction);
@@ -101,15 +110,6 @@ public class HNSWIndex implements BaseIndex {
     }
 
     /**
-     * Create a new builder instance.
-     *
-     * @return a new builder
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
      * Builder for configuring and creating HNSWIndex instances.
      */
     public static class Builder {
@@ -146,7 +146,7 @@ public class HNSWIndex implements BaseIndex {
 
         /**
          * Set the maximum number of connections per layer.
-         *
+         * <p>
          * Higher values improve recall but increase memory usage and index size.
          * Typical range: 8-64, default: 16
          *
@@ -163,7 +163,7 @@ public class HNSWIndex implements BaseIndex {
 
         /**
          * Set the size of dynamic candidate list during construction.
-         *
+         * <p>
          * Higher values improve index quality but slow down construction.
          * Should be at least equal to m, typically 2-4x larger.
          * Typical range: 32-200, default: 64

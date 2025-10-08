@@ -23,49 +23,13 @@ import org.slf4j.LoggerFactory;
 /**
  * Integration tests for vector index types using TestContainers.
  * Tests both standard PostgreSQL hnsw and YugabyteDB ybhnsw implementations, plus NoIndex.
- *
+ * <p>
  * Note: YugabyteDB supports 'ybhnsw' as its optimized vector index implementation.
  * Standard PostgreSQL uses 'hnsw'. IVFFlat is not tested as it's not supported by YugabyteDB.
  */
 class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(YugabyteDBVectorIndexIT.class);
-
-    @AfterEach
-    void cleanupTables() {
-        logger.info("🧹 [CLEANUP] Dropping test tables...");
-        try (Connection conn = engine.getConnection();
-                Statement stmt = conn.createStatement()) {
-            // PostgreSQL driver test tables
-            stmt.execute("DROP TABLE IF EXISTS test_hnsw_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_ybhnsw_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_hnsw_euclidean_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_no_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_custom_params CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_dot_product CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_cosine_metric CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_pg_gin_hnsw_hybrid CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_pg_hybrid CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_default_index_name CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_custom_index_name CASCADE");
-
-            // Smart driver test tables
-            stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_ybhnsw_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_no_index CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_gin_hnsw_hybrid CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_hybrid CASCADE");
-            stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw CASCADE");
-
-            stmt.execute("DROP TABLE IF EXISTS test_custom_schema.test_index CASCADE");
-            stmt.execute("DROP SCHEMA IF EXISTS test_custom_schema CASCADE");
-            logger.info("✅ [CLEANUP] Tables dropped successfully");
-        } catch (Exception e) {
-            logger.warn("⚠️ [CLEANUP] Error dropping tables: {}", e.getMessage());
-        }
-    }
-
-    // ==================== MODULAR HELPER METHODS ====================
 
     /**
      * Test hybrid search with metadata filtering (GIN index) + vector similarity (ybhnsw index)
@@ -129,6 +93,8 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
             stmt.execute("DROP TABLE IF EXISTS test_" + tableSuffix + "_hybrid CASCADE");
         }
     }
+
+    // ==================== MODULAR HELPER METHODS ====================
 
     /**
      * Test HNSW index creation and search
@@ -292,6 +258,40 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
         }
     }
 
+    @AfterEach
+    void cleanupTables() {
+        logger.info("🧹 [CLEANUP] Dropping test tables...");
+        try (Connection conn = engine.getConnection();
+                Statement stmt = conn.createStatement()) {
+            // PostgreSQL driver test tables
+            stmt.execute("DROP TABLE IF EXISTS test_hnsw_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_ybhnsw_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_hnsw_euclidean_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_no_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_custom_params CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_dot_product CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_cosine_metric CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_pg_gin_hnsw_hybrid CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_pg_hybrid CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_default_index_name CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_custom_index_name CASCADE");
+
+            // Smart driver test tables
+            stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_ybhnsw_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_no_index CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_gin_hnsw_hybrid CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_hybrid CASCADE");
+            stmt.execute("DROP TABLE IF EXISTS test_smart_hnsw CASCADE");
+
+            stmt.execute("DROP TABLE IF EXISTS test_custom_schema.test_index CASCADE");
+            stmt.execute("DROP SCHEMA IF EXISTS test_custom_schema CASCADE");
+            logger.info("✅ [CLEANUP] Tables dropped successfully");
+        } catch (Exception e) {
+            logger.warn("⚠️ [CLEANUP] Error dropping tables: {}", e.getMessage());
+        }
+    }
+
     @Test
     void should_create_table_with_standard_hnsw_index() throws Exception {
         logger.info("🔧 [TEST] Creating table with standard PostgreSQL HNSW index...");
@@ -337,9 +337,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                 logger.info("📋 [TEST] Found HNSW index: {}", indexName);
                 logger.info("📋 [TEST] Index definition: {}", indexDef);
 
-                // Verify it's standard hnsw (not ybhnsw) and has vector operator
-                assertThat(indexDef).containsIgnoringCase("hnsw");
-                assertThat(indexDef).containsAnyOf("vector_cosine_ops", "embedding");
+                assertThat(indexDef)
+                        // Verify it's standard hnsw (not ybhnsw) and has vector operator
+                        .containsIgnoringCase("hnsw")
+                        .containsAnyOf("vector_cosine_ops", "embedding");
                 hnswIndexFound = true;
             }
 
@@ -403,9 +404,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                 logger.info("📋 [TEST] Found ybhnsw index: {}", indexName);
                 logger.info("📋 [TEST] Index definition: {}", indexDef);
 
-                // Verify it's ybhnsw (YugabyteDB optimized) and has vector operator
-                assertThat(indexDef).contains("ybhnsw");
-                assertThat(indexDef).containsAnyOf("vector_cosine_ops", "embedding");
+                assertThat(indexDef)
+                        // Verify it's ybhnsw (YugabyteDB optimized) and has vector operator
+                        .contains("ybhnsw")
+                        .containsAnyOf("vector_cosine_ops", "embedding");
                 ybhnswIndexFound = true;
             }
 
@@ -581,9 +583,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                     "📋 [TEST] Index type: {}",
                     indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
 
-            // Check that it's one of the supported HNSW types
-            assertThat(indexDef).matches(".*\\b(hnsw|ybhnsw)\\b.*");
-            assertThat(indexDef).contains("vector_ip_ops"); // DOT_PRODUCT
+            assertThat(indexDef)
+                    // Check that it's one of the supported HNSW types
+                    .matches(".*\\b(hnsw|ybhnsw)\\b.*")
+                    .contains("vector_ip_ops"); // DOT_PRODUCT
 
             // Note: YugabyteDB doesn't show m/ef_construction in pg_indexes view
             // The parameters are set during index creation but not visible in pg_indexes
@@ -637,9 +640,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                     "📋 [TEST] Index type: {}",
                     indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
 
-            // Check that it's one of the supported HNSW types
-            assertThat(indexDef).matches(".*\\b(hnsw|ybhnsw)\\b.*");
-            assertThat(indexDef).contains("vector_ip_ops"); // DOT_PRODUCT (inner product)
+            assertThat(indexDef)
+                    // Check that it's one of the supported HNSW types
+                    .matches(".*\\b(hnsw|ybhnsw)\\b.*")
+                    .contains("vector_ip_ops"); // DOT_PRODUCT (inner product)
 
             logger.info("✅ [TEST] HNSW with DOT_PRODUCT metric verified");
         }
@@ -686,8 +690,7 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
             logger.info(
                     "📋 [TEST] Index type: {}",
                     indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
-            assertThat(indexDef).matches(".*\\b(hnsw|ybhnsw)\\b.*");
-            assertThat(indexDef).contains("vector_cosine_ops");
+            assertThat(indexDef).matches(".*\\b(hnsw|ybhnsw)\\b.*").contains("vector_cosine_ops");
             logger.info("✅ [TEST] COSINE distance metric verified");
         }
 
@@ -736,9 +739,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
             logger.info(
                     "📋 [TEST] Index type: {}",
                     indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
-            assertThat(indexName).contains("test_default_index_name");
-            assertThat(indexName).contains("embedding");
-            assertThat(indexName).contains("idx");
+            assertThat(indexName)
+                    .contains("test_default_index_name")
+                    .contains("embedding")
+                    .contains("idx");
             logger.info("✅ [TEST] Default index name: {}", indexName);
         }
 
@@ -780,7 +784,7 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
 
     /**
      * Smart Driver Vector Index Tests
-     *
+     * <p>
      * This nested class runs the same vector index tests using YugabyteDB Smart Driver
      * instead of PostgreSQL JDBC driver to verify compatibility across both drivers.
      */
@@ -853,9 +857,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                             "📋 [SMART-DRIVER] Index type: {}",
                             indexDef.contains("ybhnsw") ? "ybhnsw (YugabyteDB)" : "hnsw (PostgreSQL)");
 
-                    // Verify it's an HNSW variant and has vector operator
-                    assertThat(indexDef).containsIgnoringCase("hnsw");
-                    assertThat(indexDef).containsAnyOf("vector_cosine_ops", "embedding");
+                    assertThat(indexDef)
+                            // Verify it's an HNSW variant and has vector operator
+                            .containsIgnoringCase("hnsw")
+                            .containsAnyOf("vector_cosine_ops", "embedding");
                     hnswIndexFound = true;
                 }
 
@@ -925,9 +930,10 @@ class YugabyteDBVectorIndexIT extends YugabyteDBTestBase {
                     smartLogger.info("📋 [SMART-DRIVER] Found ybhnsw index: {}", indexName);
                     smartLogger.info("📋 [SMART-DRIVER] Index definition: {}", indexDef);
 
-                    // Verify it's ybhnsw (YugabyteDB optimized) and has vector operator
-                    assertThat(indexDef).contains("ybhnsw");
-                    assertThat(indexDef).containsAnyOf("vector_cosine_ops", "embedding");
+                    assertThat(indexDef)
+                            // Verify it's ybhnsw (YugabyteDB optimized) and has vector operator
+                            .contains("ybhnsw")
+                            .containsAnyOf("vector_cosine_ops", "embedding");
                     ybhnswIndexFound = true;
                 }
 

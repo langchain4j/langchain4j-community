@@ -2,6 +2,7 @@ package dev.langchain4j.community.store.embedding.yugabytedb;
 
 import dev.langchain4j.internal.ValidationUtils;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -43,9 +44,7 @@ public class MetadataColumnDefinition {
         String fullDefinition = ValidationUtils.ensureNotNull(sqlDefinition, "Metadata column definition");
 
         List<String> tokens = new ArrayList<>();
-        for (String part : fullDefinition.trim().split("\\s+")) {
-            tokens.add(part);
-        }
+        Collections.addAll(tokens, fullDefinition.trim().split("\\s+"));
 
         if (tokens.size() < 2) {
             throw new IllegalArgumentException("Column definition must have at least name and type. "
