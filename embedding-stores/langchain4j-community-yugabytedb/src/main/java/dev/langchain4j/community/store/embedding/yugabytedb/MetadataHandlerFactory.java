@@ -22,18 +22,11 @@ public class MetadataHandlerFactory {
             config = DefaultMetadataStorageConfig.defaultConfig();
         }
 
-        switch (config.storageMode()) {
-            case COMBINED_JSONB:
-                return new JsonbMetadataHandler(config);
-
-            case COMBINED_JSON:
-                return new JsonMetadataHandler(config);
-
-            case COLUMN_PER_KEY:
-                return new ColumnMetadataHandler(config);
-
-            default:
-                throw new IllegalArgumentException("Unsupported storage mode: " + config.storageMode());
-        }
+        return switch (config.storageMode()) {
+            case COMBINED_JSONB -> new JsonbMetadataHandler(config);
+            case COMBINED_JSON -> new JsonMetadataHandler(config);
+            case COLUMN_PER_KEY -> new ColumnMetadataHandler(config);
+            default -> throw new IllegalArgumentException("Unsupported storage mode: " + config.storageMode());
+        };
     }
 }

@@ -105,9 +105,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void addAll(List<String> ids, List<Embedding> embeddings, List<TextSegment> textSegments) {
-        if (ids.size() != embeddings.size()
-                || embeddings.size() != textSegments.size()
-                || textSegments.size() != ids.size()) {
+        if (ids.size() != embeddings.size() || embeddings.size() != textSegments.size()) {
             throw new IllegalArgumentException("The list of ids, embeddings and text segments must have the same size");
         }
 
@@ -406,14 +404,12 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         placeholders.append(", ?::vector"); // embedding
 
         // Build update clause
-        StringBuilder updateClause = new StringBuilder();
-        updateClause
-                .append(schema.getContentColumn())
-                .append(" = EXCLUDED.")
-                .append(schema.getContentColumn())
-                .append(", ");
-        updateClause.append(metadataHandler.insertClause()).append(", ");
-        updateClause.append(schema.getEmbeddingColumn()).append(" = EXCLUDED.").append(schema.getEmbeddingColumn());
+        String updateClause = schema.getContentColumn() + " = EXCLUDED."
+                + schema.getContentColumn()
+                + ", "
+                + metadataHandler.insertClause()
+                + ", " + schema.getEmbeddingColumn()
+                + " = EXCLUDED." + schema.getEmbeddingColumn();
 
         return String.format(
                 "INSERT INTO %s (%s) VALUES (%s) " + "ON CONFLICT (%s) DO UPDATE SET %s",
@@ -421,7 +417,7 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 columns.toString(),
                 placeholders.toString(),
                 schema.getIdColumn(),
-                updateClause.toString());
+                updateClause);
     }
 
     /**
@@ -491,18 +487,15 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private double calculateScore(double distance) {
-        switch (schema.getMetricType()) {
-            case COSINE:
-                return RelevanceScore.fromCosineSimilarity(1.0 - distance);
-            case EUCLIDEAN:
-                return RelevanceScore.fromCosineSimilarity(1.0 / (1.0 + distance));
-            case DOT_PRODUCT:
+        return switch (schema.getMetricType()) {
+            case COSINE -> RelevanceScore.fromCosineSimilarity(1.0 - distance);
+            case EUCLIDEAN -> RelevanceScore.fromCosineSimilarity(1.0 / (1.0 + distance));
+            case DOT_PRODUCT ->
                 // DOT_PRODUCT returns negative distances, convert to positive similarity score
                 // Higher dot product (less negative) = higher similarity
-                return Math.abs(distance) + 1.0; // Convert -1 to 2.0, -0.5 to 1.5, 0 to 1.0
-            default:
-                return RelevanceScore.fromCosineSimilarity(1.0 - distance);
-        }
+                Math.abs(distance) + 1.0; // Convert -1 to 2.0, -0.5 to 1.5, 0 to 1.0
+            default -> RelevanceScore.fromCosineSimilarity(1.0 - distance);
+        };
     }
 
     public static Builder builder() {
@@ -608,12 +601,6 @@ public class YugabyteDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         public Builder createTableIfNotExists(boolean createTableIfNotExists) {
             ensureSchemaBuilder().createTableIfNotExists(createTableIfNotExists);
             return this;
-        }
-
-        // Legacy method for backward compatibility
-        @Deprecated
-        public Builder distanceStrategy(MetricType metricType) {
-            return metricType(metricType);
         }
 
         private YugabyteDBSchema.Builder schemaBuilder;

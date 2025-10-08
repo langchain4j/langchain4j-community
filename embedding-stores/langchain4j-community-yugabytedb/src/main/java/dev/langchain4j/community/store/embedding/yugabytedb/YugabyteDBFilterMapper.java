@@ -1,7 +1,6 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
 import static java.lang.String.format;
-import static java.util.AbstractMap.SimpleEntry;
 
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.*;
@@ -12,7 +11,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Abstract base class for mapping filters to SQL WHERE clauses in YugabyteDB.
@@ -22,17 +20,15 @@ import java.util.stream.Stream;
  */
 abstract class YugabyteDBFilterMapper {
 
-    static final Map<Class<?>, String> SQL_TYPE_MAP = Stream.of(
-                    new SimpleEntry<>(Integer.class, "int"),
-                    new SimpleEntry<>(Long.class, "bigint"),
-                    new SimpleEntry<>(Float.class, "float"),
-                    new SimpleEntry<>(Double.class, "float8"),
-                    new SimpleEntry<>(String.class, "text"),
-                    new SimpleEntry<>(UUID.class, "uuid"),
-                    new SimpleEntry<>(Boolean.class, "boolean"),
-                    // Default
-                    new SimpleEntry<>(Object.class, "text"))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    static final Map<Class<?>, String> SQL_TYPE_MAP = Map.of(
+            Integer.class, "int",
+            Long.class, "bigint",
+            Float.class, "float",
+            Double.class, "float8",
+            String.class, "text",
+            UUID.class, "uuid",
+            Boolean.class, "boolean",
+            Object.class, "text");
 
     public String map(Filter filter) {
         if (filter instanceof ContainsString) {

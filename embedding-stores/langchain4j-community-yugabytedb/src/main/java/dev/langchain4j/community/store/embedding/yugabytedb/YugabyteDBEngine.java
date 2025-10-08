@@ -48,8 +48,8 @@ public class YugabyteDBEngine {
      * Close the engine and cleanup resources
      */
     public void close() {
-        if (dataSource instanceof HikariDataSource) {
-            ((HikariDataSource) dataSource).close();
+        if (dataSource instanceof HikariDataSource hikariDataSource) {
+            hikariDataSource.close();
         }
     }
 
@@ -63,7 +63,7 @@ public class YugabyteDBEngine {
         private String username = "yugabyte";
         private String password = "";
         private String schema = "public";
-        private Boolean useSsl = false;
+        private boolean useSsl = false;
         private String sslMode = "disable";
         private Integer maxPoolSize = 10;
         private Integer minPoolSize = 5;
@@ -71,7 +71,7 @@ public class YugabyteDBEngine {
         private String idleTimeout = "300000";
         private String maxLifetime = "900000";
         private String applicationName = "langchain4j-yugabytedb";
-        private Boolean usePostgreSQLDriver = false; // Use PostgreSQL driver instead of YugabyteDB driver
+        private boolean usePostgreSQLDriver = false; // Use PostgreSQL driver instead of YugabyteDB driver
 
         public Builder host(String host) {
             this.host = host;
@@ -103,7 +103,7 @@ public class YugabyteDBEngine {
             return this;
         }
 
-        public Builder useSsl(Boolean useSsl) {
+        public Builder useSsl(boolean useSsl) {
             this.useSsl = useSsl;
             return this;
         }
@@ -147,7 +147,7 @@ public class YugabyteDBEngine {
          * Use PostgreSQL JDBC driver instead of YugabyteDB driver (recommended by YugabyteDB docs)
          * Reference: https://docs.yugabyte.com/preview/drivers-orms/java/postgres-jdbc-reference/
          */
-        public Builder usePostgreSQLDriver(Boolean usePostgreSQLDriver) {
+        public Builder usePostgreSQLDriver(boolean usePostgreSQLDriver) {
             this.usePostgreSQLDriver = usePostgreSQLDriver;
             return this;
         }
