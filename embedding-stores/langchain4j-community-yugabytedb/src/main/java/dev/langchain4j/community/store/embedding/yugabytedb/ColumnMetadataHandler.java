@@ -60,8 +60,7 @@ class ColumnMetadataHandler implements MetadataHandler {
                 sb.append(",");
             }
         }
-        String result = sb.toString();
-        return result;
+        return sb.toString();
     }
 
     @Override
@@ -104,9 +103,9 @@ class ColumnMetadataHandler implements MetadataHandler {
             Object value = metadataMap.get(columnName);
 
             // Special handling for UUID type
-            if (value instanceof String && "uuid".equalsIgnoreCase(columnDef.getType())) {
+            if (value instanceof String string && "uuid".equalsIgnoreCase(columnDef.getType())) {
                 try {
-                    value = java.util.UUID.fromString((String) value);
+                    value = java.util.UUID.fromString(string);
                 } catch (IllegalArgumentException e) {
                     // It's a string but not a valid UUID. Let the DB handle the error.
                 }

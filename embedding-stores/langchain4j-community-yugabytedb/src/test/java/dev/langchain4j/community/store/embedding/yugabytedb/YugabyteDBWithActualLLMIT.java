@@ -47,6 +47,7 @@ import org.testcontainers.utility.DockerImageName;
  * <p>
  * Note: These tests will make actual API calls and may incur costs.
  */
+@EnabledIfEnvironmentVariable(named = "YUGABYTEDB_IT_WITH_ACTUAL_LLM", matches = ".+")
 class YugabyteDBWithActualLLMIT extends YugabyteDBTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(YugabyteDBWithActualLLMIT.class);
@@ -489,6 +490,7 @@ class YugabyteDBWithActualLLMIT extends YugabyteDBTestBase {
      */
     @Nested
     @Testcontainers
+    @EnabledIfEnvironmentVariable(named = "YUGABYTEDB_IT_WITH_ACTUAL_LLM", matches = ".+")
     static class SmartDriverLLMIT {
 
         private static final Logger smartLogger = LoggerFactory.getLogger(SmartDriverLLMIT.class);

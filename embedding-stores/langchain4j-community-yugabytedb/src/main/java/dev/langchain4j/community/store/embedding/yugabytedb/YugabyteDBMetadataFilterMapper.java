@@ -56,18 +56,18 @@ public class YugabyteDBMetadataFilterMapper {
         int paramIndex = startIndex;
 
         for (Object param : result.parameters()) {
-            if (param instanceof String) {
-                statement.setString(paramIndex, (String) param);
-            } else if (param instanceof Integer) {
-                statement.setInt(paramIndex, (Integer) param);
-            } else if (param instanceof Long) {
-                statement.setLong(paramIndex, (Long) param);
-            } else if (param instanceof Double) {
-                statement.setDouble(paramIndex, (Double) param);
-            } else if (param instanceof Float) {
-                statement.setFloat(paramIndex, (Float) param);
-            } else if (param instanceof Boolean) {
-                statement.setBoolean(paramIndex, (Boolean) param);
+            if (param instanceof String string) {
+                statement.setString(paramIndex, string);
+            } else if (param instanceof Integer integer) {
+                statement.setInt(paramIndex, integer);
+            } else if (param instanceof Long long1) {
+                statement.setLong(paramIndex, long1);
+            } else if (param instanceof Double double1) {
+                statement.setDouble(paramIndex, double1);
+            } else if (param instanceof Float float1) {
+                statement.setFloat(paramIndex, float1);
+            } else if (param instanceof Boolean boolean1) {
+                statement.setBoolean(paramIndex, boolean1);
             } else if (param instanceof UUID) {
                 statement.setObject(paramIndex, param);
             } else {
@@ -80,30 +80,30 @@ public class YugabyteDBMetadataFilterMapper {
     }
 
     private FilterResult mapFilter(Filter filter) {
-        if (filter instanceof ContainsString) {
-            return mapContainsString((ContainsString) filter);
-        } else if (filter instanceof IsEqualTo) {
-            return mapIsEqualTo((IsEqualTo) filter);
-        } else if (filter instanceof IsNotEqualTo) {
-            return mapIsNotEqualTo((IsNotEqualTo) filter);
-        } else if (filter instanceof IsGreaterThan) {
-            return mapIsGreaterThan((IsGreaterThan) filter);
-        } else if (filter instanceof IsGreaterThanOrEqualTo) {
-            return mapIsGreaterThanOrEqualTo((IsGreaterThanOrEqualTo) filter);
-        } else if (filter instanceof IsLessThan) {
-            return mapIsLessThan((IsLessThan) filter);
-        } else if (filter instanceof IsLessThanOrEqualTo) {
-            return mapIsLessThanOrEqualTo((IsLessThanOrEqualTo) filter);
-        } else if (filter instanceof IsIn) {
-            return mapIsIn((IsIn) filter);
-        } else if (filter instanceof IsNotIn) {
-            return mapIsNotIn((IsNotIn) filter);
-        } else if (filter instanceof And) {
-            return mapAnd((And) filter);
-        } else if (filter instanceof Or) {
-            return mapOr((Or) filter);
-        } else if (filter instanceof Not) {
-            return mapNot((Not) filter);
+        if (filter instanceof ContainsString string) {
+            return mapContainsString(string);
+        } else if (filter instanceof IsEqualTo to3) {
+            return mapIsEqualTo(to3);
+        } else if (filter instanceof IsNotEqualTo to2) {
+            return mapIsNotEqualTo(to2);
+        } else if (filter instanceof IsGreaterThan than1) {
+            return mapIsGreaterThan(than1);
+        } else if (filter instanceof IsGreaterThanOrEqualTo to1) {
+            return mapIsGreaterThanOrEqualTo(to1);
+        } else if (filter instanceof IsLessThan than) {
+            return mapIsLessThan(than);
+        } else if (filter instanceof IsLessThanOrEqualTo to) {
+            return mapIsLessThanOrEqualTo(to);
+        } else if (filter instanceof IsIn in1) {
+            return mapIsIn(in1);
+        } else if (filter instanceof IsNotIn in) {
+            return mapIsNotIn(in);
+        } else if (filter instanceof And and) {
+            return mapAnd(and);
+        } else if (filter instanceof Or or) {
+            return mapOr(or);
+        } else if (filter instanceof Not not) {
+            return mapNot(not);
         } else {
             throw new UnsupportedOperationException(
                     "Unsupported filter type: " + filter.getClass().getSimpleName());
@@ -250,12 +250,8 @@ public class YugabyteDBMetadataFilterMapper {
 
         String clause = String.format("(%s OR %s)", left.sqlClause(), right.sqlClause());
         List<Object> params = new ArrayList<>();
-        for (Object param : left.parameters()) {
-            params.add(param);
-        }
-        for (Object param : right.parameters()) {
-            params.add(param);
-        }
+        params.addAll(left.parameters());
+        params.addAll(right.parameters());
 
         return new FilterResult(clause, params);
     }

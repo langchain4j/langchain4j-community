@@ -31,30 +31,30 @@ abstract class YugabyteDBFilterMapper {
             Object.class, "text");
 
     public String map(Filter filter) {
-        if (filter instanceof ContainsString) {
-            return mapContains((ContainsString) filter);
-        } else if (filter instanceof IsEqualTo) {
-            return mapEqual((IsEqualTo) filter);
-        } else if (filter instanceof IsNotEqualTo) {
-            return mapNotEqual((IsNotEqualTo) filter);
-        } else if (filter instanceof IsGreaterThan) {
-            return mapGreaterThan((IsGreaterThan) filter);
-        } else if (filter instanceof IsGreaterThanOrEqualTo) {
-            return mapGreaterThanOrEqual((IsGreaterThanOrEqualTo) filter);
-        } else if (filter instanceof IsLessThan) {
-            return mapLessThan((IsLessThan) filter);
-        } else if (filter instanceof IsLessThanOrEqualTo) {
-            return mapLessThanOrEqual((IsLessThanOrEqualTo) filter);
-        } else if (filter instanceof IsIn) {
-            return mapIn((IsIn) filter);
-        } else if (filter instanceof IsNotIn) {
-            return mapNotIn((IsNotIn) filter);
-        } else if (filter instanceof And) {
-            return mapAnd((And) filter);
-        } else if (filter instanceof Not) {
-            return mapNot((Not) filter);
-        } else if (filter instanceof Or) {
-            return mapOr((Or) filter);
+        if (filter instanceof ContainsString string) {
+            return mapContains(string);
+        } else if (filter instanceof IsEqualTo to3) {
+            return mapEqual(to3);
+        } else if (filter instanceof IsNotEqualTo to2) {
+            return mapNotEqual(to2);
+        } else if (filter instanceof IsGreaterThan than1) {
+            return mapGreaterThan(than1);
+        } else if (filter instanceof IsGreaterThanOrEqualTo to1) {
+            return mapGreaterThanOrEqual(to1);
+        } else if (filter instanceof IsLessThan than) {
+            return mapLessThan(than);
+        } else if (filter instanceof IsLessThanOrEqualTo to) {
+            return mapLessThanOrEqual(to);
+        } else if (filter instanceof IsIn in1) {
+            return mapIn(in1);
+        } else if (filter instanceof IsNotIn in) {
+            return mapNotIn(in);
+        } else if (filter instanceof And and) {
+            return mapAnd(and);
+        } else if (filter instanceof Not not) {
+            return mapNot(not);
+        } else if (filter instanceof Or or) {
+            return mapOr(or);
         } else {
             throw new UnsupportedOperationException(
                     "Unsupported filter type: " + filter.getClass().getName());

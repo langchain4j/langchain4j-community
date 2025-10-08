@@ -63,8 +63,8 @@ class MetadataStorageConfigTest {
         // Should not throw an exception
         assertDoesNotThrow(() -> {
             MetadataHandler handler = MetadataHandlerFactory.create(config);
-            assertThat(handler).isNotNull();
-            assertThat(handler).isInstanceOf(JsonMetadataHandler.class);
+            assertThat(handler)
+                    .isInstanceOf(JsonMetadataHandler.class);
         });
     }
 
