@@ -196,14 +196,15 @@ class YugabyteDBWithActualLLMIT extends YugabyteDBTestBase {
             if (smartEngine != null) {
                 return; // Already initialized
             }
-            
+
             smartLogger.info("🚀 [SMART-DRIVER-LLM] Initializing Smart Driver for LLM integration tests...");
             smartLogger.info(
                     "🔧 [SMART-DRIVER-LLM] Driver Type: YugabyteDB Smart Driver (com.yugabyte.ysql.YBClusterAwareDataSource)");
 
             // Ensure container is started before accessing ports
             if (!yugabyteContainer.isRunning()) {
-                throw new IllegalStateException("YugabyteDB container is not running. Make sure the parent test class setup is complete.");
+                throw new IllegalStateException(
+                        "YugabyteDB container is not running. Make sure the parent test class setup is complete.");
             }
 
             String host = yugabyteContainer.getHost();
