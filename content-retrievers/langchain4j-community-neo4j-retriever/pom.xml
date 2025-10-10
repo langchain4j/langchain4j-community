@@ -13,7 +13,7 @@
     <name>LangChain4j :: Community :: Content Retriever :: Neo4j</name>
 
     <properties>
-        <neo4j.version>5.28.10</neo4j.version>
+        <neo4j.version>6.0.1</neo4j.version>
         <neo4j.cypher.dsl.version>2025.0.3</neo4j.cypher.dsl.version>
     </properties>
 
