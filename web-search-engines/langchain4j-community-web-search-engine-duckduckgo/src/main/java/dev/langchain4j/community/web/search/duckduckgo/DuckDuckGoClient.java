@@ -12,6 +12,7 @@ import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import dev.langchain4j.http.client.log.LoggingHttpClient;
+import dev.langchain4j.internal.RetryUtils;
 import dev.langchain4j.web.search.WebSearchRequest;
 import java.io.IOException;
 import java.time.Duration;
@@ -37,23 +38,42 @@ class DuckDuckGoClient {
     private final HttpClient httpClient;
 
     public DuckDuckGoClient(Duration timeout, boolean logRequests, boolean logResponses) {
-        HttpClientBuilder httpClientBuilder = HttpClientBuilderLoader.loadHttpClientBuilder();
-        HttpClient client =
-                httpClientBuilder.connectTimeout(timeout).readTimeout(timeout).build();
+        HttpClientBuilder builder = HttpClientBuilderLoader.loadHttpClientBuilder()
+                .connectTimeout(timeout)
+                .readTimeout(timeout);
+
+        HttpClient client = builder.build();
         this.httpClient =
                 (logRequests || logResponses) ? new LoggingHttpClient(client, logRequests, logResponses) : client;
     }
 
     List<DuckDuckGoSearchResult> search(WebSearchRequest request) {
-        try {
-            return performHtmlSearch(request);
-        } catch (Exception e) {
-            try {
-                return performApiSearch(request);
-            } catch (Exception apiException) {
-                throw new RuntimeException("DuckDuckGo search failed for: " + request.searchTerms(), e);
-            }
-        }
+        return RetryUtils.retryPolicyBuilder()
+                .maxRetries(3)
+                .delayMillis(1500)
+                .build()
+                .withRetry(() -> {
+                    List<DuckDuckGoSearchResult> results;
+                    try {
+                        results = performHtmlSearch(request);
+                    } catch (Exception e) {
+                        results = List.of();
+                    }
+
+                    if (results.isEmpty()) {
+                        results = performApiSearch(request);
+                    }
+
+                    if (results.isEmpty()) {
+                        var term = request.searchTerms() != null ? request.searchTerms() : "search";
+                        return List.of(DuckDuckGoSearchResult.builder()
+                                .title("No DuckDuckGo Search Result was found")
+                                .url("https://duckduckgo.com/")
+                                .snippet("No DuckDuckGo Search Result was found.")
+                                .build());
+                    }
+                    return results;
+                });
     }
 
     CompletableFuture<List<DuckDuckGoSearchResult>> searchAsync(WebSearchRequest request) {
@@ -85,7 +105,7 @@ class DuckDuckGoClient {
         List<DuckDuckGoSearchResult> results = parseHtmlResults(doc, limit);
 
         if (results.isEmpty()) {
-            throw new IOException("No HTML results found");
+            throw new IOException("No DuckDuckGo HTML search results found");
         }
 
         return results;
@@ -98,7 +118,8 @@ class DuckDuckGoClient {
         HttpRequest httpRequest = HttpRequest.builder()
                 .method(GET)
                 .url(url)
-                .addHeader("User-Agent", "LangChain4j-DuckDuckGo/1.0")
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                .addHeader("Accept", "application/json")
                 .build();
 
         SuccessfulHttpResponse response = httpClient.execute(httpRequest);
@@ -131,7 +152,7 @@ class DuckDuckGoClient {
         Set<String> seenUrls = new HashSet<>();
 
         String[] containers = new String[] {
-            "div[class*='body']",
+            "div.result__body",
             "div.web-result",
             "div.result",
             ".links_main",
@@ -221,32 +242,61 @@ class DuckDuckGoClient {
         return results;
     }
 
+    private void addField(JsonNode root, List<DuckDuckGoSearchResult> results, String field, int limit) {
+        String value = getJsonText(root, field);
+        if (!value.isEmpty() && results.size() < limit) {
+            results.add(DuckDuckGoSearchResult.builder()
+                    .title(field)
+                    .url("https://duckduckgo.com")
+                    .snippet(value)
+                    .build());
+        }
+    }
+
     private List<DuckDuckGoSearchResult> parseApiResponse(String json, Integer maxResults) {
         List<DuckDuckGoSearchResult> results = new ArrayList<>();
         int limit = maxResults != null ? maxResults : 10;
 
         try {
             JsonNode root = OBJECT_MAPPER.readTree(json);
+            addField(root, results, "Heading", limit);
+            addField(root, results, "AbstractText", limit);
+            addField(root, results, "Abstract", limit);
+            addField(root, results, "Answer", limit);
 
-            String abstractText = getJsonText(root, "Abstract");
-            String abstractUrl = getJsonText(root, "AbstractURL");
-            if (!abstractText.isEmpty() && !abstractUrl.isEmpty() && results.size() < limit) {
-                results.add(DuckDuckGoSearchResult.builder()
-                        .title("Abstract")
-                        .url(abstractUrl)
-                        .snippet(abstractText)
-                        .build());
+            // we parse the results from, RelatedTopics array
+            JsonNode relatedTopics = root.get("RelatedTopics");
+            if (relatedTopics != null && relatedTopics.isArray()) {
+                for (JsonNode topic : relatedTopics) {
+                    if (results.size() >= limit) break;
+
+                    if (topic.has("Topics")) {
+                        for (JsonNode nested : topic.get("Topics")) {
+                            addRelatedTopicResult(nested, results);
+                            if (results.size() >= limit) break;
+                        }
+                    } else {
+                        addRelatedTopicResult(topic, results);
+                    }
+                }
             }
 
-            String answer = getJsonText(root, "Answer");
-            if (!answer.isEmpty() && results.size() < limit) {
-                results.add(DuckDuckGoSearchResult.builder()
-                        .title("Answer")
-                        .url("https://duckduckgo.com")
-                        .snippet(answer)
-                        .build());
+            // we parse the results from "Results" array
+            JsonNode apiResults = root.get("Results");
+            if (apiResults != null && apiResults.isArray()) {
+                for (JsonNode r : apiResults) {
+                    if (results.size() >= limit) break;
+                    String url = getJsonText(r, "FirstURL");
+                    String text = getJsonText(r, "Text");
+                    if (!url.isEmpty() && !text.isEmpty()) {
+                        results.add(DuckDuckGoSearchResult.builder()
+                                .title(text)
+                                .url(url)
+                                .snippet(text)
+                                .build());
+                    }
+                }
             }
-
         } catch (Exception ignored) {
         }
 
@@ -272,5 +322,17 @@ class DuckDuckGoClient {
     private String getJsonText(JsonNode node, String fieldName) {
         JsonNode field = node.get(fieldName);
         return field != null && !field.isNull() ? field.asText("").trim() : "";
+    }
+
+    private void addRelatedTopicResult(JsonNode topic, List<DuckDuckGoSearchResult> results) {
+        String url = getJsonText(topic, "FirstURL");
+        String text = getJsonText(topic, "Text");
+        if (!url.isEmpty() && !text.isEmpty()) {
+            results.add(DuckDuckGoSearchResult.builder()
+                    .title(text)
+                    .url(url)
+                    .snippet(text)
+                    .build());
+        }
     }
 }
