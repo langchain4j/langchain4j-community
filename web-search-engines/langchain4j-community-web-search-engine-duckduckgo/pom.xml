@@ -25,7 +25,7 @@
 
     <properties>
         <skipDuckDuckGoITs>false</skipDuckDuckGoITs>
-        <jsoup.version>1.17.2</jsoup.version>
+        <jsoup.version>1.21.2</jsoup.version>
     </properties>
 
     <dependencies>
