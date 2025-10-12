@@ -1,13 +1,13 @@
 package dev.langchain4j.community.web.search.duckduckgo;
 
 class DuckDuckGoSearchRequest {
-    private String query;
-    private String format;
-    private Boolean noHtml;
-    private Boolean skipDisambig;
-    private String safeSearch;
-    private String region;
-    private Integer maxResults;
+    private final String query;
+    private final String format;
+    private final Boolean noHtml;
+    private final Boolean skipDisambig;
+    private final String safeSearch;
+    private final String region;
+    private final Integer maxResults;
 
     DuckDuckGoSearchRequest(
             String query,

@@ -33,8 +33,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class RetrievalQAChainTest {
 
-    private static final Query QUERY = Query.from("query");
-    private static final String ANSWER = "answer";
     public static final PromptTemplate promptTemplate = PromptTemplate.from(
             """
                     Answer the question based only on the context provided.
@@ -47,6 +45,8 @@ public class RetrievalQAChainTest {
 
                     Answer:
                     """);
+    private static final Query QUERY = Query.from("query");
+    private static final String ANSWER = "answer";
 
     @Mock
     ChatModel chatModel;
@@ -83,12 +83,12 @@ public class RetrievalQAChainTest {
         verify(chatModel).chat(messagesCaptor.capture());
         String expectedUserMessage =
                 """
-                query
-                
-                Answer using the following information:
-                Segment 1
-                
-                Segment 2""";
+                        query
+
+                        Answer using the following information:
+                        Segment 1
+
+                        Segment 2""";
         assertThat(messagesCaptor.getValue()).isEqualTo(expectedUserMessage);
     }
 
@@ -100,14 +100,14 @@ public class RetrievalQAChainTest {
 
         PromptTemplate promptTemplate = PromptTemplate.from(
                 """
-                    Answer the question based only on the context provided.
+                        Answer the question based only on the context provided.
 
-                    Context: {{contents}}
+                        Context: {{contents}}
 
-                    Question: {{userMessage}}
+                        Question: {{userMessage}}
 
-                    Answer:
-                    """);
+                        Answer:
+                        """);
 
         // -- PromptTemplate via contentInjector
         RetrievalQAChain chain = RetrievalQAChain.builder()
@@ -129,15 +129,15 @@ public class RetrievalQAChainTest {
         verify(chatModel).chat(messagesCaptor.capture());
         String expectedUserMessage =
                 """
-                Answer the question based only on the context provided.
-                Context:
-                Segment 1
-                Segment 2
+                        Answer the question based only on the context provided.
+                        Context:
+                        Segment 1
+                        Segment 2
 
-                Question:
-                query
-                Answer:
-                """;
+                        Question:
+                        query
+                        Answer:
+                        """;
         assertThat(messagesCaptor.getValue()).isEqualToIgnoringWhitespace(expectedUserMessage);
 
         // -- PromptTemplate via prompt builder
@@ -191,15 +191,15 @@ public class RetrievalQAChainTest {
         verify(chatModel).chat(messagesCaptor.capture());
         String expectedUserMessage =
                 """
-                Answer the question based only on the context provided.
-                Context:
-                Segment 1 with meta
-                Segment 2  with meta
+                        Answer the question based only on the context provided.
+                        Context:
+                        Segment 1 with meta
+                        Segment 2  with meta
 
-                Question:
-                query
-                Answer:
-                """;
+                        Question:
+                        query
+                        Answer:
+                        """;
         assertThat(messagesCaptor.getValue()).isEqualToIgnoringWhitespace(expectedUserMessage);
     }
 

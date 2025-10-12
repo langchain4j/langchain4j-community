@@ -10,20 +10,6 @@ import org.junit.jupiter.api.Test;
 
 class GraphTransformerTest {
 
-    /**
-     * A mock {@link GraphTransformer} which extract nodes from YAML document
-     */
-    static class MockGraphTransformer implements GraphTransformer {
-
-        @Override
-        public GraphDocument transform(Document document) {
-            if (document.text().contains("valid")) {
-                return GraphDocument.from(new HashSet<>(), new HashSet<>(), document);
-            }
-            return null;
-        }
-    }
-
     @Test
     void should_return_empty_list_when_input_is_null() {
         GraphTransformer graphTransformer = new MockGraphTransformer();
@@ -61,5 +47,19 @@ class GraphTransformerTest {
 
         // then
         assertThat(graphDocuments).hasSize(2).allMatch(g -> g.source().text().contains("valid"));
+    }
+
+    /**
+     * A mock {@link GraphTransformer} which extract nodes from YAML document
+     */
+    static class MockGraphTransformer implements GraphTransformer {
+
+        @Override
+        public GraphDocument transform(Document document) {
+            if (document.text().contains("valid")) {
+                return GraphDocument.from(new HashSet<>(), new HashSet<>(), document);
+            }
+            return null;
+        }
     }
 }

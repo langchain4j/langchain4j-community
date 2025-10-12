@@ -35,6 +35,29 @@ public class DuckDuckGoWebSearchEngine implements WebSearchEngine {
         return new Builder();
     }
 
+    private static WebSearchOrganicResult toWebSearchOrganicResult(DuckDuckGoSearchResult result) {
+        return WebSearchOrganicResult.from(result.getTitle(), makeURI(result.getUrl()), result.getSnippet(), null);
+    }
+
+    protected static URI makeURI(String urlString) {
+        if (urlString == null || urlString.isBlank()) {
+            throw new IllegalArgumentException("urlString can not be null or blank");
+        }
+        return URI.create(urlString.replaceAll("\\s+", "%20"));
+    }
+
+    private static boolean hasValue(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private static boolean includeResult(DuckDuckGoSearchResult result) {
+        return hasValue(result.getTitle()) && hasValue(result.getUrl()) && hasValue(result.getSnippet());
+    }
+
+    private static int maxResults(WebSearchRequest webSearchRequest) {
+        return webSearchRequest.maxResults() != null ? webSearchRequest.maxResults() : Integer.MAX_VALUE;
+    }
+
     @Override
     public WebSearchResults search(WebSearchRequest webSearchRequest) {
         List<DuckDuckGoSearchResult> results = client.search(webSearchRequest);
@@ -64,29 +87,6 @@ public class DuckDuckGoWebSearchEngine implements WebSearchEngine {
 
             return WebSearchResults.from(WebSearchInformationResult.from((long) organicResults.size()), organicResults);
         });
-    }
-
-    private static WebSearchOrganicResult toWebSearchOrganicResult(DuckDuckGoSearchResult result) {
-        return WebSearchOrganicResult.from(result.getTitle(), makeURI(result.getUrl()), result.getSnippet(), null);
-    }
-
-    protected static URI makeURI(String urlString) {
-        if (urlString == null || urlString.isBlank()) {
-            throw new IllegalArgumentException("urlString can not be null or blank");
-        }
-        return URI.create(urlString.replaceAll("\\s+", "%20"));
-    }
-
-    private static boolean hasValue(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
-    private static boolean includeResult(DuckDuckGoSearchResult result) {
-        return hasValue(result.getTitle()) && hasValue(result.getUrl()) && hasValue(result.getSnippet());
-    }
-
-    private static int maxResults(WebSearchRequest webSearchRequest) {
-        return webSearchRequest.maxResults() != null ? webSearchRequest.maxResults() : Integer.MAX_VALUE;
     }
 
     /**

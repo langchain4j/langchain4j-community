@@ -2,9 +2,9 @@ package dev.langchain4j.community.web.search.duckduckgo;
 
 class DuckDuckGoSearchResult {
 
-    private String title;
-    private String url;
-    private String snippet;
+    private final String title;
+    private final String url;
+    private final String snippet;
 
     public DuckDuckGoSearchResult(String title, String url, String snippet) {
         this.title = title;
