@@ -24,7 +24,7 @@
 
     <properties>
         <yugabytedb.version>42.7.3-yb-4</yugabytedb.version>
-        <hikaricp.version>6.3.2</hikaricp.version>
+        <hikaricp.version>6.3.3</hikaricp.version>
         <pgvector.version>0.1.6</pgvector.version>
     </properties>
 
