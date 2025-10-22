@@ -139,6 +139,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String fullTextQuery;
     private final String fullTextRetrievalQuery;
     private final boolean autoCreateFullText;
+    private final boolean initializeSchema;
 
     /**
      * Creates an instance of Neo4jEmbeddingStore
@@ -160,6 +161,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param fullTextQuery          the optional full-text index query, required if we want to perform a hybrid search
      * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
      * @param autoCreateFullText     if true, it will auto create the full-text index if not exists (default: false)
+     * @param initializeSchema       if true, it will create vector index and constraints (default: true)
      * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
      * @param additionalParams       the additional entity creation parameters (default: empty maps)
      */
@@ -180,6 +182,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             String fullTextQuery,
             String fullTextRetrievalQuery,
             boolean autoCreateFullText,
+            boolean initializeSchema,
             String entityCreationQuery,
             Map<String, Object> additionalParams) {
 
@@ -225,10 +228,12 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.fullTextQuery = fullTextQuery;
         this.fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
 
+        this.initializeSchema = initializeSchema;
         this.entityCreationQuery = getOrDefault(entityCreationQuery, ENTITIES_CREATION);
 
-        /* auto-schema creation */
-        createSchema();
+        if (this.initializeSchema) {
+            createSchema();
+        }
     }
 
     public static Builder builder() {
@@ -716,6 +721,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         private String fullTextQuery;
         private String fullTextRetrievalQuery;
         private boolean autoCreateFullText;
+        private boolean initializeSchema = true;
         private String entityCreationQuery;
         private Map<String, Object> additionalParams;
 
@@ -857,6 +863,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * @param initializeSchema if true, it will create vector index and constraints (default: true)
+         */
+        public Builder initializeSchema(boolean initializeSchema) {
+            this.initializeSchema = initializeSchema;
+            return this;
+        }
+
+        /**
          * @param additionalParams the additional entity creation parameters (default: empty maps)
          */
         public Builder additionalParams(Map<String, Object> additionalParams) {
@@ -894,6 +908,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     fullTextQuery,
                     fullTextRetrievalQuery,
                     autoCreateFullText,
+                    initializeSchema,
                     entityCreationQuery,
                     additionalParams);
         }
