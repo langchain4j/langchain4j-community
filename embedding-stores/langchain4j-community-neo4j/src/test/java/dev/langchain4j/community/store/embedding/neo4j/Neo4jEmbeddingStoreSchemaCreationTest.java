@@ -185,4 +185,24 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 .list();
         assertThat(existingVectorIndexes).hasSize(1);
     }
+
+    @Test
+    void should_not_create_index_when_initializeSchema_is_false() {
+        Neo4jEmbeddingStore.builder()
+                .label("Document8")
+                .embeddingProperty("embedding")
+                .indexName("vector8")
+                .dimension(384)
+                .initializeSchema(false)
+                .withBasicAuth(neo4jContainer.getBoltUrl(), USERNAME, ADMIN_PASSWORD)
+                .build();
+
+        var vectorIndexes = session.run("SHOW VECTOR INDEX WHERE 'Document8' IN labelsOrTypes")
+                .list();
+        assertThat(vectorIndexes).isEmpty();
+
+        var constraints = session.run("SHOW CONSTRAINT WHERE 'Document8' IN labelsOrTypes")
+                .list();
+        assertThat(constraints).isEmpty();
+    }
 }
