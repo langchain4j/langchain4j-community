@@ -139,7 +139,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String fullTextQuery;
     private final String fullTextRetrievalQuery;
     private final boolean autoCreateFullText;
-    private final boolean initializeSchema;
 
     /**
      * Creates an instance of Neo4jEmbeddingStore
@@ -228,10 +227,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.fullTextQuery = fullTextQuery;
         this.fullTextRetrievalQuery = getOrDefault(fullTextRetrievalQuery, this.retrievalQuery);
 
-        this.initializeSchema = initializeSchema;
         this.entityCreationQuery = getOrDefault(entityCreationQuery, ENTITIES_CREATION);
 
-        if (this.initializeSchema) {
+        if (initializeSchema) {
             createSchema();
         }
     }
