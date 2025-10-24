@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.8.0-beta15-SNAPSHOT</version>
+        <version>1.8.0-beta15</version>
     </parent>
 
     <artifactId>langchain4j-community-core</artifactId>
