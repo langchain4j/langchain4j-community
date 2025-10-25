@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Spring Boot starter :: Redis</name>
 
     <properties>
-        <jedis.version>5.2.0</jedis.version>
+        <jedis.version>7.0.0</jedis.version>
     </properties>
 
     <dependencies>
