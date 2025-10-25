@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
-        <version>1.8.0-beta15</version>
+        <version>1.9.0-beat16-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
@@ -21,7 +21,7 @@
 
     <properties>
         <clickhouse-jdbc.version>0.9.2</clickhouse-jdbc.version>
-        <lz4.version>1.8.0</lz4.version>
+        <lz4.version>1.9.0-SNAPSHOT</lz4.version>
     </properties>
 
     <dependencies>
