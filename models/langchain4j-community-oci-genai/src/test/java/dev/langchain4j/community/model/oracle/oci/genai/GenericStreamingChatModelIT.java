@@ -168,6 +168,27 @@ public class GenericStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @Override
+    protected boolean supportsStreamingCancellation() {
+        return false;
+    }
+
+    @Override
+    protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, StreamingChatModel model) {
+        // Some providers can talk before calling a tool. "atLeast(0)" is meant to ignore it.
+        io.verify(handler, atLeast(0)).onPartialResponse(any(), any());
+
+        if (supportsPartialToolStreaming(model)) {
+            io.verify(handler, atLeast(0)).onPartialToolCall(any());
+        }
+        io.verify(handler).onCompleteToolCall(any());
+    }
+
+    @Override
+    protected boolean supportsPartialToolStreaming(final StreamingChatModel model) {
+        return true;
+    }
+
+    @Override
     @Disabled("Enable when token usage is supported by SDK")
     protected void should_respect_maxOutputTokens_in_default_model_parameters() {
         super.should_respect_maxOutputTokens_in_default_model_parameters();

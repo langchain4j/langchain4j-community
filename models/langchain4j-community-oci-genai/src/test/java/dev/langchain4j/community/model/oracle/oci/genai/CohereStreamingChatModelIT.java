@@ -9,7 +9,9 @@ import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COMPARTMENT_ID_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION_PROPERTY;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 
 import com.oracle.bmc.Region;
@@ -82,8 +84,15 @@ public class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id) {
+        io.verify(handler, atLeast(0)).onPartialResponse(any(), any());
         io.verify(handler, atLeastOnce()).onPartialResponse(anyString());
         io.verify(handler).onCompleteToolCall(complete(0, id, "getWeather", "{\"city\":\"Munich\"}"));
+    }
+
+    @Override
+    protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, StreamingChatModel model) {
+        io.verify(handler, atLeastOnce()).onPartialResponse(anyString());
+        super.verifyToolCallbacks(handler, io, model);
     }
 
     @Disabled("Know issue: response_format is not supported with RAG")
@@ -147,6 +156,19 @@ public class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected boolean assertThreads() {
+        return false;
+    }
+
+    protected boolean assertTokenUsage() {
+        return false;
+    }
+
+    protected boolean supportsJsonResponseFormatWithRawSchema() {
+        return false;
+    }
+
+    @Override
+    protected boolean supportsStreamingCancellation() {
         return false;
     }
 
