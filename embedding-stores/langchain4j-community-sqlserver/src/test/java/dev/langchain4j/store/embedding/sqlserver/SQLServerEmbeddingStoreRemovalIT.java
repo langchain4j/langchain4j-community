@@ -46,6 +46,13 @@ public class SQLServerEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalI
         return embeddingModel;
     }
 
+    @AfterEach
+    public void after(){
+        if (embeddingStore != null) {
+            embeddingStore.removeAll();
+        }
+    }
+
     @Before
     public void before(){
         if (embeddingStore != null) {
