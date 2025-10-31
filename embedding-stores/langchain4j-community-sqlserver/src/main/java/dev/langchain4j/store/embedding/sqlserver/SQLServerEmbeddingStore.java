@@ -13,7 +13,6 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
-import dev.langchain4j.store.embedding.sqlserver.util.EmbeddingStoreUtil;
 import java.sql.*;
 import java.util.*;
 import java.util.Collections;
@@ -110,10 +109,10 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 String id = randomUUID();
                 ids[i] = id;
 
-                Embedding embedding = EmbeddingStoreUtil.ensureIndexNotNull(embeddings, i, "embeddings");
+                Embedding embedding = SQLServerEmbeddingStoreUtil.ensureIndexNotNull(embeddings, i, "embeddings");
 
                 statement.setString(1, id);
-                Float[] boxedVector = EmbeddingStoreUtil.boxEmbeddings(embedding.vector());
+                Float[] boxedVector = SQLServerEmbeddingStoreUtil.boxEmbeddings(embedding.vector());
                 Vector vector =
                         new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
                 statement.setObject(2, vector, microsoft.sql.Types.VECTOR);
@@ -170,21 +169,22 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                     id = randomUUID();
                     ids.add(id);
                 } else {
-                    id = EmbeddingStoreUtil.ensureIndexNotNull(ids, i, "ids");
+                    id = SQLServerEmbeddingStoreUtil.ensureIndexNotNull(ids, i, "ids");
                 }
                 statement.setString(1, id);
 
-                Embedding embedding = EmbeddingStoreUtil.ensureIndexNotNull(embeddings, i, "embeddings");
-                TextSegment textSegment = EmbeddingStoreUtil.ensureIndexNotNull(textSegments, i, "textSegments");
+                Embedding embedding = SQLServerEmbeddingStoreUtil.ensureIndexNotNull(embeddings, i, "embeddings");
+                TextSegment textSegment =
+                        SQLServerEmbeddingStoreUtil.ensureIndexNotNull(textSegments, i, "textSegments");
 
-                Float[] boxedVector = EmbeddingStoreUtil.boxEmbeddings(embedding.vector());
+                Float[] boxedVector = SQLServerEmbeddingStoreUtil.boxEmbeddings(embedding.vector());
                 Vector vector =
                         new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
                 statement.setObject(2, vector, microsoft.sql.Types.VECTOR);
 
                 statement.setObject(3, textSegment.text());
                 Metadata metadata = textSegment.metadata() != null ? textSegment.metadata() : null;
-                statement.setString(4, metadata != null ? EmbeddingStoreUtil.metadataToJson(metadata) : null);
+                statement.setString(4, metadata != null ? SQLServerEmbeddingStoreUtil.metadataToJson(metadata) : null);
                 statement.addBatch();
             }
             statement.executeBatch();
@@ -233,7 +233,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 PreparedStatement statement = connection.prepareStatement(sql)) {
 
             // Set the query embedding vector as the first parameter
-            Float[] boxedVector = EmbeddingStoreUtil.boxEmbeddings(referenceEmbedding.vector());
+            Float[] boxedVector = SQLServerEmbeddingStoreUtil.boxEmbeddings(referenceEmbedding.vector());
             Vector vector =
                     new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
             statement.setObject(1, vector, microsoft.sql.Types.VECTOR);
@@ -258,13 +258,14 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                         Object embeddingVector =
                                 resultSet.getObject(embeddingTable.embeddingColumn(), microsoft.sql.Vector.class);
-                        Embedding embedding = new Embedding(EmbeddingStoreUtil.unboxEmbeddings(embeddingVector));
+                        Embedding embedding =
+                                new Embedding(SQLServerEmbeddingStoreUtil.unboxEmbeddings(embeddingVector));
 
                         String text = resultSet.getString(embeddingTable.textColumn());
                         String metadataJson = resultSet.getString(embeddingTable.metadataColumn());
 
                         TextSegment textSegment = text != null
-                                ? TextSegment.from(text, EmbeddingStoreUtil.jsonToMetadata(metadataJson))
+                                ? TextSegment.from(text, SQLServerEmbeddingStoreUtil.jsonToMetadata(metadataJson))
                                 : null;
 
                         matches.add(new EmbeddingMatch<>(score, id, embedding, textSegment));
@@ -349,7 +350,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
         try (Connection connection = dataSource.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
 
-            Float[] boxedVector = EmbeddingStoreUtil.boxEmbeddings(embedding.vector());
+            Float[] boxedVector = SQLServerEmbeddingStoreUtil.boxEmbeddings(embedding.vector());
             Vector vector =
                     new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
             statement.setString(1, id);
@@ -360,7 +361,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             if (metadata == null) {
                 statement.setNull(4, Types.VARCHAR);
             } else {
-                statement.setString(4, EmbeddingStoreUtil.metadataToJson(metadata));
+                statement.setString(4, SQLServerEmbeddingStoreUtil.metadataToJson(metadata));
             }
 
             statement.executeUpdate();

@@ -1,4 +1,4 @@
-package dev.langchain4j.store.embedding.sqlserver.util;
+package dev.langchain4j.store.embedding.sqlserver;
 
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +11,7 @@ import microsoft.sql.Vector;
 /**
  * Utility methods for working with SQL Server embedding stores.
  */
-public class EmbeddingStoreUtil {
+class SQLServerEmbeddingStoreUtil {
 
     private static final ObjectMapper objectMapper =
             new ObjectMapper().configure(JsonWriteFeature.WRITE_NUMBERS_AS_STRINGS.mappedFeature(), true);
