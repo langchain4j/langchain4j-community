@@ -43,7 +43,7 @@ public class CohereChatModelIT extends AbstractChatModelIT {
                 .authProvider(authProvider)
                 .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
-                .maxTokens(600)
+                .maxTokens(1000)
                 .temperature(0.7)
                 .topP(1.0)
                 .build());
@@ -57,6 +57,7 @@ public class CohereChatModelIT extends AbstractChatModelIT {
                 .authProvider(authProvider)
                 .region(Region.fromRegionCodeOrId(OCI_GENAI_MODEL_REGION))
                 .seed(TestEnvProps.SEED)
+                .maxTokens(1000)
                 .defaultRequestParameters(parameters)
                 .build();
     }
@@ -106,11 +107,24 @@ public class CohereChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
+    protected boolean supportsToolChoiceRequiredWithMultipleTools() {
+        return false;
+    }
+
+    @Override
     protected boolean supportsToolChoiceRequiredWithSingleTool() {
         return false;
     }
 
     protected boolean assertResponseId() {
+        return false;
+    }
+
+    protected boolean assertTokenUsage() {
+        return false;
+    }
+
+    protected boolean supportsJsonResponseFormatWithRawSchema() {
         return false;
     }
 

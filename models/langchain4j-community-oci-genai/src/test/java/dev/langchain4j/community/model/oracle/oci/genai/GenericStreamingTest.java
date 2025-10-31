@@ -96,7 +96,6 @@ public class GenericStreamingTest {
         var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
         assertThat(toolExecutionRequests.size(), is(0));
         assertThat(chatResponse.aiMessage().text(), is("Hello "));
-        System.out.println(handler.partialResponses);
         assertThat(handler.partialResponses, contains("Hello "));
         assertThat(handler.completeResponses, contains("Hello "));
     }
