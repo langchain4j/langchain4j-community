@@ -14,7 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
@@ -47,21 +46,21 @@ public class SQLServerEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalI
     }
 
     @AfterEach
-    public void after(){
+    public void after() {
         if (embeddingStore != null) {
             embeddingStore.removeAll();
         }
     }
 
     @Before
-    public void before(){
+    public void before() {
         if (embeddingStore != null) {
             embeddingStore.removeAll();
         }
     }
 
     @AfterAll
-    public static void afterClass(){
+    public static void afterClass() {
         DEFAULT_CONTAINER.stop();
     }
 }

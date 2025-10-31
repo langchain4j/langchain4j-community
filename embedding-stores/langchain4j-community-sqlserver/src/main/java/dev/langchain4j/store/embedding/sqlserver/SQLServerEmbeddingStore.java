@@ -4,6 +4,7 @@ import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -13,18 +14,14 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.sqlserver.util.EmbeddingStoreUtil;
-import microsoft.sql.Vector;
 import java.sql.*;
 import java.util.*;
 import java.util.Collections;
+import java.util.Properties;
 import javax.sql.DataSource;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonGenerator;
+import microsoft.sql.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.IOException;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import java.util.Properties;
 
 /**
  * SQL Server implementation of {@link EmbeddingStore}.
@@ -41,7 +38,8 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final EmbeddingTable embeddingTable;
     private final DistanceMetric metric;
 
-    private SQLServerEmbeddingStore(DataSource dataSource, EmbeddingTable embeddingTable, List<Index> indexes, DistanceMetric metric) {
+    private SQLServerEmbeddingStore(
+            DataSource dataSource, EmbeddingTable embeddingTable, List<Index> indexes, DistanceMetric metric) {
         this.dataSource = dataSource;
         this.embeddingTable = embeddingTable;
         this.metric = metric == null ? DistanceMetric.COSINE : metric;
@@ -102,14 +100,12 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
         ensureNotNull(embeddings, "embeddings");
         String[] ids = new String[embeddings.size()];
 
-        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?)",
-                embeddingTable.getQualifiedTableName(),
-                embeddingTable.idColumn(),
-                embeddingTable.embeddingColumn()
-        );
+        String sql = String.format(
+                "INSERT INTO %s (%s, %s) VALUES (?, ?)",
+                embeddingTable.getQualifiedTableName(), embeddingTable.idColumn(), embeddingTable.embeddingColumn());
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < embeddings.size(); i++) {
                 String id = randomUUID();
                 ids[i] = id;
@@ -118,7 +114,8 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                 statement.setString(1, id);
                 Float[] boxedVector = EmbeddingStoreUtil.boxEmbeddings(embedding.vector());
-                Vector vector = new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
+                Vector vector =
+                        new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
                 statement.setObject(2, vector, microsoft.sql.Types.VECTOR);
 
                 statement.addBatch();
@@ -146,18 +143,19 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
         ensureNotNull(embeddings, "embeddings");
         ensureNotNull(textSegments, "textSegments");
         if (embeddings.size() != textSegments.size()) {
-            throw new IllegalArgumentException("The list of embeddings and the list of text segments must have the same size");
+            throw new IllegalArgumentException(
+                    "The list of embeddings and the list of text segments must have the same size");
         }
 
-        final String sql = String.format("""
+        final String sql = String.format(
+                """
                 INSERT INTO %s (%s, %s, %s, %s) VALUES (?, ?, ?, ?)
                 """,
                 embeddingTable.getQualifiedTableName(),
                 embeddingTable.idColumn(),
                 embeddingTable.embeddingColumn(),
                 embeddingTable.textColumn(),
-                embeddingTable.metadataColumn()
-        );
+                embeddingTable.metadataColumn());
 
         boolean generateIds = false;
         if (ids == null) {
@@ -165,7 +163,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             generateIds = true;
         }
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < embeddings.size(); i++) {
                 String id;
                 if (generateIds) {
@@ -180,7 +178,8 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 TextSegment textSegment = EmbeddingStoreUtil.ensureIndexNotNull(textSegments, i, "textSegments");
 
                 Float[] boxedVector = EmbeddingStoreUtil.boxEmbeddings(embedding.vector());
-                Vector vector = new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
+                Vector vector =
+                        new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
                 statement.setObject(2, vector, microsoft.sql.Types.VECTOR);
 
                 statement.setObject(3, textSegment.text());
@@ -207,12 +206,13 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
         SQLFilter sqlFilter = SQLFilters.create(filter, embeddingTable::mapMetadataKey);
 
         // Build query using VECTOR_DISTANCE
-        String sql = String.format("""
+        String sql = String.format(
+                """
                 SELECT TOP (%d)
-                 VECTOR_DISTANCE('%s', %s, ?) AS distance,  
-                 %s 
-                 FROM %s 
-                 %s 
+                 VECTOR_DISTANCE('%s', %s, ?) AS distance,
+                 %s
+                 FROM %s
+                 %s
                  ORDER BY distance ASC
                 """,
                 maxResults,
@@ -225,22 +225,22 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                         embeddingTable.textColumn(),
                         embeddingTable.metadataColumn()),
                 embeddingTable.getQualifiedTableName(),
-                sqlFilter.asWhereClause()
-        );
+                sqlFilter.asWhereClause());
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        
+
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-            
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+
             // Set the query embedding vector as the first parameter
             Float[] boxedVector = EmbeddingStoreUtil.boxEmbeddings(referenceEmbedding.vector());
-            Vector vector = new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
+            Vector vector =
+                    new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
             statement.setObject(1, vector, microsoft.sql.Types.VECTOR);
-            
+
             // Set filter parameters starting from index 2
             sqlFilter.setParameters(statement, 2);
-            
+
             try (ResultSet resultSet = statement.executeQuery()) {
                 int resultCount = 0;
                 ResultSetMetaData metaData = resultSet.getMetaData();
@@ -248,22 +248,25 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 logger.debug("Found {} columns in result set", columnCount);
                 while (resultSet.next()) {
                     double distance = resultSet.getDouble("distance");
-                    
+
                     // Convert distance to similarity score using metric-specific conversion
                     double score = metric.distanceToScore(distance) / 2;
-                    
+
                     // Apply minScore filtering
                     if (score >= minScore) {
                         String id = resultSet.getString(embeddingTable.idColumn());
 
-                        Object embeddingVector = resultSet.getObject(embeddingTable.embeddingColumn(), microsoft.sql.Vector.class);
+                        Object embeddingVector =
+                                resultSet.getObject(embeddingTable.embeddingColumn(), microsoft.sql.Vector.class);
                         Embedding embedding = new Embedding(EmbeddingStoreUtil.unboxEmbeddings(embeddingVector));
 
                         String text = resultSet.getString(embeddingTable.textColumn());
                         String metadataJson = resultSet.getString(embeddingTable.metadataColumn());
 
-                        TextSegment textSegment = text != null ? TextSegment.from(text, EmbeddingStoreUtil.jsonToMetadata(metadataJson)) : null;
-                        
+                        TextSegment textSegment = text != null
+                                ? TextSegment.from(text, EmbeddingStoreUtil.jsonToMetadata(metadataJson))
+                                : null;
+
                         matches.add(new EmbeddingMatch<>(score, id, embedding, textSegment));
                         resultCount++;
                     } else {
@@ -288,7 +291,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
         String sql = "DELETE FROM " + embeddingTable.getQualifiedTableName() + sqlFilter.asWhereClause();
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             // Set filter parameters starting from index 1
             sqlFilter.setParameters(statement, 1);
 
@@ -303,10 +306,12 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
         ensureNotEmpty(ids, "ids");
 
         String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
-        String sql = String.format("DELETE FROM %s WHERE %s IN (%s)", embeddingTable.getQualifiedTableName(), embeddingTable.idColumn(), placeholders);
+        String sql = String.format(
+                "DELETE FROM %s WHERE %s IN (%s)",
+                embeddingTable.getQualifiedTableName(), embeddingTable.idColumn(), placeholders);
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             int index = 1;
             for (String id : ids) {
                 statement.setString(index++, id);
@@ -320,7 +325,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public void removeAll() {
         try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+                Statement statement = connection.createStatement()) {
             statement.executeUpdate(String.format("TRUNCATE TABLE %s", embeddingTable.getQualifiedTableName()));
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -331,25 +336,26 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
         ensureNotNull(id, "id");
         ensureNotNull(embedding, "embedding");
 
-        String sql = String.format("""
+        String sql = String.format(
+                """
                 INSERT INTO %s (%s, %s, %s, %s) VALUES (?, ?, ?, ?)
                 """,
                 embeddingTable.getQualifiedTableName(),
                 embeddingTable.idColumn(),
                 embeddingTable.embeddingColumn(),
                 embeddingTable.textColumn(),
-                embeddingTable.metadataColumn()
-        );
+                embeddingTable.metadataColumn());
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
 
             Float[] boxedVector = EmbeddingStoreUtil.boxEmbeddings(embedding.vector());
-            Vector vector = new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
+            Vector vector =
+                    new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
             statement.setString(1, id);
             statement.setObject(2, vector, microsoft.sql.Types.VECTOR);
             statement.setString(3, textSegment != null ? textSegment.text() : null);
-            
+
             Metadata metadata = textSegment != null ? textSegment.metadata() : null;
             if (metadata == null) {
                 statement.setNull(4, Types.VARCHAR);
@@ -363,11 +369,10 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-
     /**
      * Builder class for creating SQLServerEmbeddingStore instances.
      */
-    public static abstract class Builder {
+    public abstract static class Builder {
         /**
          * Represents the table used for storing embeddings in the SQL server.
          * Configured within the builder to facilitate the creation of SQLServerEmbeddingStore instances.
@@ -398,7 +403,10 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
          * @param embeddingTable the {@code EmbeddingTable} object representing the table for storing embeddings
          * @return the {@code Builder} instance to allow for method chaining
          */
-        public Builder embeddingTable(EmbeddingTable embeddingTable) { this.embeddingTable = embeddingTable; return this; }
+        public Builder embeddingTable(EmbeddingTable embeddingTable) {
+            this.embeddingTable = embeddingTable;
+            return this;
+        }
 
         /**
          * Sets the list of database indexes to be associated with the embedding table.
@@ -407,7 +415,10 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
          * @param indexes the list of {@code Index} objects representing the database indexes to be configured
          * @return the {@code Builder} instance to allow for method chaining
          */
-        public Builder indexes(List<Index> indexes) { this.indexes = indexes; return this; }
+        public Builder indexes(List<Index> indexes) {
+            this.indexes = indexes;
+            return this;
+        }
 
         /**
          * Adds a single {@link Index} to the list of indexes associated with the embedding table.
@@ -416,7 +427,11 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
          * @param index the {@link Index} object to be added
          * @return the {@code Builder} instance to allow for method chaining
          */
-        public Builder addIndex(Index index) { if (this.indexes == null) this.indexes = new ArrayList<>(); this.indexes.add(index); return this; }
+        public Builder addIndex(Index index) {
+            if (this.indexes == null) this.indexes = new ArrayList<>();
+            this.indexes.add(index);
+            return this;
+        }
 
         /**
          * Sets the distance metric to be used for calculations. The distance metric
@@ -426,7 +441,10 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
          * @param metric the {@link DistanceMetric} to be used, such as {@code COSINE} or {@code EUCLIDEAN}
          * @return the {@code Builder} instance to allow for method chaining
          */
-        public Builder metric(DistanceMetric metric) { this.metric = metric; return this; }
+        public Builder metric(DistanceMetric metric) {
+            this.metric = metric;
+            return this;
+        }
 
         /**
          * Builds and returns an instance of {@code SQLServerEmbeddingStore} based on the
@@ -467,7 +485,6 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             ensureNotNull(dataSource, "dataSource");
             ensureNotNull(embeddingTable, "embeddingTable");
             return new SQLServerEmbeddingStore(dataSource, embeddingTable, indexes, metric);
-
         }
     }
 
@@ -490,48 +507,66 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
          * @param host The host name or IP address of the SQL Server instance
          * @return This builder
          */
-        public SQLServerEmbeddingStoreConnectionBuilder host(String host) { this.host = host; return this; }
-        
+        public SQLServerEmbeddingStoreConnectionBuilder host(String host) {
+            this.host = host;
+            return this;
+        }
+
         /**
          * Sets the SQL Server port number.
          *
          * @param port The port number (default is 1433 if not specified)
          * @return This builder
          */
-        public SQLServerEmbeddingStoreConnectionBuilder port(int port) { this.port = port; return this; }
-        
+        public SQLServerEmbeddingStoreConnectionBuilder port(int port) {
+            this.port = port;
+            return this;
+        }
+
         /**
          * Sets the database name to connect to.
          *
          * @param database The name of the database
          * @return This builder
          */
-        public SQLServerEmbeddingStoreConnectionBuilder database(String database) { this.database = database; return this; }
-        
+        public SQLServerEmbeddingStoreConnectionBuilder database(String database) {
+            this.database = database;
+            return this;
+        }
+
         /**
          * Sets the username for database authentication.
          *
          * @param username The username for connecting to the database
          * @return This builder
          */
-        public SQLServerEmbeddingStoreConnectionBuilder userName(String username) { this.username = username; return this; }
-        
+        public SQLServerEmbeddingStoreConnectionBuilder userName(String username) {
+            this.username = username;
+            return this;
+        }
+
         /**
          * Sets the password for database authentication.
          *
          * @param password The password for connecting to the database
          * @return This builder
          */
-        public SQLServerEmbeddingStoreConnectionBuilder password(String password) { this.password = password; return this; }
-        
+        public SQLServerEmbeddingStoreConnectionBuilder password(String password) {
+            this.password = password;
+            return this;
+        }
+
         /**
          * Sets additional connection properties for the SQL Server DataSource.
          *
          * @param connectionProperties A Properties object containing additional connection settings
          * @return This builder
          */
-        public SQLServerEmbeddingStoreConnectionBuilder connectionProperties(Properties connectionProperties) { this.connectionProperties = connectionProperties; return this; }
-        
+        public SQLServerEmbeddingStoreConnectionBuilder connectionProperties(Properties connectionProperties) {
+            this.connectionProperties = connectionProperties;
+            return this;
+        }
+
         /**
          * Sets a single connection property.
          *
@@ -566,7 +601,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             if (password != null) {
                 ds.setPassword(password);
             }
-            
+
             // Apply additional connection properties
             if (connectionProperties != null) {
                 applyConnectionProperties(ds, connectionProperties);
@@ -574,7 +609,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             return new SQLServerEmbeddingStore(ds, embeddingTable, indexes, metric);
         }
-        
+
         /**
          * Applies connection properties to the SQLServerDataSource using reflection.
          * This allows setting any property supported by SQLServerDataSource.
@@ -601,7 +636,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
             }
         }
-        
+
         /**
          * Finds a setter method that can accept the given value.
          */
@@ -614,7 +649,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
             return null;
         }
-        
+
         /**
          * Converts a string value to the appropriate type for the setter parameter.
          */
@@ -633,5 +668,4 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
         }
     }
-
 }

@@ -6,7 +6,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.Objects;
 import javax.sql.DataSource;
 
 /**
@@ -150,7 +149,7 @@ public class EmbeddingTable {
         }
 
         try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+                Statement statement = connection.createStatement()) {
 
             if (createOption == CreateOption.CREATE_OR_REPLACE) {
                 statement.addBatch(getDropTableStatement());
@@ -170,7 +169,7 @@ public class EmbeddingTable {
      */
     public String mapMetadataKey(String key, int sqlServerType) {
         String jsonExpression = "JSON_VALUE(" + metadataColumn + ", '$." + key + '\'';
-        
+
         // Add RETURNING clause based on SQL Server type
         if (sqlServerType == Types.DOUBLE) {
             jsonExpression += " RETURNING FLOAT";
@@ -183,9 +182,9 @@ public class EmbeddingTable {
         } else if (sqlServerType == Types.BOOLEAN) {
             jsonExpression += " RETURNING BIT";
         }
-        
+
         jsonExpression += ")";
-        
+
         return jsonExpression;
     }
 
@@ -210,13 +209,15 @@ public class EmbeddingTable {
     }
 
     private String getCreateTableStatement() {
-        return String.format("""
+        return String.format(
+                """
             CREATE TABLE %s (
                 %s NVARCHAR(36) PRIMARY KEY,
                 %s VECTOR(%d),
                 %s NVARCHAR(MAX),
                 %s JSON)
-        """, getQualifiedTableName(), idColumn, embeddingColumn, dimension, textColumn, metadataColumn);
+        """,
+                getQualifiedTableName(), idColumn, embeddingColumn, dimension, textColumn, metadataColumn);
     }
 
     private String getDropTableStatement() {
@@ -352,17 +353,16 @@ public class EmbeddingTable {
 
         @Override
         public String toString() {
-            return "Builder{" +
-                    "catalogName='" + catalogName + '\'' +
-                    ", schemaName='" + schemaName + '\'' +
-                    ", tableName='" + tableName + '\'' +
-                    ", idColumn='" + idColumn + '\'' +
-                    ", embeddingColumn='" + embeddingColumn + '\'' +
-                    ", textColumn='" + textColumn + '\'' +
-                    ", metadataColumn='" + metadataColumn + '\'' +
-                    ", createOption=" + createOption +
-                    ", dimension=" + dimension +
-                    '}';
+            return "Builder{" + "catalogName='"
+                    + catalogName + '\'' + ", schemaName='"
+                    + schemaName + '\'' + ", tableName='"
+                    + tableName + '\'' + ", idColumn='"
+                    + idColumn + '\'' + ", embeddingColumn='"
+                    + embeddingColumn + '\'' + ", textColumn='"
+                    + textColumn + '\'' + ", metadataColumn='"
+                    + metadataColumn + '\'' + ", createOption="
+                    + createOption + ", dimension="
+                    + dimension + '}';
         }
     }
 }

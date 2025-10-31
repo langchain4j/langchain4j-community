@@ -1,5 +1,12 @@
 package dev.langchain4j.store.embedding.sqlserver;
 
+import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
+import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.DEFAULT_CONTAINER;
+import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.getSqlServerDataSource;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.Percentage.withPercentage;
+import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
+
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -11,22 +18,14 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.AfterAll;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
-import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.DEFAULT_CONTAINER;
-import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.getSqlServerDataSource;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.Percentage.withPercentage;
-import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 @Testcontainers
 public class SQLServerCatalogSchemaEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
@@ -75,7 +74,6 @@ public class SQLServerCatalogSchemaEmbeddingStoreIT extends EmbeddingStoreWithFi
         }
 
         assertThat(match.embedded().text()).isEqualTo(segments[0].text());
-
     }
 
     @Test
@@ -94,7 +92,8 @@ public class SQLServerCatalogSchemaEmbeddingStoreIT extends EmbeddingStoreWithFi
 
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(emb)
-                .filter(MetadataFilterBuilder.metadataKey("jap_name").isEqualTo("天ぷら (てんぷら)")
+                .filter(MetadataFilterBuilder.metadataKey("jap_name")
+                        .isEqualTo("天ぷら (てんぷら)")
                         .and(MetadataFilterBuilder.metadataKey("jap_name").isNotEqualTo("ラーメン")))
                 .maxResults(2)
                 .build();
@@ -127,17 +126,17 @@ public class SQLServerCatalogSchemaEmbeddingStoreIT extends EmbeddingStoreWithFi
     }
 
     @Before
-    public void before(){
+    public void before() {
         clearStore();
     }
 
     @After
-    public void after(){
+    public void after() {
         clearStore();
     }
 
     @AfterAll
-    public static void afterClass(){
+    public static void afterClass() {
         DEFAULT_CONTAINER.stop();
     }
 }

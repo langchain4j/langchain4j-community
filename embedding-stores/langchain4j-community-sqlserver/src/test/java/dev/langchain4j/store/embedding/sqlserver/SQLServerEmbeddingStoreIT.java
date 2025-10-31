@@ -7,14 +7,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Percentage.withPercentage;
 import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
@@ -22,11 +18,13 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
@@ -74,7 +72,6 @@ public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         }
 
         assertThat(match.embedded().text()).isEqualTo(segments[0].text());
-
     }
 
     @Test
@@ -93,7 +90,8 @@ public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(emb)
-                .filter(MetadataFilterBuilder.metadataKey("jap_name").isEqualTo("天ぷら (てんぷら)")
+                .filter(MetadataFilterBuilder.metadataKey("jap_name")
+                        .isEqualTo("天ぷら (てんぷら)")
                         .and(MetadataFilterBuilder.metadataKey("jap_name").isNotEqualTo("ラーメン")))
                 .maxResults(2)
                 .build();
@@ -126,17 +124,17 @@ public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @Before
-    public void before(){
+    public void before() {
         clearStore();
     }
 
     @After
-    public void after(){
+    public void after() {
         clearStore();
     }
 
     @AfterAll
-    public static void afterClass(){
+    public static void afterClass() {
         DEFAULT_CONTAINER.stop();
     }
 }

@@ -1,7 +1,6 @@
 package dev.langchain4j.store.embedding.sqlserver;
 
 import dev.langchain4j.store.embedding.filter.Filter;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 

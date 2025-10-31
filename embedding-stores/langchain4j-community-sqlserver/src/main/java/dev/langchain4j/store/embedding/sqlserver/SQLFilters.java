@@ -8,10 +8,10 @@ import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import java.sql.Types;
 
 /**
  * <p>
@@ -85,11 +85,13 @@ public class SQLFilters {
         } else if (filter instanceof final IsGreaterThan isGreaterThan) {
             return createComparisonFilter(isGreaterThan.key(), isGreaterThan.comparisonValue(), ">", keyMapper);
         } else if (filter instanceof final IsGreaterThanOrEqualTo isGreaterThanOrEqualTo) {
-            return createComparisonFilter(isGreaterThanOrEqualTo.key(), isGreaterThanOrEqualTo.comparisonValue(), ">=", keyMapper);
+            return createComparisonFilter(
+                    isGreaterThanOrEqualTo.key(), isGreaterThanOrEqualTo.comparisonValue(), ">=", keyMapper);
         } else if (filter instanceof final IsLessThan isLessThan) {
             return createComparisonFilter(isLessThan.key(), isLessThan.comparisonValue(), "<", keyMapper);
         } else if (filter instanceof final IsLessThanOrEqualTo isLessThanOrEqualTo) {
-            return createComparisonFilter(isLessThanOrEqualTo.key(), isLessThanOrEqualTo.comparisonValue(), "<=", keyMapper);
+            return createComparisonFilter(
+                    isLessThanOrEqualTo.key(), isLessThanOrEqualTo.comparisonValue(), "<=", keyMapper);
         } else if (filter instanceof final IsIn isIn) {
             return createInFilter(isIn.key(), isIn.comparisonValues(), keyMapper);
         } else if (filter instanceof final IsNotIn isNotIn) {
@@ -102,7 +104,8 @@ public class SQLFilters {
             SQLFilter expression = create(not.expression(), keyMapper);
             return createNotFilter(expression);
         } else {
-            throw new UnsupportedOperationException("Unsupported filter type: " + filter.getClass().getSimpleName());
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getSimpleName());
         }
     }
 
@@ -130,7 +133,8 @@ public class SQLFilters {
         }
     }
 
-    private static SQLFilter createComparisonFilter(String key, Object value, String operator, BiFunction<String, Integer, String> keyMapper) {
+    private static SQLFilter createComparisonFilter(
+            String key, Object value, String operator, BiFunction<String, Integer, String> keyMapper) {
         return new SQLFilter() {
             @Override
             public String toSQL() {
@@ -148,7 +152,8 @@ public class SQLFilters {
         };
     }
 
-    private static SQLFilter createIsNotEqualToFilter(String key, Object value, BiFunction<String, Integer, String> keyMapper) {
+    private static SQLFilter createIsNotEqualToFilter(
+            String key, Object value, BiFunction<String, Integer, String> keyMapper) {
         return new SQLFilter() {
             @Override
             public String toSQL() {
@@ -167,7 +172,8 @@ public class SQLFilters {
         };
     }
 
-    private static SQLFilter createInFilter(String key, Collection<?> values, BiFunction<String, Integer, String> keyMapper) {
+    private static SQLFilter createInFilter(
+            String key, Collection<?> values, BiFunction<String, Integer, String> keyMapper) {
         return new SQLFilter() {
             @Override
             public String toSQL() {
@@ -192,7 +198,8 @@ public class SQLFilters {
         };
     }
 
-    private static SQLFilter createNotInFilter(String key, Collection<?> values, BiFunction<String, Integer, String> keyMapper) {
+    private static SQLFilter createNotInFilter(
+            String key, Collection<?> values, BiFunction<String, Integer, String> keyMapper) {
         return new SQLFilter() {
             @Override
             public String toSQL() {
@@ -218,7 +225,8 @@ public class SQLFilters {
         };
     }
 
-    private static SQLFilter createLogicalFilter(Filter left, Filter right, String operator, BiFunction<String, Integer, String> keyMapper) {
+    private static SQLFilter createLogicalFilter(
+            Filter left, Filter right, String operator, BiFunction<String, Integer, String> keyMapper) {
         SQLFilter leftFilter = create(left, keyMapper);
         SQLFilter rightFilter = create(right, keyMapper);
 

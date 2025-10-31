@@ -95,9 +95,12 @@ public class JSONIndexBuilder extends IndexBuilder<JSONIndexBuilder> {
             forClause.append(')');
         }
 
-        return String.format("CREATE JSON INDEX %s ON %s(%s) %s",
-                getIndexName(embeddingTable), embeddingTable.getQualifiedTableName(), embeddingTable.metadataColumn(), forClause);
-
+        return String.format(
+                "CREATE JSON INDEX %s ON %s(%s) %s",
+                getIndexName(embeddingTable),
+                embeddingTable.getQualifiedTableName(),
+                embeddingTable.metadataColumn(),
+                forClause);
     }
 
     /**
@@ -126,6 +129,5 @@ public class JSONIndexBuilder extends IndexBuilder<JSONIndexBuilder> {
     /**
      * Private class that represents a metadata key to be indexed.
      */
-    private record MetadataKey(String key, Class<?> keyType, Order order) {
-    }
+    private record MetadataKey(String key, Class<?> keyType, Order order) {}
 }

@@ -3,19 +3,18 @@ package dev.langchain4j.store.embedding.sqlserver.util;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.document.Metadata;
-import microsoft.sql.Vector;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import microsoft.sql.Vector;
 
 /**
  * Utility methods for working with SQL Server embedding stores.
  */
 public class EmbeddingStoreUtil {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper()
-            .configure(JsonWriteFeature.WRITE_NUMBERS_AS_STRINGS.mappedFeature(), true);
+    private static final ObjectMapper objectMapper =
+            new ObjectMapper().configure(JsonWriteFeature.WRITE_NUMBERS_AS_STRINGS.mappedFeature(), true);
 
     /**
      * Converts an array of primitive float values to an array of Float objects.
