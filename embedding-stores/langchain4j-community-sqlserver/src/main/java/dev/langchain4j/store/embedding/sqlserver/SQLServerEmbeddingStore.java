@@ -13,6 +13,7 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
+import dev.langchain4j.store.embedding.sqlserver.exception.SQLServerLangChain4jException;
 import java.sql.*;
 import java.util.*;
 import java.util.Collections;
@@ -53,7 +54,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to create embedding table or indexes", e);
+            throw new SQLServerLangChain4jException("Failed to create embedding table or indexes", e);
         }
     }
 
@@ -122,7 +123,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             statement.executeBatch();
         } catch (SQLException sqlException) {
             logger.error("Failed to add embeddings", sqlException);
-            throw new RuntimeException(sqlException);
+            throw new SQLServerLangChain4jException("Failed to add embeddings", sqlException);
         }
 
         return Arrays.asList(ids);
@@ -190,7 +191,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             statement.executeBatch();
         } catch (SQLException e) {
             logger.error("Failed to add embeddings", e);
-            throw new RuntimeException(e);
+            throw new SQLServerLangChain4jException("Failed to add embeddings", e);
         }
 
         return ids;
@@ -277,7 +278,8 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to search embeddings", e);
+            logger.error("Failed to search embeddings", e);
+            throw new SQLServerLangChain4jException("Failed to search embeddings", e);
         }
 
         return new EmbeddingSearchResult<>(matches);
@@ -298,7 +300,8 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to removeAll", e);
+            logger.error("Failed to removeAll embeddings", e);
+            throw new SQLServerLangChain4jException("Failed to removeAll", e);
         }
     }
 
@@ -319,7 +322,8 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            logger.error("Failed to removeAll embeddings", e);
+            throw new SQLServerLangChain4jException("Failed to removeAll embeddings", e);
         }
     }
 
@@ -329,7 +333,8 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 Statement statement = connection.createStatement()) {
             statement.executeUpdate(String.format("TRUNCATE TABLE %s", embeddingTable.getQualifiedTableName()));
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            logger.error("Failed to removeAll embeddings", e);
+            throw new SQLServerLangChain4jException(e);
         }
     }
 
@@ -366,7 +371,8 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             statement.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to add embedding", e);
+            logger.error("Failed to add embedding", e);
+            throw new SQLServerLangChain4jException("Failed to add embedding", e);
         }
     }
 

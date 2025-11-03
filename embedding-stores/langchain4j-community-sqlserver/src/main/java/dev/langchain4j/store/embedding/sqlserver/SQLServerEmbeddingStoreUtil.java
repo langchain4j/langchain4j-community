@@ -3,6 +3,7 @@ package dev.langchain4j.store.embedding.sqlserver;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.store.embedding.sqlserver.exception.SQLServerLangChain4jException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -62,24 +63,24 @@ class SQLServerEmbeddingStoreUtil {
      *
      * @param metadata the {@link Metadata} object to be converted to JSON
      * @return a JSON string representing the provided metadata
-     * @throws RuntimeException if an error occurs during serialization
+     * @throws SQLServerLangChain4jException if an error occurs during serialization
      */
     public static String metadataToJson(Metadata metadata) {
         try {
             return objectMapper.writeValueAsString(metadata.toMap());
         } catch (IOException e) {
-            throw new RuntimeException("Failed to serialize metadata to JSON", e);
+            throw new SQLServerLangChain4jException("Failed to serialize metadata to JSON", e);
         }
     }
 
     /**
      * Converts a JSON string representation into a {@link Metadata} object.
      * This method parses the provided JSON string and returns the corresponding Metadata object.
-     * If the JSON string is null, it will return null. If deserialization fails, it throws a {@link RuntimeException}.
+     * If the JSON string is null, it will return null. If deserialization fails, it throws a {@link SQLServerLangChain4jException}.
      *
      * @param json the JSON string to be converted to a {@link Metadata} object, may be null
      * @return a {@link Metadata} object representing the parsed JSON, or null if the input is null
-     * @throws RuntimeException if an error occurs during deserialization
+     * @throws SQLServerLangChain4jException if an error occurs during deserialization
      */
     public static Metadata jsonToMetadata(String json) {
         if (json == null) {
@@ -91,7 +92,7 @@ class SQLServerEmbeddingStoreUtil {
             Map<String, Object> map = objectMapper.readValue(json, Map.class);
             return Metadata.from(map);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to deserialize metadata from JSON", e);
+            throw new SQLServerLangChain4jException("Failed to deserialize metadata from JSON", e);
         }
     }
 
