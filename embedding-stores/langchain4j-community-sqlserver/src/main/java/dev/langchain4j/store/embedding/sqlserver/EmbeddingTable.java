@@ -60,12 +60,19 @@ public class EmbeddingTable {
     private final Integer dimension;
 
     private EmbeddingTable(Builder builder) {
+        SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.catalogName);
         this.catalogName = builder.catalogName;
+        SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.schemaName);
         this.schemaName = builder.schemaName;
+        SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.tableName);
         this.tableName = builder.tableName;
+        SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.idColumn);
         this.idColumn = builder.idColumn;
+        SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.embeddingColumn);
         this.embeddingColumn = builder.embeddingColumn;
+        SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.textColumn);
         this.textColumn = builder.textColumn;
+        SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.metadataColumn);
         this.metadataColumn = builder.metadataColumn;
         this.createOption = builder.createOption;
         this.dimension = builder.dimension;

@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 class SQLServerEmbeddingStoreConfigIT {
 
     @Test
-    void basicConfigTest() {
+    void basic_config_test() {
         SQLServerDataSource dataSource = getSqlServerDataSource();
         SQLServerEmbeddingStore embeddingStore = SQLServerEmbeddingStore.dataSourceBuilder()
                 .dataSource(dataSource)
@@ -30,7 +30,7 @@ class SQLServerEmbeddingStoreConfigIT {
     }
 
     @Test
-    void shouldCreateTableWithJsonIndexes() {
+    void should_create_table_with_json_indexes() {
         SQLServerDataSource dataSource = getSqlServerDataSource();
 
         // Create embedding table with JSON index
@@ -56,7 +56,7 @@ class SQLServerEmbeddingStoreConfigIT {
     }
 
     @Test
-    void shouldCreateTableWithOrderedJsonIndex() {
+    void should_create_table_with_ordered_json_index() {
         SQLServerDataSource dataSource = getSqlServerDataSource();
 
         EmbeddingTable embeddingTable = EmbeddingTable.builder()
@@ -84,5 +84,15 @@ class SQLServerEmbeddingStoreConfigIT {
 
         String id = embeddingStore.add(embedding, textSegment);
         assertNotNull(id);
+    }
+
+    @Test
+    void should_detect_sql_injection() {
+        EmbeddingTable.Builder embeddingTable = EmbeddingTable.builder()
+                .name("test_vector_index as select 1;drop database master;create table test")
+                .dimension(4);
+
+        // Test that store was created successfully
+        assertThrows(IllegalArgumentException.class, embeddingTable::build);
     }
 }

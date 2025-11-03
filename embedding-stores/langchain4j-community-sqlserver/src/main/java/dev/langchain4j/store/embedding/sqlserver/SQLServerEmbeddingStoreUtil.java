@@ -112,4 +112,30 @@ class SQLServerEmbeddingStoreUtil {
 
         throw new IllegalArgumentException("null entry at index " + index + " in " + name);
     }
+
+    /**
+     * Checks if a given identifier contains potentially dangerous characters that could indicate SQL injection.
+     */
+    public static void checkSQLInjection(String identifier) {
+        if (identifier == null || identifier.trim().isEmpty()) {
+            return;
+        }
+
+        // Remove any existing square brackets and escape internal square brackets
+        String cleaned = identifier.replace("[", "").replace("]", "");
+
+        // Check for dangerous characters that could indicate SQL injection
+        if (cleaned.contains(";")
+                || cleaned.contains("--")
+                || cleaned.contains("/*")
+                || cleaned.toLowerCase().contains("drop ")
+                || cleaned.toLowerCase().contains("delete ")
+                || cleaned.toLowerCase().contains("insert ")
+                || cleaned.toLowerCase().contains("update ")
+                || cleaned.toLowerCase().contains("exec ")
+                || cleaned.toLowerCase().contains("execute ")) {
+            throw new IllegalArgumentException(
+                    "SQL identifier contains potentially dangerous characters: " + identifier);
+        }
+    }
 }
