@@ -53,7 +53,7 @@ class EmbeddingSearchIT {
                 results.stream().map(match -> match.embedded().text()).collect(Collectors.toList());
 
         assertThat(results).hasSize(3);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -75,7 +75,7 @@ class EmbeddingSearchIT {
                 results.stream().map(match -> match.embedded().text()).collect(Collectors.toList());
 
         assertThat(results).hasSize(1);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -91,7 +91,7 @@ class EmbeddingSearchIT {
 
         debugQuery(query, results);
 
-        assertThat(results).hasSize(0);
+        assertThat(results).isEmpty();
     }
 
     @BeforeEach

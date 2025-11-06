@@ -27,12 +27,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class Neo4jEmbeddingStoreIngestorQAChainTest extends Neo4jEmbeddingStoreIngestorBaseTest {
+class Neo4jEmbeddingStoreIngestorQAChainTest extends Neo4jEmbeddingStoreIngestorBaseTest {
     @Mock
     private ChatModel chatLanguageModel;
 
     @Test
-    public void testBasicRetrieverWithChatQuestionAndAnswerModel() {
+    void testBasicRetrieverWithChatQuestionAndAnswerModel() {
 
         final Neo4jEmbeddingStore neo4jEmbeddingStore = Neo4jEmbeddingStore.builder()
                 .driver(driver)

@@ -1,8 +1,8 @@
 package dev.langchain4j.community.store.embedding.yugabytedb;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -19,8 +19,8 @@ class MetadataStorageConfigTest {
         MetadataStorageConfig config = DefaultMetadataStorageConfig.defaultConfig();
 
         assertThat(config.storageMode()).isEqualTo(MetadataStorageMode.COMBINED_JSONB);
-        assertThat(config.columnDefinitions()).isEqualTo(Collections.singletonList("metadata JSONB"));
-        assertThat(config.indexes()).isEqualTo(Collections.singletonList("metadata"));
+        assertThat(config.columnDefinitions()).containsExactlyElementsOf(Collections.singletonList("metadata JSONB"));
+        assertThat(config.indexes()).containsExactlyElementsOf(Collections.singletonList("metadata"));
         assertThat(config.indexType()).isEqualTo("GIN");
     }
 
@@ -29,8 +29,8 @@ class MetadataStorageConfigTest {
         MetadataStorageConfig config = DefaultMetadataStorageConfig.combinedJsonb();
 
         assertThat(config.storageMode()).isEqualTo(MetadataStorageMode.COMBINED_JSONB);
-        assertThat(config.columnDefinitions()).isEqualTo(Collections.singletonList("metadata JSONB"));
-        assertThat(config.indexes()).isEqualTo(Collections.singletonList("metadata"));
+        assertThat(config.columnDefinitions()).containsExactlyElementsOf(Collections.singletonList("metadata JSONB"));
+        assertThat(config.indexes()).containsExactlyElementsOf(Collections.singletonList("metadata"));
         assertThat(config.indexType()).isEqualTo("GIN");
     }
 
@@ -40,8 +40,8 @@ class MetadataStorageConfigTest {
         MetadataStorageConfig config = DefaultMetadataStorageConfig.combinedJson();
 
         assertThat(config.storageMode()).isEqualTo(MetadataStorageMode.COMBINED_JSON);
-        assertThat(config.columnDefinitions()).isEqualTo(Collections.singletonList("metadata JSON"));
-        assertThat(config.indexes()).isEqualTo(Collections.emptyList()); // ✅ Fixed: No indexes
+        assertThat(config.columnDefinitions()).containsExactlyElementsOf(Collections.singletonList("metadata JSON"));
+        assertThat(config.indexes()).containsExactlyElementsOf(Collections.emptyList()); // ✅ Fixed: No indexes
         assertThat(config.indexType()).isNull(); // ✅ Fixed: No index type
     }
 
@@ -51,7 +51,8 @@ class MetadataStorageConfigTest {
                 DefaultMetadataStorageConfig.columnPerKey(Arrays.asList("user_id UUID", "category TEXT"));
 
         assertThat(config.storageMode()).isEqualTo(MetadataStorageMode.COLUMN_PER_KEY);
-        assertThat(config.columnDefinitions()).isEqualTo(Arrays.asList("user_id UUID", "category TEXT"));
+        assertThat(config.columnDefinitions())
+                .containsExactlyElementsOf(Arrays.asList("user_id UUID", "category TEXT"));
         assertThat(config.indexType()).isEqualTo("BTREE");
     }
 
@@ -61,11 +62,11 @@ class MetadataStorageConfigTest {
         MetadataStorageConfig config = DefaultMetadataStorageConfig.combinedJson();
 
         // Should not throw an exception
-        assertDoesNotThrow(() -> {
-            MetadataHandler handler = MetadataHandlerFactory.create(config);
-            assertThat(handler)
-                    .isInstanceOf(JsonMetadataHandler.class);
-        });
+        assertThatCode(() -> {
+                    MetadataHandler handler = MetadataHandlerFactory.create(config);
+                    assertThat(handler).isInstanceOf(JsonMetadataHandler.class);
+                })
+                .doesNotThrowAnyException();
     }
 
     @Test

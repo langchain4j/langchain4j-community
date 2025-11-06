@@ -27,7 +27,7 @@ class PostgresTestUtils {
         for (int i = 1; i <= columnCount; i++) {
             actualNames.add(rsMeta.getColumnName(i));
         }
-        assertThat(actualNames).isEqualTo(expectedColumns);
+        assertThat(actualNames).hasSameElementsAs(expectedColumns);
     }
 
     static void verifyIndex(Connection connection, String tableName, String type, String expected) throws SQLException {

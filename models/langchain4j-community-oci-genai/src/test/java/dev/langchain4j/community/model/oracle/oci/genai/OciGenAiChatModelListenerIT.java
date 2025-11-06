@@ -22,7 +22,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariables;
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COMPARTMENT_ID_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_GENERIC_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY),
 })
-public class OciGenAiChatModelListenerIT extends AbstractChatModelListenerIT {
+class OciGenAiChatModelListenerIT extends AbstractChatModelListenerIT {
 
     static final AuthenticationDetailsProvider authProvider = TestEnvProps.createAuthProvider();
     static final List<AutoCloseable> CHAT_MODELS = new ArrayList<>();

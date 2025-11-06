@@ -1,8 +1,7 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 import com.oracle.bmc.Region;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceClient;
@@ -17,23 +16,21 @@ import com.oracle.bmc.generativeaiinference.model.UserMessage;
 import com.oracle.bmc.generativeaiinference.requests.ChatRequest;
 import com.oracle.bmc.generativeaiinference.responses.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
-import java.io.IOException;
 import java.util.List;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-public class ConfigurationTest {
+class ConfigurationTest {
 
     @Test
     void requiredProperties() {
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> {
             try (var model = OciGenAiChatModel.builder().build()) {}
         });
     }
 
     @Test
-    void cohere() throws IOException {
+    void cohere() throws Exception {
         GenerativeAiInferenceClient client = Mockito.mock(GenerativeAiInferenceClient.class);
 
         var builder = OciGenAiCohereChatModel.builder()
@@ -62,22 +59,22 @@ public class ConfigurationTest {
             var chatDetails = req.getChatDetails();
             CohereChatRequest cohereReq = (CohereChatRequest) chatDetails.getChatRequest();
 
-            assertThat(chatDetails.getCompartmentId(), is("compartmentId"));
-            assertThat(cohereReq.getCitationQuality(), is(CohereChatRequest.CitationQuality.Fast));
-            assertThat(cohereReq.getDocuments(), contains("documents"));
-            assertThat(cohereReq.getFrequencyPenalty(), is(0.007));
-            assertThat(cohereReq.getIsRawPrompting(), is(true));
-            assertThat(cohereReq.getIsSearchQueriesOnly(), is(true));
-            assertThat(cohereReq.getMaxInputTokens(), is(999));
-            assertThat(cohereReq.getPreambleOverride(), is("preambleOverride"));
-            assertThat(cohereReq.getPromptTruncation(), is(CohereChatRequest.PromptTruncation.Off));
-            assertThat(cohereReq.getMaxTokens(), is(666));
-            assertThat(cohereReq.getPresencePenalty(), is(0.006));
-            assertThat(cohereReq.getSeed(), is(123456789));
-            assertThat(cohereReq.getStopSequences(), contains("stop"));
-            assertThat(cohereReq.getTemperature(), is(1.1));
-            assertThat(cohereReq.getTopK(), is(11));
-            assertThat(cohereReq.getTopP(), is(11.11));
+            assertThat(chatDetails.getCompartmentId()).isEqualTo("compartmentId");
+            assertThat(cohereReq.getCitationQuality()).isEqualTo(CohereChatRequest.CitationQuality.Fast);
+            assertThat(cohereReq.getDocuments()).containsExactly("documents");
+            assertThat(cohereReq.getFrequencyPenalty()).isEqualTo(0.007);
+            assertThat(cohereReq.getIsRawPrompting()).isTrue();
+            assertThat(cohereReq.getIsSearchQueriesOnly()).isTrue();
+            assertThat(cohereReq.getMaxInputTokens()).isEqualTo(999);
+            assertThat(cohereReq.getPreambleOverride()).isEqualTo("preambleOverride");
+            assertThat(cohereReq.getPromptTruncation()).isEqualTo(CohereChatRequest.PromptTruncation.Off);
+            assertThat(cohereReq.getMaxTokens()).isEqualTo(666);
+            assertThat(cohereReq.getPresencePenalty()).isEqualTo(0.006);
+            assertThat(cohereReq.getSeed()).isEqualTo(123456789);
+            assertThat(cohereReq.getStopSequences()).containsExactly("stop");
+            assertThat(cohereReq.getTemperature()).isEqualTo(1.1);
+            assertThat(cohereReq.getTopK()).isEqualTo(11);
+            assertThat(cohereReq.getTopP()).isEqualTo(11.11);
 
             return ChatResponse.builder()
                     .chatResult(ChatResult.builder()
@@ -88,12 +85,12 @@ public class ConfigurationTest {
         });
 
         try (var model = builder.build()) {
-            assertThat(model.chat("BAF!"), is("Huh!"));
+            assertThat(model.chat("BAF!")).isEqualTo("Huh!");
         }
     }
 
     @Test
-    void generic() throws IOException {
+    void generic() throws Exception {
         GenerativeAiInferenceClient client = Mockito.mock(GenerativeAiInferenceClient.class);
 
         var builder = OciGenAiChatModel.builder()
@@ -117,17 +114,17 @@ public class ConfigurationTest {
             var chatDetails = req.getChatDetails();
             GenericChatRequest cohereReq = (GenericChatRequest) chatDetails.getChatRequest();
 
-            assertThat(chatDetails.getCompartmentId(), is("compartmentId"));
-            assertThat(cohereReq.getLogitBias(), is(0.008));
-            assertThat(cohereReq.getNumGenerations(), is(33));
-            assertThat(cohereReq.getFrequencyPenalty(), is(0.007));
-            assertThat(cohereReq.getMaxTokens(), is(666));
-            assertThat(cohereReq.getPresencePenalty(), is(0.006));
-            assertThat(cohereReq.getSeed(), is(123456789));
-            assertThat(cohereReq.getStop(), contains("stop"));
-            assertThat(cohereReq.getTemperature(), is(1.1));
-            assertThat(cohereReq.getTopK(), is(11));
-            assertThat(cohereReq.getTopP(), is(11.11));
+            assertThat(chatDetails.getCompartmentId()).isEqualTo("compartmentId");
+            assertThat(cohereReq.getLogitBias()).isEqualTo(0.008);
+            assertThat(cohereReq.getNumGenerations()).isEqualTo(33);
+            assertThat(cohereReq.getFrequencyPenalty()).isEqualTo(0.007);
+            assertThat(cohereReq.getMaxTokens()).isEqualTo(666);
+            assertThat(cohereReq.getPresencePenalty()).isEqualTo(0.006);
+            assertThat(cohereReq.getSeed()).isEqualTo(123456789);
+            assertThat(cohereReq.getStop()).containsExactly("stop");
+            assertThat(cohereReq.getTemperature()).isEqualTo(1.1);
+            assertThat(cohereReq.getTopK()).isEqualTo(11);
+            assertThat(cohereReq.getTopP()).isEqualTo(11.11);
 
             return ChatResponse.builder()
                     .chatResult(ChatResult.builder()
@@ -147,10 +144,10 @@ public class ConfigurationTest {
         });
 
         try (var model = builder.build()) {
-            assertThat(model.chat("BAF!"), is("Huh!"));
+            assertThat(model.chat("BAF!")).isEqualTo("Huh!");
             var userMessage = dev.langchain4j.data.message.UserMessage.userMessage("BAF!");
             var response = model.chat(userMessage);
-            assertThat(response.finishReason(), is(FinishReason.STOP));
+            assertThat(response.finishReason()).isEqualTo(FinishReason.STOP);
         }
     }
 }

@@ -1,8 +1,6 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -16,7 +14,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class GenericStreamingTest {
+class GenericStreamingTest {
 
     private TestStreamingChatResponseHandler handler;
 
@@ -27,9 +25,9 @@ public class GenericStreamingTest {
 
     static void assertToolExecutionRequest(
             ToolExecutionRequest toolExecutionRequest, String id, String name, String arguments) {
-        assertThat(toolExecutionRequest.id(), is(id));
-        assertThat(toolExecutionRequest.name(), is(name));
-        assertThat(toolExecutionRequest.arguments(), is(arguments));
+        assertThat(toolExecutionRequest.id()).isEqualTo(id);
+        assertThat(toolExecutionRequest.name()).isEqualTo(name);
+        assertThat(toolExecutionRequest.arguments()).isEqualTo(arguments);
     }
 
     @Test
@@ -51,14 +49,13 @@ public class GenericStreamingTest {
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
-        assertThat(chatResponse.aiMessage().hasToolExecutionRequests(), is(false));
+        assertThat(chatResponse.aiMessage().hasToolExecutionRequests()).isEqualTo(false);
         var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
-        assertThat(toolExecutionRequests.size(), is(0));
-        assertThat(chatResponse.aiMessage().text(), is("THE SUM OF THE RESULTS IS 62.0"));
-        assertThat(
-                handler.partialResponses,
-                contains("THE", " SUM", " OF", " THE", " RESULTS", " IS", " ", "62", ".", "0"));
-        assertThat(handler.completeResponses, contains("THE SUM OF THE RESULTS IS 62.0"));
+        assertThat(toolExecutionRequests).hasSize(0);
+        assertThat(chatResponse.aiMessage().text()).isEqualTo("THE SUM OF THE RESULTS IS 62.0");
+        assertThat(handler.partialResponses)
+                .containsExactly("THE", " SUM", " OF", " THE", " RESULTS", " IS", " ", "62", ".", "0");
+        assertThat(handler.completeResponses).containsExactly("THE SUM OF THE RESULTS IS 62.0");
     }
 
     @Test
@@ -73,12 +70,12 @@ public class GenericStreamingTest {
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
-        assertThat(chatResponse.aiMessage().hasToolExecutionRequests(), is(false));
+        assertThat(chatResponse.aiMessage().hasToolExecutionRequests()).isEqualTo(false);
         var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
-        assertThat(toolExecutionRequests.size(), is(0));
-        assertThat(chatResponse.aiMessage().text(), is("Hello "));
-        assertThat(handler.partialResponses, contains("Hello", " "));
-        assertThat(handler.completeResponses, contains("Hello "));
+        assertThat(toolExecutionRequests).hasSize(0);
+        assertThat(chatResponse.aiMessage().text()).isEqualTo("Hello ");
+        assertThat(handler.partialResponses).containsExactly("Hello", " ");
+        assertThat(handler.completeResponses).containsExactly("Hello ");
     }
 
     @Test
@@ -92,12 +89,12 @@ public class GenericStreamingTest {
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
-        assertThat(chatResponse.aiMessage().hasToolExecutionRequests(), is(false));
+        assertThat(chatResponse.aiMessage().hasToolExecutionRequests()).isEqualTo(false);
         var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
-        assertThat(toolExecutionRequests.size(), is(0));
-        assertThat(chatResponse.aiMessage().text(), is("Hello "));
-        assertThat(handler.partialResponses, contains("Hello "));
-        assertThat(handler.completeResponses, contains("Hello "));
+        assertThat(toolExecutionRequests).hasSize(0);
+        assertThat(chatResponse.aiMessage().text()).isEqualTo("Hello ");
+        assertThat(handler.partialResponses).containsExactly("Hello ");
+        assertThat(handler.completeResponses).containsExactly("Hello ");
     }
 
     @Test
@@ -113,9 +110,9 @@ public class GenericStreamingTest {
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
-        assertThat(chatResponse.aiMessage().hasToolExecutionRequests(), is(true));
+        assertThat(chatResponse.aiMessage().hasToolExecutionRequests()).isEqualTo(true);
         var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
-        assertThat(toolExecutionRequests.size(), is(4));
+        assertThat(toolExecutionRequests).hasSize(4);
         assertToolExecutionRequest(
                 toolExecutionRequests.get(0), "call_69943055", "LIST_PACKAGE_NAMES", "{\"arg0\":\"HR\"}");
         assertToolExecutionRequest(
@@ -124,7 +121,7 @@ public class GenericStreamingTest {
                 toolExecutionRequests.get(2), "call_53405288", "LIST_FUNCTION_NAMES", "{\"arg0\":\"HR\"}");
         assertToolExecutionRequest(
                 toolExecutionRequests.get(3), "call_19110181", "LIST_TYPE_NAMES", "{\"arg0\":\"HR\"}");
-        assertThat(handler.completeResponses, contains((String) null));
+        assertThat(handler.completeResponses).containsExactly((String) null);
     }
 
     @Test
@@ -138,13 +135,13 @@ public class GenericStreamingTest {
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
-        assertThat(chatResponse.aiMessage().hasToolExecutionRequests(), is(true));
+        assertThat(chatResponse.aiMessage().hasToolExecutionRequests()).isEqualTo(true);
         var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
-        assertThat(toolExecutionRequests.size(), is(2));
+        assertThat(toolExecutionRequests).hasSize(2);
         assertToolExecutionRequest(toolExecutionRequests.get(0), "call_83516431", "sqrt", "{\"arg0\":16}");
         assertToolExecutionRequest(
                 toolExecutionRequests.get(1), "call_26154935", "extractMagicalNumber", "{\"arg1\":778,\"arg0\":556}");
-        assertThat(handler.completeResponses, contains((String) null));
+        assertThat(handler.completeResponses).containsExactly((String) null);
     }
 
     @Test
@@ -160,14 +157,14 @@ public class GenericStreamingTest {
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
-        assertThat(chatResponse.finishReason(), is(FinishReason.TOOL_EXECUTION));
-        assertThat(chatResponse.aiMessage().hasToolExecutionRequests(), is(true));
+        assertThat(chatResponse.finishReason()).isEqualTo(FinishReason.TOOL_EXECUTION);
+        assertThat(chatResponse.aiMessage().hasToolExecutionRequests()).isEqualTo(true);
         var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
-        assertThat(toolExecutionRequests.size(), is(1));
+        assertThat(toolExecutionRequests).hasSize(1);
         var firstToolExecReq = toolExecutionRequests.get(0);
-        assertThat(firstToolExecReq.arguments(), is("{\"arg0\": \"16\"}"));
-        assertThat(firstToolExecReq.id(), is("chatcmpl-tool-e78c012be89a4742a6ba7e4b0a05b0f2"));
-        assertThat(handler.completeResponses, contains((String) null));
+        assertThat(firstToolExecReq.arguments()).isEqualTo("{\"arg0\": \"16\"}");
+        assertThat(firstToolExecReq.id()).isEqualTo("chatcmpl-tool-e78c012be89a4742a6ba7e4b0a05b0f2");
+        assertThat(handler.completeResponses).containsExactly((String) null);
     }
 
     @Test
@@ -190,10 +187,10 @@ public class GenericStreamingTest {
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
-        assertThat(chatResponse.finishReason(), is(FinishReason.TOOL_EXECUTION));
-        assertThat(chatResponse.aiMessage().hasToolExecutionRequests(), is(true));
+        assertThat(chatResponse.finishReason()).isEqualTo(FinishReason.TOOL_EXECUTION);
+        assertThat(chatResponse.aiMessage().hasToolExecutionRequests()).isEqualTo(true);
         var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
-        assertThat(toolExecutionRequests.size(), is(2));
+        assertThat(toolExecutionRequests).hasSize(2);
         assertToolExecutionRequest(
                 toolExecutionRequests.get(0), "chatcmpl-tool-e5f86a029", "sqrt", "{\"arg0\": \"16\"}");
         assertToolExecutionRequest(
@@ -202,30 +199,27 @@ public class GenericStreamingTest {
                 "extractMagicalNumber",
                 "{\"arg1\": \"778\", \"arg0\": \"556\"}");
 
-        assertThat(
-                handler.partialToolCalls.stream()
+        assertThat(handler.partialToolCalls.stream()
                         .map(PartialToolCall::partialArguments)
-                        .toList(),
-                contains("{\"arg0\": \"", "16\"}", "{\"arg1\": \"", "778\"", ", \"arg0\": \"", "556\"}"));
+                        .toList())
+                .containsExactly("{\"arg0\": \"", "16\"}", "{\"arg1\": \"", "778\"", ", \"arg0\": \"", "556\"}");
 
-        assertThat(
-                handler.partialToolCalls.stream().map(PartialToolCall::name).toList(),
-                contains(
+        assertThat(handler.partialToolCalls.stream().map(PartialToolCall::name).toList())
+                .containsExactly(
                         "sqrt",
                         "sqrt",
                         "extractMagicalNumber",
                         "extractMagicalNumber",
                         "extractMagicalNumber",
-                        "extractMagicalNumber"));
+                        "extractMagicalNumber");
 
-        assertThat(
-                handler.completeToolCalls.stream()
+        assertThat(handler.completeToolCalls.stream()
                         .map(CompleteToolCall::toolExecutionRequest)
                         .map(ToolExecutionRequest::arguments)
-                        .toList(),
-                contains("{\"arg0\": \"16\"}", "{\"arg1\": \"778\", \"arg0\": \"556\"}"));
+                        .toList())
+                .containsExactly("{\"arg0\": \"16\"}", "{\"arg1\": \"778\", \"arg0\": \"556\"}");
 
-        assertThat(handler.completeResponses, contains((String) null));
+        assertThat(handler.completeResponses).containsExactly((String) null);
     }
 
     private static class TestStreamingChatResponseHandler implements StreamingChatResponseHandler {

@@ -75,7 +75,7 @@ class MemFileEmbeddingStoreSerializationTest {
             assertThat(entryNode.has("embedding")).isTrue();
             assertThat(entryNode.get("embedding").has("vector")).isTrue();
             assertThat(entryNode.get("embedding").get("vector").isArray()).isTrue();
-            assertThat(entryNode.get("embedding").get("vector").size()).isGreaterThan(0);
+            assertThat(entryNode.get("embedding").get("vector").size()).isPositive();
         }
 
         // Validate deserialized store functionality
@@ -124,7 +124,7 @@ class MemFileEmbeddingStoreSerializationTest {
         MemFileEmbeddingStore<TextSegment> deserializedStore = embeddingStore.deserializeFromFile(strategy, file);
 
         // then - validate file was created and content preserved
-        assertThat(Files.exists(file)).isTrue();
+        assertThat(file).exists();
         String fileContent = Files.readString(file);
         assertThat(fileContent)
                 .contains("custom-id-1")

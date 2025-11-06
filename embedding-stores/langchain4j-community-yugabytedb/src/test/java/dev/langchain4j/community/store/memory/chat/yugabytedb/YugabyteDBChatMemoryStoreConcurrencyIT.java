@@ -446,9 +446,9 @@ class YugabyteDBChatMemoryStoreConcurrencyIT extends YugabyteDBTestBase {
 
         // Assertions
         assertThat(successRate).isGreaterThan(90.0); // At least 90% success rate
-        assertThat(readOperations.get()).isGreaterThan(0);
-        assertThat(writeOperations.get()).isGreaterThan(0);
-        assertThat(deleteOperations.get()).isGreaterThan(0);
+        assertThat(readOperations.get()).isPositive();
+        assertThat(writeOperations.get()).isPositive();
+        assertThat(deleteOperations.get()).isPositive();
 
         log.info("✅ {} Mixed concurrent operations test completed successfully", logPrefix);
     }

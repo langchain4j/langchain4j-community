@@ -30,7 +30,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
-public class DashScopeAutoConfigurationIT {
+class DashScopeAutoConfigurationIT {
     private static final String API_KEY = System.getenv("DASHSCOPE_API_KEY");
     private static final String CHAT_MODEL = QwenModelName.QWEN_MAX;
 

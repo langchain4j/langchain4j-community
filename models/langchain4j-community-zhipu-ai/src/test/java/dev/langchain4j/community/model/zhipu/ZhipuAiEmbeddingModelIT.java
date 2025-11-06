@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
-public class ZhipuAiEmbeddingModelIT {
+class ZhipuAiEmbeddingModelIT {
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
 
     ZhipuAiEmbeddingModel model = ZhipuAiEmbeddingModel.builder()
@@ -39,7 +39,7 @@ public class ZhipuAiEmbeddingModelIT {
         TokenUsage tokenUsage = response.tokenUsage();
 
         assertThat(tokenUsage.inputTokenCount()).isEqualTo(3);
-        assertThat(tokenUsage.outputTokenCount()).isEqualTo(0);
+        assertThat(tokenUsage.outputTokenCount()).isZero();
         assertThat(tokenUsage.totalTokenCount()).isEqualTo(3);
         assertThat(response.finishReason()).isNull();
     }
@@ -62,7 +62,7 @@ public class ZhipuAiEmbeddingModelIT {
 
         TokenUsage tokenUsage = response.tokenUsage();
         assertThat(tokenUsage.inputTokenCount()).isEqualTo(33);
-        assertThat(tokenUsage.outputTokenCount()).isEqualTo(0);
+        assertThat(tokenUsage.outputTokenCount()).isZero();
         assertThat(tokenUsage.totalTokenCount()).isEqualTo(33);
 
         assertThat(response.finishReason()).isNull();

@@ -58,7 +58,7 @@ class FullTextSearchIT {
         Collections.sort(actualTextSegments);
 
         assertThat(results).hasSize(1);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -86,7 +86,7 @@ class FullTextSearchIT {
         Collections.sort(actualTextSegments);
 
         assertThat(results).hasSize(hits.length + misses.length);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -109,8 +109,8 @@ class FullTextSearchIT {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
         Collections.sort(actualTextSegments);
 
-        assertThat(results).hasSize(hits.length);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(results).hasSameSizeAs(hits);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -131,7 +131,7 @@ class FullTextSearchIT {
         Collections.sort(actualTextSegments);
 
         assertThat(results).hasSize(1);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -185,7 +185,7 @@ class FullTextSearchIT {
         Collections.sort(actualTextSegments);
 
         assertThat(results).hasSize(2);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -200,7 +200,7 @@ class FullTextSearchIT {
         List<Content> results = contentRetriever.retrieve(query);
 
         // No limiting by token count, since wrong field is used
-        assertThat(results).hasSize(hits.length);
+        assertThat(results).hasSameSizeAs(hits);
     }
 
     @Test

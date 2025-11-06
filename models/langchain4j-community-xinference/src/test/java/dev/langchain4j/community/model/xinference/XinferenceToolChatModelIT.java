@@ -6,7 +6,7 @@ import static dev.langchain4j.data.message.UserMessage.userMessage;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -44,7 +44,7 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
     ChatModel chatModel;
 
     @BeforeEach
-    public void beforeEach() {
+    void beforeEach() {
         chatModel = XinferenceChatModel.builder()
                 .baseUrl(baseUrl())
                 .modelName(modelName())
@@ -127,12 +127,13 @@ class XinferenceToolChatModelIT extends AbstractXinferenceToolsChatModelInfrastr
         List<ChatMessage> chatMessages = singletonList(userMessage("What is the current time?"));
 
         // then
-        assertDoesNotThrow(() -> {
-            chatModel.chat(ChatRequest.builder()
-                    .messages(chatMessages)
-                    .toolSpecifications(toolSpecifications)
-                    .build());
-        });
+        assertThatCode(() -> {
+                    chatModel.chat(ChatRequest.builder()
+                            .messages(chatMessages)
+                            .toolSpecifications(toolSpecifications)
+                            .build());
+                })
+                .doesNotThrowAnyException();
     }
 
     // FIXME: langchain4j upstream remove 'protected'

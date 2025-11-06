@@ -1,7 +1,6 @@
 package dev.langchain4j.community.data.document.loader.alloydb;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.community.store.embedding.alloydb.AlloyDBEngine;
 import dev.langchain4j.data.document.Document;
@@ -61,12 +60,12 @@ class AlloyDBLoaderIT {
     }
 
     @AfterAll
-    static void afterAll() throws SQLException {
+    static void afterAll() {
         engine.close();
     }
 
     @Test
-    void testLoadDocumentsFromDatabase() throws SQLException {
+    void should_load_documents_from_database() throws Exception {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -76,20 +75,19 @@ class AlloyDBLoaderIT {
 
         List<Document> documents = loader.load();
 
-        assertNotNull(documents);
-        assertEquals(2, documents.size());
+        assertThat(documents).hasSize(2);
 
-        assertEquals("test content 1", documents.get(0).text());
-        assertEquals("value1", documents.get(0).metadata().toMap().get("key"));
-        assertEquals("test metadata 1", documents.get(0).metadata().toMap().get("metadata"));
+        assertThat(documents.get(0).text()).isEqualTo("test content 1");
+        assertThat(documents.get(0).metadata().toMap()).containsEntry("key", "value1");
+        assertThat(documents.get(0).metadata().toMap()).containsEntry("metadata", "test metadata 1");
 
-        assertEquals("test content 2", documents.get(1).text());
-        assertEquals("value2", documents.get(1).metadata().toMap().get("key"));
-        assertEquals("test metadata 2", documents.get(1).metadata().toMap().get("metadata"));
+        assertThat(documents.get(1).text()).isEqualTo("test content 2");
+        assertThat(documents.get(1).metadata().toMap()).containsEntry("key", "value2");
+        assertThat(documents.get(1).metadata().toMap()).containsEntry("metadata", "test metadata 2");
     }
 
     @Test
-    void testLoadDocumentsWithCustomQuery() throws SQLException {
+    void should_load_documents_with_custom_query() throws Exception {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .query("SELECT content, metadata, langchain_metadata FROM test_table WHERE id = 1")
                 .contentColumns(List.of("content"))
@@ -99,16 +97,15 @@ class AlloyDBLoaderIT {
 
         List<Document> documents = loader.load();
 
-        assertNotNull(documents);
-        assertEquals(1, documents.size());
+        assertThat(documents).hasSize(1);
 
-        assertEquals("test content 1", documents.get(0).text());
-        assertEquals("value1", documents.get(0).metadata().toMap().get("key"));
-        assertEquals("test metadata 1", documents.get(0).metadata().toMap().get("metadata"));
+        assertThat(documents.get(0).text()).isEqualTo("test content 1");
+        assertThat(documents.get(0).metadata().toMap()).containsEntry("key", "value1");
+        assertThat(documents.get(0).metadata().toMap()).containsEntry("metadata", "test metadata 1");
     }
 
     @Test
-    void testLoadDocumentsWithTextFormatter() throws SQLException {
+    void should_load_documents_with_text_formatter() throws Exception {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -119,12 +116,12 @@ class AlloyDBLoaderIT {
 
         List<Document> documents = loader.load();
 
-        assertEquals("test content 1", documents.get(0).text());
-        assertEquals("test content 2", documents.get(1).text());
+        assertThat(documents.get(0).text()).isEqualTo("test content 1");
+        assertThat(documents.get(1).text()).isEqualTo("test content 2");
     }
 
     @Test
-    void testLoadDocumentsWithCsvFormatter() throws SQLException {
+    void should_load_documents_with_csv_formatter() throws Exception {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -135,12 +132,12 @@ class AlloyDBLoaderIT {
 
         List<Document> documents = loader.load();
 
-        assertEquals("test content 1,", documents.get(0).text());
-        assertEquals("test content 2,", documents.get(1).text());
+        assertThat(documents.get(0).text()).isEqualTo("test content 1,");
+        assertThat(documents.get(1).text()).isEqualTo("test content 2,");
     }
 
     @Test
-    void testLoadDocumentsWithYamlFormatter() throws SQLException {
+    void should_load_documents_with_yaml_formatter() throws Exception {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -151,12 +148,12 @@ class AlloyDBLoaderIT {
 
         List<Document> documents = loader.load();
 
-        assertEquals("content: test content 1", documents.get(0).text());
-        assertEquals("content: test content 2", documents.get(1).text());
+        assertThat(documents.get(0).text()).isEqualTo("content: test content 1");
+        assertThat(documents.get(1).text()).isEqualTo("content: test content 2");
     }
 
     @Test
-    void testLoadDocumentsWithJsonFormatter() throws SQLException {
+    void should_load_documents_With_json_formatter() throws Exception {
         AlloyDBLoader loader = new AlloyDBLoader.Builder(engine)
                 .tableName("test_table")
                 .contentColumns(List.of("content"))
@@ -167,7 +164,7 @@ class AlloyDBLoaderIT {
 
         List<Document> documents = loader.load();
 
-        assertEquals("{\"content\":\"test content 1\"}", documents.get(0).text());
-        assertEquals("{\"content\":\"test content 2\"}", documents.get(1).text());
+        assertThat(documents.get(0).text()).isEqualTo("{\"content\":\"test content 1\"}");
+        assertThat(documents.get(1).text()).isEqualTo("{\"content\":\"test content 2\"}");
     }
 }

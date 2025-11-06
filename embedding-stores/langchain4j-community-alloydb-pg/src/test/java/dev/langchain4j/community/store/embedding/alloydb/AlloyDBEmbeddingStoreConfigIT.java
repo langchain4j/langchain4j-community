@@ -6,7 +6,6 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pgvector.PGvector;
 import dev.langchain4j.community.store.embedding.alloydb.index.DistanceStrategy;
@@ -103,7 +102,7 @@ class AlloyDBEmbeddingStoreConfigIT {
     }
 
     @Test
-    void add_single_embedding_to_store() throws SQLException {
+    void add_single_embedding_to_store() throws Exception {
         PGvector vector = randomPGvector(VECTOR_SIZE);
         Embedding embedding = new Embedding(vector.toArray());
         String id = store.add(embedding);
@@ -120,7 +119,7 @@ class AlloyDBEmbeddingStoreConfigIT {
     }
 
     @Test
-    void add_embeddings_list_to_store() throws SQLException {
+    void add_embeddings_list_to_store() throws Exception {
         List<PGvector> expectedVectors = new ArrayList<>();
         List<Embedding> embeddings = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
@@ -147,7 +146,7 @@ class AlloyDBEmbeddingStoreConfigIT {
     }
 
     @Test
-    void add_single_embedding_with_id_to_store() throws SQLException {
+    void add_single_embedding_with_id_to_store() throws Exception {
         PGvector vector = randomPGvector(VECTOR_SIZE);
         Embedding embedding = new Embedding(vector.toArray());
         String id = randomUUID();
@@ -165,7 +164,7 @@ class AlloyDBEmbeddingStoreConfigIT {
     }
 
     @Test
-    void add_single_embedding_with_content_to_store() throws SQLException, JsonProcessingException {
+    void add_single_embedding_with_content_to_store() throws Exception {
         PGvector vector = randomPGvector(VECTOR_SIZE);
         Embedding embedding = new Embedding(vector.toArray());
 
@@ -213,16 +212,15 @@ class AlloyDBEmbeddingStoreConfigIT {
                         getOrDefault(rs.getString(embeddingStoreConfig.getMetadataJsonColumn()), "{}");
                 metadataJsonMap = OBJECT_MAPPER.readValue(metadataJsonString, Map.class);
             }
-            assertThat(extraMetaMap.size()).isEqualTo(metadataJsonMap.size());
+            assertThat(extraMetaMap).hasSameSizeAs(metadataJsonMap);
             for (String key : extraMetaMap.keySet()) {
-                assertThat(extraMetaMap.get(key).equals((metadataJsonMap.get(key))))
-                        .isTrue();
+                assertThat(extraMetaMap).containsEntry(key, (metadataJsonMap.get(key)));
             }
         }
     }
 
     @Test
-    void add_embeddings_list_and_content_list_to_store() throws SQLException, JsonProcessingException {
+    void add_embeddings_list_and_content_list_to_store() throws Exception {
         Map<PGvector, Integer> expectedVectorsAndIndexes = new HashMap<>();
         Map<Integer, Map<String, Object>> metaMaps = new HashMap<>();
         List<Embedding> embeddings = new ArrayList<>();
@@ -268,7 +266,7 @@ class AlloyDBEmbeddingStoreConfigIT {
             Map<String, Object> metadataJsonMap = null;
             while (rs.next()) {
                 PGvector response = (PGvector) rs.getObject(embeddingStoreConfig.getEmbeddingColumn());
-                assertThat(expectedVectorsAndIndexes.keySet()).contains(response);
+                assertThat(expectedVectorsAndIndexes).containsKey(response);
                 int index = expectedVectorsAndIndexes.get(response);
                 for (String column : metaMaps.get(index).keySet()) {
                     if (column.contains("extra")) {
@@ -283,16 +281,15 @@ class AlloyDBEmbeddingStoreConfigIT {
                 metadataJsonMap = OBJECT_MAPPER.readValue(metadataJsonString, Map.class);
             }
             assertThat(metadataJsonMap).isNotNull();
-            assertThat(extraMetaMap.size()).isEqualTo(metadataJsonMap.size());
+            assertThat(extraMetaMap).hasSameSizeAs(metadataJsonMap);
             for (String key : extraMetaMap.keySet()) {
-                assertThat(extraMetaMap.get(key).equals((metadataJsonMap.get(key))))
-                        .isTrue();
+                assertThat(extraMetaMap).containsEntry(key, (metadataJsonMap.get(key)));
             }
         }
     }
 
     @Test
-    void remove_all_from_store() throws SQLException {
+    void remove_all_from_store() throws Exception {
         List<Embedding> embeddings = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             PGvector vector = randomPGvector(VECTOR_SIZE);
@@ -365,7 +362,7 @@ class AlloyDBEmbeddingStoreConfigIT {
         List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
 
         // should return all 10
-        assertThat(result.size()).isEqualTo(10);
+        assertThat(result).hasSize(10);
 
         for (EmbeddingMatch<TextSegment> match : result) {
             Map<String, Object> matchMetadata = match.embedded().metadata().toMap();
@@ -373,8 +370,8 @@ class AlloyDBEmbeddingStoreConfigIT {
             assertThat(match.embedded().text()).contains("this is a test text " + index);
             // metadata json should be unpacked into the original columns
             for (String column : matchMetadata.keySet()) {
-                assertThat(matchMetadata.get(column))
-                        .isEqualTo(metaMaps.get(index).get(column));
+                assertThat(matchMetadata)
+                        .containsEntry(column, metaMaps.get(index).get(column));
             }
         }
     }
@@ -411,13 +408,13 @@ class AlloyDBEmbeddingStoreConfigIT {
 
         List<EmbeddingMatch<TextSegment>> result = store.search(request).matches();
         // should get 2 hits
-        assertThat(result.size()).isEqualTo(2);
+        assertThat(result).hasSize(2);
         List<String> expectedSearchResult = Arrays.asList("cat", "dog");
         List<String> actualSearchResult = new ArrayList<>();
         for (EmbeddingMatch<TextSegment> match : result) {
             actualSearchResult.add(match.embedded().text());
         }
-        assertThat(actualSearchResult).isEqualTo(expectedSearchResult);
+        assertThat(actualSearchResult).containsExactlyElementsOf(expectedSearchResult);
 
         // search for "cat" using a higher minScore
         request = EmbeddingSearchRequest.builder()
@@ -428,7 +425,7 @@ class AlloyDBEmbeddingStoreConfigIT {
         result = store.search(request).matches();
 
         // should get 1 hit
-        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).hasSize(1);
         assertThat(result.get(0).embedded().text()).isEqualTo("cat");
     }
 }

@@ -548,7 +548,7 @@ class Neo4jEmbeddingStoreTest extends Neo4jEmbeddingStoreBaseTest {
         assertThat(node.get(idProp).asString()).isEqualTo(match.embeddingId());
 
         List<Float> floats = node.get(DEFAULT_EMBEDDING_PROP).asList(Value::asFloat);
-        assertThat(floats).isEqualTo(embedding.vectorAsList());
+        assertThat(floats).containsExactlyElementsOf(embedding.vectorAsList());
     }
 
     private void checkPropKeys(Node node, String idProp, List<String> otherProps) {

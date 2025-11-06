@@ -7,8 +7,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class UtilTest {
+
     @Test
-    void test_make_url() {
+    void should_make_url_when_provide_params() {
         String path = "search";
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("q", "AI");
@@ -19,7 +20,7 @@ class UtilTest {
     }
 
     @Test
-    void test_make_url_with_space() {
+    void should_make_url_with_space() {
         String path = "search";
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("q", "qqq stock quote");
@@ -30,7 +31,7 @@ class UtilTest {
     }
 
     @Test
-    void test_make_url_with_question_mark() {
+    void should_make_url_with_question_mark() {
         String path = "search";
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("q", "LangChain4j?");
@@ -41,7 +42,7 @@ class UtilTest {
     }
 
     @Test
-    void test_makeUrl_with_space_and_question_mark() {
+    void should_make_url_with_space_and_question_mark() {
         String path = "search";
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("q", "What is LangChain4j?");

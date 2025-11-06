@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class LLMGraphTransformerIT {
-    
+
     private static final Logger log = LoggerFactory.getLogger(LLMGraphTransformerIT.class);
 
     private static final String EXAMPLES_PROMPT =
@@ -89,7 +89,7 @@ class LLMGraphTransformerIT {
     }
 
     @Test
-    void testAddGraphDocumentsWithMissingModel() {
+    void addGraphDocumentsWithMissingModel() {
         try {
             LLMGraphTransformer.builder().build();
             fail();
@@ -99,7 +99,7 @@ class LLMGraphTransformerIT {
     }
 
     @Test
-    void testAddGraphDocumentsWithMissingExamples() {
+    void addGraphDocumentsWithMissingExamples() {
         try {
             LLMGraphTransformer.builder().model(model).build();
             fail();
@@ -109,7 +109,7 @@ class LLMGraphTransformerIT {
     }
 
     @Test
-    void testAddGraphDocumentsWithCustomPrompt() {
+    void addGraphDocumentsWithCustomPrompt() {
         List<ChatMessage> prompt =
                 List.of(new UserMessage("just return a null value, don't add any explanation or extra text."));
 
@@ -126,7 +126,7 @@ class LLMGraphTransformerIT {
     }
 
     @Test
-    void testAddGraphDocumentsWithCustomNodesAndRelationshipsSchema() {
+    void addGraphDocumentsWithCustomNodesAndRelationshipsSchema() {
         String cat = "Sylvester the cat";
         String keanu = "Keanu Reeves";
         String lino = "Lino Banfi";
@@ -184,7 +184,7 @@ class LLMGraphTransformerIT {
     }
 
     @Test
-    void testAddGraphDocumentsWithDeDuplication() {
+    void addGraphDocumentsWithDeDuplication() {
         LLMGraphTransformer transformer = LLMGraphTransformer.builder()
                 .model(model)
                 .examples(EXAMPLES_PROMPT)

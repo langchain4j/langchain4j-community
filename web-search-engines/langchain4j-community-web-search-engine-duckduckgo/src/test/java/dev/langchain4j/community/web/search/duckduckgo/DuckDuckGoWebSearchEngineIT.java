@@ -10,12 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class DuckDuckGoWebSearchEngineIT {
+
     private static final int EXPECTED_MAX_RESULTS = 7;
     private static DuckDuckGoWebSearchEngine engine;
 
@@ -113,6 +113,6 @@ class DuckDuckGoWebSearchEngineIT {
                 .build();
         WebSearchResults webSearchResults = engine.search(request);
         List<WebSearchOrganicResult> results = webSearchResults.results();
-        Assertions.assertThat(results).hasSizeLessThanOrEqualTo(maxResults);
+        assertThat(results).hasSizeLessThanOrEqualTo(maxResults);
     }
 }

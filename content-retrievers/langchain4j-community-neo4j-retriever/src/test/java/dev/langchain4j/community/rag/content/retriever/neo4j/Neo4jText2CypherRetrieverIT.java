@@ -267,8 +267,9 @@ class Neo4jText2CypherRetrieverIT extends Neo4jText2CypherRetrieverBaseTest {
         // When
         String response = neo4jContentRetriever.fromLLM(query);
 
-        // Then
-        assertThat(response).containsIgnoringCase("author");
-        assertThat(response).containsIgnoringCase("Frank Herbert");
+        assertThat(response)
+                // Then
+                .containsIgnoringCase("author")
+                .containsIgnoringCase("Frank Herbert");
     }
 }

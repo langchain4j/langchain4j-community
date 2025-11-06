@@ -30,7 +30,7 @@ class XinferenceStreamingLanguageModelIT extends AbstractInferenceLanguageModelI
         Response<String> response = handler.get();
         assertThat(response.content()).contains("北京");
         TokenUsage tokenUsage = response.tokenUsage();
-        assertThat(tokenUsage.outputTokenCount()).isGreaterThan(0);
+        assertThat(tokenUsage.outputTokenCount()).isPositive();
         assertThat(tokenUsage.totalTokenCount())
                 .isEqualTo(tokenUsage.inputTokenCount() + tokenUsage.outputTokenCount());
         assertThat(response.finishReason()).isEqualTo(LENGTH);

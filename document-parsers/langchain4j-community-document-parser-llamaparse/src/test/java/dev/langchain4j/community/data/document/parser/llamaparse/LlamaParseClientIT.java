@@ -24,7 +24,7 @@ class LlamaParseClientIT {
     void shouldParseUploadAndGetMarkdown() {
         String API_KEY = System.getenv("LLAMA_PARSE_API_KEY");
 
-        assertThat(API_KEY).isNotNull().isNotBlank();
+        assertThat(API_KEY).isNotBlank();
 
         LlamaParseClient client = new LlamaParseClient(API_KEY);
 
@@ -48,7 +48,7 @@ class LlamaParseClientIT {
         log.info("Getting markdown result...");
         LlamaParseMarkdownResponse response = client.markdownResult(jobId);
         String markdown = response.markdown;
-        assertThat(markdown.length()).isGreaterThan(0);
+        assertThat(markdown.length()).isPositive();
 
         log.info("Test completed...");
     }

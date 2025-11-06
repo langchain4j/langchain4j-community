@@ -85,29 +85,30 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
     public static final String VALUE_CAT = "value2";
     public static final String KEY_KEANU = "key33";
     public static final String VALUE_KEANU = "value3";
-    public static String USERNAME = "neo4j";
-    public static String ADMIN_PASSWORD = "adminPass";
+    public static final String USERNAME = "neo4j";
+    public static final String ADMIN_PASSWORD = "adminPass";
     private static final String NEO4J_VERSION = System.getProperty("neo4jVersion", "2025.04.0-enterprise");
 
-    public static String CAT_ON_THE_TABLE = "Sylvester the cat is on the table";
-    public static String KEANU_REEVES_ACTED = "Keanu Reeves acted in Matrix";
-    public static String MATCH_AND_RETURN_NODE = "MATCH p=(n)-[]->() RETURN p ORDER BY n.%s";
-    public static String MATCH_WITH_DOCUMENT_RETURN_NODE = "MATCH p=(:Document)-[]->(n)-[]->() RETURN p ORDER BY n.%s";
-    public static String KEANU = "keanu";
-    public static String MATRIX = "matrix";
-    public static String ACTED = "acted";
-    public static String SYLVESTER = "sylvester";
-    public static String TABLE = "table";
+    public static final String CAT_ON_THE_TABLE = "Sylvester the cat is on the table";
+    public static final String KEANU_REEVES_ACTED = "Keanu Reeves acted in Matrix";
+    public static final String MATCH_AND_RETURN_NODE = "MATCH p=(n)-[]->() RETURN p ORDER BY n.%s";
+    public static final String MATCH_WITH_DOCUMENT_RETURN_NODE =
+            "MATCH p=(:Document)-[]->(n)-[]->() RETURN p ORDER BY n.%s";
+    public static final String KEANU = "keanu";
+    public static final String MATRIX = "matrix";
+    public static final String ACTED = "acted";
+    public static final String SYLVESTER = "sylvester";
+    public static final String TABLE = "table";
     public static LLMGraphTransformer graphTransformer;
     public static List<GraphDocument> graphDocs;
     public static Neo4jGraph neo4jGraph;
     public static KnowledgeGraphWriter knowledgeGraphWriter;
 
-    public static String CUSTOM_TEXT = "custom  `text";
-    public static String CUSTOM_ID = "custom  ` id";
+    public static final String CUSTOM_TEXT = "custom  `text";
+    public static final String CUSTOM_ID = "custom  ` id";
     public static final String SANITIZED_CUSTOM_ID =
             SchemaNames.sanitize(CUSTOM_ID).get();
-    public static String CUSTOM_LABEL = "Label ` to \\ sanitize";
+    public static final String CUSTOM_LABEL = "Label ` to \\ sanitize";
 
     @Container
     static Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>(DockerImageName.parse("neo4j:" + NEO4J_VERSION))
@@ -134,7 +135,7 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         List<Document> documents = List.of(docCat, docKeanu);
 
         graphDocs = graphTransformer.transformAll(documents);
-        assertThat(graphDocs.size()).isEqualTo(2);
+        assertThat(graphDocs).hasSize(2);
     }
 
     abstract ChatModel getModel();
@@ -237,8 +238,8 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         // then
         List<Record> records = neo4jGraph.executeRead(MATCH_AND_RETURN_NODE.formatted(DEFAULT_ID_PROP));
         assertThat(records).hasSize(2);
-        Record record = records.get(0);
-        PathValue p = (PathValue) record.get("p");
+        Record r = records.get(0);
+        PathValue p = (PathValue) r.get("p");
         Path path = p.asPath();
         Node start = path.start();
         assertNodeLabels(start, DEFAULT_LABEL);
@@ -249,8 +250,8 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         Relationship rel = Iterables.single(path.relationships());
         assertThat(rel.type()).containsIgnoringCase(ACTED);
 
-        record = records.get(1);
-        p = (PathValue) record.get("p");
+        r = records.get(1);
+        p = (PathValue) r.get("p");
         path = p.asPath();
         start = path.start();
         assertNodeLabels(start, DEFAULT_LABEL);
@@ -267,8 +268,8 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
 
         List<Record> records = neo4jGraph.executeRead(MATCH_AND_RETURN_NODE.formatted(SANITIZED_CUSTOM_ID));
         assertThat(records).hasSize(2);
-        Record record = records.get(0);
-        PathValue p = (PathValue) record.get("p");
+        Record r = records.get(0);
+        PathValue p = (PathValue) r.get("p");
         Path path = p.asPath();
         Node start = path.start();
         assertNodeLabels(start, CUSTOM_LABEL);
@@ -279,8 +280,8 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         Relationship rel = Iterables.single(path.relationships());
         assertThat(rel.type()).containsIgnoringCase(ACTED);
 
-        record = records.get(1);
-        p = (PathValue) record.get("p");
+        r = records.get(1);
+        p = (PathValue) r.get("p");
         path = p.asPath();
         start = path.start();
         assertNodeLabels(start, CUSTOM_LABEL);
@@ -299,8 +300,8 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         // then
         List<Record> records = neo4jGraph.executeRead(MATCH_WITH_DOCUMENT_RETURN_NODE.formatted(DEFAULT_ID_PROP));
         assertThat(records).hasSize(2);
-        Record record = records.get(0);
-        PathValue p = (PathValue) record.get("p");
+        Record r = records.get(0);
+        PathValue p = (PathValue) r.get("p");
         Path path = p.asPath();
         Iterator<Node> iterator = path.nodes().iterator();
         Node node = iterator.next();
@@ -319,8 +320,8 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         assertThat(rels.get(0).type()).containsIgnoringCase(relType);
         assertThat(rels.get(1).type()).containsIgnoringCase(ACTED);
 
-        record = records.get(1);
-        p = (PathValue) record.get("p");
+        r = records.get(1);
+        p = (PathValue) r.get("p");
         path = p.asPath();
         iterator = path.nodes().iterator();
         node = iterator.next();
@@ -345,8 +346,8 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
 
         List<Record> records = neo4jGraph.executeRead(MATCH_WITH_DOCUMENT_RETURN_NODE.formatted(SANITIZED_CUSTOM_ID));
         assertThat(records).hasSize(2);
-        Record record = records.get(0);
-        PathValue p = (PathValue) record.get("p");
+        Record r = records.get(0);
+        PathValue p = (PathValue) r.get("p");
         Path path = p.asPath();
         Iterator<Node> iterator = path.nodes().iterator();
         Node node = iterator.next();
@@ -365,8 +366,8 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
         assertThat(rels.get(0).type()).containsIgnoringCase(relType);
         assertThat(rels.get(1).type()).containsIgnoringCase(ACTED);
 
-        record = records.get(1);
-        p = (PathValue) record.get("p");
+        r = records.get(1);
+        p = (PathValue) r.get("p");
         path = p.asPath();
         iterator = path.nodes().iterator();
         node = iterator.next();
@@ -388,8 +389,7 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
 
     private static void assertNodeLabels(Node start, String entityLabel) {
         Iterable<String> labels = start.labels();
-        assertThat(labels).hasSize(2);
-        assertThat(labels).contains(entityLabel);
+        assertThat(labels).hasSize(2).contains(entityLabel);
     }
 
     private static void assertNodeProps(Node start, String propRegex, String idProp) {
@@ -406,8 +406,7 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
             String expectedMetaKey,
             String expectedMetaValue) {
         Map<String, Object> map = start.asMap();
-        assertThat(map.size()).isEqualTo(3);
-        assertThat(map).containsKey(idProp);
+        assertThat(map).hasSize(3).containsKey(idProp);
         Object text = map.get(textProp);
         assertThat(text).isEqualTo(expectedText);
 

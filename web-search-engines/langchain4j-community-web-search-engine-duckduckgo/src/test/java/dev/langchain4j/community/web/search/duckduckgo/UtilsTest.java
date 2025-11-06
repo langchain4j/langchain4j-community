@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 class UtilsTest {
 
     @Test
-    void test_buildFormData_basic() {
+    void shuold_build_form_data_basic() {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("q", "AI");
         params.put("safe", "strict");
@@ -19,7 +19,7 @@ class UtilsTest {
     }
 
     @Test
-    void test_buildFormData_with_space_and_question_mark() {
+    void should_build_form_data_with_space_and_question_mark() {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("q", "What is LangChain4j?");
         params.put("safe", "strict");
@@ -29,7 +29,7 @@ class UtilsTest {
     }
 
     @Test
-    void test_buildFormData_with_special_characters() {
+    void should_build_form_data_with_special_characters() {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("q", "test@email.com & more");
         params.put("kl", "us-en");
@@ -39,13 +39,13 @@ class UtilsTest {
     }
 
     @Test
-    void test_buildFormData_null_params() {
+    void should_build_form_data_null_params() {
         String actualFormData = Utils.buildFormData(null);
         assertThat(actualFormData).isEmpty();
     }
 
     @Test
-    void test_urlEncode_special_characters() {
+    void should_encode_url_with_special_characters() {
         String input = "test@email.com?param=value&other=data";
         String encoded = Utils.urlEncode(input);
         assertThat(encoded).isEqualTo("test%40email.com%3Fparam%3Dvalue%26other%3Ddata");

@@ -1,8 +1,7 @@
 package dev.langchain4j.community.data.document.loader.alloydb;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -14,7 +13,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -54,49 +52,49 @@ class AlloyDBLoaderTest {
     }
 
     @Test
-    void testBuildWithQuery() throws SQLException {
+    void should_build_with_query() throws Exception {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(2);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("col2");
 
         AlloyDBLoader loader = builder.query("SELECT * FROM test_table").build();
 
-        assertNotNull(loader);
+        assertThat(loader).isNotNull();
     }
 
     @Test
-    void testBuildWithTableName() throws SQLException {
+    void should_build_with_table_name() throws Exception {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(2);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("col2");
 
         AlloyDBLoader loader = builder.tableName("test_table").build();
 
-        assertNotNull(loader);
+        assertThat(loader).isNotNull();
     }
 
     @Test
-    void testBuildWithInvalidColumns() throws SQLException {
+    void should_build_with_invalid_columns() throws Exception {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
 
         builder.contentColumns(List.of("invalid_col"));
 
-        assertThrows(IllegalArgumentException.class, () -> builder.build());
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> builder.build());
     }
 
     @Test
-    void testBuildWithInvalidMetadataJsonColumn() throws SQLException {
+    void should_build_with_invalid_metadata_json_column() throws Exception {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(1);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("col1");
 
         builder.metadataJsonColumn("invalid_json_col");
 
-        assertThrows(IllegalArgumentException.class, () -> builder.build());
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> builder.build());
     }
 
     @Test
-    void testLoadDocuments() throws SQLException, ExecutionException, InterruptedException {
+    void should_load_documents() throws Exception {
         when(mockResultSetMetaData.getColumnCount()).thenReturn(3);
         when(mockResultSetMetaData.getColumnName(1)).thenReturn("content");
         when(mockResultSetMetaData.getColumnName(2)).thenReturn("metadata");
@@ -114,9 +112,9 @@ class AlloyDBLoaderTest {
 
         List<Document> documents = loader.load();
 
-        assertEquals(1, documents.size());
-        assertEquals("test content", documents.get(0).text());
-        assertEquals("value", documents.get(0).metadata().toMap().get("key"));
-        assertEquals("test metadata", documents.get(0).metadata().toMap().get("metadata"));
+        assertThat(documents).hasSize(1);
+        assertThat(documents.get(0).text()).isEqualTo("test content");
+        assertThat(documents.get(0).metadata().toMap()).containsEntry("key", "value");
+        assertThat(documents.get(0).metadata().toMap()).containsEntry("metadata", "test metadata");
     }
 }
