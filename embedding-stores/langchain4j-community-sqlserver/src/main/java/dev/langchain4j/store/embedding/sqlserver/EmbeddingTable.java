@@ -162,7 +162,8 @@ public class EmbeddingTable {
                 statement.addBatch(getDropTableStatement());
             }
 
-            statement.addBatch(getCreateTableStatement());
+            statement.addBatch(getCreateTableStatement(createOption == CreateOption.CREATE_IF_NOT_EXISTS));
+
             statement.executeBatch();
         }
     }
@@ -215,16 +216,29 @@ public class EmbeddingTable {
         }
     }
 
-    private String getCreateTableStatement() {
-        return String.format(
+    private String getCreateTableStatement(boolean ifNotExists) {
+
+        String createSql = String.format(
                 """
-            CREATE TABLE %s (
-                %s NVARCHAR(36) PRIMARY KEY,
-                %s VECTOR(%d),
-                %s NVARCHAR(MAX),
-                %s JSON)
-        """,
+                    CREATE TABLE %s (
+                        %s NVARCHAR(36) PRIMARY KEY,
+                        %s VECTOR(%d),
+                        %s NVARCHAR(MAX),
+                        %s JSON)
+                """,
                 getQualifiedTableName(), idColumn, embeddingColumn, dimension, textColumn, metadataColumn);
+        if (ifNotExists) {
+            return String.format(
+                    """
+                        IF OBJECT_ID(N'%s', N'U') IS NULL
+                            BEGIN
+                                %s
+                            END;
+                    """,
+                    getQualifiedTableName(), createSql);
+        } else {
+            return createSql;
+        }
     }
 
     private String getDropTableStatement() {

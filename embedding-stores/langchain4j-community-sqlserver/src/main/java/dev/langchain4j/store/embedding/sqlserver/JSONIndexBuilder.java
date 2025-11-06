@@ -75,6 +75,9 @@ public class JSONIndexBuilder extends IndexBuilder<JSONIndexBuilder> {
      */
     @Override
     public Index build() {
+        if (CreateOption.CREATE_IF_NOT_EXISTS == createOption) {
+            throw new IllegalStateException("Unsupported CreateOption.CREATE_IF_NOT_EXISTS.");
+        }
         return new Index(this);
     }
 
