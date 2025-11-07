@@ -8,11 +8,13 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
 import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.json.DefaultGsonObjectMapper;
 import redis.clients.jedis.json.JsonObjectMapper;
@@ -76,17 +78,26 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         if (user != null) {
             String finalUser = ensureNotBlank(user, "user");
             String finalPassword = ensureNotBlank(password, "password");
-            this.client = new UnifiedJedis(new HostAndPort(finalHost, finalPort),
-                    DefaultJedisClientConfig.builder()
-                            .user(finalUser)
-                            .password(finalPassword)
-                            .build());
+            JedisClientConfig jedisClientConfig = DefaultJedisClientConfig.builder()
+                    .user(finalUser)
+                    .password(finalPassword)
+                    .build();
+            this.client = new UnifiedJedis(new HostAndPort(finalHost, finalPort), jedisClientConfig);
         } else {
             this.client = new UnifiedJedis(new HostAndPort(finalHost, finalPort));
         }
         this.keyPrefix = ensureNotNull(prefix, "prefix");
         this.ttl = ensureNotNull(ttl, "ttl");
         this.jsonMapper = new DefaultGsonObjectMapper();
+    }
+
+    /**
+     * Creates a new builder instance for constructing a RedisChatMemoryStore.
+     *
+     * @return A new Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -162,15 +173,6 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     private String toRedisKey(Object memoryId) {
         return keyPrefix + toMemoryIdString(memoryId);
-    }
-
-    /**
-     * Creates a new builder instance for constructing a RedisChatMemoryStore.
-     *
-     * @return A new Builder instance
-     */
-    public static Builder builder() {
-        return new Builder();
     }
 
     /**
