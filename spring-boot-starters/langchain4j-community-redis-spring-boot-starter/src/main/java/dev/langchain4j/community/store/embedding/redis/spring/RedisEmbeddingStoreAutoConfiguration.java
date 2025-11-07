@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Bean;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisClientConfig;
-import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.UnifiedJedis;
 
 @AutoConfiguration
 @EnableConfigurationProperties(RedisEmbeddingStoreProperties.class)
@@ -32,8 +32,8 @@ public class RedisEmbeddingStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public JedisPooled jedisPooled(RedisEmbeddingStoreProperties properties, JedisClientConfig jedisClientConfig) {
-        return new JedisPooled(new HostAndPort(properties.getHost(), properties.getPort()), jedisClientConfig);
+    public UnifiedJedis unifiedJedis(RedisEmbeddingStoreProperties properties, JedisClientConfig jedisClientConfig) {
+        return new UnifiedJedis(new HostAndPort(properties.getHost(), properties.getPort()), jedisClientConfig);
     }
 
     @Bean
@@ -41,14 +41,14 @@ public class RedisEmbeddingStoreAutoConfiguration {
     public RedisEmbeddingStore redisEmbeddingStore(
             RedisEmbeddingStoreProperties properties,
             ObjectProvider<EmbeddingModel> embeddingModelProvider,
-            ObjectProvider<JedisPooled> jedisPooledProvider,
+            ObjectProvider<UnifiedJedis> unifiedJedisProvider,
             ObjectProvider<JedisClientConfig> clientConfigProvider) {
         return RedisEmbeddingStore.builder()
                 .host(properties.getHost())
                 .port(properties.getPort())
                 .user(properties.getUser())
                 .password(properties.getPassword())
-                .jedisPooled(jedisPooledProvider.getIfAvailable())
+                .unifiedJedis(unifiedJedisProvider.getIfAvailable())
                 .clientConfig(clientConfigProvider.getIfAvailable())
                 .prefix(properties.getPrefix())
                 .indexName(properties.getIndexName())
