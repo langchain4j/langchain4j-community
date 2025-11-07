@@ -11,6 +11,7 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import java.util.ArrayList;
 import java.util.List;
 import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.json.DefaultGsonObjectMapper;
 import redis.clients.jedis.json.JsonObjectMapper;
 
@@ -26,7 +27,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
     /**
      * Redis client for database operations.
      */
-    private final JedisPooled client;
+    private final UnifiedJedis client;
 
     /**
      * Prefix to be added to all Redis keys.
@@ -109,10 +110,10 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         String res;
         if (ttl > 0) {
             try (var pipeline = client.pipelined()) {
-                pipeline.jsonSet(key, json);
-                pipeline.expire(key, ttl);
-                var results = pipeline.syncAndReturnAll();
-                res = (String) results.get(0);
+                var jsonSetResponse = pipeline.jsonSet(key, json);
+                var expireResponse = pipeline.expire(key, ttl);
+                pipeline.sync();
+                res = jsonSetResponse.get();
             }
         } else {
             res = client.jsonSet(key, json);

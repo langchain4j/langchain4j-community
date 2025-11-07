@@ -37,11 +37,12 @@ import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.AbstractPipeline;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisClientConfig;
-import redis.clients.jedis.JedisPooled;
-import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.Response;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 import redis.clients.jedis.search.Document;
@@ -71,7 +72,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final String QUERY_TEMPLATE = "%s=>[ KNN %d @%s $BLOB AS %s ]";
 
-    private final JedisPooled client;
+    private final UnifiedJedis client;
     private final RedisSchema schema;
     private final RedisMetadataFilterMapper filterMapper;
 
@@ -82,7 +83,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param port           Redis Stack Server port
      * @param user           Redis Stack username (optional)
      * @param password       Redis Stack password (optional)
-     * @param jedisPooled    Jedis client, if null, {@code RedisEmbeddingStore} will create a new one. (optional)
+     * @param unifiedJedis   Jedis client, if null, {@code RedisEmbeddingStore} will create a new one. (optional)
      * @param clientConfig   Jedis client configuration (optional)
      * @param indexName      The name of the index (optional). Default value: "embedding-index".
      * @param prefix         The prefix of the key which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
@@ -94,7 +95,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
             Integer port,
             String user,
             String password,
-            JedisPooled jedisPooled,
+            UnifiedJedis unifiedJedis,
             JedisClientConfig clientConfig,
             String indexName,
             String prefix,
@@ -105,7 +106,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .password(password)
                 .build());
 
-        this.client = getOrDefault(jedisPooled, () -> new JedisPooled(new HostAndPort(host, port), actualConfig));
+        this.client = getOrDefault(unifiedJedis, () -> new UnifiedJedis(new HostAndPort(host, port), actualConfig));
         this.schema = RedisSchema.builder()
                 .indexName(getOrDefault(indexName, "embedding-index"))
                 .prefix(getOrDefault(prefix, "embedding:"))
@@ -133,7 +134,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
             String uri, String indexName, String prefix, Integer dimension, Map<String, SchemaField> metadataConfig) {
         ensureNotBlank(uri, "uri");
 
-        this.client = new JedisPooled(uri);
+        this.client = new UnifiedJedis(uri);
         this.schema = RedisSchema.builder()
                 .indexName(getOrDefault(indexName, "embedding-index"))
                 .prefix(getOrDefault(prefix, "embedding:"))
@@ -269,10 +270,9 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                 embedded == null || embeddings.size() == embedded.size(),
                 "embeddings size is not equal to embedded size");
 
-        List<Object> responses;
-        try (Pipeline pipeline = client.pipelined()) {
-
-            int size = ids.size();
+        int size = ids.size();
+        List<Response<String>> responses = new ArrayList<>(size);
+        try (AbstractPipeline pipeline = client.pipelined()) {
             for (int i = 0; i < size; i++) {
                 String id = ids.get(i);
                 Embedding embedding = embeddings.get(i);
@@ -284,14 +284,20 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                     fields.putAll(textSegment.metadata().toMap());
                 }
                 String key = schema.getPrefix() + id;
-                pipeline.jsonSetWithEscape(key, JSON_SET_PATH, fields);
+                Response<String> response = pipeline.jsonSetWithEscape(key, JSON_SET_PATH, fields);
+                responses.add(response);
             }
 
-            responses = pipeline.syncAndReturnAll();
+            pipeline.sync();
+        }
+
+        List<Object> results = new ArrayList<>();
+        for (Response<String> response : responses) {
+            results.add(response.get());
         }
 
         Optional<Object> errResponse =
-                responses.stream().filter(response -> !"OK".equals(response)).findAny();
+                results.stream().filter(response -> !"OK".equals(response)).findAny();
         if (errResponse.isPresent()) {
             if (log.isErrorEnabled()) {
                 log.error("add embedding failed, msg={}", errResponse.get());
@@ -349,7 +355,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
         private Integer port;
         private String user;
         private String password;
-        private JedisPooled jedisPooled;
+        private UnifiedJedis unifiedJedis;
         private JedisClientConfig clientConfig;
         private String indexName;
         private String prefix;
@@ -358,7 +364,6 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param uri Redis Stack URI
-         * @deprecated Please use {@link Builder#jedisPooled(JedisPooled)} or {@link Builder#clientConfig(JedisClientConfig)} instead.
          */
         @Deprecated
         public Builder uri(String uri) {
@@ -368,7 +373,6 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param host Redis Stack host
-         * @deprecated Please use {@link Builder#jedisPooled(JedisPooled)} or {@link Builder#clientConfig(JedisClientConfig)} instead.
          */
         @Deprecated
         public Builder host(String host) {
@@ -378,7 +382,6 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param port Redis Stack port
-         * @deprecated Please use {@link Builder#jedisPooled(JedisPooled)} or {@link Builder#clientConfig(JedisClientConfig)} instead.
          */
         @Deprecated
         public Builder port(Integer port) {
@@ -388,7 +391,6 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param user Redis Stack username (optional)
-         * @deprecated Please use {@link Builder#jedisPooled(JedisPooled)} or {@link Builder#clientConfig(JedisClientConfig)} instead.
          */
         @Deprecated
         public Builder user(String user) {
@@ -398,7 +400,6 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param password Redis Stack password (optional)
-         * @deprecated Please use {@link Builder#jedisPooled(JedisPooled)} or {@link Builder#clientConfig(JedisClientConfig)} instead.
          */
         @Deprecated
         public Builder password(String password) {
@@ -407,10 +408,10 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param jedisPooled Jedis client
+         * @param unifiedJedis client
          */
-        public Builder jedisPooled(JedisPooled jedisPooled) {
-            this.jedisPooled = jedisPooled;
+        public Builder unifiedJedis(UnifiedJedis unifiedJedis) {
+            this.unifiedJedis = unifiedJedis;
             return this;
         }
 
@@ -490,7 +491,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                         port,
                         user,
                         password,
-                        jedisPooled,
+                        unifiedJedis,
                         clientConfig,
                         indexName,
                         prefix,
