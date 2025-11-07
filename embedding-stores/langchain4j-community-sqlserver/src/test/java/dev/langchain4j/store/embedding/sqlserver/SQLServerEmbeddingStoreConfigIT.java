@@ -7,6 +7,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.sqlserver.exception.SQLServerLangChain4jException;
 import org.junit.jupiter.api.Test;
 
 class SQLServerEmbeddingStoreConfigIT {
@@ -27,6 +28,80 @@ class SQLServerEmbeddingStoreConfigIT {
                         .build())
                 .build();
         assertNotNull(embeddingStore);
+    }
+
+    @Test
+    void create_if_not_exists_config_test() {
+        SQLServerDataSource dataSource = getSqlServerDataSource();
+        SQLServerEmbeddingStore embeddingStore = SQLServerEmbeddingStore.dataSourceBuilder()
+                .dataSource(dataSource)
+                .embeddingTable(EmbeddingTable.builder()
+                        .createOption(CreateOption.CREATE_OR_REPLACE)
+                        .name("my_embedding_table")
+                        .dimension(4)
+                        .build())
+                .build();
+        assertNotNull(embeddingStore);
+
+        SQLServerEmbeddingStore.Builder embeddingStoreBuilder = SQLServerEmbeddingStore.dataSourceBuilder()
+                .dataSource(dataSource)
+                .embeddingTable(EmbeddingTable.builder()
+                        .createOption(CreateOption.CREATE)
+                        .name("my_embedding_table")
+                        .dimension(4)
+                        .build());
+        assertThrows(SQLServerLangChain4jException.class, embeddingStoreBuilder::build);
+
+        SQLServerEmbeddingStore embeddingStore2 = SQLServerEmbeddingStore.dataSourceBuilder()
+                .dataSource(dataSource)
+                .embeddingTable(EmbeddingTable.builder()
+                        .createOption(CreateOption.CREATE_IF_NOT_EXISTS)
+                        .name("my_embedding_table")
+                        .dimension(4)
+                        .build())
+                .build();
+
+        assertNotNull(embeddingStore2);
+    }
+
+    @Test
+    void create_if_not_exists_custom_catalog_config_test() {
+        SQLServerDataSource dataSource = getSqlServerDataSource();
+        SQLServerEmbeddingStore embeddingStore = SQLServerEmbeddingStore.dataSourceBuilder()
+                .dataSource(dataSource)
+                .embeddingTable(EmbeddingTable.builder()
+                        .createOption(CreateOption.CREATE_OR_REPLACE)
+                        .catalogName("master")
+                        .schemaName("dbo")
+                        .name("my_embedding_table")
+                        .dimension(4)
+                        .build())
+                .build();
+        assertNotNull(embeddingStore);
+
+        SQLServerEmbeddingStore.Builder embeddingStoreBuilder = SQLServerEmbeddingStore.dataSourceBuilder()
+                .dataSource(dataSource)
+                .embeddingTable(EmbeddingTable.builder()
+                        .createOption(CreateOption.CREATE)
+                        .catalogName("master")
+                        .schemaName("dbo")
+                        .name("my_embedding_table")
+                        .dimension(4)
+                        .build());
+        assertThrows(SQLServerLangChain4jException.class, embeddingStoreBuilder::build);
+
+        SQLServerEmbeddingStore embeddingStore2 = SQLServerEmbeddingStore.dataSourceBuilder()
+                .dataSource(dataSource)
+                .embeddingTable(EmbeddingTable.builder()
+                        .createOption(CreateOption.CREATE_IF_NOT_EXISTS)
+                        .catalogName("master")
+                        .schemaName("dbo")
+                        .name("my_embedding_table")
+                        .dimension(4)
+                        .build())
+                .build();
+
+        assertNotNull(embeddingStore2);
     }
 
     @Test
@@ -53,6 +128,17 @@ class SQLServerEmbeddingStoreConfigIT {
 
         // Test that store was created successfully
         assertNotNull(embeddingStore);
+    }
+
+    @Test
+    void index_with_create_if_not_exists_may_fail() {
+
+        JSONIndexBuilder jsonIndex = new JSONIndexBuilder()
+                .key("author", String.class, JSONIndexBuilder.Order.ASC)
+                .key("year", Integer.class, JSONIndexBuilder.Order.DESC);
+        jsonIndex.createOption(CreateOption.CREATE_IF_NOT_EXISTS);
+
+        assertThrows(IllegalStateException.class, jsonIndex::build);
     }
 
     @Test
