@@ -195,11 +195,11 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
         // Using KNN query on @vector field
         Query query = new Query(format(
-                QUERY_TEMPLATE,
-                filterMapper.mapToFilter(request.filter()),
-                request.maxResults(),
-                schema.getVectorFieldName(),
-                SCORE_FIELD_NAME))
+                        QUERY_TEMPLATE,
+                        filterMapper.mapToFilter(request.filter()),
+                        request.maxResults(),
+                        schema.getVectorFieldName(),
+                        SCORE_FIELD_NAME))
                 .addParam("BLOB", toByteArray(request.queryEmbedding().vector()))
                 .setSortBy(SCORE_FIELD_NAME, true)
                 .limit(0, request.maxResults())
