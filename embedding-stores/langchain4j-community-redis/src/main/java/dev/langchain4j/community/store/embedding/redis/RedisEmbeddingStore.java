@@ -25,7 +25,6 @@ import redis.clients.jedis.search.Query;
 import redis.clients.jedis.search.SearchResult;
 import redis.clients.jedis.search.schemafields.SchemaField;
 import redis.clients.jedis.search.schemafields.TextField;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
