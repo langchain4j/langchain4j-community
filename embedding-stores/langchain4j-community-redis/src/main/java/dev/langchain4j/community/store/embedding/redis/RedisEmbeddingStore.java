@@ -19,14 +19,6 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static redis.clients.jedis.search.RediSearchUtil.toByteArray;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -35,6 +27,14 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.AbstractPipeline;
@@ -144,8 +144,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
                 indexName,
                 prefix,
                 dimension,
-                metadataConfig
-        );
+                metadataConfig);
     }
 
     /**
@@ -158,11 +157,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
      */
     public RedisEmbeddingStore(
-            String uri,
-            String indexName,
-            String prefix,
-            Integer dimension,
-            Map<String, SchemaField> metadataConfig) {
+            String uri, String indexName, String prefix, Integer dimension, Map<String, SchemaField> metadataConfig) {
         this(new UnifiedJedis(ensureNotBlank(uri, "uri")), indexName, prefix, dimension, metadataConfig);
     }
 
