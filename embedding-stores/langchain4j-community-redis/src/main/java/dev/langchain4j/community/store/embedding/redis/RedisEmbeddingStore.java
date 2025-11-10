@@ -79,10 +79,38 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * Creates an instance of RedisEmbeddingStore
      *
-     * @param host           Redis Stack Server host
-     * @param port           Redis Stack Server port
-     * @param user           Redis Stack username (optional)
-     * @param password       Redis Stack password (optional)
+     * @param client         Jedis client
+     * @param indexName      The name of the index (optional). Default value: "embedding-index".
+     * @param prefix         The prefix of the key which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
+     * @param dimension      Embedding vector dimension
+     * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
+     */
+    public RedisEmbeddingStore(UnifiedJedis client, String indexName, String prefix, Integer dimension,
+                               Map<String, SchemaField> metadataConfig) {
+        ensureNotNull(client, "client");
+
+        this.client = client;
+        this.schema = RedisSchema.builder()
+                .indexName(getOrDefault(indexName, "embedding-index"))
+                .prefix(getOrDefault(prefix, "embedding:"))
+                .dimension(dimension)
+                .metadataConfig(copyIfNotNull(metadataConfig))
+                .build();
+        this.filterMapper = new RedisMetadataFilterMapper(metadataConfig);
+
+        if (!isIndexExist(schema.getIndexName())) {
+            ensureNotNull(dimension, "dimension");
+            createIndex(schema.getIndexName());
+        }
+    }
+
+    /**
+     * Creates an instance of RedisEmbeddingStore
+     *
+     * @param host           Redis server host
+     * @param port           Redis server port
+     * @param user           Redis username (optional)
+     * @param password       Redis password (optional)
      * @param unifiedJedis   Jedis client, if null, {@code RedisEmbeddingStore} will create a new one. (optional)
      * @param clientConfig   Jedis client configuration (optional)
      * @param indexName      The name of the index (optional). Default value: "embedding-index".
@@ -101,30 +129,25 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
             String prefix,
             Integer dimension,
             Map<String, SchemaField> metadataConfig) {
-        JedisClientConfig actualConfig = getOrDefault(clientConfig, () -> DefaultJedisClientConfig.builder()
-                .user(user)
-                .password(password)
-                .build());
-
-        this.client = getOrDefault(unifiedJedis, () -> new UnifiedJedis(new HostAndPort(host, port), actualConfig));
-        this.schema = RedisSchema.builder()
-                .indexName(getOrDefault(indexName, "embedding-index"))
-                .prefix(getOrDefault(prefix, "embedding:"))
-                .dimension(dimension)
-                .metadataConfig(copyIfNotNull(metadataConfig))
-                .build();
-        this.filterMapper = new RedisMetadataFilterMapper(metadataConfig);
-
-        if (!isIndexExist(schema.getIndexName())) {
-            ensureNotNull(dimension, "dimension");
-            createIndex(schema.getIndexName());
-        }
+        this(
+                getOrDefault(unifiedJedis, () -> {
+                    JedisClientConfig actualConfig = getOrDefault(clientConfig, () -> DefaultJedisClientConfig.builder()
+                            .user(user)
+                            .password(password)
+                            .build());
+                    return new UnifiedJedis(new HostAndPort(host, port), actualConfig);
+                }),
+                indexName,
+                prefix,
+                dimension,
+                metadataConfig
+        );
     }
 
     /**
      * Creates an instance of RedisEmbeddingStore
      *
-     * @param uri            Redis Stack Server URI. (e.g., redis://localhost:6379, rediss://localhost:6379)
+     * @param uri            Redis server URI. (e.g., redis://localhost:6379, redis://localhost:6379)
      * @param indexName      The name of the index (optional). Default value: "embedding-index".
      * @param prefix         The prefix of the key, which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
      * @param dimension      Embedding vector dimension
@@ -132,21 +155,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      */
     public RedisEmbeddingStore(
             String uri, String indexName, String prefix, Integer dimension, Map<String, SchemaField> metadataConfig) {
-        ensureNotBlank(uri, "uri");
-
-        this.client = new UnifiedJedis(uri);
-        this.schema = RedisSchema.builder()
-                .indexName(getOrDefault(indexName, "embedding-index"))
-                .prefix(getOrDefault(prefix, "embedding:"))
-                .dimension(dimension)
-                .metadataConfig(copyIfNotNull(metadataConfig))
-                .build();
-        this.filterMapper = new RedisMetadataFilterMapper(metadataConfig);
-
-        if (!isIndexExist(schema.getIndexName())) {
-            ensureNotNull(dimension, "dimension");
-            createIndex(schema.getIndexName());
-        }
+        this(new UnifiedJedis(ensureNotBlank(uri, "uri")), indexName, prefix, dimension, metadataConfig);
     }
 
     @Override
@@ -373,6 +382,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param host Redis Stack host
+         * @deprecated use {@link #unifiedJedis} instead
          */
         @Deprecated
         public Builder host(String host) {
@@ -382,6 +392,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param port Redis Stack port
+         * @deprecated use {@link #unifiedJedis} instead
          */
         @Deprecated
         public Builder port(Integer port) {
@@ -391,6 +402,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param user Redis Stack username (optional)
+         * @deprecated use {@link #unifiedJedis} instead
          */
         @Deprecated
         public Builder user(String user) {
@@ -400,6 +412,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param password Redis Stack password (optional)
+         * @deprecated use {@link #unifiedJedis} instead
          */
         @Deprecated
         public Builder password(String password) {
@@ -483,8 +496,20 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         public RedisEmbeddingStore build() {
-            if (uri != null) {
-                return new RedisEmbeddingStore(uri, indexName, prefix, dimension, metadataConfig);
+            if (unifiedJedis != null) {
+                return new RedisEmbeddingStore(
+                        unifiedJedis,
+                        indexName,
+                        prefix,
+                        dimension,
+                        metadataConfig);
+            } else if (uri != null) {
+                return new RedisEmbeddingStore(
+                        uri,
+                        indexName,
+                        prefix,
+                        dimension,
+                        metadataConfig);
             } else {
                 return new RedisEmbeddingStore(
                         host,
