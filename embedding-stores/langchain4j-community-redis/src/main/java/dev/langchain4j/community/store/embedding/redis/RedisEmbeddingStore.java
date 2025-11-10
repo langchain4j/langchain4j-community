@@ -1,5 +1,40 @@
 package dev.langchain4j.community.store.embedding.redis;
 
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.Filter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import redis.clients.jedis.AbstractPipeline;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisClientConfig;
+import redis.clients.jedis.Response;
+import redis.clients.jedis.UnifiedJedis;
+import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.resps.ScanResult;
+import redis.clients.jedis.search.Document;
+import redis.clients.jedis.search.FTCreateParams;
+import redis.clients.jedis.search.IndexDataType;
+import redis.clients.jedis.search.Query;
+import redis.clients.jedis.search.SearchResult;
+import redis.clients.jedis.search.schemafields.SchemaField;
+import redis.clients.jedis.search.schemafields.TextField;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
 import static dev.langchain4j.community.store.embedding.redis.RedisJsonUtils.toProperties;
 import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_KEY;
 import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_PATH_PREFIX;
@@ -18,40 +53,6 @@ import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static redis.clients.jedis.search.RediSearchUtil.toByteArray;
-
-import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingMatch;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.filter.Filter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import redis.clients.jedis.AbstractPipeline;
-import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.JedisClientConfig;
-import redis.clients.jedis.Response;
-import redis.clients.jedis.UnifiedJedis;
-import redis.clients.jedis.params.ScanParams;
-import redis.clients.jedis.resps.ScanResult;
-import redis.clients.jedis.search.Document;
-import redis.clients.jedis.search.FTCreateParams;
-import redis.clients.jedis.search.IndexDataType;
-import redis.clients.jedis.search.Query;
-import redis.clients.jedis.search.SearchResult;
-import redis.clients.jedis.search.schemafields.SchemaField;
-import redis.clients.jedis.search.schemafields.TextField;
 
 /**
  * Represents a <a href="https://redis.io/">Redis</a> index as an embedding store.
@@ -85,7 +86,10 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param dimension      Embedding vector dimension
      * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
      */
-    public RedisEmbeddingStore(UnifiedJedis client, String indexName, String prefix, Integer dimension,
+    public RedisEmbeddingStore(UnifiedJedis client,
+                               String indexName,
+                               String prefix,
+                               Integer dimension,
                                Map<String, SchemaField> metadataConfig) {
         ensureNotNull(client, "client");
 
@@ -118,17 +122,16 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param dimension      Embedding vector dimension
      * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
      */
-    public RedisEmbeddingStore(
-            String host,
-            Integer port,
-            String user,
-            String password,
-            UnifiedJedis unifiedJedis,
-            JedisClientConfig clientConfig,
-            String indexName,
-            String prefix,
-            Integer dimension,
-            Map<String, SchemaField> metadataConfig) {
+    public RedisEmbeddingStore(String host,
+                               Integer port,
+                               String user,
+                               String password,
+                               UnifiedJedis unifiedJedis,
+                               JedisClientConfig clientConfig,
+                               String indexName,
+                               String prefix,
+                               Integer dimension,
+                               Map<String, SchemaField> metadataConfig) {
         this(
                 getOrDefault(unifiedJedis, () -> {
                     JedisClientConfig actualConfig = getOrDefault(clientConfig, () -> DefaultJedisClientConfig.builder()
@@ -153,9 +156,16 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param dimension      Embedding vector dimension
      * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
      */
-    public RedisEmbeddingStore(
-            String uri, String indexName, String prefix, Integer dimension, Map<String, SchemaField> metadataConfig) {
+    public RedisEmbeddingStore(String uri,
+                               String indexName,
+                               String prefix,
+                               Integer dimension,
+                               Map<String, SchemaField> metadataConfig) {
         this(new UnifiedJedis(ensureNotBlank(uri, "uri")), indexName, prefix, dimension, metadataConfig);
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -188,11 +198,11 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
         // Using KNN query on @vector field
         Query query = new Query(format(
-                        QUERY_TEMPLATE,
-                        filterMapper.mapToFilter(request.filter()),
-                        request.maxResults(),
-                        schema.getVectorFieldName(),
-                        SCORE_FIELD_NAME))
+                QUERY_TEMPLATE,
+                filterMapper.mapToFilter(request.filter()),
+                request.maxResults(),
+                schema.getVectorFieldName(),
+                SCORE_FIELD_NAME))
                 .addParam("BLOB", toByteArray(request.queryEmbedding().vector()))
                 .setSortBy(SCORE_FIELD_NAME, true)
                 .limit(0, request.maxResults())
@@ -353,10 +363,6 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
         return schema;
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
     public static class Builder {
 
         private String uri;
@@ -497,19 +503,9 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         public RedisEmbeddingStore build() {
             if (unifiedJedis != null) {
-                return new RedisEmbeddingStore(
-                        unifiedJedis,
-                        indexName,
-                        prefix,
-                        dimension,
-                        metadataConfig);
+                return new RedisEmbeddingStore(unifiedJedis, indexName, prefix, dimension, metadataConfig);
             } else if (uri != null) {
-                return new RedisEmbeddingStore(
-                        uri,
-                        indexName,
-                        prefix,
-                        dimension,
-                        metadataConfig);
+                return new RedisEmbeddingStore(uri, indexName, prefix, dimension, metadataConfig);
             } else {
                 return new RedisEmbeddingStore(
                         host,
