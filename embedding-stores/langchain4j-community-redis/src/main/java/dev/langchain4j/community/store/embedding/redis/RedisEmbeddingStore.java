@@ -79,7 +79,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
     /**
      * Creates an instance of RedisEmbeddingStore
      *
-     * @param client         Jedis client
+     * @param client         Instance of a UnifiedJedis client
      * @param indexName      The name of the index (optional). Default value: "embedding-index".
      * @param prefix         The prefix of the key which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
      * @param dimension      Embedding vector dimension
