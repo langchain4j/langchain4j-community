@@ -85,11 +85,12 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param dimension      Embedding vector dimension
      * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
      */
-    public RedisEmbeddingStore(UnifiedJedis client,
-                               String indexName,
-                               String prefix,
-                               Integer dimension,
-                               Map<String, SchemaField> metadataConfig) {
+    public RedisEmbeddingStore(
+            UnifiedJedis client,
+            String indexName,
+            String prefix,
+            Integer dimension,
+            Map<String, SchemaField> metadataConfig) {
         ensureNotNull(client, "client");
 
         this.client = client;
@@ -121,16 +122,17 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param dimension      Embedding vector dimension
      * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
      */
-    public RedisEmbeddingStore(String host,
-                               Integer port,
-                               String user,
-                               String password,
-                               UnifiedJedis unifiedJedis,
-                               JedisClientConfig clientConfig,
-                               String indexName,
-                               String prefix,
-                               Integer dimension,
-                               Map<String, SchemaField> metadataConfig) {
+    public RedisEmbeddingStore(
+            String host,
+            Integer port,
+            String user,
+            String password,
+            UnifiedJedis unifiedJedis,
+            JedisClientConfig clientConfig,
+            String indexName,
+            String prefix,
+            Integer dimension,
+            Map<String, SchemaField> metadataConfig) {
         this(
                 getOrDefault(unifiedJedis, () -> {
                     JedisClientConfig actualConfig = getOrDefault(clientConfig, () -> DefaultJedisClientConfig.builder()
@@ -155,11 +157,12 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param dimension      Embedding vector dimension
      * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
      */
-    public RedisEmbeddingStore(String uri,
-                               String indexName,
-                               String prefix,
-                               Integer dimension,
-                               Map<String, SchemaField> metadataConfig) {
+    public RedisEmbeddingStore(
+            String uri,
+            String indexName,
+            String prefix,
+            Integer dimension,
+            Map<String, SchemaField> metadataConfig) {
         this(new UnifiedJedis(ensureNotBlank(uri, "uri")), indexName, prefix, dimension, metadataConfig);
     }
 
