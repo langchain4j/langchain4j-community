@@ -1,5 +1,24 @@
 package dev.langchain4j.community.store.embedding.redis;
 
+import static dev.langchain4j.community.store.embedding.redis.RedisJsonUtils.toProperties;
+import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_KEY;
+import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_PATH_PREFIX;
+import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_SET_PATH;
+import static dev.langchain4j.community.store.embedding.redis.RedisSchema.SCORE_FIELD_NAME;
+import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
+import static java.lang.String.format;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static redis.clients.jedis.search.RediSearchUtil.toByteArray;
+
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -33,25 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import static dev.langchain4j.community.store.embedding.redis.RedisJsonUtils.toProperties;
-import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_KEY;
-import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_PATH_PREFIX;
-import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_SET_PATH;
-import static dev.langchain4j.community.store.embedding.redis.RedisSchema.SCORE_FIELD_NAME;
-import static dev.langchain4j.internal.Utils.copyIfNotNull;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
-import static java.lang.String.format;
-import static java.util.Collections.singletonList;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static redis.clients.jedis.search.RediSearchUtil.toByteArray;
 
 /**
  * Represents a <a href="https://redis.io/">Redis</a> index as an embedding store.
