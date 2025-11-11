@@ -10,7 +10,10 @@ import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import java.util.ArrayList;
 import java.util.List;
-import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisClientConfig;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.json.DefaultGsonObjectMapper;
 import redis.clients.jedis.json.JsonObjectMapper;
 
@@ -26,7 +29,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
     /**
      * Redis client for database operations.
      */
-    private final JedisPooled client;
+    private final UnifiedJedis client;
 
     /**
      * Prefix to be added to all Redis keys.
@@ -73,13 +76,26 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         if (user != null) {
             String finalUser = ensureNotBlank(user, "user");
             String finalPassword = ensureNotBlank(password, "password");
-            this.client = new JedisPooled(finalHost, finalPort, finalUser, finalPassword);
+            JedisClientConfig jedisClientConfig = DefaultJedisClientConfig.builder()
+                    .user(finalUser)
+                    .password(finalPassword)
+                    .build();
+            this.client = new UnifiedJedis(new HostAndPort(finalHost, finalPort), jedisClientConfig);
         } else {
-            this.client = new JedisPooled(finalHost, finalPort);
+            this.client = new UnifiedJedis(new HostAndPort(finalHost, finalPort));
         }
         this.keyPrefix = ensureNotNull(prefix, "prefix");
         this.ttl = ensureNotNull(ttl, "ttl");
         this.jsonMapper = new DefaultGsonObjectMapper();
+    }
+
+    /**
+     * Creates a new builder instance for constructing a RedisChatMemoryStore.
+     *
+     * @return A new Builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -109,10 +125,10 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         String res;
         if (ttl > 0) {
             try (var pipeline = client.pipelined()) {
-                pipeline.jsonSet(key, json);
-                pipeline.expire(key, ttl);
-                var results = pipeline.syncAndReturnAll();
-                res = (String) results.get(0);
+                var jsonSetResponse = pipeline.jsonSet(key, json);
+                var expireResponse = pipeline.expire(key, ttl);
+                pipeline.sync();
+                res = jsonSetResponse.get();
             }
         } else {
             res = client.jsonSet(key, json);
@@ -155,15 +171,6 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     private String toRedisKey(Object memoryId) {
         return keyPrefix + toMemoryIdString(memoryId);
-    }
-
-    /**
-     * Creates a new builder instance for constructing a RedisChatMemoryStore.
-     *
-     * @return A new Builder instance
-     */
-    public static Builder builder() {
-        return new Builder();
     }
 
     /**
