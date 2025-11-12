@@ -155,7 +155,7 @@ class MmrSelectorTest implements WithAssertions {
     void should_handle_single_candidate() {
         Embedding queryEmbedding = embedding(1.0f, 0.0f, 0.0f);
         List<EmbeddingMatch<TextSegment>> candidates =
-                asList(match(0.8, "only_candidate", embedding(0.8f, 0.2f, 0.0f)));
+                List.of(match(0.8, "only_candidate", embedding(0.8f, 0.2f, 0.0f)));
 
         List<EmbeddingMatch<TextSegment>> result = MmrSelector.select(queryEmbedding, candidates, 5, 0.7);
 

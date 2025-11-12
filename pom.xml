@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.5.0-beta11-SNAPSHOT</version>
+        <version>1.9.0-beta16-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -49,6 +49,8 @@
         <module>embedding-stores/langchain4j-community-alloydb-pg</module>
         <module>embedding-stores/langchain4j-community-cloud-sql-pg</module>
         <module>embedding-stores/langchain4j-community-neo4j</module>
+        <module>embedding-stores/langchain4j-community-yugabytedb</module>
+        <module>embedding-stores/langchain4j-community-sqlserver</module>
         <module>embedding-stores/langchain4j-community-jvector</module>
 
         <!-- Integration of content retrievers -->
@@ -57,6 +59,7 @@
 
         <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
+        <module>web-search-engines/langchain4j-community-web-search-engine-duckduckgo</module>
 
         <!-- Integration of document parsers -->
         <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
@@ -77,10 +80,10 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.5.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.5.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.5.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.5.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.9.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.9.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.9.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.9.0-SNAPSHOT</langchain4j.open-ai.version>
     </properties>
 
     <repositories>
@@ -199,7 +202,7 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.8.0</version>
+                <version>0.9.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <publishingServerId>central</publishingServerId>
@@ -247,7 +250,7 @@
             <extension>
                 <groupId>io.github.gitflow-incremental-builder</groupId>
                 <artifactId>gitflow-incremental-builder</artifactId>
-                <version>4.5.5</version>
+                <version>4.5.6</version>
             </extension>
         </extensions>
     </build>
@@ -257,7 +260,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.3</version>
+                <version>3.12.0</version>
                 <reportSets>
                     <reportSet>
                         <id>aggregate</id>
@@ -286,11 +289,12 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>6.17.0</version>
+                        <version>6.23.0</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
                                 <recipe>org.openrewrite.java.testing.assertj.Assertj</recipe>
+                                <recipe>org.openrewrite.java.migrate.UpgradeToJava17</recipe>
                             </activeRecipes>
                             <failOnDryRunResults>true</failOnDryRunResults>
                         </configuration>
@@ -298,7 +302,12 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>3.16.0</version>
+                                <version>3.21.2</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.openrewrite.recipe</groupId>
+                                <artifactId>rewrite-migrate-java</artifactId>
+                                <version>3.21.1</version>
                             </dependency>
                         </dependencies>
                     </plugin>

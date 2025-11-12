@@ -41,6 +41,25 @@ import org.mockito.Mockito;
 
 class MmrContentAggregatorTest {
 
+    static Stream<Arguments> should_apply_mmr_with_auto_strategy_selection() {
+        return Stream.<Arguments>builder()
+                .add(Arguments.of((Function<EmbeddingModel, MmrContentAggregator>) MmrContentAggregator::new))
+                .add(Arguments.of((Function<EmbeddingModel, MmrContentAggregator>)
+                        (embeddingModel) -> MmrContentAggregator.builder()
+                                .embeddingModel(embeddingModel)
+                                .build()))
+                .build();
+    }
+
+    private static Stream<Arguments> should_return_empty_list_when_no_content() {
+        return Stream.<Arguments>builder()
+                .add(Arguments.of(emptyMap()))
+                .add(Arguments.of(singletonMap(Query.from("query"), emptyList())))
+                .add(Arguments.of(singletonMap(Query.from("query"), singletonList(emptyList()))))
+                .add(Arguments.of(singletonMap(Query.from("query"), asList(emptyList(), emptyList()))))
+                .build();
+    }
+
     @ParameterizedTest
     @MethodSource
     void should_apply_mmr_with_auto_strategy_selection(
@@ -81,16 +100,6 @@ class MmrContentAggregatorTest {
         assertThat(aggregated).hasSize(3);
         // MMR should balance relevance and diversity
         assertThat(aggregated.get(0)).isEqualTo(content1); // most relevant first
-    }
-
-    static Stream<Arguments> should_apply_mmr_with_auto_strategy_selection() {
-        return Stream.<Arguments>builder()
-                .add(Arguments.of((Function<EmbeddingModel, MmrContentAggregator>) MmrContentAggregator::new))
-                .add(Arguments.of((Function<EmbeddingModel, MmrContentAggregator>)
-                        (embeddingModel) -> MmrContentAggregator.builder()
-                                .embeddingModel(embeddingModel)
-                                .build()))
-                .build();
     }
 
     @Test
@@ -163,8 +172,8 @@ class MmrContentAggregatorTest {
     void should_fail_when_multiple_queries_with_default_query_selector() {
         // given
         Map<Query, Collection<List<Content>>> queryToContents = new HashMap<>();
-        queryToContents.put(Query.from("query 1"), singletonList(asList()));
-        queryToContents.put(Query.from("query 2"), singletonList(asList()));
+        queryToContents.put(Query.from("query 1"), singletonList(List.of()));
+        queryToContents.put(Query.from("query 2"), singletonList(List.of()));
 
         EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
         MmrContentAggregator aggregator = new MmrContentAggregator(embeddingModel);
@@ -189,8 +198,8 @@ class MmrContentAggregatorTest {
         Content content2 = Content.from("content 2");
 
         Map<Query, Collection<List<Content>>> queryToContents = new LinkedHashMap<>();
-        queryToContents.put(query1, singletonList(asList(content1)));
-        queryToContents.put(query2, singletonList(asList(content2)));
+        queryToContents.put(query1, singletonList(List.of(content1)));
+        queryToContents.put(query2, singletonList(List.of(content2)));
 
         EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
 
@@ -246,9 +255,11 @@ class MmrContentAggregatorTest {
         // when
         List<Content> aggregated = aggregator.aggregate(queryToContents);
 
-        // then
-        assertThat(aggregated).hasSize(2); // content3 should be filtered out
-        assertThat(aggregated).containsExactly(content1, content2);
+        assertThat(aggregated)
+                // then
+                .hasSize(2)
+                // content3 should be filtered out
+                .containsExactly(content1, content2);
     }
 
     @Test
@@ -301,22 +312,13 @@ class MmrContentAggregatorTest {
         verifyNoInteractions(embeddingModel);
     }
 
-    private static Stream<Arguments> should_return_empty_list_when_no_content() {
-        return Stream.<Arguments>builder()
-                .add(Arguments.of(emptyMap()))
-                .add(Arguments.of(singletonMap(Query.from("query"), emptyList())))
-                .add(Arguments.of(singletonMap(Query.from("query"), singletonList(emptyList()))))
-                .add(Arguments.of(singletonMap(Query.from("query"), asList(emptyList(), emptyList()))))
-                .build();
-    }
-
     @Test
     void should_use_force_embedding_generation() {
         // given
         Query query = Query.from("test query");
         Content content1 = Content.from("content 1");
 
-        Map<Query, Collection<List<Content>>> queryToContents = singletonMap(query, singletonList(asList(content1)));
+        Map<Query, Collection<List<Content>>> queryToContents = singletonMap(query, singletonList(List.of(content1)));
 
         EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
 
@@ -421,9 +423,10 @@ class MmrContentAggregatorTest {
             // when
             List<Content> aggregated = aggregator.aggregate(queryToContents);
 
-            // then
-            assertThat(aggregated).hasSize(2);
-            assertThat(aggregated).containsExactly(content1, content2);
+            assertThat(aggregated)
+                    // then
+                    .hasSize(2)
+                    .containsExactly(content1, content2);
         }
     }
 
@@ -476,9 +479,10 @@ class MmrContentAggregatorTest {
             // when
             List<Content> aggregated = aggregator.aggregate(queryToContents);
 
-            // then
-            assertThat(aggregated).hasSize(2);
-            assertThat(aggregated).containsExactlyInAnyOrder(contentWithEmbedding, contentWithoutEmbedding);
+            assertThat(aggregated)
+                    // then
+                    .hasSize(2)
+                    .containsExactlyInAnyOrder(contentWithEmbedding, contentWithoutEmbedding);
         }
     }
 

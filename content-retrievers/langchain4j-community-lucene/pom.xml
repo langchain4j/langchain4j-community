@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.5.0-beta11-SNAPSHOT</version>
+        <version>1.9.0-beta16-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -13,7 +13,7 @@
     <name>LangChain4j :: Community :: Content Retriever :: Lucene</name>
 
     <properties>
-        <lucene.version>9.12.2</lucene.version>
+        <lucene.version>9.12.3</lucene.version>
         <jtokkit.version>1.1.0</jtokkit.version>
     </properties>
 

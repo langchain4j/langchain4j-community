@@ -27,18 +27,14 @@ import org.junit.jupiter.api.Test;
 
 class EmbeddingStoreContentRetrieverTest {
 
-    private static EmbeddingStore<TextSegment> EMBEDDING_STORE;
-
-    private static EmbeddingModel EMBEDDING_MODEL;
+    public static final double DEFAULT_MIN_SCORE = 0.0;
     private static final Embedding EMBEDDING = Embedding.from(asList(1f, 2f, 3f));
-
     private static final Query QUERY = Query.from("query");
-
     private static final int DEFAULT_MAX_RESULTS = 3;
     private static final int CUSTOM_MAX_RESULTS = 1;
-
     private static final double CUSTOM_MIN_SCORE = 0.7;
-    public static final double DEFAULT_MIN_SCORE = 0.0;
+    private static EmbeddingStore<TextSegment> EMBEDDING_STORE;
+    private static EmbeddingModel EMBEDDING_MODEL;
 
     @BeforeEach
     void beforeEach() {

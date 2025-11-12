@@ -10,6 +10,8 @@ import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_GENERIC_VISION_MODEL_NAME_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION_PROPERTY;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 
 import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.AuthenticationDetailsProvider;
@@ -49,6 +51,7 @@ public class GenericStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id) {
+        io.verify(handler, atLeast(1)).onPartialToolCall(any());
         io.verify(handler).onCompleteToolCall(complete(0, id, "getWeather", "{\"city\": \"Munich\"}"));
     }
 
@@ -140,11 +143,6 @@ public class GenericStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @Override
-    protected boolean supportsPartialToolStreaming(StreamingChatModel model) {
-        return false;
-    }
-
-    @Override
     protected boolean assertToolId(StreamingChatModel model) {
         return false;
     }
@@ -167,6 +165,27 @@ public class GenericStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected boolean assertTokenUsage() {
         return false;
+    }
+
+    @Override
+    protected boolean supportsStreamingCancellation() {
+        return false;
+    }
+
+    @Override
+    protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, StreamingChatModel model) {
+        // Some providers can talk before calling a tool. "atLeast(0)" is meant to ignore it.
+        io.verify(handler, atLeast(0)).onPartialResponse(any(), any());
+
+        if (supportsPartialToolStreaming(model)) {
+            io.verify(handler, atLeast(0)).onPartialToolCall(any());
+        }
+        io.verify(handler).onCompleteToolCall(any());
+    }
+
+    @Override
+    protected boolean supportsPartialToolStreaming(final StreamingChatModel model) {
+        return true;
     }
 
     @Override

@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.5.0-beta11-SNAPSHOT</version>
+        <version>1.9.0-beta16-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -24,7 +24,7 @@
 
     <properties>
         <skipOciGenAiITs>false</skipOciGenAiITs>
-        <oci-sdk.version>3.72.0</oci-sdk.version>
+        <oci-sdk.version>3.74.2</oci-sdk.version>
         <!-- Stable module name until lc4j switches to JPMS -->
         <automatic-module-name>langchain4j.community.oci.genai</automatic-module-name>
     </properties>
