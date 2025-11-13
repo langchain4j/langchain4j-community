@@ -354,6 +354,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
                         } catch (IOException e) {
                             log.debug("Could not load index from disk, rebuilding: {}", e.getMessage());
                             rebuildIndex();
+                            save();
                         }
                     } else {
                         rebuildIndex();
@@ -393,9 +394,9 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             index = builder.build(vectorValues);
 
-            long duration = System.currentTimeMillis() - startTime;
+            long buildEnd = System.currentTimeMillis();
+            long duration = buildEnd - startTime;
             log.debug("Index built in {} ms", duration);
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to build JVector index", e);
         }
