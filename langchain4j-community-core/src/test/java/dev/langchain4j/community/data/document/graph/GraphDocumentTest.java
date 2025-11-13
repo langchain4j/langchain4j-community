@@ -51,8 +51,8 @@ class GraphDocumentTest {
         GraphDocument doc = GraphDocument.from(nodes, relationships, source);
 
         // then
-        assertThat(nodes).isEqualTo(doc.nodes());
-        assertThat(relationships).isEqualTo(doc.relationships());
+        assertThat(nodes).hasSameElementsAs(doc.nodes());
+        assertThat(relationships).hasSameElementsAs(doc.relationships());
         assertThat(source).isEqualTo(doc.source());
     }
 

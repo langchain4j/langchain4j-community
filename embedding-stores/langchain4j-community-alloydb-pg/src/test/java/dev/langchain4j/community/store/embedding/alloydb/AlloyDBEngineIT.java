@@ -2,7 +2,7 @@ package dev.langchain4j.community.store.embedding.alloydb;
 
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -76,12 +76,12 @@ class AlloyDBEngineIT {
     }
 
     @AfterAll
-    static void afterAll() throws SQLException {
+    static void afterAll() {
         engine.close();
     }
 
     @Test
-    void initialize_vector_table_with_default_schema() throws SQLException {
+    void initialize_vector_table_with_default_schema() throws Exception {
         // default options
         engine.initVectorStoreTable(defaultParameters);
 
@@ -96,7 +96,7 @@ class AlloyDBEngineIT {
     }
 
     @Test
-    void initialize_vector_table_overwrite_true() throws SQLException {
+    void initialize_vector_table_overwrite_true() throws Exception {
         // default options
         engine.initVectorStoreTable(defaultParameters);
         // custom
@@ -116,7 +116,7 @@ class AlloyDBEngineIT {
     }
 
     @Test
-    void initialize_vector_table_with_custom_options() throws SQLException {
+    void initialize_vector_table_with_custom_options() throws Exception {
         List<MetadataColumn> metadataColumns = new ArrayList<>();
         metadataColumns.add(new MetadataColumn("page", "TEXT", true));
         metadataColumns.add(new MetadataColumn("source", "TEXT", false));
@@ -151,9 +151,9 @@ class AlloyDBEngineIT {
 
         engine.initVectorStoreTable(initParameters);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            engine.initVectorStoreTable(initParameters);
-        });
+        RuntimeException exception = assertThatExceptionOfType(RuntimeException.class)
+                .isThrownBy(() -> engine.initVectorStoreTable(initParameters))
+                .actual();
 
         assertThat(exception.getMessage())
                 .isEqualTo(
@@ -167,7 +167,7 @@ class AlloyDBEngineIT {
 
     @Disabled("Test against Google Cloud only")
     @Test
-    void create_engine_with_iam_auth() throws SQLException {
+    void create_engine_with_iam_auth() throws Exception {
         AlloyDBEngine iamEngine = new AlloyDBEngine.Builder()
                 .projectId(projectId)
                 .region(region)
@@ -179,13 +179,13 @@ class AlloyDBEngineIT {
         try (Connection connection = iamEngine.getConnection()) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
-            assertThat(rs.getInt(1)).isEqualTo(1);
+            assertThat(rs.getInt(1)).isOne();
         }
     }
 
     @Disabled("Test against Google Cloud only")
     @Test
-    void create_engine_with_get_iam_email() throws SQLException {
+    void create_engine_with_get_iam_email() throws Exception {
         AlloyDBEngine iamEngine = new AlloyDBEngine.Builder()
                 .projectId(projectId)
                 .region(region)
@@ -196,7 +196,7 @@ class AlloyDBEngineIT {
         try (Connection connection = iamEngine.getConnection()) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT 1");
             rs.next();
-            assertThat(rs.getInt(1)).isEqualTo(1);
+            assertThat(rs.getInt(1)).isOne();
         }
     }
 }

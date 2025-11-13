@@ -1,6 +1,6 @@
 package dev.langchain4j.community.store.embedding.cloudsql;
 
-import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
+import static org.apache.commons.lang3.RandomUtils.nextInt;
 
 import dev.langchain4j.community.store.embedding.cloudsql.index.DistanceStrategy;
 import dev.langchain4j.data.segment.TextSegment;

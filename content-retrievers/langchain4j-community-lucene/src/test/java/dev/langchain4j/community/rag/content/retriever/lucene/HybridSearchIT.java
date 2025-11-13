@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class HybridSearchIT {
-    
+
     private static final Logger log = LoggerFactory.getLogger(HybridSearchIT.class);
 
     private static final TextEmbedding[] hits = {
@@ -59,7 +59,7 @@ class HybridSearchIT {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
 
         assertThat(results).hasSize(3);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -84,7 +84,7 @@ class HybridSearchIT {
                 results.stream().map(content -> content.textSegment().text()).collect(Collectors.toList());
 
         assertThat(results).hasSize(1);
-        assertThat(actualTextSegments).isEqualTo(expectedTextSegments);
+        assertThat(actualTextSegments).containsExactlyElementsOf(expectedTextSegments);
     }
 
     @Test
@@ -103,7 +103,7 @@ class HybridSearchIT {
         List<Content> results = contentRetriever.retrieve(Query.from(queryText));
         debugQuery(query, results);
 
-        assertThat(results).hasSize(0);
+        assertThat(results).isEmpty();
     }
 
     @BeforeEach

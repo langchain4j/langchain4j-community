@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
-public class ZhipuAiImageModelIT {
+class ZhipuAiImageModelIT {
 
     private static final Logger log = LoggerFactory.getLogger(ZhipuAiImageModelIT.class);
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");

@@ -287,7 +287,7 @@ abstract class YugabyteDBEmbeddingStoreConfigIT extends EmbeddingStoreWithFilter
                     .map(match -> match.embedded().text())
                     .collect(java.util.stream.Collectors.toSet());
 
-            assertThat(retrievedTexts).containsExactlyInAnyOrderElementsOf(originalTexts);
+            assertThat(retrievedTexts).hasSameElementsAs(originalTexts);
         });
 
         // Test that legitimate queries still work after injection attempts

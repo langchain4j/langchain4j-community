@@ -237,7 +237,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         ToolExecutionRequest toolExecutionRequest =
                 response.aiMessage().toolExecutionRequests().get(0);
         assertThat(toolExecutionRequest.name()).isEqualTo(toolName);
-        assertThat(toolExecutionRequest.arguments()).hasSizeGreaterThan(0);
+        assertThat(toolExecutionRequest.arguments()).isNotEmpty();
         assertThat(response.finishReason()).isEqualTo(TOOL_EXECUTION);
     }
 

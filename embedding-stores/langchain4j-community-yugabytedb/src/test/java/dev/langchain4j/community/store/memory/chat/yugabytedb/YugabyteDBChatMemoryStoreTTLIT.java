@@ -129,7 +129,7 @@ class YugabyteDBChatMemoryStoreTTLIT extends YugabyteDBTestBase {
         log.info("🧹 {} Running cleanup for expired messages...", logPrefix);
         int cleanedUp = cleanupStore.cleanupExpiredMessages();
         log.info("🧹 {} Cleaned up {} expired message records", logPrefix, cleanedUp);
-        assertThat(cleanedUp).isGreaterThanOrEqualTo(0);
+        assertThat(cleanedUp).isNotNegative();
 
         // Verify messages have expired
         List<ChatMessage> afterExpiration = ttlMemoryStore.getMessages(memoryId);

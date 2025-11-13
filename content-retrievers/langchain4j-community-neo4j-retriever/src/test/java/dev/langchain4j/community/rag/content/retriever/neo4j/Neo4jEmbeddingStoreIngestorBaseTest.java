@@ -1,7 +1,6 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore;
 import dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStoreIngestor;
@@ -43,7 +42,7 @@ public class Neo4jEmbeddingStoreIngestorBaseTest extends Neo4jContainerBaseTest 
     protected static EmbeddingModel embeddingModel;
 
     @BeforeAll
-    public static void beforeAll() {
+    static void beforeAll() {
         Neo4jContainerBaseTest.beforeAll();
 
         embeddingStore =
@@ -130,8 +129,8 @@ public class Neo4jEmbeddingStoreIngestorBaseTest extends Neo4jContainerBaseTest 
         Content result = results.get(0);
 
         assertThat(result.textSegment().text().toLowerCase()).containsIgnoringWhitespaces(retrieveQuery);
-        assertEquals("Wikipedia link", result.textSegment().metadata().getString("source"));
-        assertEquals("https://example.com/ai", result.textSegment().metadata().getString("url"));
+        assertThat(result.textSegment().metadata().getString("source")).isEqualTo("Wikipedia link");
+        assertThat(result.textSegment().metadata().getString("url")).isEqualTo("https://example.com/ai");
     }
 
     protected static EmbeddingStoreContentRetriever getEmbeddingStoreContentRetriever(

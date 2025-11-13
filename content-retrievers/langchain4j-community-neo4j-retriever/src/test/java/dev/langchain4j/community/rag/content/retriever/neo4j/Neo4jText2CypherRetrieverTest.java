@@ -66,7 +66,7 @@ class Neo4jText2CypherRetrieverTest extends Neo4jText2CypherRetrieverBaseTest {
         List<Content> contents = retriever.retrieve(query);
 
         // Then
-        assertThat(contents).hasSize(0);
+        assertThat(contents).isEmpty();
 
         retriever = Neo4jText2CypherRetriever.builder()
                 .graph(graph)

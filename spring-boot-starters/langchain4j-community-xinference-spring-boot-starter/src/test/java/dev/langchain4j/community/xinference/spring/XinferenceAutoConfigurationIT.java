@@ -30,7 +30,6 @@ import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.scoring.ScoringModel;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -52,7 +51,7 @@ class XinferenceAutoConfigurationIT {
                     XinferenceAutoConfiguration.class, TestChatModelListenerAutoConfiguration.class));
 
     @Test
-    void should_provide_chat_model() throws IOException, InterruptedException {
+    void should_provide_chat_model() throws Exception {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(CHAT_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
@@ -72,7 +71,7 @@ class XinferenceAutoConfigurationIT {
     }
 
     @Test
-    void should_provide_streaming_chat_model() throws IOException, InterruptedException {
+    void should_provide_streaming_chat_model() throws Exception {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(CHAT_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
@@ -107,7 +106,7 @@ class XinferenceAutoConfigurationIT {
     }
 
     @Test
-    void should_provide_language_model() throws IOException, InterruptedException {
+    void should_provide_language_model() throws Exception {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(GENERATE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
@@ -127,7 +126,7 @@ class XinferenceAutoConfigurationIT {
     }
 
     @Test
-    void should_provide_streaming_language_model() throws IOException, InterruptedException {
+    void should_provide_streaming_language_model() throws Exception {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(GENERATE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
@@ -162,7 +161,7 @@ class XinferenceAutoConfigurationIT {
     }
 
     @Test
-    void should_provide_embedding_model() throws IOException, InterruptedException {
+    void should_provide_embedding_model() throws Exception {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(EMBEDDING_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
@@ -180,7 +179,7 @@ class XinferenceAutoConfigurationIT {
     }
 
     @Test
-    void should_provide_sc_model() throws IOException, InterruptedException {
+    void should_provide_sc_model() throws Exception {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(RERANK_MODEL_NAME));
         contextRunner
                 .withPropertyValues(
@@ -206,7 +205,7 @@ class XinferenceAutoConfigurationIT {
 
     @Test
     @Disabled("Not supported to run in a Docker environment without GPU .")
-    void should_provide_image_model() throws IOException, InterruptedException {
+    void should_provide_image_model() throws Exception {
         chatModelContainer.execInContainer("bash", "-c", launchCmd(IMAGE_MODEL_NAME));
         contextRunner
                 .withPropertyValues(

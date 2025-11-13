@@ -138,7 +138,7 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
                 embeddingStore.search(embeddingSearchRequest).matches();
         // besides `Elizabeth I`, there could be other similar nodes like `Elizabethan era`, `Elizabeth of York`,
         // `Elizabethan Religious Settlement`, ...
-        assertThat(matchesWithFullText).hasSizeGreaterThanOrEqualTo(1);
+        assertThat(matchesWithFullText).isNotEmpty();
         matchesWithFullText.forEach(i -> assertThat(i.embeddingId()).contains("Elizabeth"));
     }
 

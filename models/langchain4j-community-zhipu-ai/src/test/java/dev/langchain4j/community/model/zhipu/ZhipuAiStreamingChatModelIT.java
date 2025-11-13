@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "ZHIPU_API_KEY", matches = ".+")
-public class ZhipuAiStreamingChatModelIT {
+class ZhipuAiStreamingChatModelIT {
 
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
 
@@ -373,7 +373,7 @@ public class ZhipuAiStreamingChatModelIT {
     }
 
     @Test
-    public void should_send_multimodal_image_data_and_receive_response() {
+    void should_send_multimodal_image_data_and_receive_response() {
         StreamingChatModel model = ZhipuAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)

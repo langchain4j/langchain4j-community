@@ -88,9 +88,7 @@ class Neo4jChatMemoryStoreIT {
         List<ChatMessage> chatMessages = createChatMessages();
         memoryStore.updateMessages(messageId, chatMessages);
         messages = memoryStore.getMessages(messageId);
-        assertThat(messages)
-                .hasSize(3)
-                .isEqualTo(chatMessages);
+        assertThat(messages).hasSize(3).isEqualTo(chatMessages);
 
         List<Content> userMsgContents = List.of(new ImageContent("someCatImageUrl"));
         final List<ChatMessage> chatNewMessages =
@@ -102,7 +100,7 @@ class Neo4jChatMemoryStoreIT {
         assertThat(messages).hasSize(4);
         final ArrayList<ChatMessage> chatMessages1 = new ArrayList<>(chatMessages);
         chatMessages1.addAll(chatNewMessages);
-        assertThat(messages).isEqualTo(chatMessages1);
+        assertThat(messages).containsExactlyElementsOf(chatMessages1);
     }
 
     @Test
@@ -114,9 +112,7 @@ class Neo4jChatMemoryStoreIT {
                 .build();
         memoryStore.updateMessages(messageId, chatMessages);
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
-        assertThat(messages)
-                .hasSize(3)
-                .isEqualTo(chatMessages);
+        assertThat(messages).hasSize(3).isEqualTo(chatMessages);
 
         // when
         memoryStore.deleteMessages(messageId);
@@ -132,9 +128,7 @@ class Neo4jChatMemoryStoreIT {
         List<ChatMessage> chatMessages = createChatMessages();
         memoryStore.updateMessages(messageId, chatMessages);
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
-        assertThat(messages)
-                .hasSize(3)
-                .isEqualTo(chatMessages);
+        assertThat(messages).hasSize(3).isEqualTo(chatMessages);
         checkEntitiesCreated(
                 DEFAULT_ID_PROP,
                 DEFAULT_MESSAGE_PROP,
@@ -161,14 +155,10 @@ class Neo4jChatMemoryStoreIT {
         memoryStore.updateMessages(anotherMessageId, chatMessages2);
 
         List<ChatMessage> messagesBefore = memoryStore.getMessages(messageId);
-        assertThat(messagesBefore)
-                .hasSize(3)
-                .isEqualTo(chatMessages1);
+        assertThat(messagesBefore).hasSize(3).isEqualTo(chatMessages1);
 
         List<ChatMessage> messages2Before = memoryStore.getMessages(anotherMessageId);
-        assertThat(messages2Before)
-                .hasSize(3)
-                .isEqualTo(chatMessages2);
+        assertThat(messages2Before).hasSize(3).isEqualTo(chatMessages2);
 
         memoryStore.deleteMessages(messageId);
 
@@ -176,9 +166,7 @@ class Neo4jChatMemoryStoreIT {
         assertThat(messagesAfterDelete).isEmpty();
 
         List<ChatMessage> messages2AfterDelete = memoryStore.getMessages(anotherMessageId);
-        assertThat(messages2AfterDelete)
-                .hasSize(3)
-                .isEqualTo(chatMessages2);
+        assertThat(messages2AfterDelete).hasSize(3).isEqualTo(chatMessages2);
 
         memoryStore.deleteMessages(anotherMessageId);
         List<ChatMessage> messagesAfter2ndDelete = memoryStore.getMessages(anotherMessageId);
@@ -206,9 +194,7 @@ class Neo4jChatMemoryStoreIT {
         memoryStore.updateMessages(messageId, chatMessages1);
 
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
-        assertThat(messages)
-                .hasSize(3)
-                .isEqualTo(chatMessages1);
+        assertThat(messages).hasSize(3).isEqualTo(chatMessages1);
         final List<Record> list =
                 driver.session().run("MATCH (n:Memory) RETURN n").list();
         assertThat(list).isEmpty();
@@ -237,7 +223,7 @@ class Neo4jChatMemoryStoreIT {
         final Iterator<Node> nodeIterator = path.nodes().iterator();
         Node node = nodeIterator.next();
         Map<String, Object> actualProps = node.asMap();
-        assertThat(actualProps).isEqualTo(Map.of(idPropToSanitize, messageId));
+        assertThat(actualProps).containsExactlyInAnyOrderEntriesOf(Map.of(idPropToSanitize, messageId));
         assertThat(node.labels()).containsExactly(memoryLabel);
 
         node = nodeIterator.next();
@@ -289,7 +275,7 @@ class Neo4jChatMemoryStoreIT {
         final List<ChatMessage> expectedChatMessages = new ArrayList<>();
         expectedChatMessages.add(new AiMessage("baz"));
         expectedChatMessages.addAll(createChatMessages());
-        assertThat(messages).isEqualTo(expectedChatMessages);
+        assertThat(messages).containsExactlyElementsOf(expectedChatMessages);
     }
 
     @Test
@@ -313,7 +299,7 @@ class Neo4jChatMemoryStoreIT {
         expectedChatMessages.addAll(createChatMessages());
         expectedChatMessages.addAll(createChatMessages());
         expectedChatMessages.addAll(createChatMessages());
-        assertThat(messages).isEqualTo(expectedChatMessages);
+        assertThat(messages).containsExactlyElementsOf(expectedChatMessages);
     }
 
     @Test
@@ -329,9 +315,7 @@ class Neo4jChatMemoryStoreIT {
         memoryStore.updateMessages(messageId, chatMessages1);
 
         List<ChatMessage> messages = memoryStore.getMessages(messageId);
-        assertThat(messages)
-                .hasSize(12)
-                .isEqualTo(chatMessages1);
+        assertThat(messages).hasSize(12).isEqualTo(chatMessages1);
     }
 
     @Test

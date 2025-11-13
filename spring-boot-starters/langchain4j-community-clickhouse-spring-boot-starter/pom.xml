@@ -76,7 +76,7 @@
 
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>clickhouse</artifactId>
+            <artifactId>testcontainers-clickhouse</artifactId>
             <scope>test</scope>
         </dependency>
 

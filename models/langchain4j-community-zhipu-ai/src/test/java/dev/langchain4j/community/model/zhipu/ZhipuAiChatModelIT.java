@@ -313,12 +313,13 @@ class ZhipuAiChatModelIT {
 
         // then
         Throwable throwable = errorReference.get();
-        assertThat(throwable).isInstanceOf(ZhipuAiException.class);
-        assertThat(throwable).hasMessageContaining("Authorization Token非法，请确认Authorization Token正确传递。");
+        assertThat(throwable)
+                .isInstanceOf(ZhipuAiException.class)
+                .hasMessageContaining("Authorization Token非法，请确认Authorization Token正确传递。");
     }
 
     @Test
-    public void should_send_multimodal_image_data_and_receive_response() {
+    void should_send_multimodal_image_data_and_receive_response() {
         ChatModel model = ZhipuAiChatModel.builder()
                 .apiKey(apiKey)
                 .model(ChatCompletionModel.GLM_4V)

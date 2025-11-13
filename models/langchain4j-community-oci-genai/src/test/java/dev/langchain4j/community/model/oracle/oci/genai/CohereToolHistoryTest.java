@@ -4,9 +4,7 @@ import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.NON_
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_COMPARTMENT_ID_PROPERTY;
 import static dev.langchain4j.community.model.oracle.oci.genai.TestEnvProps.OCI_GENAI_MODEL_REGION_PROPERTY;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.oracle.bmc.Region;
@@ -28,9 +26,7 @@ import dev.langchain4j.service.tool.ToolExecution;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -44,7 +40,7 @@ import org.slf4j.LoggerFactory;
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COMPARTMENT_ID_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY)
 })
-public class CohereToolHistoryTest {
+class CohereToolHistoryTest {
 
     static final Logger LOGGER = LoggerFactory.getLogger(CohereToolHistoryTest.class);
     static final AuthenticationDetailsProvider authProvider = TestEnvProps.createAuthProvider();
@@ -52,7 +48,7 @@ public class CohereToolHistoryTest {
     static final AtomicInteger EMBEDDINGS_SEQ = new AtomicInteger(0);
 
     @Test
-    public void sequentialToolCalls() throws ExecutionException, InterruptedException, TimeoutException {
+    void sequentialToolCalls() throws Exception {
         try (var model = OciGenAiCohereChatModel.builder()
                 .modelName(TestEnvProps.OCI_GENAI_COHERE_CHAT_MODEL_NAME)
                 .compartmentId(TestEnvProps.OCI_GENAI_COMPARTMENT_ID)
@@ -74,14 +70,13 @@ public class CohereToolHistoryTest {
             var result = embeddingAiService.embed("It's bucketing down", "It's raining cats and dogs");
             LOGGER.info("Result> {}", result.content());
 
-            assertThat(
-                    result.toolExecutions().stream()
+            assertThat(result.toolExecutions().stream()
                             .map(ToolExecution::request)
                             .map(ToolExecutionRequest::name)
-                            .toList(),
-                    contains("storeEmbedding", "storeEmbedding", "calculateCosineSimilarity"));
+                            .toList())
+                    .containsExactly("storeEmbedding", "storeEmbedding", "calculateCosineSimilarity");
 
-            assertThat(result.content(), containsString(String.valueOf(tools.similarity.get(10, TimeUnit.SECONDS))));
+            assertThat(result.content()).contains(String.valueOf(tools.similarity.get(10, TimeUnit.SECONDS)));
         }
     }
 

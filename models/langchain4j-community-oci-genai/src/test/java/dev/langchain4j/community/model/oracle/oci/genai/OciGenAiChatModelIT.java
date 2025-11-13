@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_GENERIC_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY),
     @EnabledIfEnvironmentVariable(named = OCI_GENAI_COHERE_CHAT_MODEL_NAME_PROPERTY, matches = NON_EMPTY)
 })
-public class OciGenAiChatModelIT {
+class OciGenAiChatModelIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OciGenAiChatModelIT.class);
 

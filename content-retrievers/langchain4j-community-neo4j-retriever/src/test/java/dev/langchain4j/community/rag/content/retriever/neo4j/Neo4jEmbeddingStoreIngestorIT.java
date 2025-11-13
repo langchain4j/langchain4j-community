@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
-public class Neo4jEmbeddingStoreIngestorIT extends Neo4jEmbeddingStoreIngestorBaseTest {
+class Neo4jEmbeddingStoreIngestorIT extends Neo4jEmbeddingStoreIngestorBaseTest {
 
     ChatModel chatModel = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
@@ -117,8 +117,7 @@ public class Neo4jEmbeddingStoreIngestorIT extends Neo4jEmbeddingStoreIngestorBa
                 .build();
 
         final String chainResult = chain.execute(Query.from(retrieveQuery));
-        assertThat(chainResult).containsIgnoringCase("dattebayo");
-        assertThat(chainResult).containsIgnoringCase("super saiyan");
+        assertThat(chainResult).containsIgnoringCase("dattebayo").containsIgnoringCase("super saiyan");
 
         RetrievalQAChain chainWithPromptBuilder = RetrievalQAChain.builder()
                 .chatModel(chatModel)
@@ -127,17 +126,18 @@ public class Neo4jEmbeddingStoreIngestorIT extends Neo4jEmbeddingStoreIngestorBa
                 .build();
 
         final String chainResultWithPromptBuilder = chainWithPromptBuilder.execute(Query.from(retrieveQuery));
-        assertThat(chainResultWithPromptBuilder).containsIgnoringCase("dattebayo");
-        assertThat(chainResultWithPromptBuilder).containsIgnoringCase("super saiyan");
+        assertThat(chainResultWithPromptBuilder)
+                .containsIgnoringCase("dattebayo")
+                .containsIgnoringCase("super saiyan");
     }
 
     @Test
-    public void testSummaryGraphIngestor() {
+    void testSummaryGraphIngestor() {
         summaryGraphIngestorCommon(chatModel);
     }
 
     @Test
-    public void testHypotheticalQuestionIngestor() {
+    void testHypotheticalQuestionIngestor() {
         hypotheticalQuestionIngestorCommon(chatModel);
     }
 }

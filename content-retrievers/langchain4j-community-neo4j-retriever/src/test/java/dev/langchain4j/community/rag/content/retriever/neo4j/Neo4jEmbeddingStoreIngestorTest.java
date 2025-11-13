@@ -1,9 +1,6 @@
 package dev.langchain4j.community.rag.content.retriever.neo4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
@@ -33,13 +30,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestorBaseTest {
+class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestorBaseTest {
 
     @Mock
     private ChatModel chatLanguageModel;
 
     @Test
-    public void testBasicRetriever() {
+    void testBasicRetriever() {
         Document parentDoc = getDocumentMiscTopics();
 
         // Child splitter: splits into sentences using OpenNLP
@@ -67,7 +64,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
     }
 
     @Test
-    public void testRetrieverWithChatModel() {
+    void testRetrieverWithChatModel() {
 
         final Neo4jEmbeddingStore neo4jEmbeddingStore = Neo4jEmbeddingStore.builder()
                 .driver(driver)
@@ -164,13 +161,13 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
     void testRetrieverWithCustomRetrievalAndEmbeddingCreationQueryMainDocIdAndParams() {
         String customCreationQuery =
                 """
-                UNWIND $rows AS row
-                MATCH (p:MainDoc {customParentId: $customParentId})
-                CREATE (p)-[:REFERS_TO]->(u:%1$s {%2$s: row.%2$s})
-                SET u += row.%3$s
-                WITH row, u
-                CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
-                RETURN count(*)""";
+                        UNWIND $rows AS row
+                        MATCH (p:MainDoc {customParentId: $customParentId})
+                        CREATE (p)-[:REFERS_TO]->(u:%1$s {%2$s: row.%2$s})
+                        SET u += row.%3$s
+                        WITH row, u
+                        CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
+                        RETURN count(*)""";
         final Neo4jEmbeddingStore neo4jEmbeddingStore = Neo4jEmbeddingStore.builder()
                 .driver(driver)
                 .retrievalQuery(CUSTOM_RETRIEVAL)
@@ -242,15 +239,15 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         List<Content> results = retriever.retrieve(new Query("quantum physics"));
 
         // Assert
-        assertEquals(1, results.size());
+        assertThat(results).hasSize(1);
         Content parent = results.get(0);
 
-        assertTrue(parent.textSegment().text().contains("quantum physics"));
-        assertEquals("science", parent.textSegment().metadata().getString("source"));
+        assertThat(parent.textSegment().text()).contains("quantum physics");
+        assertThat(parent.textSegment().metadata().getString("source")).isEqualTo("science");
     }
 
     @Test
-    public void testSummaryGraphIngestor() {
+    void testSummaryGraphIngestor() {
 
         when(chatLanguageModel.chat(anyList()))
                 .thenReturn(ChatResponse.builder()
@@ -261,7 +258,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
     }
 
     @Test
-    public void testHypotheticalQuestionIngestor() {
+    void testHypotheticalQuestionIngestor() {
 
         when(chatLanguageModel.chat(anyList()))
                 .thenReturn(ChatResponse.builder()
@@ -272,7 +269,7 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
     }
 
     @Test
-    public void testParentChildRetriever() {
+    void testParentChildRetriever() {
         EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
         int maxSegmentSize = 250;
@@ -325,10 +322,10 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         // Query and validate results
         List<Content> results = retriever.retrieve(Query.from("What is Machine Learning?"));
 
-        assertFalse(results.isEmpty(), "Should retrieve at least one parent document");
+        assertThat(results).as("Should retrieve at least one parent document").isNotEmpty();
 
         Content result = results.get(0);
-        assertTrue(result.textSegment().text().toLowerCase().contains("machine learning"));
+        assertThat(result.textSegment().text().toLowerCase()).contains("machine learning");
         assertThat(result.textSegment().metadata().getString("url")).isEqualTo("https://example.com/ai");
     }
 
@@ -352,12 +349,12 @@ public class Neo4jEmbeddingStoreIngestorTest extends Neo4jEmbeddingStoreIngestor
         final EmbeddingStoreContentRetriever retriever = getEmbeddingStoreContentRetriever(ingestor);
         List<Content> results = retriever.retrieve(Query.from("Who is John Doe?"));
 
-        assertFalse(results.isEmpty(), "Should retrieve at least one parent document");
+        assertThat(results).as("Should retrieve at least one parent document").isNotEmpty();
 
         Content result = results.get(0);
 
         assertThat(result.textSegment().text().toLowerCase()).containsIgnoringWhitespaces("super saiyan");
-        assertEquals("Wikipedia link", result.textSegment().metadata().getString("source"));
-        assertEquals("https://example.com/ai", result.textSegment().metadata().getString("url"));
+        assertThat(result.textSegment().metadata().getString("source")).isEqualTo("Wikipedia link");
+        assertThat(result.textSegment().metadata().getString("url")).isEqualTo("https://example.com/ai");
     }
 }
