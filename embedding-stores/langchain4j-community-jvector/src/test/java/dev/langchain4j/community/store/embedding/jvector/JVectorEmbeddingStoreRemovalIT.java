@@ -11,9 +11,8 @@ class JVectorEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
-    EmbeddingStore<TextSegment> embeddingStore = JVectorEmbeddingStore.builder()
-            .dimension(384)
-            .build();
+    EmbeddingStore<TextSegment> embeddingStore =
+            JVectorEmbeddingStore.builder().dimension(384).build();
 
     @AfterEach
     void afterEach() {

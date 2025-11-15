@@ -1,5 +1,9 @@
 package dev.langchain4j.community.store.embedding.jvector;
 
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
@@ -21,9 +25,6 @@ import io.github.jbellis.jvector.vector.VectorSimilarityFunction;
 import io.github.jbellis.jvector.vector.VectorizationProvider;
 import io.github.jbellis.jvector.vector.types.VectorFloat;
 import io.github.jbellis.jvector.vector.types.VectorTypeSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -38,10 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link EmbeddingStore} using <a href="https://github.com/jbellis/jvector">JVector</a>,
@@ -119,10 +118,14 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    private JVectorEmbeddingStore(int dimension, int maxDegree, int beamWidth,
-                                  float neighborOverflow, float alpha,
-                                  VectorSimilarityFunction similarityFunction,
-                                  String persistencePath) {
+    private JVectorEmbeddingStore(
+            int dimension,
+            int maxDegree,
+            int beamWidth,
+            float neighborOverflow,
+            float alpha,
+            VectorSimilarityFunction similarityFunction,
+            String persistencePath) {
         this.dimension = dimension;
         this.maxDegree = maxDegree;
         this.beamWidth = beamWidth;
@@ -208,10 +211,8 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         ensureNotNull(embedding, "embedding");
 
         if (embedding.dimension() != dimension) {
-            throw new IllegalArgumentException(
-                String.format("Embedding dimension (%d) does not match store dimension (%d)",
-                    embedding.dimension(), dimension)
-            );
+            throw new IllegalArgumentException(String.format(
+                    "Embedding dimension (%d) does not match store dimension (%d)", embedding.dimension(), dimension));
         }
 
         indexLock.writeLock().lock();
@@ -262,17 +263,9 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
                 vectorValues = new ListRandomAccessVectorValues(vectors, dimension);
             }
 
-            SearchScoreProvider scoreProvider = SearchScoreProvider.exact(
-                query,
-                similarityFunction,
-                vectorValues
-            );
+            SearchScoreProvider scoreProvider = SearchScoreProvider.exact(query, similarityFunction, vectorValues);
 
-            SearchResult result = searcher.search(
-                scoreProvider,
-                request.maxResults(),
-                Bits.ALL
-            );
+            SearchResult result = searcher.search(scoreProvider, request.maxResults(), Bits.ALL);
 
             // Convert results to EmbeddingMatch
             List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
@@ -286,12 +279,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                 StoredEntry entry = ordinalToEntry.get(nodeScore.node);
                 if (entry != null) {
-                    matches.add(new EmbeddingMatch<>(
-                        score,
-                        entry.id,
-                        entry.embedding,
-                        entry.textSegment
-                    ));
+                    matches.add(new EmbeddingMatch<>(score, entry.id, entry.embedding, entry.textSegment));
                 }
             }
 
@@ -379,18 +367,11 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         long startTime = System.currentTimeMillis();
 
         RandomAccessVectorValues vectorValues = new ListRandomAccessVectorValues(vectors, dimension);
-        BuildScoreProvider scoreProvider = BuildScoreProvider.randomAccessScoreProvider(
-            vectorValues,
-            similarityFunction
-        );
+        BuildScoreProvider scoreProvider =
+                BuildScoreProvider.randomAccessScoreProvider(vectorValues, similarityFunction);
 
         try (GraphIndexBuilder builder = new GraphIndexBuilder(
-                scoreProvider,
-                vectorValues.dimension(),
-                maxDegree,
-                beamWidth,
-                neighborOverflow,
-                alpha)) {
+                scoreProvider, vectorValues.dimension(), maxDegree, beamWidth, neighborOverflow, alpha)) {
 
             index = builder.build(vectorValues);
 
@@ -556,7 +537,8 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
                     // Write metadata if present
                     if (storedEntry.textSegment.metadata() != null) {
                         dos.writeBoolean(true);
-                        Map<String, Object> metadata = storedEntry.textSegment.metadata().toMap();
+                        Map<String, Object> metadata =
+                                storedEntry.textSegment.metadata().toMap();
                         dos.writeInt(metadata.size());
                         for (Map.Entry<String, Object> metaEntry : metadata.entrySet()) {
                             dos.writeUTF(metaEntry.getKey());
@@ -773,14 +755,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
          */
         public JVectorEmbeddingStore build() {
             return new JVectorEmbeddingStore(
-                dimension,
-                maxDegree,
-                beamWidth,
-                neighborOverflow,
-                alpha,
-                similarityFunction,
-                persistencePath
-            );
+                    dimension, maxDegree, beamWidth, neighborOverflow, alpha, similarityFunction, persistencePath);
         }
     }
 }

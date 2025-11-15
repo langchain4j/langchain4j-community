@@ -1,5 +1,7 @@
 package dev.langchain4j.community.store.embedding.jvector;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -7,17 +9,14 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class JVectorEmbeddingStorePersistenceIT {
 
@@ -72,21 +71,18 @@ class JVectorEmbeddingStorePersistenceIT {
 
         // Perform a search to verify the index is loaded and functional
         Embedding queryEmbedding = embeddingModel.embed("Hello").content();
-        EmbeddingSearchResult<TextSegment> result = store2.search(
-                EmbeddingSearchRequest.builder()
-                        .queryEmbedding(queryEmbedding)
-                        .maxResults(3)
-                        .minScore(0.0)
-                        .build()
-        );
+        EmbeddingSearchResult<TextSegment> result = store2.search(EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(3)
+                .minScore(0.0)
+                .build());
 
         // Verify we got results
         assertThat(result.matches()).hasSize(3);
 
         // Verify the IDs and segments are preserved
-        List<String> resultIds = result.matches().stream()
-                .map(EmbeddingMatch::embeddingId)
-                .toList();
+        List<String> resultIds =
+                result.matches().stream().map(EmbeddingMatch::embeddingId).toList();
 
         assertThat(resultIds).containsExactlyInAnyOrder(id1, id2, id3);
 
@@ -95,19 +91,14 @@ class JVectorEmbeddingStorePersistenceIT {
                 .map(match -> match.embedded() != null ? match.embedded().text() : null)
                 .toList();
 
-        assertThat(resultTexts).containsExactlyInAnyOrder(
-                "Hello world",
-                "How are you?",
-                "Good morning"
-        );
+        assertThat(resultTexts).containsExactlyInAnyOrder("Hello world", "How are you?", "Good morning");
     }
 
     @Test
     void should_work_without_persistence() {
         // Given: Create an embedding store without persistence
-        JVectorEmbeddingStore store = JVectorEmbeddingStore.builder()
-                .dimension(384)
-                .build();
+        JVectorEmbeddingStore store =
+                JVectorEmbeddingStore.builder().dimension(384).build();
 
         // When: Add some embeddings
         TextSegment segment = TextSegment.from("Test");
@@ -115,13 +106,11 @@ class JVectorEmbeddingStorePersistenceIT {
         String id = store.add(embedding, segment);
 
         // Then: Should be able to search
-        EmbeddingSearchResult<TextSegment> result = store.search(
-                EmbeddingSearchRequest.builder()
-                        .queryEmbedding(embedding)
-                        .maxResults(1)
-                        .minScore(0.0)
-                        .build()
-        );
+        EmbeddingSearchResult<TextSegment> result = store.search(EmbeddingSearchRequest.builder()
+                .queryEmbedding(embedding)
+                .maxResults(1)
+                .minScore(0.0)
+                .build());
 
         assertThat(result.matches()).hasSize(1);
         assertThat(result.matches().get(0).embeddingId()).isEqualTo(id);
