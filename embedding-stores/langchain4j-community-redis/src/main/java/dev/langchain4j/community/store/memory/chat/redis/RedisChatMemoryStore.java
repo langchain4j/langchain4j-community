@@ -21,7 +21,7 @@ import redis.clients.jedis.json.JsonObjectMapper;
  * Implementation of {@link ChatMemoryStore} that stores chat messages in Redis.
  * Uses Jedis client to connect to Redis and manage message persistence.
  * <p>
- * Messages are stored as native JSON under keys derived from the memory ID.
+ * Messages are stored as native JSON or JSON strings under keys derived from the memory ID.
  * Optional TTL (time-to-live) can be specified for automatic key expiration.
  */
 public class RedisChatMemoryStore implements ChatMemoryStore {
@@ -49,6 +49,11 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
     private JsonObjectMapper jsonMapper;
 
     /**
+     * Decide which data structure to use for storage
+     */
+    private final StoreType storeType;
+
+    /**
      * Constructs a new Redis chat memory store with default prefix and TTL.
      *
      * @param host     Redis server hostname
@@ -57,20 +62,21 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      * @param password Redis password (required if user is provided)
      */
     public RedisChatMemoryStore(String host, Integer port, String user, String password) {
-        this(host, port, user, password, "", 0L);
+        this(host, port, user, password, "", 0L, StoreType.JSON);
     }
 
     /**
-     * Constructs a new Redis chat memory store with custom prefix and TTL.
+     * Constructs a new Redis chat memory store with custom prefix and TTL and StoreType.
      *
-     * @param host     Redis server hostname
-     * @param port     Redis server port
-     * @param user     Redis user (can be null for non-authenticated connections)
-     * @param password Redis password (required if user is provided)
-     * @param prefix   Prefix for Redis keys (for namespacing)
-     * @param ttl      Time-to-live value in seconds (≤0 means no expiration)
+     * @param host      Redis server hostname
+     * @param port      Redis server port
+     * @param user      Redis user (can be null for non-authenticated connections)
+     * @param password  Redis password (required if user is provided)
+     * @param prefix    Prefix for Redis keys (for namespacing)
+     * @param ttl       Time-to-live value in seconds (≤0 means no expiration)
+     * @param storeType Message store type (default use JSON)
      */
-    public RedisChatMemoryStore(String host, Integer port, String user, String password, String prefix, Long ttl) {
+    public RedisChatMemoryStore(String host, Integer port, String user, String password, String prefix, Long ttl, StoreType storeType) {
         String finalHost = ensureNotBlank(host, "host");
         int finalPort = ensureNotNull(port, "port");
         if (user != null) {
@@ -87,6 +93,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         this.keyPrefix = ensureNotNull(prefix, "prefix");
         this.ttl = ensureNotNull(ttl, "ttl");
         this.jsonMapper = new DefaultGsonObjectMapper();
+        this.storeType = ensureNotNull(storeType, "storeType");
     }
 
     /**
@@ -106,7 +113,9 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     @Override
     public List<ChatMessage> getMessages(Object memoryId) {
-        String json = jsonMapper.toJson(client.jsonGet(toRedisKey(memoryId)));
+        String json = StoreType.JSON.equals(storeType) ?
+                jsonMapper.toJson(client.jsonGet(toRedisKey(memoryId))) :
+                client.get(toRedisKey(memoryId));
         return json == null ? new ArrayList<>() : ChatMessageDeserializer.messagesFromJson(json);
     }
 
@@ -123,15 +132,25 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         String json = ChatMessageSerializer.messagesToJson(ensureNotEmpty(messages, "messages"));
         String key = toRedisKey(memoryId);
         String res;
-        if (ttl > 0) {
-            try (var pipeline = client.pipelined()) {
-                var jsonSetResponse = pipeline.jsonSet(key, json);
-                var expireResponse = pipeline.expire(key, ttl);
-                pipeline.sync();
-                res = jsonSetResponse.get();
+        if (StoreType.JSON.equals(storeType)) {
+            // Handle JSON storage type
+            if (ttl > 0) {
+                try (var pipeline = client.pipelined()) {
+                    var jsonSetResponse = pipeline.jsonSet(key, json);
+                    var expireResponse = pipeline.expire(key, ttl);
+                    pipeline.sync();
+                    res = jsonSetResponse.get();
+                }
+            } else {
+                res = client.jsonSet(key, json);
             }
         } else {
-            res = client.jsonSet(key, json);
+            // Handle STRING storage type
+            if (ttl > 0) {
+                res = client.setex(key, ttl, json);
+            } else {
+                res = client.set(key, json);
+            }
         }
         if (!"OK".equals(res)) {
             throw new RedisChatMemoryStoreException("Set memory error, msg=" + res);
@@ -145,7 +164,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     @Override
     public void deleteMessages(Object memoryId) {
-        client.jsonDel(toRedisKey(memoryId));
+        client.del(toRedisKey(memoryId));
     }
 
     /**
@@ -184,6 +203,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         private String password;
         private Long ttl = 0L;
         private String prefix = "";
+        private StoreType storeType = StoreType.JSON;
 
         /**
          * Sets the Redis host.
@@ -255,12 +275,25 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         }
 
         /**
+         * Sets the type of data you want to save.
+         * This parameter is used to configure the data structure in which the message is saved to redis, and the RedisJson type is used by default.
+         * It can also be set to the redis native String type.
+         *
+         * @param storeType The data structure used to save the data.
+         * @return he Builder instance for method chaining.
+         */
+        public Builder storeType(StoreType storeType) {
+            this.storeType = storeType;
+            return this;
+        }
+
+        /**
          * Builds a new RedisChatMemoryStore instance with the configured parameters.
          *
          * @return A new RedisChatMemoryStore instance
          */
         public RedisChatMemoryStore build() {
-            return new RedisChatMemoryStore(host, port, user, password, prefix, ttl);
+            return new RedisChatMemoryStore(host, port, user, password, prefix, ttl, storeType);
         }
     }
 }
