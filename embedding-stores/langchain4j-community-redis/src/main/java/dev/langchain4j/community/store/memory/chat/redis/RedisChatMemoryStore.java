@@ -76,7 +76,8 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      * @param ttl       Time-to-live value in seconds (≤0 means no expiration)
      * @param storeType Message store type (default use JSON)
      */
-    public RedisChatMemoryStore(String host, Integer port, String user, String password, String prefix, Long ttl, StoreType storeType) {
+    public RedisChatMemoryStore(
+            String host, Integer port, String user, String password, String prefix, Long ttl, StoreType storeType) {
         String finalHost = ensureNotBlank(host, "host");
         int finalPort = ensureNotNull(port, "port");
         if (user != null) {
@@ -113,9 +114,9 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     @Override
     public List<ChatMessage> getMessages(Object memoryId) {
-        String json = StoreType.JSON.equals(storeType) ?
-                jsonMapper.toJson(client.jsonGet(toRedisKey(memoryId))) :
-                client.get(toRedisKey(memoryId));
+        String json = StoreType.JSON.equals(storeType)
+                ? jsonMapper.toJson(client.jsonGet(toRedisKey(memoryId)))
+                : client.get(toRedisKey(memoryId));
         return json == null ? new ArrayList<>() : ChatMessageDeserializer.messagesFromJson(json);
     }
 

@@ -320,10 +320,10 @@ class RedisChatMemoryStoreIT {
     @Test
     void constructor_storeType_null() {
         assertThatThrownBy(() -> RedisChatMemoryStore.builder()
-                .port(redis.getFirstMappedPort())
-                .host(redis.getHost())
-                .storeType(null)
-                .build())
+                        .port(redis.getFirstMappedPort())
+                        .host(redis.getHost())
+                        .storeType(null)
+                        .build())
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("storeType cannot be null");
     }

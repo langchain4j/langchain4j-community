@@ -14,5 +14,4 @@ public enum StoreType {
      * Redis String
      */
     STRING
-
 }
