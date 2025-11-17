@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
  *   <li>Fast similarity search with configurable accuracy/performance tradeoffs</li>
  *   <li>Adding and removing embeddings dynamically</li>
  *   <li>Optional persistent storage to disk (in-memory by default)</li>
+ *   <li>Configurable automatic index rebuilding based on addition threshold</li>
  *   <li>Does not support metadata filtering during search since jvector doesn't store metadata</li>
  * </ul>
  *
@@ -63,13 +64,17 @@ import org.slf4j.LoggerFactory;
  *     .build();
  * }</pre>
  *
- * <p>Example usage (persistent):
+ * <p>Example usage (persistent with batched index rebuilding):
  * <pre>{@code
  * EmbeddingStore<TextSegment> store = JVectorEmbeddingStore.builder()
  *     .dimension(384)
  *     .maxDegree(16)
  *     .persistencePath("/path/to/index")
+ *     .rebuildThreshold(100)  // Rebuild index after every 100 additions
  *     .build();
+ *
+ * // Add embeddings - index will rebuild automatically every 100 additions
+ * store.addAll(embeddings);
  *
  * // Save to disk
  * store.save();
@@ -86,12 +91,16 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final float alpha;
     private final VectorSimilarityFunction similarityFunction;
     private final String persistencePath;
+    private final int rebuildThreshold;
 
     // Thread-safe data structures
     private final Map<String, Integer> idToOrdinal;
     private final Map<Integer, StoredEntry> ordinalToEntry;
     private final List<VectorFloat<?>> vectors;
     private final VectorTypeSupport vectorTypeSupport;
+
+    // Counter for tracking additions since last index build
+    private volatile int additionsSinceLastBuild;
 
     // Index that needs rebuild on modifications (null for on-disk index)
     private volatile GraphIndex index;
@@ -125,7 +134,8 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
             float neighborOverflow,
             float alpha,
             VectorSimilarityFunction similarityFunction,
-            String persistencePath) {
+            String persistencePath,
+            int rebuildThreshold) {
         this.dimension = dimension;
         this.maxDegree = maxDegree;
         this.beamWidth = beamWidth;
@@ -133,6 +143,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.alpha = alpha;
         this.similarityFunction = similarityFunction;
         this.persistencePath = persistencePath;
+        this.rebuildThreshold = rebuildThreshold;
 
         this.idToOrdinal = new ConcurrentHashMap<>();
         this.ordinalToEntry = new ConcurrentHashMap<>();
@@ -142,6 +153,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.diskIndex = null;
         this.diskIndexSupplier = null;
         this.indexLock = new ReentrantReadWriteLock();
+        this.additionsSinceLastBuild = 0;
 
         // Load from disk if persistence is enabled and files exist
         if (persistencePath != null) {
@@ -225,11 +237,31 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
             ordinalToEntry.put(ordinal, entry);
             idToOrdinal.put(id, ordinal);
 
-            // Invalidate indexes - will be rebuilt on next search
+            // Invalidate indexes - will be rebuilt on next search or when threshold is reached
             index = null;
             closeDiskIndex();
 
             log.debug("Added embedding with id: {}, ordinal: {}", id, ordinal);
+
+            // Increment counter and check if we should rebuild
+            additionsSinceLastBuild++;
+            if (rebuildThreshold > 0 && additionsSinceLastBuild >= rebuildThreshold) {
+                log.debug(
+                        "Rebuild threshold ({}) reached, building index with {} vectors",
+                        rebuildThreshold,
+                        vectors.size());
+                rebuildIndex();
+                additionsSinceLastBuild = 0;
+
+                // Save to disk if persistence is enabled
+                if (persistencePath != null && index != null) {
+                    try {
+                        saveToDiskInternal();
+                    } catch (IOException e) {
+                        log.warn("Failed to save index after rebuild: {}", e.getMessage());
+                    }
+                }
+            }
         } finally {
             indexLock.writeLock().unlock();
         }
@@ -307,6 +339,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
             // Invalidate indexes - will be rebuilt on next search
             index = null;
             closeDiskIndex();
+            additionsSinceLastBuild = 0;
         } finally {
             indexLock.writeLock().unlock();
         }
@@ -321,6 +354,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
             vectors.clear();
             index = null;
             closeDiskIndex();
+            additionsSinceLastBuild = 0;
             log.debug("Removed all embeddings");
         } finally {
             indexLock.writeLock().unlock();
@@ -420,40 +454,47 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         indexLock.writeLock().lock();
         try {
-            log.info("Saving index to disk at {}", persistencePath);
-            long startTime = System.currentTimeMillis();
-
-            // Ensure we have an in-memory index to save
-            if (index == null) {
-                rebuildIndex();
-                if (index == null) {
-                    log.error("Unable to save index: no vectors available");
-                    throw new IllegalStateException("Cannot save an empty embedding store");
-                }
-            }
-
-            // Save the graph index
-            Path graphPath = Paths.get(persistencePath + ".graph");
-            Files.createDirectories(graphPath.getParent());
-
-            RandomAccessVectorValues vectorValues = new ListRandomAccessVectorValues(vectors, dimension);
-            OnDiskGraphIndex.write(index, vectorValues, graphPath);
-
-            // Save the metadata
-            saveMetadata();
-
-            // Close old disk index and open new one
-            closeDiskIndex();
-            loadIndexFromDisk();
-
-            long duration = System.currentTimeMillis() - startTime;
-            log.info("Index saved to disk in {} ms", duration);
-
+            saveToDiskInternal();
         } catch (IOException e) {
             throw new RuntimeException("Failed to save index to disk", e);
         } finally {
             indexLock.writeLock().unlock();
         }
+    }
+
+    /**
+     * Internal save method that assumes the write lock is already held.
+     * Must be called while holding the write lock.
+     */
+    private void saveToDiskInternal() throws IOException {
+        log.info("Saving index to disk at {}", persistencePath);
+        long startTime = System.currentTimeMillis();
+
+        // Ensure we have an in-memory index to save
+        if (index == null) {
+            rebuildIndex();
+            if (index == null) {
+                log.error("Unable to save index: no vectors available");
+                throw new IllegalStateException("Cannot save an empty embedding store");
+            }
+        }
+
+        // Save the graph index
+        Path graphPath = Paths.get(persistencePath + ".graph");
+        Files.createDirectories(graphPath.getParent());
+
+        RandomAccessVectorValues vectorValues = new ListRandomAccessVectorValues(vectors, dimension);
+        OnDiskGraphIndex.write(index, vectorValues, graphPath);
+
+        // Save the metadata
+        saveMetadata();
+
+        // Close old disk index and open new one
+        closeDiskIndex();
+        loadIndexFromDisk();
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("Index saved to disk in {} ms", duration);
     }
 
     /**
@@ -639,6 +680,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         private float alpha = 1.2f;
         private VectorSimilarityFunction similarityFunction = VectorSimilarityFunction.DOT_PRODUCT;
         private String persistencePath = null;
+        private int rebuildThreshold = 0;
 
         /**
          * Sets the dimension of the embeddings (required).
@@ -748,6 +790,32 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * Sets the rebuild threshold for automatic index rebuilding.
+         * The index will be rebuilt automatically after this many embeddings have been added.
+         * This provides fine-grained control over index rebuild frequency:
+         * <ul>
+         *   <li>0 (default): Lazy rebuilding - index is only built on the first search</li>
+         *   <li>1: Eager rebuilding - index is rebuilt after every single addition</li>
+         *   <li>N (e.g., 100, 1000): Batched rebuilding - index is rebuilt after every N additions</li>
+         * </ul>
+         * Setting an appropriate threshold helps balance:
+         * <ul>
+         *   <li>Query performance (more frequent rebuilds = better query performance)</li>
+         *   <li>Insert performance (less frequent rebuilds = faster inserts)</li>
+         * </ul>
+         *
+         * @param rebuildThreshold the number of additions before triggering a rebuild (0 for lazy, must be non-negative)
+         * @return this builder
+         */
+        public Builder rebuildThreshold(int rebuildThreshold) {
+            if (rebuildThreshold < 0) {
+                throw new IllegalArgumentException("rebuildThreshold must be non-negative");
+            }
+            this.rebuildThreshold = rebuildThreshold;
+            return this;
+        }
+
+        /**
          * Builds the JVectorEmbeddingStore instance.
          * If persistencePath is set and files exist at that location, the index will be loaded from disk.
          *
@@ -755,7 +823,14 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
          */
         public JVectorEmbeddingStore build() {
             return new JVectorEmbeddingStore(
-                    dimension, maxDegree, beamWidth, neighborOverflow, alpha, similarityFunction, persistencePath);
+                    dimension,
+                    maxDegree,
+                    beamWidth,
+                    neighborOverflow,
+                    alpha,
+                    similarityFunction,
+                    persistencePath,
+                    rebuildThreshold);
         }
     }
 }
