@@ -21,14 +21,14 @@ import dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
+class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     static String tableName = "test_" + nextInt(1000, 2000);
     static EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
@@ -42,7 +42,7 @@ public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
             .build();
 
     @Test
-    public void test_unicode_embeddings() {
+    void test_unicode_embeddings() {
 
         TextSegment[] segments = SQLServerTestsUtil.japaneseSampling();
         List<Embedding> embeddings = new ArrayList<>(segments.length);
@@ -52,7 +52,7 @@ public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         }
 
         List<String> ids = embeddingStore().addAll(embeddings, Arrays.asList(segments));
-        awaitUntilAsserted(() -> assertThat(getAllEmbeddings()).hasSize(segments.length));
+        awaitUntilAsserted(() -> assertThat(getAllEmbeddings()).hasSameSizeAs(segments));
 
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(embeddings.get(0))
@@ -75,7 +75,7 @@ public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @Test
-    public void test_unicode_metadata() {
+    void test_unicode_metadata() {
         TextSegment[] segments = SQLServerTestsUtil.japaneseSampling();
         List<Embedding> embeddings = new ArrayList<>(segments.length);
         for (TextSegment segment : segments) {
@@ -86,7 +86,7 @@ public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         Embedding emb = embeddingModel().embed("Test embedding").content();
 
         embeddingStore().addAll(embeddings, Arrays.asList(segments));
-        awaitUntilAsserted(() -> assertThat(getAllEmbeddings()).hasSize(segments.length));
+        awaitUntilAsserted(() -> assertThat(getAllEmbeddings()).hasSameSizeAs(segments));
 
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                 .queryEmbedding(emb)
@@ -123,18 +123,18 @@ public class SQLServerEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         }
     }
 
-    @Before
-    public void before() {
+    @BeforeEach
+    void before() {
         clearStore();
     }
 
-    @After
-    public void after() {
+    @AfterEach
+    void after() {
         clearStore();
     }
 
     @AfterAll
-    public static void afterClass() {
+    static void afterClass() {
         DEFAULT_CONTAINER.stop();
     }
 }
