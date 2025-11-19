@@ -150,7 +150,7 @@ class JVectorEmbeddingStorePersistenceIT {
     }
 
     @Test
-    void should_rebuild_index_after_every_addition_with_threshold_one() throws InterruptedException, IOException {
+    void should_rebuild_index_after_every_addition_with_threshold_one() throws Exception {
         // Given: Create an embedding store with rebuildThreshold=1
         JVectorEmbeddingStore store = JVectorEmbeddingStore.builder()
                 .dimension(384)
@@ -199,7 +199,7 @@ class JVectorEmbeddingStorePersistenceIT {
     }
 
     @Test
-    void should_rebuild_index_periodically_with_larger_threshold() throws InterruptedException, IOException {
+    void should_rebuild_index_periodically_with_larger_threshold() throws Exception {
         // Given: Create an embedding store with rebuildThreshold=3
         JVectorEmbeddingStore store = JVectorEmbeddingStore.builder()
                 .dimension(384)

@@ -32,7 +32,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -480,7 +479,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         // Save the graph index
-        Path graphPath = Paths.get(persistencePath + ".graph");
+        Path graphPath = Path.of(persistencePath + ".graph");
         Files.createDirectories(graphPath.getParent());
 
         RandomAccessVectorValues vectorValues = new ListRandomAccessVectorValues(vectors, dimension);
@@ -502,7 +501,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
      * Must be called while holding the write lock.
      */
     private void loadFromDisk() throws IOException {
-        Path metadataPath = Paths.get(persistencePath + ".metadata");
+        Path metadataPath = Path.of(persistencePath + ".metadata");
         if (!Files.exists(metadataPath)) {
             log.debug("Metadata file does not exist at {}, starting with empty store", metadataPath);
             return;
@@ -529,7 +528,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
      * Must be called while holding the write lock.
      */
     private void loadIndexFromDisk() throws IOException {
-        Path graphPath = Paths.get(persistencePath + ".graph");
+        Path graphPath = Path.of(persistencePath + ".graph");
         if (!Files.exists(graphPath)) {
             throw new IOException("Graph file does not exist at " + graphPath);
         }
@@ -549,7 +548,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
      * Must be called while holding the write lock.
      */
     private void saveMetadata() throws IOException {
-        Path metadataPath = Paths.get(persistencePath + ".metadata");
+        Path metadataPath = Path.of(persistencePath + ".metadata");
         Files.createDirectories(metadataPath.getParent());
 
         try (DataOutputStream dos = new DataOutputStream(new FileOutputStream(metadataPath.toFile()))) {
@@ -602,7 +601,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
      * Must be called while holding the write lock.
      */
     private void loadMetadata() throws IOException {
-        Path metadataPath = Paths.get(persistencePath + ".metadata");
+        Path metadataPath = Path.of(persistencePath + ".metadata");
 
         try (DataInputStream dis = new DataInputStream(new FileInputStream(metadataPath.toFile()))) {
             int numEntries = dis.readInt();
