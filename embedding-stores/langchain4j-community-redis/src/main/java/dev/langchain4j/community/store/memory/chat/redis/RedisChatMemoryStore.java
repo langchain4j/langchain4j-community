@@ -5,10 +5,8 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ChatMessageDeserializer;
 import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
-import java.util.ArrayList;
 import java.util.List;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
@@ -49,9 +47,9 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
     private JsonObjectMapper jsonMapper;
 
     /**
-     * Decide which data structure to use for storage
+     * Decide which data structure to use for storage and load
      */
-    private final StoreType storeType;
+    private final RedisOperations redisOperations;
 
     /**
      * Constructs a new Redis chat memory store with default prefix and TTL.
@@ -74,7 +72,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      * @param password  Redis password (required if user is provided)
      * @param prefix    Prefix for Redis keys (for namespacing)
      * @param ttl       Time-to-live value in seconds (≤0 means no expiration)
-     * @param storeType Message store type (default use JSON)
+     * @param storeType Decide which type of RedisOperations to use(default use JSON)
      */
     public RedisChatMemoryStore(
             String host, Integer port, String user, String password, String prefix, Long ttl, StoreType storeType) {
@@ -94,7 +92,8 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         this.keyPrefix = ensureNotNull(prefix, "prefix");
         this.ttl = ensureNotNull(ttl, "ttl");
         this.jsonMapper = new DefaultGsonObjectMapper();
-        this.storeType = ensureNotNull(storeType, "storeType");
+        this.redisOperations =
+                RedisOperationsFactory.createRedisOperations(ensureNotNull(storeType, "storeType"), client, jsonMapper);
     }
 
     /**
@@ -114,10 +113,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     @Override
     public List<ChatMessage> getMessages(Object memoryId) {
-        String json = StoreType.JSON.equals(storeType)
-                ? jsonMapper.toJson(client.jsonGet(toRedisKey(memoryId)))
-                : client.get(toRedisKey(memoryId));
-        return json == null ? new ArrayList<>() : ChatMessageDeserializer.messagesFromJson(json);
+        return redisOperations.getMessages(toRedisKey(memoryId));
     }
 
     /**
@@ -131,31 +127,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
     @Override
     public void updateMessages(Object memoryId, List<ChatMessage> messages) {
         String json = ChatMessageSerializer.messagesToJson(ensureNotEmpty(messages, "messages"));
-        String key = toRedisKey(memoryId);
-        String res;
-        if (StoreType.JSON.equals(storeType)) {
-            // Handle JSON storage type
-            if (ttl > 0) {
-                try (var pipeline = client.pipelined()) {
-                    var jsonSetResponse = pipeline.jsonSet(key, json);
-                    var expireResponse = pipeline.expire(key, ttl);
-                    pipeline.sync();
-                    res = jsonSetResponse.get();
-                }
-            } else {
-                res = client.jsonSet(key, json);
-            }
-        } else {
-            // Handle STRING storage type
-            if (ttl > 0) {
-                res = client.setex(key, ttl, json);
-            } else {
-                res = client.set(key, json);
-            }
-        }
-        if (!"OK".equals(res)) {
-            throw new RedisChatMemoryStoreException("Set memory error, msg=" + res);
-        }
+        redisOperations.updateMessages(toRedisKey(memoryId), json, ttl);
     }
 
     /**
@@ -165,7 +137,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     @Override
     public void deleteMessages(Object memoryId) {
-        client.del(toRedisKey(memoryId));
+        redisOperations.deleteMessages(toRedisKey(memoryId));
     }
 
     /**
