@@ -2,7 +2,7 @@ package dev.langchain4j.community.store.embedding.redis.vectorsets;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
@@ -40,7 +40,7 @@ class RedisVectorSetsEmbeddingStoreTest {
         this.redis = mock(Jedis.class);
 
         this.store = new RedisVectorSetsEmbeddingStore(redis, "sentences");
-        embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+        embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     }
 
     @Test

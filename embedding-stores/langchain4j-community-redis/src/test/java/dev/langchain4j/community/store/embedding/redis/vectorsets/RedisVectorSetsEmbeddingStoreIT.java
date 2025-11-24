@@ -3,11 +3,10 @@ package dev.langchain4j.community.store.embedding.redis.vectorsets;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redis.testcontainers.RedisContainer;
-import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -16,6 +15,7 @@ import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.embedding.filter.comparison.IsLessThanOrEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.utility.DockerImageName;
 import redis.clients.jedis.Jedis;
@@ -61,7 +61,7 @@ public class RedisVectorSetsEmbeddingStoreIT implements AutoCloseable {
 
         );
 
-        embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+        embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
         store.removeAll();
 
@@ -73,7 +73,7 @@ public class RedisVectorSetsEmbeddingStoreIT implements AutoCloseable {
 
     @Test
     public void withRedis() throws IOException {
-        assertEquals(9, redisClient.vcard("sentences"));
+        Assertions.assertEquals(9, redisClient.vcard("sentences"));
 
         Embedding queryEmbedding = embeddingModel.embed("What's the favourite food?")
                 .content();
@@ -133,7 +133,7 @@ public class RedisVectorSetsEmbeddingStoreIT implements AutoCloseable {
 
     @Test
     public void withMinScore() throws IOException {
-        assertEquals(9, redisClient.vcard("sentences"));
+        Assertions.assertEquals(9, redisClient.vcard("sentences"));
 
         Embedding queryEmbedding = embeddingModel.embed("What's the favourite food?")
                 .content();
