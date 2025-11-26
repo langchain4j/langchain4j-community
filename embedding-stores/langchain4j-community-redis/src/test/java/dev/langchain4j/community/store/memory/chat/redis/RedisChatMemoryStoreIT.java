@@ -169,28 +169,28 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
-    void getMessages_memoryId_null() {
+    void getMessages_should_throw_exception_when_memoryId_null() {
         assertThatThrownBy(() -> memoryStore.getMessages(null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("memoryId cannot be null or empty");
     }
 
     @Test
-    void getMessages_memoryId_empty() {
+    void getMessages_should_throw_exception_when_memoryId_empty() {
         assertThatThrownBy(() -> memoryStore.getMessages("   "))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("memoryId cannot be null or empty");
     }
 
     @Test
-    void updateMessages_messages_null() {
+    void updateMessages_should_throw_exception_when_messages_null() {
         assertThatThrownBy(() -> memoryStore.updateMessages(userId, null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("messages cannot be null or empty");
     }
 
     @Test
-    void updateMessages_messages_empty() {
+    void updateMessages_should_throw_exception_when_messages_empty() {
         List<ChatMessage> chatMessages = new ArrayList<>();
         assertThatThrownBy(() -> memoryStore.updateMessages(userId, chatMessages))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -198,7 +198,7 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
-    void updateMessages_memoryId_null() {
+    void updateMessages_should_throw_exception_when_memoryId_null() {
         List<ChatMessage> chatMessages = new ArrayList<>();
         chatMessages.add(new SystemMessage("You are a large language model working with Langchain4j"));
         assertThatThrownBy(() -> memoryStore.updateMessages(null, chatMessages))
@@ -216,14 +216,14 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
-    void deleteMessages_memoryId_null() {
+    void deleteMessages_should_throw_exception_when_memoryId_null() {
         assertThatThrownBy(() -> memoryStore.deleteMessages(null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("memoryId cannot be null or empty");
     }
 
     @Test
-    void deleteMessages_memoryId_empty() {
+    void deleteMessages_should_throw_exception_when_memoryId_empty() {
         assertThatThrownBy(() -> memoryStore.deleteMessages("   "))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("memoryId cannot be null or empty");

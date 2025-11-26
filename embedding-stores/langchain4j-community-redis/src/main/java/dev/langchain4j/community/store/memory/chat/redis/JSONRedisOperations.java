@@ -1,10 +1,11 @@
-// dev.langchain4j.community.store.memory.chat.redis.JSONRedisOperations.java
 package dev.langchain4j.community.store.memory.chat.redis;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
 import java.util.ArrayList;
 import java.util.List;
+import redis.clients.jedis.AbstractPipeline;
+import redis.clients.jedis.Response;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.json.JsonObjectMapper;
 
@@ -32,9 +33,9 @@ public class JSONRedisOperations implements RedisOperations {
     public void updateMessages(String key, String message, Long ttl) {
         String res;
         if (ttl > 0) {
-            try (var pipeline = client.pipelined()) {
-                var jsonSetResponse = pipeline.jsonSet(key, message);
-                var expireResponse = pipeline.expire(key, ttl);
+            try (AbstractPipeline pipeline = client.pipelined()) {
+                Response<String> jsonSetResponse = pipeline.jsonSet(key, message);
+                Response<Long> expireResponse = pipeline.expire(key, ttl);
                 pipeline.sync();
                 res = jsonSetResponse.get();
             }

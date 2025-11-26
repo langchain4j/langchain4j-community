@@ -27,9 +27,9 @@ public interface RedisOperations {
      * Updates the messages associated with the given converted memory key.
      * If TTL is set, the keys will automatically expire after the specified duration.
      *
-     * @param key The identifier for the memory to update
+     * @param key     The identifier for the memory to update
      * @param message The list of messages to store
-     * @param ttl Time-to-live value for Redis keys in seconds.
+     * @param ttl     Time-to-live value for Redis keys in seconds.
      */
     void updateMessages(String key, String message, Long ttl);
 

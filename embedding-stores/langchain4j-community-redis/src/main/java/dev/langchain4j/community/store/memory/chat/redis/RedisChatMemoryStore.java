@@ -12,8 +12,6 @@ import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.UnifiedJedis;
-import redis.clients.jedis.json.DefaultGsonObjectMapper;
-import redis.clients.jedis.json.JsonObjectMapper;
 
 /**
  * Implementation of {@link ChatMemoryStore} that stores chat messages in Redis.
@@ -40,11 +38,6 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      * A value of 0 or less means keys will not expire.
      */
     private final Long ttl;
-
-    /**
-     * JSON object mapper for serializing and deserializing chat messages.
-     */
-    private JsonObjectMapper jsonMapper;
 
     /**
      * Decide which data structure to use for storage and load
@@ -91,9 +84,8 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         }
         this.keyPrefix = ensureNotNull(prefix, "prefix");
         this.ttl = ensureNotNull(ttl, "ttl");
-        this.jsonMapper = new DefaultGsonObjectMapper();
         this.redisOperations =
-                RedisOperationsFactory.createRedisOperations(ensureNotNull(storeType, "storeType"), client, jsonMapper);
+                RedisOperationsFactory.createRedisOperations(ensureNotNull(storeType, "storeType"), client);
     }
 
     /**
@@ -252,8 +244,10 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
          * This parameter is used to configure the data structure in which the message is saved to redis, and the RedisJson type is used by default.
          * It can also be set to the redis native String type.
          *
+         * <p><b>NOTE: default to RedisJson</b></p>
+         *
          * @param storeType The data structure used to save the data.
-         * @return he Builder instance for method chaining.
+         * @return The Builder instance for method chaining.
          */
         public Builder storeType(StoreType storeType) {
             this.storeType = storeType;
