@@ -8,9 +8,12 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class LocalScriptExecutionToolIT {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LocalScriptExecutionToolIT.class);
 
     OpenAiChatModel model = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
@@ -40,7 +43,7 @@ class LocalScriptExecutionToolIT {
                 .build();
 
         String answer = assistant.chat("list all running applications in my mac");
-        System.out.println(answer);
+        LOGGER.info(answer);
         assertThat(answer).isNotEmpty();
     }
 }

@@ -35,7 +35,7 @@ public class CommandLineExecutionEngine implements CodeExecutionEngine {
         executor.setStreamHandler(streamHandler);
 
         CommandLine cmdLine = CommandLine.parse(cmd);
-        LOGGER.info("execute command line: {}", cmdLine);
+        LOGGER.debug("execute command line: {}", cmdLine);
 
         try {
             executor.execute(cmdLine);

@@ -8,9 +8,12 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class CommandLineToolIT {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommandLineToolIT.class);
 
     OpenAiChatModel model = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
@@ -37,7 +40,7 @@ class CommandLineToolIT {
                 .build();
 
         String answer = assistant.chat("list the files in current directory");
-        System.out.println(answer);
+        LOGGER.info(answer);
         assertThat(answer).isNotEmpty();
     }
 }

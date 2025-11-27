@@ -8,12 +8,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A tool that executes provided script code using the local computer env.
  * Attention! It might be dangerous to execute the code, see {@link CommandLineExecutionEngine} for more details.
  */
 public class LocalScriptExecutionTool {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LocalScriptExecutionTool.class);
     private CommandLineExecutionEngine engine = new CommandLineExecutionEngine();
 
     @Tool("Execute local scripts, supported script type: BASH,ZSH,PYTHON3,OSASCRIPT.")
@@ -64,7 +67,7 @@ public class LocalScriptExecutionTool {
             }
             return true;
         } catch (Exception e) {
-            System.out.println(scriptType + " env is not ready, due to " + e.getMessage());
+            LOGGER.warn(scriptType + " env is not ready, due to " + e.getMessage());
             return false;
         }
     }
