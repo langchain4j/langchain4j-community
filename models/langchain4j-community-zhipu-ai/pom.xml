@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.8.0-beta15-SNAPSHOT</version>
+        <version>1.10.0-beta17-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -23,7 +23,7 @@
 
     <properties>
         <jjwt.version>0.13.0</jjwt.version>
-        <guava.version>33.4.8-jre</guava.version>
+        <guava.version>33.5.0-jre</guava.version>
     </properties>
 
     <dependencies>

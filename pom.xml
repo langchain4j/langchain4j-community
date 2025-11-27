@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.8.0-beta15-SNAPSHOT</version>
+        <version>1.10.0-beta17-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -50,6 +50,8 @@
         <module>embedding-stores/langchain4j-community-cloud-sql-pg</module>
         <module>embedding-stores/langchain4j-community-neo4j</module>
         <module>embedding-stores/langchain4j-community-yugabytedb</module>
+        <module>embedding-stores/langchain4j-community-sqlserver</module>
+        <module>embedding-stores/langchain4j-community-jvector</module>
 
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
@@ -57,6 +59,7 @@
 
         <!-- Integration of web search engine -->
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
+        <module>web-search-engines/langchain4j-community-web-search-engine-duckduckgo</module>
 
         <!-- Integration of document parsers -->
         <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
@@ -77,10 +80,10 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.8.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.8.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.8.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.8.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.10.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.10.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.10.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.10.0-SNAPSHOT</langchain4j.open-ai.version>
     </properties>
 
     <repositories>
@@ -286,7 +289,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>6.19.0</version>
+                        <version>6.24.0</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
@@ -299,12 +302,12 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>3.18.0</version>
+                                <version>3.22.0</version>
                             </dependency>
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-migrate-java</artifactId>
-                                <version>3.18.0</version>
+                                <version>3.22.0</version>
                             </dependency>
                         </dependencies>
                     </plugin>

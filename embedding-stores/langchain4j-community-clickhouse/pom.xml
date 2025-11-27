@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.8.0-beta15-SNAPSHOT</version>
+        <version>1.10.0-beta17-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -12,8 +12,8 @@
     <name>LangChain4j :: Community :: Integration :: ClickHouse</name>
 
     <properties>
-        <clickhouse.version>0.9.2</clickhouse.version>
-        <clickhouse-jdbc.version>0.9.2</clickhouse-jdbc.version>
+        <clickhouse.version>0.9.4</clickhouse.version>
+        <clickhouse-jdbc.version>0.9.4</clickhouse-jdbc.version>
         <lz4.version>1.8.0</lz4.version>
     </properties>
 

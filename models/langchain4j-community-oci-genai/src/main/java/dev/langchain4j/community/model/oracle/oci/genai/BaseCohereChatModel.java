@@ -11,7 +11,6 @@ import com.oracle.bmc.generativeaiinference.model.CohereParameterDefinition;
 import com.oracle.bmc.generativeaiinference.model.CohereResponseFormat;
 import com.oracle.bmc.generativeaiinference.model.CohereResponseJsonFormat;
 import com.oracle.bmc.generativeaiinference.model.CohereResponseTextFormat;
-import com.oracle.bmc.generativeaiinference.model.CohereSystemMessage;
 import com.oracle.bmc.generativeaiinference.model.CohereTool;
 import com.oracle.bmc.generativeaiinference.model.CohereToolCall;
 import com.oracle.bmc.generativeaiinference.model.CohereToolResult;
@@ -172,9 +171,11 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
                 }
                 case SYSTEM -> {
                     var systemMessage = (dev.langchain4j.data.message.SystemMessage) chatMessage;
-                    chatHistory.add(CohereSystemMessage.builder()
-                            .message(systemMessage.text())
-                            .build());
+                    // https://docs.cohere.com/v1/reference/chat
+                    // The chat_history parameter should not be used for SYSTEM messages in most cases.
+                    // Instead, to add a SYSTEM role message at the beginning of a conversation,
+                    // the preamble parameter should be used.
+                    builder.preambleOverride(systemMessage.text());
                 }
                 case AI -> {
                     var aiMessage = (dev.langchain4j.data.message.AiMessage) chatMessage;
@@ -184,19 +185,15 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
                     if (aiMessage.hasToolExecutionRequests()) {
                         var toolCalls = new ArrayList<CohereToolCall>();
                         for (ToolExecutionRequest toolExecReq : aiMessage.toolExecutionRequests()) {
-                            toolCalls.add(CohereToolCall.builder()
-                                    .name(toolExecReq.name())
-                                    .parameters(fromJson(toolExecReq.arguments(), Map.class))
-                                    .build());
+                            toolCalls.add(map(toolExecReq));
                         }
                         assistantMessageBuilder.toolCalls(toolCalls);
                     }
                     // https://docs.cohere.com/v1/reference/chat
-                    // Chat calls with tool_results should not be included in the Chat history
-                    // to avoid duplication of the message text.
-                    //                        chatHistory.add(assistantMessageBuilder
-                    //                                .message(aiMessage.text())
-                    //                                .build());
+                    // "Chat calls with tool_results should not be included in the Chat history
+                    // to avoid duplication of the message text."
+                    // BUT - sequential tool calls wouldn't work!
+                    chatHistory.add(assistantMessageBuilder.build());
                 }
                 default -> throw new UnsupportedOperationException("Unsupported message type: " + chatMessage.type());
             }
@@ -226,6 +223,13 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
             builder.responseFormat(map(chatRequest.responseFormat()));
         }
         return builder;
+    }
+
+    CohereToolCall map(ToolExecutionRequest toolExecReq) {
+        return CohereToolCall.builder()
+                .name(toolExecReq.name())
+                .parameters(fromJson(toolExecReq.arguments(), Map.class))
+                .build();
     }
 
     CohereResponseFormat map(ResponseFormat responseFormat) {

@@ -42,7 +42,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.search.schemafields.NumericField;
 import redis.clients.jedis.search.schemafields.SchemaField;
 import redis.clients.jedis.search.schemafields.TagField;
@@ -55,7 +55,7 @@ class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     static RedisStackContainer redis = new RedisStackContainer(DEFAULT_IMAGE_NAME.withTag(DEFAULT_TAG))
             .withEnv("REDIS_ARGS", "--requirepass %s".formatted(PASSWORD));
 
-    JedisPooled jedisPooled = new JedisPooled(
+    UnifiedJedis unifiedJedis = new UnifiedJedis(
             new HostAndPort(redis.getHost(), redis.getFirstMappedPort()),
             DefaultJedisClientConfig.builder().password(PASSWORD).build());
 
@@ -103,7 +103,7 @@ class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         });
 
         embeddingStore = RedisEmbeddingStore.builder()
-                .jedisPooled(jedisPooled)
+                .unifiedJedis(unifiedJedis)
                 //                .host(redis.getHost())
                 //                .port(redis.getFirstMappedPort())
                 //                .password(PASSWORD)
@@ -116,7 +116,7 @@ class RedisEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     @AfterEach
     void afterEach() {
-        jedisPooled.close();
+        unifiedJedis.close();
     }
 
     @Test

@@ -1,7 +1,5 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.oracle.bmc.generativeaiinference.model.AssistantMessage;
 import com.oracle.bmc.generativeaiinference.model.ChatContent;
 import com.oracle.bmc.generativeaiinference.model.FunctionCall;
@@ -21,7 +19,6 @@ import com.oracle.bmc.generativeaiinference.model.ToolChoiceRequired;
 import com.oracle.bmc.generativeaiinference.model.ToolDefinition;
 import com.oracle.bmc.generativeaiinference.model.ToolMessage;
 import com.oracle.bmc.generativeaiinference.model.UserMessage;
-import com.oracle.bmc.http.client.Serializer;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.image.Image;
@@ -34,9 +31,7 @@ import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -259,59 +254,6 @@ abstract class BaseGenericChatModel<T extends BaseGenericChatModel<T>> extends B
         return b.name(toolSpecification.name())
                 .description(toolSpecification.description())
                 .build();
-    }
-
-    /**
-     * <pre>{@code
-     * {
-     *     "type": "function",
-     *     "function": {
-     *         "name": "currentTime",
-     *         "description": "Returns current local time now at provided location.",
-     *         "parameters": {
-     *             "type": "object",
-     *             "properties": {
-     *                 "location": {
-     *                     "type": "string",
-     *                     "description": "The location where the time will be determined."
-     *                 }
-     *             },
-     *             "required": [
-     *                 "location"
-     *             ]
-     *         }
-     *     }
-     * }
-     * }</pre>
-     */
-    @JsonPropertyOrder({"type", "properties", "required"})
-    static class ToolFunctionParameters {
-
-        @JsonProperty("type")
-        private String type = "object";
-
-        @JsonProperty("properties")
-        private Map<String, Object> properties = new HashMap<>();
-
-        @JsonProperty("required")
-        private List<String> required = new ArrayList<>();
-
-        void addProperty(String key, Object value) {
-            this.properties.put(key, value);
-        }
-
-        void addRequired(String required) {
-            this.required.add(required);
-        }
-
-        @Override
-        public String toString() {
-            try {
-                return Serializer.getDefault().writeValueAsString(this);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     abstract static class Builder<T extends BaseGenericChatModel<T>, B extends Builder<T, B>>

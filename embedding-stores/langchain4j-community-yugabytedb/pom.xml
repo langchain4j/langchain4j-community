@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.8.0-beta15-SNAPSHOT</version>
+        <version>1.10.0-beta17-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -24,7 +24,7 @@
 
     <properties>
         <yugabytedb.version>42.7.3-yb-4</yugabytedb.version>
-        <hikaricp.version>6.3.2</hikaricp.version>
+        <hikaricp.version>7.0.2</hikaricp.version>
         <pgvector.version>0.1.6</pgvector.version>
     </properties>
 
