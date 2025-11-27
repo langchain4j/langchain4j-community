@@ -116,7 +116,7 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
                     });
         };
 
-        Function<Entry, EntryResult> add = record -> {
+        Function<Entry, EntryResult> addToTheVectorSet = record -> {
             var params = this.addParamsSupplier.get();
 
             var attr = Optional.ofNullable(metadataSerializer)
@@ -137,13 +137,14 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
         };
 
         var inputElementSize = embeddings.size();
-        var toBeAdd = IntStream.range(0, inputElementSize)
+        var pipelineToAddEmbeddingsToTheKey = IntStream.range(0, inputElementSize)
                 .mapToObj(embeddingToEntry)
                 .map(Optional::orElseThrow)
-                .map(add);
+                .map(addToTheVectorSet);
 
-        var result = toBeAdd
+        var result = pipelineToAddEmbeddingsToTheKey
                 .filter(EntryResult::ok)
+                /* actually executes the pipeline */
                 .toList();
 
         log.debug("[key: {}] Successfully added {}/{} elements.", this.key, result.size(), inputElementSize);
