@@ -23,6 +23,10 @@ public class LocalScriptExecutionTool {
             case ZSH:
             case PYTHON3:
             case OSASCRIPT:
+                if (!isEnvReady(scriptType)) {
+                    throw new RuntimeException(scriptType + " env is not ready in the current computer.");
+                }
+
                 final String ret = _execute(scriptType, scriptCode);
                 // e.g. for `open page www.google.com` engine will return nothing
                 return ret != null && !ret.isEmpty() ? ret : "success";
@@ -51,7 +55,6 @@ public class LocalScriptExecutionTool {
         OSASCRIPT
     }
 
-    // for test
     boolean isEnvReady(ScriptType scriptType) {
         try {
             if (scriptType.equals(ScriptType.OSASCRIPT)) {
