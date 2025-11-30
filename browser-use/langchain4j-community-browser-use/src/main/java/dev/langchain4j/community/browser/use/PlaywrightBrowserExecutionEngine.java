@@ -35,37 +35,37 @@ public class PlaywrightBrowserExecutionEngine implements BrowserExecutionEngine 
     public void navigate(final String url) {
         Page.NavigateOptions options = new Page.NavigateOptions();
         options.setWaitUntil(WaitUntilState.DOMCONTENTLOADED);
-        this.page.navigate(url, options);
+        page.navigate(url, options);
     }
 
     @Override
     public void click(final String element) {
-        this.page.click(element);
+        page.click(element);
     }
 
     @Override
     public void reload() {
-        this.page.reload();
+        page.reload();
     }
 
     @Override
     public void goBack() {
-        this.page.goBack();
+        page.goBack();
     }
 
     @Override
     public void goForward() {
-        this.page.goForward();
+        page.goForward();
     }
 
     @Override
     public String getTitle() {
-        return this.page.title();
+        return page.title();
     }
 
     @Override
     public String getHtml() {
-        return this.page.content();
+        return page.content();
     }
 
     @Override
@@ -75,32 +75,36 @@ public class PlaywrightBrowserExecutionEngine implements BrowserExecutionEngine 
 
     @Override
     public void waitForTimeout(final Integer seconds) {
-        this.page.waitForTimeout(seconds * 1000.0);
+        page.waitForTimeout(seconds * 1000.0);
     }
 
     @Override
     public void pressEnter() {
-        this.page.keyboard().press("Enter");
+        page.keyboard().press("Enter");
     }
 
     @Override
     public void typeText(final String text) {
-        this.page.keyboard().type(text);
+        page.keyboard().type(text);
     }
 
     @Override
     public void inputText(final String element, final String text) {
-        this.page.fill(element, text);
+        page.fill(element, text);
     }
 
     @Override
     public void dragAndDrop(final String source, final String target) {
-        this.page.dragAndDrop(source, target);
+        page.dragAndDrop(source, target);
     }
 
     @Override
     public void close() {
-        this.page.close();
-        this.browser.close();
+        if (page != null) {
+            page.close();
+        }
+        if (browser != null) {
+            browser.close();
+        }
     }
 }
