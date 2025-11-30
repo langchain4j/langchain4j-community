@@ -10,7 +10,7 @@ class LocalScriptExecutionToolTest {
     private final LocalScriptExecutionTool tool = new LocalScriptExecutionTool();
 
     @Test
-    public void bash_tests() {
+    void bash_tests() {
         if (!tool.isEnvReady(ScriptType.BASH)) {
             return;
         }
@@ -18,7 +18,7 @@ class LocalScriptExecutionToolTest {
     }
 
     @Test
-    public void zsh_tests() {
+    void zsh_tests() {
         if (!tool.isEnvReady(ScriptType.ZSH)) {
             return;
         }
@@ -26,7 +26,7 @@ class LocalScriptExecutionToolTest {
     }
 
     @Test
-    public void python3_tests() {
+    void python3_tests() {
         if (!tool.isEnvReady(ScriptType.PYTHON3)) {
             return;
         }
@@ -34,7 +34,7 @@ class LocalScriptExecutionToolTest {
     }
 
     @Test
-    public void osascript_tests() {
+    void osascript_tests() {
         if (!tool.isEnvReady(ScriptType.OSASCRIPT)) {
             return;
         }

@@ -9,7 +9,7 @@ class CommandLineToolTest {
     private final CommandLineTool tool = new CommandLineTool();
 
     @Test
-    public void cmd_line_tests() {
+    void cmd_line_tests() {
         assertThat(tool.execute("ls -a")).contains(".");
         assertThat(tool.execute("bash --version")).contains("bash");
     }

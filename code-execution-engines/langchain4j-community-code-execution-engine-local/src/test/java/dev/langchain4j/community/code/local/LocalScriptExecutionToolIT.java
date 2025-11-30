@@ -13,7 +13,8 @@ import org.slf4j.LoggerFactory;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class LocalScriptExecutionToolIT {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LocalScriptExecutionToolIT.class);
+
+    private static final Logger logger = LoggerFactory.getLogger(LocalScriptExecutionToolIT.class);
 
     OpenAiChatModel model = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
@@ -43,7 +44,7 @@ class LocalScriptExecutionToolIT {
                 .build();
 
         String answer = assistant.chat("list all running applications in my mac");
-        LOGGER.info(answer);
+        logger.info(answer);
         assertThat(answer).isNotEmpty();
     }
 }

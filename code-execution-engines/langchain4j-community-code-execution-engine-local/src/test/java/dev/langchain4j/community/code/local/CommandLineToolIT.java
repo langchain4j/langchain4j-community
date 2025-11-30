@@ -13,7 +13,8 @@ import org.slf4j.LoggerFactory;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class CommandLineToolIT {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CommandLineToolIT.class);
+
+    private static final Logger logger = LoggerFactory.getLogger(CommandLineToolIT.class);
 
     OpenAiChatModel model = OpenAiChatModel.builder()
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
@@ -40,7 +41,7 @@ class CommandLineToolIT {
                 .build();
 
         String answer = assistant.chat("list the files in current directory");
-        LOGGER.info(answer);
+        logger.info(answer);
         assertThat(answer).isNotEmpty();
     }
 }
