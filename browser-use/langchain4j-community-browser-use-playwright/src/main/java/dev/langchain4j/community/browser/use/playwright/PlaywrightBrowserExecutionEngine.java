@@ -1,4 +1,4 @@
-package dev.langchain4j.community.browser.use;
+package dev.langchain4j.community.browser.use.playwright;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;

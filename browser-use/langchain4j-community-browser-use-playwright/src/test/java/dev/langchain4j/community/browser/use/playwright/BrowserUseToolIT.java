@@ -1,4 +1,4 @@
-package dev.langchain4j.community.browser.use;
+package dev.langchain4j.community.browser.use.playwright;
 
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +29,7 @@ public class BrowserUseToolIT {
     @Test
     void should_execute_tool() {
 
-        BrowserUseTool tool = new BrowserUseTool();
+        BrowserUseTool tool = BrowserUseTool.from(new PlaywrightBrowserExecutionEngine());
 
         Assistant assistant = AiServices.builder(Assistant.class)
                 .chatModel(model)

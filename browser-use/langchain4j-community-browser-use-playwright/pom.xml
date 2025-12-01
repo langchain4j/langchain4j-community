@@ -9,8 +9,8 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>langchain4j-community-browser-use</artifactId>
-    <name>LangChain4j :: Community :: Browser Use</name>
+    <artifactId>langchain4j-community-browser-use-playwright</artifactId>
+    <name>LangChain4j :: Community :: Browser Use :: Playwright</name>
 
     <properties>
         <testcontainers-playwright.version>0.12.0</testcontainers-playwright.version>
@@ -21,6 +21,12 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-core</artifactId>
             <version>${langchain4j.core.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-core</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>

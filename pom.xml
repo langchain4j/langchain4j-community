@@ -70,8 +70,8 @@
         <!-- Integration of code execution engines -->
         <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
 
-        <!-- Integration of browser-use -->
-        <module>browser-use/langchain4j-community-browser-use</module>
+        <!-- Integration of browser-use engines -->
+        <module>browser-use/langchain4j-community-browser-use-playwright</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>

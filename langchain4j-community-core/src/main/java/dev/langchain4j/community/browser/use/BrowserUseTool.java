@@ -10,10 +10,6 @@ public class BrowserUseTool {
 
     private final BrowserExecutionEngine engine;
 
-    public BrowserUseTool() {
-        this.engine = new PlaywrightBrowserExecutionEngine();
-    }
-
     public BrowserUseTool(BrowserExecutionEngine engine) {
         this.engine = engine;
     }
@@ -130,5 +126,15 @@ public class BrowserUseTool {
         TYPE_TEXT,
         INPUT_TEXT,
         DRAG_DROP
+    }
+
+    /**
+     * Creates a new BrowserUseTool with the specified browser use engine.
+     *
+     * @param engine the browser use engine to use for browser using the web
+     * @return a new BrowserUseTool
+     */
+    public static BrowserUseTool from(BrowserExecutionEngine engine) {
+        return new BrowserUseTool(engine);
     }
 }
