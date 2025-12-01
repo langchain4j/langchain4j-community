@@ -5,6 +5,7 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.WaitUntilState;
+import dev.langchain4j.community.browser.use.BrowserExecutionEngine;
 
 public class PlaywrightBrowserExecutionEngine implements BrowserExecutionEngine {
 
