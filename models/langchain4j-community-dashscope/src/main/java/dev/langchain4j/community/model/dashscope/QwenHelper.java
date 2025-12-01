@@ -430,7 +430,6 @@ class QwenHelper {
                         .tokenUsage(tokenUsageFrom(result))
                         .finishReason(finishReasonFrom(result))
                         .searchInfo(convertSearchInfo(result.getOutput().getSearchInfo()))
-                        .reasoningContent(reasoningContentFrom(result))
                         .build())
                 .build();
     }
@@ -519,14 +518,18 @@ class QwenHelper {
                         .modelName(modelName)
                         .tokenUsage(tokenUsageFrom(result))
                         .finishReason(finishReasonFrom(result))
-                        // deprecated
-                        .reasoningContent(reasoningContentFrom(result))
                         .build())
                 .build();
     }
 
     static AiMessage aiMessageFrom(MultiModalConversationResult result) {
-        return new AiMessage(answerFrom(result));
+        String text = answerFrom(result);
+        String reasoningContentFrom = reasoningContentFrom(result);
+        AiMessage.Builder aiMessageBuilder = AiMessage.builder()
+                .text(isNullOrBlank(text) ? null : text)
+                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom);
+
+        return aiMessageBuilder.build();
     }
 
     private static List<ToolCallBase> toToolCalls(Collection<ToolExecutionRequest> toolExecutionRequests) {

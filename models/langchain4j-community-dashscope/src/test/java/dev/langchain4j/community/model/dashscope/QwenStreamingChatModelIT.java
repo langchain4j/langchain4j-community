@@ -520,10 +520,9 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         ChatResponse response = handler.get();
 
         assertThat(response.aiMessage().text()).containsIgnoringCase("Paris");
+        assertThat(response.aiMessage().thinking()).isNotBlank();
         assertThat(response.metadata()).isNotNull();
         assertThat(response.metadata()).isInstanceOf(QwenChatResponseMetadata.class);
-        assertThat(((QwenChatResponseMetadata) response.metadata()).reasoningContent())
-                .isNotBlank();
     }
 
     @ParameterizedTest
@@ -547,10 +546,9 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         ChatResponse response = handler.get();
 
         assertThat(response.aiMessage().text()).containsIgnoringCase("Beijing");
+        assertThat(response.aiMessage().thinking()).isBlank();
         assertThat(response.metadata()).isNotNull();
         assertThat(response.metadata()).isInstanceOf(QwenChatResponseMetadata.class);
-        assertThat(((QwenChatResponseMetadata) response.metadata()).reasoningContent())
-                .isBlank();
     }
 
     @Override

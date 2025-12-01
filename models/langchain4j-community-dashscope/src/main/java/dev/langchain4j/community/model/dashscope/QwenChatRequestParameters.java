@@ -3,7 +3,6 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.quoted;
 
-import dev.langchain4j.Experimental;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import java.util.List;
@@ -13,7 +12,6 @@ import java.util.Objects;
 /**
  * Parameter details are available <a href="https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api#2ed5ee7377fum">here</a>.
  */
-@Experimental
 public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     /**
      * If specified, it will make a best effort to sample deterministically, such that
@@ -289,16 +287,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     /**
      * The strategy for network search.
      *
-     * @param enableSource Whether to display the searched information in the returned
-     * results. Default value is false.
+     * @param enableSource   Whether to display the searched information in the returned
+     *                       results. Default value is false.
      * @param enableCitation Whether to enable the [1] or [ref_1] style superscript
-     * annotation function. This function takes effect only when enable_source is true.
-     * Default value is false.
+     *                       annotation function. This function takes effect only when enable_source is true.
+     *                       Default value is false.
      * @param citationFormat Subscript style. Only available when enable_citation is true.
-     * Supported styles: “[1]” and “[ref_1]”. Default value is “[1]”.
-     * @param forcedSearch Whether to force search to start.
+     *                       Supported styles: “[1]” and “[ref_1]”. Default value is “[1]”.
+     * @param forcedSearch   Whether to force search to start.
      * @param searchStrategy The amount of Internet information searched. Supported
-     * values: “standard” and “pro”. Default value is “standard”.
+     *                       values: “standard” and “pro”. Default value is “standard”.
      */
     public record SearchOptions(
             Boolean enableSource,
@@ -353,20 +351,20 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      * models.
      *
      * @param sourceLang The full English name of the source language.For more
-     * information, see <a href=
-     * "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
-     * Languages</a>. You can set source_lang to "auto" and the model will automatically
-     * determine the language of the input text.
+     *                   information, see <a href=
+     *                   "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
+     *                   Languages</a>. You can set source_lang to "auto" and the model will automatically
+     *                   determine the language of the input text.
      * @param targetLang The full English name of the target language.For more
-     * information, see <a href=
-     * "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
-     * Languages</a>.
-     * @param terms An array of terms that needs to be set when using the
-     * term-intervention-translation feature.
-     * @param tmList The translation memory array that needs to be set when using the
-     * translation-memory feature.
-     * @param domains The domain prompt statement needs to be set when using the
-     * domain-prompt feature.
+     *                   information, see <a href=
+     *                   "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
+     *                   Languages</a>.
+     * @param terms      An array of terms that needs to be set when using the
+     *                   term-intervention-translation feature.
+     * @param tmList     The translation memory array that needs to be set when using the
+     *                   translation-memory feature.
+     * @param domains    The domain prompt statement needs to be set when using the
+     *                   domain-prompt feature.
      */
     public record TranslationOptions(
             String sourceLang,
