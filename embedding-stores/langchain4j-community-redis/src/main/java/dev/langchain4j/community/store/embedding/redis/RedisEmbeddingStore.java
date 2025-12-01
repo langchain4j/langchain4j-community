@@ -9,7 +9,6 @@ import static dev.langchain4j.internal.Utils.copyIfNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
@@ -38,9 +37,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.AbstractPipeline;
-import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.ScanParams;
@@ -106,59 +102,6 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
             ensureNotNull(dimension, "dimension");
             createIndex(schema.getIndexName());
         }
-    }
-
-    /**
-     * Creates an instance of RedisEmbeddingStore
-     *
-     * @param host           Redis server host
-     * @param port           Redis server port
-     * @param user           Redis username (optional)
-     * @param password       Redis password (optional)
-     * @param unifiedJedis   Jedis client, if null, {@code RedisEmbeddingStore} will create a new one. (optional)
-     * @param clientConfig   Jedis client configuration (optional)
-     * @param indexName      The name of the index (optional). Default value: "embedding-index".
-     * @param prefix         The prefix of the key which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
-     * @param dimension      Embedding vector dimension
-     * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
-     */
-    public RedisEmbeddingStore(
-            String host,
-            Integer port,
-            String user,
-            String password,
-            UnifiedJedis unifiedJedis,
-            JedisClientConfig clientConfig,
-            String indexName,
-            String prefix,
-            Integer dimension,
-            Map<String, SchemaField> metadataConfig) {
-        this(
-                getOrDefault(unifiedJedis, () -> {
-                    JedisClientConfig actualConfig = getOrDefault(clientConfig, () -> DefaultJedisClientConfig.builder()
-                            .user(user)
-                            .password(password)
-                            .build());
-                    return new UnifiedJedis(new HostAndPort(host, port), actualConfig);
-                }),
-                indexName,
-                prefix,
-                dimension,
-                metadataConfig);
-    }
-
-    /**
-     * Creates an instance of RedisEmbeddingStore
-     *
-     * @param uri            Redis server URI. (e.g., redis://localhost:6379, redis://localhost:6379)
-     * @param indexName      The name of the index (optional). Default value: "embedding-index".
-     * @param prefix         The prefix of the key, which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
-     * @param dimension      Embedding vector dimension
-     * @param metadataConfig Metadata config to map metadata key to metadata type. (optional)
-     */
-    public RedisEmbeddingStore(
-            String uri, String indexName, String prefix, Integer dimension, Map<String, SchemaField> metadataConfig) {
-        this(new UnifiedJedis(ensureNotBlank(uri, "uri")), indexName, prefix, dimension, metadataConfig);
     }
 
     public static Builder builder() {
@@ -362,80 +305,17 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     public static class Builder {
 
-        private String uri;
-        private String host;
-        private Integer port;
-        private String user;
-        private String password;
         private UnifiedJedis unifiedJedis;
-        private JedisClientConfig clientConfig;
         private String indexName;
         private String prefix;
         private Integer dimension;
         private Map<String, SchemaField> metadataConfig = new HashMap<>();
 
         /**
-         * @param uri Redis Stack URI
-         */
-        @Deprecated
-        public Builder uri(String uri) {
-            this.uri = uri;
-            return this;
-        }
-
-        /**
-         * @param host Redis Stack host
-         * @deprecated use {@link #unifiedJedis} instead
-         */
-        @Deprecated
-        public Builder host(String host) {
-            this.host = host;
-            return this;
-        }
-
-        /**
-         * @param port Redis Stack port
-         * @deprecated use {@link #unifiedJedis} instead
-         */
-        @Deprecated
-        public Builder port(Integer port) {
-            this.port = port;
-            return this;
-        }
-
-        /**
-         * @param user Redis Stack username (optional)
-         * @deprecated use {@link #unifiedJedis} instead
-         */
-        @Deprecated
-        public Builder user(String user) {
-            this.user = user;
-            return this;
-        }
-
-        /**
-         * @param password Redis Stack password (optional)
-         * @deprecated use {@link #unifiedJedis} instead
-         */
-        @Deprecated
-        public Builder password(String password) {
-            this.password = password;
-            return this;
-        }
-
-        /**
          * @param unifiedJedis client
          */
         public Builder unifiedJedis(UnifiedJedis unifiedJedis) {
             this.unifiedJedis = unifiedJedis;
-            return this;
-        }
-
-        /**
-         * @param clientConfig Jedis client configuration
-         */
-        public Builder clientConfig(JedisClientConfig clientConfig) {
-            this.clientConfig = clientConfig;
             return this;
         }
 
@@ -467,15 +347,6 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param metadataFieldsName metadata fields names (optional)
-         * @deprecated use {@link #metadataKeys(Collection)} instead
-         */
-        @Deprecated
-        public Builder metadataFieldsName(Collection<String> metadataFieldsName) {
-            return metadataKeys(metadataFieldsName);
-        }
-
-        /**
          * @param metadataKeys Metadata keys that should be persisted (optional). all metadata will be stored as <a href="https://redis.io/docs/latest/develop/interact/search-and-query/basic-constructs/field-and-type-options/#text-fields">Text Field</a>. See {@link #metadataConfig(Map)} if you want to customize your metadata field.
          * @see #metadataConfig(Map)
          */
@@ -499,23 +370,7 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         public RedisEmbeddingStore build() {
-            if (unifiedJedis != null) {
-                return new RedisEmbeddingStore(unifiedJedis, indexName, prefix, dimension, metadataConfig);
-            } else if (uri != null) {
-                return new RedisEmbeddingStore(uri, indexName, prefix, dimension, metadataConfig);
-            } else {
-                return new RedisEmbeddingStore(
-                        host,
-                        port,
-                        user,
-                        password,
-                        unifiedJedis,
-                        clientConfig,
-                        indexName,
-                        prefix,
-                        dimension,
-                        metadataConfig);
-            }
+            return new RedisEmbeddingStore(unifiedJedis, indexName, prefix, dimension, metadataConfig);
         }
     }
 }
