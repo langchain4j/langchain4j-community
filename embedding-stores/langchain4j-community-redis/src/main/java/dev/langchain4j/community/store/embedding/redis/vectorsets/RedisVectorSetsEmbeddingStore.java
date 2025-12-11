@@ -14,13 +14,11 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.VAddParams;
 import redis.clients.jedis.params.VSimParams;
 import redis.clients.jedis.resps.VSimScoreAttribs;
 
-import javax.lang.model.type.UnionType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -103,7 +101,7 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
     public void addAll(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
         if (embeddings == null) return;
 
-        IntFunction<Optional<Entry>> embeddingToEntry = i -> {
+        IntFunction<Optional<Entry>> embeddingToVectorSetEntry = i -> {
             /* Return a default id if it wasn't passed as input. */
             var id = getElementAtIndex(ids, i).orElseGet(Utils::randomUUID);
 
@@ -118,35 +116,16 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
                     });
         };
 
-        Function<Entry, EntryResult> addToTheVectorSet = record -> {
-            var params = this.addParamsSupplier.get();
-
-            var attr = Optional.ofNullable(metadataSerializer)
-                            .flatMap(serialize -> record.embedded().flatMap(serialize))
-                            .or(() -> record.embedded().map(TextSegment::text));
-            attr.ifPresent(params::setAttr);
-
-            var result = client.vadd(key,
-                    record.embedding().vector(),
-                    record.id(),
-                    params);
-
-            if (!result) {
-                log.warn("[key: {}] Record [{}] not added to the key.", this.key, record);
-            }
-
-            return new EntryResult(record, result);
-        };
-
         var inputElementSize = embeddings.size();
-        var pipelineToAddEmbeddingsToTheKey = IntStream.range(0, inputElementSize)
-                .mapToObj(embeddingToEntry)
-                .map(Optional::orElseThrow)
-                .map(addToTheVectorSet);
+        var pipelineToAddEmbeddingsToTheVector = IntStream.range(0, inputElementSize)
+                .mapToObj(embeddingToVectorSetEntry)
+                .flatMap(Optional::stream)
+                .map(this::addToTheVectorSet)
+                .flatMap(Optional::stream);
 
-        var result = pipelineToAddEmbeddingsToTheKey
+        var result = pipelineToAddEmbeddingsToTheVector
                 .filter(EntryResult::ok)
-                /* actually executes the pipeline */
+                /* here it's actually executed the pipeline */
                 .toList();
 
         log.debug("[key: {}] Successfully added {}/{} elements.", this.key, result.size(), inputElementSize);
@@ -161,84 +140,14 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
 
         if (vector == null) return new EmbeddingSearchResult<>(List.of());
 
-        Function<String, List<Float>> fetchEmbeddingsById = id -> client.vemb(key, id)
-                .stream()
-                .map(Double::floatValue)
-                .toList();
-
-        Function<Map.Entry<String, VSimScoreAttribs>, Optional<EmbeddingMatch<TextSegment>>> mapToEmbeddingMatch = e -> {
-            if (e == null) return Optional.empty();
-            if (e.getKey() == null) return Optional.empty();
-            if (e.getValue() == null) return Optional.empty();
-
-            var id = e.getKey();
-            var value = e.getValue();
-
-            var embedding = fetchEmbeddingsById.apply(id);
-
-            TextSegment embedded = Optional.of(value)
-                    .map(VSimScoreAttribs::getAttributes)
-                    .map(attrs -> {
-                        TypeReference<Map<String, Object>> type = new TypeReference<>() {};
-                        try {
-                            var map = objectMapper.readValue(attrs, type);
-                            String text = (String) map.get(ATTRIBUTES_TEXT_KEY);
-                            map.remove(ATTRIBUTES_TEXT_KEY);
-
-                            return TextSegment.from(text, Metadata.from(map));
-                        } catch (JsonProcessingException ex) {
-                            log.warn("Unable to parse value: {}", attrs, ex);
-                            return null;
-                        }
-                    })
-                    .orElse(null);
-
-            return Optional.of(value)
-                    .map(VSimScoreAttribs::getScore)
-                    .map(score -> new EmbeddingMatch<>(
-                            score,
-                            id,
-                            Embedding.from(embedding),
-                            embedded
-                    ));
-        };
-
-        Supplier<VSimParams> evaluateParams = () -> {
-            var count = Optional.of(request)
-                    .map(EmbeddingSearchRequest::maxResults)
-                    .orElse(10);
-
-            double minScore = Optional.of(request)
-                    .map(EmbeddingSearchRequest::minScore)
-                    .orElse(0D);
-
-            var params = new VSimParams()
-                    .count(count);
-
-            if (minScore > 0 && minScore < 1) {
-                params.epsilon(1 - minScore);
-            }
-
-            var filter = Optional.of(request)
-                    .map(EmbeddingSearchRequest::filter)
-                    .flatMap(filterMapper::from);
-
-            if (filter.isPresent()) {
-                filter.ifPresent(params::filter);
-            }
-
-            return params;
-        };
-
-        var params = evaluateParams.get();
+        var params = this.mapToVSimParams(request);
         var similarElements = client.vsimWithScoresAndAttribs(this.key, vector, params);
 
         List<EmbeddingMatch<TextSegment>> matches = similarElements
                 .entrySet()
                 .stream()
-                .map(mapToEmbeddingMatch)
-                .filter(Optional::isPresent)
-                .map(Optional::orElseThrow)
+                .map(this::mapToEmbeddingMatch)
+                .flatMap(Optional::stream)
                 .toList();
 
         return new EmbeddingSearchResult<>(matches);
@@ -253,7 +162,7 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
     public void removeAll(Collection<String> ids) {
         if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("ids cannot be null or empty");
 
-        Stream<Boolean> action = ids
+        Stream<Boolean> pipelineToRemoveIdsFromTheVectorSet = ids
                 .stream()
                 .map(id -> {
                     var result = client.vrem(key, id);
@@ -265,8 +174,9 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
                     return result;
                 });
 
-        var executeAndKeepOnlySuccessful = action
+        var executeAndKeepOnlySuccessful = pipelineToRemoveIdsFromTheVectorSet
                 .filter(Boolean.TRUE::equals)
+                /* here it's actually executed the pipeline */
                 .toList();
 
         log.debug("[key: {}] Successfully removed {}/{} elements.", this.key, executeAndKeepOnlySuccessful.size(), ids.size());
@@ -290,7 +200,98 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
         return ids;
     }
 
+    private Optional<EmbeddingMatch<TextSegment>> mapToEmbeddingMatch(Map.Entry<String, VSimScoreAttribs> e) {
+        if (e == null) return Optional.empty();
+        if (e.getKey() == null) return Optional.empty();
+        if (e.getValue() == null) return Optional.empty();
+
+        Function<String, List<Float>> fetchEmbeddingsById = id -> client.vemb(key, id)
+                .stream()
+                .map(Double::floatValue)
+                .toList();
+
+        var id = e.getKey();
+        var value = e.getValue();
+
+        var embedding = fetchEmbeddingsById.apply(id);
+
+        TextSegment embedded = Optional.of(value)
+                .map(VSimScoreAttribs::getAttributes)
+                .map(attrs -> {
+                    TypeReference<Map<String, Object>> type = new TypeReference<>() {};
+                    try {
+                        var map = objectMapper.readValue(attrs, type);
+                        String text = (String) map.get(ATTRIBUTES_TEXT_KEY);
+                        map.remove(ATTRIBUTES_TEXT_KEY);
+
+                        return TextSegment.from(text, Metadata.from(map));
+                    } catch (JsonProcessingException ex) {
+                        log.warn("Unable to parse value: {}", attrs, ex);
+                        return null;
+                    }
+                })
+                .orElse(null);
+
+        return Optional.of(value)
+                .map(VSimScoreAttribs::getScore)
+                .map(score -> new EmbeddingMatch<>(
+                        score,
+                        id,
+                        Embedding.from(embedding),
+                        embedded
+                ));
+    };
+
+    VSimParams mapToVSimParams(EmbeddingSearchRequest r) {
+        var count = Optional.of(r)
+                .map(EmbeddingSearchRequest::maxResults)
+                .orElse(10);
+
+        var commandParams = new VSimParams()
+                .count(count);
+
+        double minScore = Optional.of(r)
+                .map(EmbeddingSearchRequest::minScore)
+                .orElse(0D);
+
+        if (minScore > 0 && minScore < 1) {
+            commandParams.epsilon(1 - minScore);
+        }
+
+        /* Maps request's filters into VSIM FILTER expression and add it to params. */
+        Optional.of(r)
+                .map(EmbeddingSearchRequest::filter)
+                .flatMap(filterMapper::from)
+                .ifPresent(commandParams::filter);
+
+        return commandParams;
+    }
+
+    private Optional<EntryResult> addToTheVectorSet(Entry record) {
+        if (record == null) return Optional.empty();
+
+        var params = this.addParamsSupplier.get();
+
+        var attr = Optional.ofNullable(metadataSerializer)
+                .flatMap(serialize -> record.embedded().flatMap(serialize))
+                .or(() -> record.embedded().map(TextSegment::text));
+        attr.ifPresent(params::setAttr);
+
+        var result = client.vadd(key,
+                record.embedding().vector(),
+                record.id(),
+                params);
+
+        if (!result) {
+            log.warn("[key: {}] Record [{}] not added to the key.", this.key, record);
+        }
+
+        return Optional.of(new EntryResult(record, result));
+    }
+
     private <E> Optional<E> getElementAtIndex(List<E> list, int i) {
+        if (list == null) return Optional.empty();
+
         try {
             return Optional.ofNullable(list.get(i));
         } catch (IndexOutOfBoundsException e) {
