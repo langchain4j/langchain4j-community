@@ -10,7 +10,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.utility.DockerImageName;
+import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 
 import java.util.UUID;
 
@@ -20,9 +22,15 @@ class RedisVectorSetsEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT
 
     static RedisContainer redis = new RedisContainer(DockerImageName.parse("redis:8-alpine"));
 
-    Jedis redisClient = new Jedis(redis.getRedisHost(), redis.getMappedPort(6379));
-    EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
-    RedisVectorSetsEmbeddingStore embeddingStore = new RedisVectorSetsEmbeddingStore(redisClient, KEY);
+    private final UnifiedJedis redisClient;
+    private final EmbeddingModel embeddingModel;
+    private final RedisVectorSetsEmbeddingStore embeddingStore;
+
+    public RedisVectorSetsEmbeddingStoreRemovalIT() {
+        redisClient = new UnifiedJedis(new HostAndPort(redis.getRedisHost(), redis.getMappedPort(6379)));
+        embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
+        embeddingStore = new RedisVectorSetsEmbeddingStore(redisClient, KEY);
+    }
 
     @BeforeAll
     static void beforeAll() {

@@ -18,7 +18,9 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.utility.DockerImageName;
+import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,7 +34,7 @@ public class RedisVectorSetsEmbeddingStoreIT implements AutoCloseable {
 
     private final EmbeddingStore<TextSegment> store;
     private final RedisContainer redis;
-    private final Jedis redisClient;
+    private final UnifiedJedis redisClient;
     private final EmbeddingModel embeddingModel;
     private final ObjectMapper objectMapper;
 
@@ -40,7 +42,7 @@ public class RedisVectorSetsEmbeddingStoreIT implements AutoCloseable {
     public RedisVectorSetsEmbeddingStoreIT() throws JsonProcessingException {
         redis = new RedisContainer(DockerImageName.parse("redis:8-alpine"));
         redis.start();
-        redisClient = new Jedis(redis.getRedisHost(), redis.getMappedPort(6379));
+        redisClient = new UnifiedJedis(new HostAndPort(redis.getRedisHost(), redis.getMappedPort(6379)));
         store = new RedisVectorSetsEmbeddingStore(redisClient, "sentences");
 
         final Function<String, Sentence> jacopoSays = text -> new Sentence("jacopo", text, 30);

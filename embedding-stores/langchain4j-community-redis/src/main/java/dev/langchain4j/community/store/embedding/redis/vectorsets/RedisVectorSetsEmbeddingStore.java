@@ -15,10 +15,12 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.VAddParams;
 import redis.clients.jedis.params.VSimParams;
 import redis.clients.jedis.resps.VSimScoreAttribs;
 
+import javax.lang.model.type.UnionType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +36,7 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
 
     private static final Logger log = LoggerFactory.getLogger(RedisVectorSetsEmbeddingStore.class);
 
-    private final Jedis client;
+    private final UnifiedJedis client;
 
     private final String key;
     private final SimilarityFilterMapper filterMapper;
@@ -42,7 +44,7 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
     private final Function<TextSegment, Optional<String>> metadataSerializer;
     private final Supplier<VAddParams> addParamsSupplier;
 
-    public RedisVectorSetsEmbeddingStore(Jedis client, String key, SimilarityFilterMapper filterMapper, final Function<TextSegment, Optional<String>> metadataSerializer, final Supplier<VAddParams> addParamsSupplier) {
+    public RedisVectorSetsEmbeddingStore(UnifiedJedis client, String key, SimilarityFilterMapper filterMapper, final Function<TextSegment, Optional<String>> metadataSerializer, final Supplier<VAddParams> addParamsSupplier) {
         this.client = client;
         this.key = key;
         this.filterMapper = filterMapper;
@@ -67,7 +69,7 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
                 .orElse(VAddParams::new);
     }
 
-    public RedisVectorSetsEmbeddingStore(Jedis client, String key) { this(client, key, new SimilarityFilterMapper(), null, null); }
+    public RedisVectorSetsEmbeddingStore(UnifiedJedis client, String key) { this(client, key, new SimilarityFilterMapper(), null, null); }
 
     @Override
     public String add(Embedding embedding) {

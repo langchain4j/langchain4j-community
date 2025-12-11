@@ -8,6 +8,7 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import org.junit.jupiter.api.Test;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.VAddParams;
 import redis.clients.jedis.params.VSimParams;
 import redis.clients.jedis.resps.VSimScoreAttribs;
@@ -28,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 class RedisVectorSetsEmbeddingStoreTest {
 
-    private final Jedis redis;
+    private final UnifiedJedis redis;
     private final RedisVectorSetsEmbeddingStore store;
     private final EmbeddingModel embeddingModel;
 
@@ -37,7 +38,7 @@ class RedisVectorSetsEmbeddingStoreTest {
     final Function<String, Sentence> bobSays = text -> new Sentence("bob", text, 25);
 
     public RedisVectorSetsEmbeddingStoreTest() {
-        this.redis = mock(Jedis.class);
+        this.redis = mock(UnifiedJedis.class);
 
         this.store = new RedisVectorSetsEmbeddingStore(redis, "sentences");
         embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
