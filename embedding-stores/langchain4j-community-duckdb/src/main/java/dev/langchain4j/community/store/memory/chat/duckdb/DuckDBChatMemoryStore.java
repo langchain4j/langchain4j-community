@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 public class DuckDBChatMemoryStore implements ChatMemoryStore {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DuckDBChatMemoryStore.class);
+    private static final Logger log = LoggerFactory.getLogger(DuckDBChatMemoryStore.class);
 
     private static final String CREATE_TABLE_TEMPLATE =
             """
@@ -93,6 +93,7 @@ public class DuckDBChatMemoryStore implements ChatMemoryStore {
 
         /**
          * Convenience method to use an in-memory database directly.
+         *
          * @param tableName The database table name to use. If not specified, "chat_memory" will be used
          * @return builder
          */
@@ -125,7 +126,7 @@ public class DuckDBChatMemoryStore implements ChatMemoryStore {
         var query = format(SELECT_MESSAGE_TEMPLATE, tableName);
         try (var connection = duckDBConnection.duplicate();
                 var statement = connection.prepareStatement(query)) {
-            LOG.debug(query);
+            log.debug(query);
             statement.setString(1, memoryIdStr);
             var results = statement.executeQuery();
             while (results.next()) {
@@ -153,7 +154,7 @@ public class DuckDBChatMemoryStore implements ChatMemoryStore {
         String messagesJson = ChatMessageSerializer.messagesToJson(validatedMessages);
         try (var connection = duckDBConnection.duplicate();
                 var statement = connection.prepareStatement(updateQuery)) {
-            LOG.debug(updateQuery);
+            log.debug(updateQuery);
             statement.setString(1, memoryIdStr);
             statement.setString(2, messagesJson);
             statement.setTimestamp(3, expirationParam);
@@ -170,7 +171,7 @@ public class DuckDBChatMemoryStore implements ChatMemoryStore {
         var query = format(DELETE_MESSAGE_TEMPLATE, tableName);
         try (var connection = duckDBConnection.duplicate();
                 var statement = connection.prepareStatement(query)) {
-            LOG.debug(query);
+            log.debug(query);
             statement.setString(1, memoryIdStr);
             statement.execute();
         } catch (SQLException e) {
@@ -183,7 +184,7 @@ public class DuckDBChatMemoryStore implements ChatMemoryStore {
         var query = format(DELETE_EXPIRED_MESSAGE_TEMPLATE, tableName);
         try (var connection = duckDBConnection.duplicate();
                 var statement = connection.createStatement()) {
-            LOG.debug(query);
+            log.debug(query);
             statement.execute(query);
         } catch (SQLException e) {
             throw new DuckDBChatMemoryException("Unable to clean expired message in DuckDB.", e);
@@ -194,7 +195,7 @@ public class DuckDBChatMemoryStore implements ChatMemoryStore {
         var sql = format(CREATE_TABLE_TEMPLATE, tableName);
         try (var connection = duckDBConnection.duplicate();
                 var statement = connection.createStatement()) {
-            LOG.debug(sql);
+            log.debug(sql);
             statement.execute(sql);
         } catch (SQLException e) {
             throw new DuckDBChatMemoryException(format("Failed to init duckDB table:  '%s'", sql), e);

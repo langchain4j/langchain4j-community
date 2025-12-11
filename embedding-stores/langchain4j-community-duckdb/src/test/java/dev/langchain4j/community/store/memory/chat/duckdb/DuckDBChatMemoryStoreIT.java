@@ -1,8 +1,7 @@
 package dev.langchain4j.community.store.memory.chat.duckdb;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -28,7 +27,7 @@ class DuckDBChatMemoryStoreIT {
         var messages = List.of(
                 new SystemMessage("system message"), new UserMessage("user message"), new AiMessage("ai message"));
         store.updateMessages("test", messages);
-        assertEquals(messages, store.getMessages("test"));
+        assertThat(store.getMessages("test")).isEqualTo(messages);
     }
 
     @ParameterizedTest
@@ -40,32 +39,33 @@ class DuckDBChatMemoryStoreIT {
         store.updateMessages("to_delete", toDeleteMessages);
         store.updateMessages("to_keep", toKeepMessages);
         store.deleteMessages("to_delete");
-        assertTrue(store.getMessages("to_delete").isEmpty());
-        assertEquals(toKeepMessages, store.getMessages("to_keep"));
+        assertThat(store.getMessages("to_delete")).isEmpty();
+        assertThat(store.getMessages("to_keep")).isEqualTo(toKeepMessages);
     }
 
     @ParameterizedTest
     @MethodSource("provideStores")
-    void should_clean_expired_messages(DuckDBChatMemoryStore store) throws InterruptedException {
+    void should_clean_expired_messages(DuckDBChatMemoryStore store) throws Exception {
         List<ChatMessage> messages = List.of(new UserMessage("will be clean"));
         store.updateMessages("test", messages);
         Thread.sleep(expirationTest.toMillis() + 50);
         store.cleanExpiredMessage();
-        assertTrue(store.getMessages("test").isEmpty());
+        assertThat(store.getMessages("test")).isEmpty();
     }
 
     @ParameterizedTest
     @MethodSource("provideStores")
     void memory_id_cannot_be_null(DuckDBChatMemoryStore store) {
-        assertThrows(IllegalArgumentException.class, () -> store.getMessages(null));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> store.getMessages(null));
         List<ChatMessage> messages = List.of(new SystemMessage("system message"));
-        assertThrows(IllegalArgumentException.class, () -> store.updateMessages(null, messages));
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> store.updateMessages(null, messages));
     }
 
     @ParameterizedTest
     @MethodSource("provideStores")
     void messages_cannot_be_null(DuckDBChatMemoryStore store) {
-        assertThrows(IllegalArgumentException.class, () -> store.updateMessages("test", null));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> store.updateMessages("test", null));
     }
 
     /**
