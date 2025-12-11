@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.10.0-beta17-SNAPSHOT</version>
+        <version>1.10.0-beta18-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -66,6 +66,9 @@
 
         <!-- Integration of document transformers -->
         <module>document-transformers/langchain4j-community-llm-graph-transformer</module>
+
+        <!-- Integration of code execution engines -->
+        <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
@@ -289,7 +292,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>6.24.0</version>
+                        <version>6.25.0</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
@@ -307,7 +310,7 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-migrate-java</artifactId>
-                                <version>3.22.0</version>
+                                <version>3.23.0</version>
                             </dependency>
                         </dependencies>
                     </plugin>
