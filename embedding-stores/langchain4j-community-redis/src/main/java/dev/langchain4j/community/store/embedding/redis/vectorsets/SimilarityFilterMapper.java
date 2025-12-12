@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class SimilarityFilterMapper {
 
@@ -66,7 +67,7 @@ public class SimilarityFilterMapper {
         if (input == null) return null;
 
         Function<Collection<?>, String> collectIntoArray = i -> {
-            List<String> values = i
+            String joined = i
                     .stream()
                     .map(e -> {
                         if (e == null) {
@@ -80,8 +81,7 @@ public class SimilarityFilterMapper {
                         }
                     })
                     .filter(Objects::nonNull)
-                    .toList();
-            var joined = String.join(",", values);
+                    .collect(Collectors.joining(","));
 
             return String.format("[%s]", joined);
         };
