@@ -42,7 +42,15 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
     private final Function<TextSegment, Optional<String>> metadataSerializer;
     private final Supplier<VAddParams> addParamsSupplier;
 
-    public RedisVectorSetsEmbeddingStore(UnifiedJedis client, String key, SimilarityFilterMapper filterMapper, final Function<TextSegment, Optional<String>> metadataSerializer, final Supplier<VAddParams> addParamsSupplier) {
+    /**
+     * Creates an instance of RedisVectorSetsEmbeddingStore
+     * @param client                Instance of a UnifiedJedis client
+     * @param key                   The key on which the vector set will be populated/read.
+     * @param filterMapper          The mapper that will translate the filter into a VSIM filter expression. Default: basic implementation.
+     * @param metadataSerializer    Function that it's need in order to serialize TextSegment's metadata into as vector set's element attributes. Default: serialize metadata as json into element's attributes.
+     * @param addParamsSupplier     Use this in order to drive the options associated to a VADD command. Default: no additional options.
+     */
+    protected RedisVectorSetsEmbeddingStore(UnifiedJedis client, String key, SimilarityFilterMapper filterMapper, final Function<TextSegment, Optional<String>> metadataSerializer, final Supplier<VAddParams> addParamsSupplier) {
         this.client = client;
         this.key = key;
         this.filterMapper = filterMapper;
@@ -67,6 +75,9 @@ public class RedisVectorSetsEmbeddingStore implements EmbeddingStore<TextSegment
                 .orElse(VAddParams::new);
     }
 
+    /**
+     * @see RedisVectorSetsEmbeddingStore#RedisVectorSetsEmbeddingStore(UnifiedJedis, String, SimilarityFilterMapper, Function, Supplier)
+     */
     public RedisVectorSetsEmbeddingStore(UnifiedJedis client, String key) { this(client, key, new SimilarityFilterMapper(), null, null); }
 
     @Override
