@@ -69,6 +69,7 @@
 
         <!-- Integration of code execution engines -->
         <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
+        <module>code-execution-engines/langchain4j-community-code-execution-engine-docker</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
