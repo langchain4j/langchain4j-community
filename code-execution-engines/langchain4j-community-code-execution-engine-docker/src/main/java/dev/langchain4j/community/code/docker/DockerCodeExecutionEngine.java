@@ -180,6 +180,10 @@ public class DockerCodeExecutionEngine implements Closeable {
                 configBuilder.withDockerTlsVerify(true);
             }
 
+            if (config.tlsCertPath() != null) {
+                configBuilder.withDockerCertPath(config.tlsCertPath());
+            }
+
             DockerClientConfig clientConfig = configBuilder.build();
 
             DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
