@@ -1,10 +1,10 @@
 package dev.langchain4j.community.code.docker;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.community.code.docker.DockerExecutionException.ErrorType;
 import dev.langchain4j.exception.LangChain4jException;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DockerExecutionExceptionTest {
 
