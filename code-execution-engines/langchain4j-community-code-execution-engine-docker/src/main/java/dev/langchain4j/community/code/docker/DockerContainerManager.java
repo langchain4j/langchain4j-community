@@ -60,12 +60,16 @@ public class DockerContainerManager {
             // Build host configuration with security constraints
             HostConfig hostConfig = buildHostConfig();
 
+            // Build environment variables list
+            List<String> envVars = buildEnvironmentVariables();
+
             // Create container
             CreateContainerResponse container = dockerClient.createContainerCmd(image)
                     .withHostConfig(hostConfig)
                     .withCmd(command)
                     .withWorkingDir(config.workingDir())
                     .withNetworkDisabled(config.networkDisabled())
+                    .withEnv(envVars)
                     .withAttachStdout(true)
                     .withAttachStderr(true)
                     .exec();
@@ -123,6 +127,15 @@ public class DockerContainerManager {
         }
 
         return hostConfig;
+    }
+
+    /** Builds environment variables list in KEY=VALUE format for Docker. */
+    private List<String> buildEnvironmentVariables() {
+        List<String> envVars = new ArrayList<>();
+        for (var entry : config.environmentVariables().entrySet()) {
+            envVars.add(entry.getKey() + "=" + entry.getValue());
+        }
+        return envVars;
     }
 
     /** Parses capability strings into Capability enum values. */
@@ -262,8 +275,7 @@ public class DockerContainerManager {
 
         LOGGER.debug("Waiting for container {} with timeout {}", containerId, timeout);
 
-        try {
-            WaitContainerResultCallback callback = new WaitContainerResultCallback();
+        try (WaitContainerResultCallback callback = new WaitContainerResultCallback()) {
             dockerClient.waitContainerCmd(containerId).exec(callback);
 
             boolean completed = callback.awaitCompletion(timeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -285,6 +297,13 @@ public class DockerContainerManager {
             Thread.currentThread().interrupt();
             forceRemoveContainer(containerId);
             throw DockerExecutionException.executionTimeout(null, timeout.getSeconds());
+        } catch (IOException e) {
+            throw new DockerExecutionException(
+                    DockerExecutionException.ErrorType.UNKNOWN,
+                    "Error closing wait callback for container: " + containerId,
+                    null,
+                    e
+            );
         } catch (Exception e) {
             throw new DockerExecutionException(
                     DockerExecutionException.ErrorType.UNKNOWN,
@@ -312,34 +331,33 @@ public class DockerContainerManager {
         StringBuilder output = new StringBuilder();
         int maxSize = config.maxOutputSizeBytes();
 
-        try {
-            ResultCallback.Adapter<Frame> callback = new ResultCallback.Adapter<>() {
-                @Override
-                public void onNext(Frame frame) {
-                    if (frame.getStreamType() == streamType) {
-                        if (output.length() < maxSize) {
-                            String payload = new String(frame.getPayload(), StandardCharsets.UTF_8);
-                            int remaining = maxSize - output.length();
-                            if (payload.length() > remaining) {
-                                output.append(payload, 0, remaining);
-                            } else {
-                                output.append(payload);
-                            }
+        try (ResultCallback.Adapter<Frame> callback = new ResultCallback.Adapter<>() {
+            @Override
+            public void onNext(Frame frame) {
+                if (frame.getStreamType() == streamType) {
+                    if (output.length() < maxSize) {
+                        String payload = new String(frame.getPayload(), StandardCharsets.UTF_8);
+                        int remaining = maxSize - output.length();
+                        if (payload.length() > remaining) {
+                            output.append(payload, 0, remaining);
+                        } else {
+                            output.append(payload);
                         }
                     }
                 }
-            };
-
+            }
+        }) {
             dockerClient.logContainerCmd(containerId)
                     .withStdOut(streamType == StreamType.STDOUT)
                     .withStdErr(streamType == StreamType.STDERR)
                     .withFollowStream(false)
                     .exec(callback)
                     .awaitCompletion(30, TimeUnit.SECONDS);
-
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             LOGGER.warn("Interrupted while getting logs from container {}", containerId);
+        } catch (IOException e) {
+            LOGGER.warn("Error closing log callback for container {}: {}", containerId, e.getMessage());
         } catch (DockerException e) {
             LOGGER.warn("Failed to get logs from container {}: {}", containerId, e.getMessage());
         }
