@@ -1,8 +1,6 @@
 package dev.langchain4j.community.code.docker;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +11,7 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 /**
  * Configuration for Docker code execution with security constraints.
- * Includes memory limits, timeout, network isolation, and capability dropping.
+ * Includes memory limits, timeout, network isolation, capability dropping, and registry auth.
  * Use {@link #builder()} to create instances.
  */
 public final class DockerExecutionConfig {
@@ -42,6 +40,10 @@ public final class DockerExecutionConfig {
     // Docker connection
     private final String dockerHost;
     private final boolean tlsVerify;
+    private final String tlsCertPath;
+
+    // Registry authentication
+    private final Map<String, RegistryAuthConfig> registryAuths;
 
     private DockerExecutionConfig(Builder builder) {
         this.memoryLimit = builder.memoryLimit;
@@ -53,12 +55,14 @@ public final class DockerExecutionConfig {
         this.maxOutputSizeBytes = builder.maxOutputSizeBytes;
         this.networkDisabled = builder.networkDisabled;
         this.readOnlyRootfs = builder.readOnlyRootfs;
-        this.capDrop = Collections.unmodifiableList(new ArrayList<>(builder.capDrop));
+        this.capDrop = List.copyOf(builder.capDrop);
         this.user = builder.user;
         this.workingDir = builder.workingDir;
-        this.environmentVariables = Collections.unmodifiableMap(new HashMap<>(builder.environmentVariables));
+        this.environmentVariables = Map.copyOf(builder.environmentVariables);
         this.dockerHost = builder.dockerHost;
         this.tlsVerify = builder.tlsVerify;
+        this.tlsCertPath = builder.tlsCertPath;
+        this.registryAuths = Map.copyOf(builder.registryAuths);
     }
 
     /** Returns the memory limit (e.g., "256m", "1g"). */
@@ -144,6 +148,47 @@ public final class DockerExecutionConfig {
         return tlsVerify;
     }
 
+    /** Returns the path to TLS certificates for secure Docker connections. */
+    public String tlsCertPath() {
+        return tlsCertPath;
+    }
+
+    /** Returns the registry authentication configurations. */
+    public Map<String, RegistryAuthConfig> registryAuths() {
+        return registryAuths;
+    }
+
+    /** Gets the authentication config for a specific registry. */
+    public RegistryAuthConfig getRegistryAuth(String registry) {
+        return registryAuths.get(registry);
+    }
+
+    /** Extracts the registry address from an image name. Defaults to docker.io. */
+    public static String extractRegistry(String imageName) {
+        if (imageName == null || imageName.isEmpty()) {
+            return "docker.io";
+        }
+
+        // Check if image contains a registry (has a dot or colon before the first slash)
+        int slashIndex = imageName.indexOf('/');
+        if (slashIndex == -1) {
+            // No slash means Docker Hub official image (e.g., "python:3.12")
+            return "docker.io";
+        }
+
+        String potentialRegistry = imageName.substring(0, slashIndex);
+
+        // Check if it looks like a registry (has a dot, colon, or is "localhost")
+        if (potentialRegistry.contains(".") ||
+            potentialRegistry.contains(":") ||
+            potentialRegistry.equals("localhost")) {
+            return potentialRegistry;
+        }
+
+        // Otherwise it's a Docker Hub user image (e.g., "library/python")
+        return "docker.io";
+    }
+
     /** Parses memory string (e.g., "256m", "1g") into bytes. */
     private static long parseMemoryString(String memoryString) {
         String value = memoryString.trim().toLowerCase();
@@ -187,6 +232,8 @@ public final class DockerExecutionConfig {
         private Map<String, String> environmentVariables = new HashMap<>();
         private String dockerHost = null;
         private boolean tlsVerify = false;
+        private String tlsCertPath = null;
+        private Map<String, RegistryAuthConfig> registryAuths = new HashMap<>();
 
         private Builder() {
         }
@@ -290,6 +337,30 @@ public final class DockerExecutionConfig {
             return this;
         }
 
+        /** Sets the path to TLS certificates for secure Docker connections. */
+        public Builder tlsCertPath(String tlsCertPath) {
+            this.tlsCertPath = tlsCertPath;
+            return this;
+        }
+
+        /** Adds authentication for a Docker registry. */
+        public Builder registryAuth(RegistryAuthConfig authConfig) {
+            ensureNotNull(authConfig, "authConfig");
+            this.registryAuths.put(authConfig.registry(), authConfig);
+            return this;
+        }
+
+        /** Adds authentication for a Docker registry using username and password. */
+        public Builder registryAuth(String registry, String username, String password) {
+            return registryAuth(RegistryAuthConfig.of(registry, username, password));
+        }
+
+        /** Sets all registry authentication configurations. */
+        public Builder registryAuths(Map<String, RegistryAuthConfig> registryAuths) {
+            this.registryAuths = new HashMap<>(ensureNotNull(registryAuths, "registryAuths"));
+            return this;
+        }
+
         /** Builds the configuration. */
         public DockerExecutionConfig build() {
             return new DockerExecutionConfig(this);
@@ -305,6 +376,8 @@ public final class DockerExecutionConfig {
                 ", readOnlyRootfs=" + readOnlyRootfs +
                 ", capDrop=" + capDrop +
                 ", workingDir='" + workingDir + '\'' +
+                ", dockerHost='" + dockerHost + '\'' +
+                ", registryAuths=" + registryAuths.size() + " configured" +
                 '}';
     }
 }

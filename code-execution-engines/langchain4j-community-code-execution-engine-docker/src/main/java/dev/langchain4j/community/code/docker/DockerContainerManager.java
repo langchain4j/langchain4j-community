@@ -7,6 +7,7 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.command.WaitContainerResultCallback;
 import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.NotFoundException;
+import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.Capability;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
@@ -142,7 +143,7 @@ public class DockerContainerManager {
         return capabilities;
     }
 
-    /** Pulls the image if not available locally. */
+    /** Pulls the image if not available locally. Uses registry auth if configured. */
     private void pullImageIfNeeded(String image) {
         try {
             // Check if image exists locally
@@ -152,9 +153,16 @@ public class DockerContainerManager {
             // Image not found locally, pull it
             LOGGER.info("Pulling image: {}", image);
             try {
-                dockerClient.pullImageCmd(image)
-                        .start()
-                        .awaitCompletion(5, TimeUnit.MINUTES);
+                var pullCmd = dockerClient.pullImageCmd(image);
+
+                // Apply authentication if configured for this registry
+                AuthConfig authConfig = buildAuthConfig(image);
+                if (authConfig != null) {
+                    LOGGER.debug("Using registry authentication for: {}", authConfig.getRegistryAddress());
+                    pullCmd.withAuthConfig(authConfig);
+                }
+
+                pullCmd.start().awaitCompletion(5, TimeUnit.MINUTES);
                 LOGGER.debug("Successfully pulled image: {}", image);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -163,6 +171,27 @@ public class DockerContainerManager {
                 throw DockerExecutionException.imagePullFailed(image, de);
             }
         }
+    }
+
+    /** Builds AuthConfig for the image if registry authentication is configured. */
+    private AuthConfig buildAuthConfig(String image) {
+        String registry = DockerExecutionConfig.extractRegistry(image);
+        RegistryAuthConfig registryAuth = config.getRegistryAuth(registry);
+
+        if (registryAuth == null) {
+            return null;
+        }
+
+        AuthConfig authConfig = new AuthConfig()
+                .withRegistryAddress(registryAuth.registry())
+                .withUsername(registryAuth.username())
+                .withPassword(registryAuth.password());
+
+        if (registryAuth.email() != null) {
+            authConfig.withEmail(registryAuth.email());
+        }
+
+        return authConfig;
     }
 
     /** Copies code to the container as a file. */
