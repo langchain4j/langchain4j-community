@@ -237,18 +237,25 @@ public class DockerContainerManager {
             WaitContainerResultCallback callback = new WaitContainerResultCallback();
             dockerClient.waitContainerCmd(containerId).exec(callback);
 
-            Integer statusCode = callback.awaitStatusCode(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            boolean completed = callback.awaitCompletion(timeout.toMillis(), TimeUnit.MILLISECONDS);
 
-            if (statusCode == null) {
+            if (!completed) {
                 // Timeout - force kill container
+                LOGGER.warn("Container {} execution timed out after {} seconds", containerId, timeout.getSeconds());
                 forceRemoveContainer(containerId);
                 throw DockerExecutionException.executionTimeout(null, timeout.getSeconds());
             }
 
+            Integer statusCode = callback.awaitStatusCode();
+
             LOGGER.debug("Container {} completed with exit code {}", containerId, statusCode);
-            return statusCode;
+            return statusCode != null ? statusCode : -1;
         } catch (DockerExecutionException e) {
             throw e;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            forceRemoveContainer(containerId);
+            throw DockerExecutionException.executionTimeout(null, timeout.getSeconds());
         } catch (Exception e) {
             throw new DockerExecutionException(
                     DockerExecutionException.ErrorType.UNKNOWN,
