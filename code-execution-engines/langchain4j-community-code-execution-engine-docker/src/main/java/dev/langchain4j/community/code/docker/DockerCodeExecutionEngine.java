@@ -1,20 +1,19 @@
 package dev.langchain4j.community.code.docker;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
-
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Executes code in isolated Docker containers with security constraints.
@@ -68,8 +67,7 @@ public class DockerCodeExecutionEngine implements Closeable {
         ensureNotBlank(code, "code");
         ensureNotBlank(command, "command");
 
-        LOGGER.debug("Executing code with image: {}, extension: {}, command: {}",
-                image, fileExtension, command);
+        LOGGER.debug("Executing code with image: {}, extension: {}, command: {}", image, fileExtension, command);
 
         // Build filename with proper extension
         String filename = buildFilename(fileExtension);
@@ -129,7 +127,7 @@ public class DockerCodeExecutionEngine implements Closeable {
         }
 
         // Use shell to handle complex commands
-        return new String[]{"sh", "-c", processedCommand};
+        return new String[] {"sh", "-c", processedCommand};
     }
 
     /** Trims whitespace from output. */
@@ -169,8 +167,7 @@ public class DockerCodeExecutionEngine implements Closeable {
     /** Creates a Docker client with the specified configuration. */
     private static DockerClient createDockerClient(DockerExecutionConfig config) {
         try {
-            DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig
-                    .createDefaultConfigBuilder();
+            DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder();
 
             if (config.dockerHost() != null) {
                 configBuilder.withDockerHost(config.dockerHost());

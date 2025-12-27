@@ -1,19 +1,16 @@
 package dev.langchain4j.community.code.docker;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.community.code.docker.DockerExecutionException.ErrorType;
 import dev.langchain4j.exception.LangChain4jException;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class DockerExecutionExceptionTest {
 
     @Test
     void should_extend_langchain4j_exception() {
-        DockerExecutionException exception = new DockerExecutionException(
-                ErrorType.UNKNOWN,
-                "test message"
-        );
+        DockerExecutionException exception = new DockerExecutionException(ErrorType.UNKNOWN, "test message");
 
         assertThat(exception).isInstanceOf(LangChain4jException.class);
         assertThat(exception).isInstanceOf(RuntimeException.class);
@@ -34,10 +31,8 @@ class DockerExecutionExceptionTest {
 
     @Test
     void should_create_with_error_type_and_message() {
-        DockerExecutionException exception = new DockerExecutionException(
-                ErrorType.DOCKER_NOT_AVAILABLE,
-                "Docker is not running"
-        );
+        DockerExecutionException exception =
+                new DockerExecutionException(ErrorType.DOCKER_NOT_AVAILABLE, "Docker is not running");
 
         assertThat(exception.getMessage()).isEqualTo("Docker is not running");
         assertThat(exception.getErrorType()).isEqualTo(ErrorType.DOCKER_NOT_AVAILABLE);
@@ -46,11 +41,8 @@ class DockerExecutionExceptionTest {
 
     @Test
     void should_create_with_error_type_message_and_image() {
-        DockerExecutionException exception = new DockerExecutionException(
-                ErrorType.IMAGE_NOT_FOUND,
-                "Image not found",
-                "python:3.12-slim"
-        );
+        DockerExecutionException exception =
+                new DockerExecutionException(ErrorType.IMAGE_NOT_FOUND, "Image not found", "python:3.12-slim");
 
         assertThat(exception.getErrorType()).isEqualTo(ErrorType.IMAGE_NOT_FOUND);
         assertThat(exception.getImage()).isEqualTo("python:3.12-slim");
@@ -59,12 +51,7 @@ class DockerExecutionExceptionTest {
     @Test
     void should_create_with_full_execution_details() {
         DockerExecutionException exception = new DockerExecutionException(
-                ErrorType.EXECUTION_FAILED,
-                "Execution failed",
-                "python:3.12-slim",
-                1,
-                "Traceback: ZeroDivisionError"
-        );
+                ErrorType.EXECUTION_FAILED, "Execution failed", "python:3.12-slim", 1, "Traceback: ZeroDivisionError");
 
         assertThat(exception.getErrorType()).isEqualTo(ErrorType.EXECUTION_FAILED);
         assertThat(exception.getImage()).isEqualTo("python:3.12-slim");
@@ -126,10 +113,7 @@ class DockerExecutionExceptionTest {
     @Test
     void should_create_execution_failed_exception() {
         DockerExecutionException exception = DockerExecutionException.executionFailed(
-                "python:3.12-slim",
-                1,
-                "NameError: name 'undefined' is not defined"
-        );
+                "python:3.12-slim", 1, "NameError: name 'undefined' is not defined");
 
         assertThat(exception.getErrorType()).isEqualTo(ErrorType.EXECUTION_FAILED);
         assertThat(exception.getMessage()).contains("exit code 1");
@@ -151,12 +135,7 @@ class DockerExecutionExceptionTest {
     @Test
     void should_have_meaningful_to_string() {
         DockerExecutionException exception = new DockerExecutionException(
-                ErrorType.EXECUTION_FAILED,
-                "Test failure",
-                "python:3.12-slim",
-                127,
-                "command not found"
-        );
+                ErrorType.EXECUTION_FAILED, "Test failure", "python:3.12-slim", 127, "command not found");
 
         String toString = exception.toString();
 
@@ -172,12 +151,7 @@ class DockerExecutionExceptionTest {
     void should_truncate_long_stderr_in_to_string() {
         String longStderr = "x".repeat(200);
         DockerExecutionException exception = new DockerExecutionException(
-                ErrorType.EXECUTION_FAILED,
-                "Test failure",
-                "python:3.12-slim",
-                1,
-                longStderr
-        );
+                ErrorType.EXECUTION_FAILED, "Test failure", "python:3.12-slim", 1, longStderr);
 
         String toString = exception.toString();
 
@@ -188,10 +162,7 @@ class DockerExecutionExceptionTest {
 
     @Test
     void should_handle_null_values_in_to_string() {
-        DockerExecutionException exception = new DockerExecutionException(
-                ErrorType.UNKNOWN,
-                "Simple error"
-        );
+        DockerExecutionException exception = new DockerExecutionException(ErrorType.UNKNOWN, "Simple error");
 
         String toString = exception.toString();
 
@@ -206,17 +177,17 @@ class DockerExecutionExceptionTest {
     @Test
     void should_have_all_error_types() {
         // Verify all expected error types exist
-        assertThat(ErrorType.values()).containsExactlyInAnyOrder(
-                ErrorType.DOCKER_NOT_AVAILABLE,
-                ErrorType.IMAGE_NOT_FOUND,
-                ErrorType.IMAGE_PULL_FAILED,
-                ErrorType.CONTAINER_CREATE_FAILED,
-                ErrorType.EXECUTION_TIMEOUT,
-                ErrorType.EXECUTION_FAILED,
-                ErrorType.OUTPUT_LIMIT_EXCEEDED,
-                ErrorType.RESOURCE_LIMIT_EXCEEDED,
-                ErrorType.CODE_COPY_FAILED,
-                ErrorType.UNKNOWN
-        );
+        assertThat(ErrorType.values())
+                .containsExactlyInAnyOrder(
+                        ErrorType.DOCKER_NOT_AVAILABLE,
+                        ErrorType.IMAGE_NOT_FOUND,
+                        ErrorType.IMAGE_PULL_FAILED,
+                        ErrorType.CONTAINER_CREATE_FAILED,
+                        ErrorType.EXECUTION_TIMEOUT,
+                        ErrorType.EXECUTION_FAILED,
+                        ErrorType.OUTPUT_LIMIT_EXCEEDED,
+                        ErrorType.RESOURCE_LIMIT_EXCEEDED,
+                        ErrorType.CODE_COPY_FAILED,
+                        ErrorType.UNKNOWN);
     }
 }

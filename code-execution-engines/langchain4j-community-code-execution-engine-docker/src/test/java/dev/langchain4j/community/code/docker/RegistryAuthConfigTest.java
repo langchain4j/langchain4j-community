@@ -1,12 +1,11 @@
 package dev.langchain4j.community.code.docker;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 
 /**
  * Unit tests for {@link RegistryAuthConfig}.
@@ -68,10 +67,10 @@ class RegistryAuthConfigTest {
     @NullAndEmptySource
     void should_throw_when_registry_is_blank(String registry) {
         assertThatThrownBy(() -> RegistryAuthConfig.builder()
-                .registry(registry)
-                .username("user")
-                .password("pass")
-                .build())
+                        .registry(registry)
+                        .username("user")
+                        .password("pass")
+                        .build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("registry");
     }
@@ -80,10 +79,10 @@ class RegistryAuthConfigTest {
     @NullAndEmptySource
     void should_throw_when_username_is_blank(String username) {
         assertThatThrownBy(() -> RegistryAuthConfig.builder()
-                .registry("docker.io")
-                .username(username)
-                .password("pass")
-                .build())
+                        .registry("docker.io")
+                        .username(username)
+                        .password("pass")
+                        .build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("username");
     }
@@ -92,10 +91,10 @@ class RegistryAuthConfigTest {
     @NullAndEmptySource
     void should_throw_when_password_is_blank(String password) {
         assertThatThrownBy(() -> RegistryAuthConfig.builder()
-                .registry("docker.io")
-                .username("user")
-                .password(password)
-                .build())
+                        .registry("docker.io")
+                        .username("user")
+                        .password(password)
+                        .build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("password");
     }
@@ -120,11 +119,8 @@ class RegistryAuthConfigTest {
 
     @Test
     void should_support_aws_ecr() {
-        RegistryAuthConfig config = RegistryAuthConfig.of(
-                "123456789.dkr.ecr.us-east-1.amazonaws.com",
-                "AWS",
-                "ecr-auth-token"
-        );
+        RegistryAuthConfig config =
+                RegistryAuthConfig.of("123456789.dkr.ecr.us-east-1.amazonaws.com", "AWS", "ecr-auth-token");
 
         assertThat(config.registry()).isEqualTo("123456789.dkr.ecr.us-east-1.amazonaws.com");
         assertThat(config.username()).isEqualTo("AWS");
@@ -132,33 +128,21 @@ class RegistryAuthConfigTest {
 
     @Test
     void should_support_google_container_registry() {
-        RegistryAuthConfig config = RegistryAuthConfig.of(
-                "gcr.io",
-                "_json_key",
-                "{\"type\":\"service_account\"}"
-        );
+        RegistryAuthConfig config = RegistryAuthConfig.of("gcr.io", "_json_key", "{\"type\":\"service_account\"}");
 
         assertThat(config.registry()).isEqualTo("gcr.io");
     }
 
     @Test
     void should_support_azure_container_registry() {
-        RegistryAuthConfig config = RegistryAuthConfig.of(
-                "myregistry.azurecr.io",
-                "client-id",
-                "client-secret"
-        );
+        RegistryAuthConfig config = RegistryAuthConfig.of("myregistry.azurecr.io", "client-id", "client-secret");
 
         assertThat(config.registry()).isEqualTo("myregistry.azurecr.io");
     }
 
     @Test
     void should_support_private_registry_with_port() {
-        RegistryAuthConfig config = RegistryAuthConfig.of(
-                "registry.internal.company.com:5000",
-                "admin",
-                "secret"
-        );
+        RegistryAuthConfig config = RegistryAuthConfig.of("registry.internal.company.com:5000", "admin", "secret");
 
         assertThat(config.registry()).isEqualTo("registry.internal.company.com:5000");
     }

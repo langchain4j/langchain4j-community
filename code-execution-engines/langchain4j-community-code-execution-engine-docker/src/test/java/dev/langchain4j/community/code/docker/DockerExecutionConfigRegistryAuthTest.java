@@ -1,13 +1,12 @@
 package dev.langchain4j.community.code.docker;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
-
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for registry authentication support in {@link DockerExecutionConfig}.
@@ -20,40 +19,40 @@ class DockerExecutionConfigRegistryAuthTest {
 
     @ParameterizedTest
     @CsvSource({
-            // Official Docker Hub images
-            "python:3.12-slim, docker.io",
-            "node:20-alpine, docker.io",
-            "alpine:latest, docker.io",
-            "ubuntu, docker.io",
+        // Official Docker Hub images
+        "python:3.12-slim, docker.io",
+        "node:20-alpine, docker.io",
+        "alpine:latest, docker.io",
+        "ubuntu, docker.io",
 
-            // Docker Hub user/organization images
-            "library/python:3.12, docker.io",
-            "bitnami/redis:latest, docker.io",
-            "myuser/myimage:v1, docker.io",
+        // Docker Hub user/organization images
+        "library/python:3.12, docker.io",
+        "bitnami/redis:latest, docker.io",
+        "myuser/myimage:v1, docker.io",
 
-            // GitHub Container Registry
-            "ghcr.io/owner/image:tag, ghcr.io",
-            "ghcr.io/myorg/myapp:latest, ghcr.io",
+        // GitHub Container Registry
+        "ghcr.io/owner/image:tag, ghcr.io",
+        "ghcr.io/myorg/myapp:latest, ghcr.io",
 
-            // Google Container Registry
-            "gcr.io/project/image:tag, gcr.io",
-            "us.gcr.io/project/image, us.gcr.io",
-            "eu.gcr.io/project/image:v1, eu.gcr.io",
+        // Google Container Registry
+        "gcr.io/project/image:tag, gcr.io",
+        "us.gcr.io/project/image, us.gcr.io",
+        "eu.gcr.io/project/image:v1, eu.gcr.io",
 
-            // AWS ECR
-            "123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:latest, 123456789.dkr.ecr.us-east-1.amazonaws.com",
-            "987654321.dkr.ecr.eu-west-1.amazonaws.com/service:v2, 987654321.dkr.ecr.eu-west-1.amazonaws.com",
+        // AWS ECR
+        "123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:latest, 123456789.dkr.ecr.us-east-1.amazonaws.com",
+        "987654321.dkr.ecr.eu-west-1.amazonaws.com/service:v2, 987654321.dkr.ecr.eu-west-1.amazonaws.com",
 
-            // Azure Container Registry
-            "myregistry.azurecr.io/app:latest, myregistry.azurecr.io",
-            "company.azurecr.io/service/api:v1, company.azurecr.io",
+        // Azure Container Registry
+        "myregistry.azurecr.io/app:latest, myregistry.azurecr.io",
+        "company.azurecr.io/service/api:v1, company.azurecr.io",
 
-            // Private registry with port
-            "registry.company.com:5000/image:tag, registry.company.com:5000",
-            "localhost:5000/myimage:latest, localhost:5000",
+        // Private registry with port
+        "registry.company.com:5000/image:tag, registry.company.com:5000",
+        "localhost:5000/myimage:latest, localhost:5000",
 
-            // Localhost registry
-            "localhost/myimage:latest, localhost"
+        // Localhost registry
+        "localhost/myimage:latest, localhost"
     })
     void should_extract_registry_from_image_name(String imageName, String expectedRegistry) {
         String registry = DockerExecutionConfig.extractRegistry(imageName);
@@ -75,9 +74,8 @@ class DockerExecutionConfigRegistryAuthTest {
     void should_add_registry_auth_using_config_object() {
         RegistryAuthConfig authConfig = RegistryAuthConfig.of("ghcr.io", "user", "token");
 
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .registryAuth(authConfig)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().registryAuth(authConfig).build();
 
         assertThat(config.registryAuths()).hasSize(1);
         assertThat(config.getRegistryAuth("ghcr.io")).isNotNull();
@@ -124,12 +122,10 @@ class DockerExecutionConfigRegistryAuthTest {
     void should_set_all_registry_auths_at_once() {
         Map<String, RegistryAuthConfig> auths = Map.of(
                 "ghcr.io", RegistryAuthConfig.of("ghcr.io", "user1", "token1"),
-                "docker.io", RegistryAuthConfig.of("docker.io", "user2", "token2")
-        );
+                "docker.io", RegistryAuthConfig.of("docker.io", "user2", "token2"));
 
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .registryAuths(auths)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().registryAuths(auths).build();
 
         assertThat(config.registryAuths()).hasSize(2);
     }
@@ -168,9 +164,8 @@ class DockerExecutionConfigRegistryAuthTest {
 
     @Test
     void should_set_tls_cert_path() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .tlsCertPath("/path/to/certs")
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().tlsCertPath("/path/to/certs").build();
 
         assertThat(config.tlsCertPath()).isEqualTo("/path/to/certs");
     }

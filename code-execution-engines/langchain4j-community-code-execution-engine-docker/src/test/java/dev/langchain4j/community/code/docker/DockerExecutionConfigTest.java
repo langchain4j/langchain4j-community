@@ -1,15 +1,14 @@
 package dev.langchain4j.community.code.docker;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class DockerExecutionConfigTest {
 
@@ -29,54 +28,43 @@ class DockerExecutionConfigTest {
 
     @Test
     void should_create_config_with_custom_memory_limit() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .memoryLimit("512m")
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().memoryLimit("512m").build();
 
         assertThat(config.memoryLimit()).isEqualTo("512m");
         assertThat(config.memoryLimitBytes()).isEqualTo(512L * 1024L * 1024L);
     }
 
     @ParameterizedTest
-    @CsvSource({
-            "256m, 268435456",
-            "1g, 1073741824",
-            "512k, 524288",
-            "100mb, 104857600",
-            "2gb, 2147483648",
-            "1024, 1024"
+    @CsvSource({"256m, 268435456", "1g, 1073741824", "512k, 524288", "100mb, 104857600", "2gb, 2147483648", "1024, 1024"
     })
     void should_parse_memory_string_correctly(String memoryString, long expectedBytes) {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .memoryLimit(memoryString)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().memoryLimit(memoryString).build();
 
         assertThat(config.memoryLimitBytes()).isEqualTo(expectedBytes);
     }
 
     @Test
     void should_create_config_with_custom_timeout() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .timeout(Duration.ofMinutes(2))
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().timeout(Duration.ofMinutes(2)).build();
 
         assertThat(config.timeout()).isEqualTo(Duration.ofMinutes(2));
     }
 
     @Test
     void should_create_config_with_network_enabled() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .networkDisabled(false)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().networkDisabled(false).build();
 
         assertThat(config.networkDisabled()).isFalse();
     }
 
     @Test
     void should_create_config_with_readonly_rootfs() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .readOnlyRootfs(true)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().readOnlyRootfs(true).build();
 
         assertThat(config.readOnlyRootfs()).isTrue();
     }
@@ -92,18 +80,16 @@ class DockerExecutionConfigTest {
 
     @Test
     void should_create_config_with_custom_user() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .user("1000:1000")
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().user("1000:1000").build();
 
         assertThat(config.user()).isEqualTo("1000:1000");
     }
 
     @Test
     void should_create_config_with_custom_working_dir() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .workingDir("/code")
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().workingDir("/code").build();
 
         assertThat(config.workingDir()).isEqualTo("/code");
     }
@@ -139,9 +125,8 @@ class DockerExecutionConfigTest {
 
     @Test
     void should_create_config_with_tls_verify() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .tlsVerify(true)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().tlsVerify(true).build();
 
         assertThat(config.tlsVerify()).isTrue();
     }
@@ -161,9 +146,8 @@ class DockerExecutionConfigTest {
 
     @Test
     void should_create_config_with_memory_swap() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .memorySwapBytes(-1L)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().memorySwapBytes(-1L).build();
 
         assertThat(config.memorySwapBytes()).isEqualTo(-1L);
     }
@@ -217,8 +201,7 @@ class DockerExecutionConfigTest {
     void should_return_immutable_cap_drop_list() {
         DockerExecutionConfig config = DockerExecutionConfig.builder().build();
 
-        assertThatThrownBy(() -> config.capDrop().add("NEW_CAP"))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> config.capDrop().add("NEW_CAP")).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
