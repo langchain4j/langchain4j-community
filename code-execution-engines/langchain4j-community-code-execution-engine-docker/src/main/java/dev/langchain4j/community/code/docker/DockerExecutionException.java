@@ -55,8 +55,8 @@ public class DockerExecutionException extends LangChain4jException {
     }
 
     /** Creates exception with full execution details. */
-    public DockerExecutionException(ErrorType errorType, String message, String image,
-                                     Integer exitCode, String stderr) {
+    public DockerExecutionException(
+            ErrorType errorType, String message, String image, Integer exitCode, String stderr) {
         super(message);
         this.errorType = errorType;
         this.image = image;
@@ -99,46 +99,30 @@ public class DockerExecutionException extends LangChain4jException {
                 ErrorType.DOCKER_NOT_AVAILABLE,
                 "Docker daemon is not available. Please ensure Docker is installed and running.",
                 null,
-                cause
-        );
+                cause);
     }
 
     /** Creates "image not found" exception. */
     public static DockerExecutionException imageNotFound(String image) {
-        return new DockerExecutionException(
-                ErrorType.IMAGE_NOT_FOUND,
-                "Docker image not found: " + image,
-                image
-        );
+        return new DockerExecutionException(ErrorType.IMAGE_NOT_FOUND, "Docker image not found: " + image, image);
     }
 
     /** Creates "image pull failed" exception. */
     public static DockerExecutionException imagePullFailed(String image, Throwable cause) {
         return new DockerExecutionException(
-                ErrorType.IMAGE_PULL_FAILED,
-                "Failed to pull Docker image: " + image,
-                image,
-                cause
-        );
+                ErrorType.IMAGE_PULL_FAILED, "Failed to pull Docker image: " + image, image, cause);
     }
 
     /** Creates "container create failed" exception. */
     public static DockerExecutionException containerCreateFailed(String image, Throwable cause) {
         return new DockerExecutionException(
-                ErrorType.CONTAINER_CREATE_FAILED,
-                "Failed to create container with image: " + image,
-                image,
-                cause
-        );
+                ErrorType.CONTAINER_CREATE_FAILED, "Failed to create container with image: " + image, image, cause);
     }
 
     /** Creates "execution timeout" exception. */
     public static DockerExecutionException executionTimeout(String image, long timeout) {
         return new DockerExecutionException(
-                ErrorType.EXECUTION_TIMEOUT,
-                "Code execution timed out after " + timeout + " seconds",
-                image
-        );
+                ErrorType.EXECUTION_TIMEOUT, "Code execution timed out after " + timeout + " seconds", image);
     }
 
     /** Creates "execution failed" exception. */
@@ -148,18 +132,13 @@ public class DockerExecutionException extends LangChain4jException {
                 "Code execution failed with exit code " + exitCode,
                 image,
                 exitCode,
-                stderr
-        );
+                stderr);
     }
 
     /** Creates "code copy failed" exception. */
     public static DockerExecutionException codeCopyFailed(Throwable cause) {
         return new DockerExecutionException(
-                ErrorType.CODE_COPY_FAILED,
-                "Failed to copy code to container",
-                null,
-                cause
-        );
+                ErrorType.CODE_COPY_FAILED, "Failed to copy code to container", null, cause);
     }
 
     @Override

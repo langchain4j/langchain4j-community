@@ -1,13 +1,13 @@
 package dev.langchain4j.community.code.docker;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 /**
  * Configuration for Docker code execution with security constraints.
@@ -179,9 +179,9 @@ public final class DockerExecutionConfig {
         String potentialRegistry = imageName.substring(0, slashIndex);
 
         // Check if it looks like a registry (has a dot, colon, or is "localhost")
-        if (potentialRegistry.contains(".") ||
-            potentialRegistry.contains(":") ||
-            potentialRegistry.equals("localhost")) {
+        if (potentialRegistry.contains(".")
+                || potentialRegistry.contains(":")
+                || potentialRegistry.equals("localhost")) {
             return potentialRegistry;
         }
 
@@ -235,8 +235,7 @@ public final class DockerExecutionConfig {
         private String tlsCertPath = null;
         private Map<String, RegistryAuthConfig> registryAuths = new HashMap<>();
 
-        private Builder() {
-        }
+        private Builder() {}
 
         /** Sets memory limit (e.g., "256m", "1g"). */
         public Builder memoryLimit(String memoryLimit) {
@@ -318,10 +317,7 @@ public final class DockerExecutionConfig {
 
         /** Adds a single environment variable. */
         public Builder addEnvironmentVariable(String key, String value) {
-            this.environmentVariables.put(
-                    ensureNotBlank(key, "key"),
-                    ensureNotNull(value, "value")
-            );
+            this.environmentVariables.put(ensureNotBlank(key, "key"), ensureNotNull(value, "value"));
             return this;
         }
 
@@ -369,15 +365,14 @@ public final class DockerExecutionConfig {
 
     @Override
     public String toString() {
-        return "DockerExecutionConfig{" +
-                "memoryLimit='" + memoryLimit + '\'' +
-                ", timeout=" + timeout +
-                ", networkDisabled=" + networkDisabled +
-                ", readOnlyRootfs=" + readOnlyRootfs +
-                ", capDrop=" + capDrop +
-                ", workingDir='" + workingDir + '\'' +
-                ", dockerHost='" + dockerHost + '\'' +
-                ", registryAuths=" + registryAuths.size() + " configured" +
-                '}';
+        return "DockerExecutionConfig{" + "memoryLimit='"
+                + memoryLimit + '\'' + ", timeout="
+                + timeout + ", networkDisabled="
+                + networkDisabled + ", readOnlyRootfs="
+                + readOnlyRootfs + ", capDrop="
+                + capDrop + ", workingDir='"
+                + workingDir + '\'' + ", dockerHost='"
+                + dockerHost + '\'' + ", registryAuths="
+                + registryAuths.size() + " configured" + '}';
     }
 }

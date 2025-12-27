@@ -62,8 +62,7 @@ public final class RegistryAuthConfig {
         private String password;
         private String email;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         /** Sets the registry address (e.g., "ghcr.io", "docker.io"). */
         public Builder registry(String registry) {
@@ -100,10 +99,10 @@ public final class RegistryAuthConfig {
 
     @Override
     public String toString() {
-        return "RegistryAuthConfig{" +
-                "registry='" + registry + '\'' +
-                ", username='" + username + '\'' +
-                ", password='***'" +  // Never log passwords
+        return "RegistryAuthConfig{" + "registry='"
+                + registry + '\'' + ", username='"
+                + username + '\'' + ", password='***'"
+                + // Never log passwords
                 '}';
     }
 }

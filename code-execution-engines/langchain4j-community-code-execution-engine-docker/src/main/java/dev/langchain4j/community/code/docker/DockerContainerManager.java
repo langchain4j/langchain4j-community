@@ -1,5 +1,8 @@
 package dev.langchain4j.community.code.docker;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
@@ -12,11 +15,6 @@ import com.github.dockerjava.api.model.Capability;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.StreamType;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,9 +24,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Manages Docker container lifecycle: create, copy code, start, wait, get logs, remove.
@@ -64,7 +63,8 @@ public class DockerContainerManager {
             List<String> envVars = buildEnvironmentVariables();
 
             // Create container
-            CreateContainerResponse container = dockerClient.createContainerCmd(image)
+            CreateContainerResponse container = dockerClient
+                    .createContainerCmd(image)
                     .withHostConfig(hostConfig)
                     .withCmd(command)
                     .withWorkingDir(config.workingDir())
@@ -218,7 +218,8 @@ public class DockerContainerManager {
         try {
             byte[] tarContent = createTarArchive(code, filename);
 
-            dockerClient.copyArchiveToContainerCmd(containerId)
+            dockerClient
+                    .copyArchiveToContainerCmd(containerId)
                     .withRemotePath(config.workingDir())
                     .withTarInputStream(new ByteArrayInputStream(tarContent))
                     .exec();
@@ -232,7 +233,7 @@ public class DockerContainerManager {
     /** Creates a tar archive containing the code file. */
     private byte[] createTarArchive(String code, String filename) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             TarArchiveOutputStream tar = new TarArchiveOutputStream(baos)) {
+                TarArchiveOutputStream tar = new TarArchiveOutputStream(baos)) {
 
             byte[] codeBytes = code.getBytes(StandardCharsets.UTF_8);
 
@@ -260,11 +261,7 @@ public class DockerContainerManager {
             LOGGER.debug("Container started: {}", containerId);
         } catch (DockerException e) {
             throw new DockerExecutionException(
-                    DockerExecutionException.ErrorType.UNKNOWN,
-                    "Failed to start container: " + containerId,
-                    null,
-                    e
-            );
+                    DockerExecutionException.ErrorType.UNKNOWN, "Failed to start container: " + containerId, null, e);
         }
     }
 
@@ -302,15 +299,10 @@ public class DockerContainerManager {
                     DockerExecutionException.ErrorType.UNKNOWN,
                     "Error closing wait callback for container: " + containerId,
                     null,
-                    e
-            );
+                    e);
         } catch (Exception e) {
             throw new DockerExecutionException(
-                    DockerExecutionException.ErrorType.UNKNOWN,
-                    "Error waiting for container: " + containerId,
-                    null,
-                    e
-            );
+                    DockerExecutionException.ErrorType.UNKNOWN, "Error waiting for container: " + containerId, null, e);
         }
     }
 
@@ -347,7 +339,8 @@ public class DockerContainerManager {
                 }
             }
         }) {
-            dockerClient.logContainerCmd(containerId)
+            dockerClient
+                    .logContainerCmd(containerId)
                     .withStdOut(streamType == StreamType.STDOUT)
                     .withStdErr(streamType == StreamType.STDERR)
                     .withFollowStream(false)
@@ -370,7 +363,8 @@ public class DockerContainerManager {
         ensureNotBlank(containerId, "containerId");
 
         try {
-            InspectContainerResponse inspection = dockerClient.inspectContainerCmd(containerId).exec();
+            InspectContainerResponse inspection =
+                    dockerClient.inspectContainerCmd(containerId).exec();
             InspectContainerResponse.ContainerState state = inspection.getState();
             if (state != null) {
                 return state.getExitCodeLong() != null ? state.getExitCodeLong().intValue() : null;
@@ -390,9 +384,7 @@ public class DockerContainerManager {
         LOGGER.debug("Removing container: {}", containerId);
 
         try {
-            dockerClient.removeContainerCmd(containerId)
-                    .withRemoveVolumes(true)
-                    .exec();
+            dockerClient.removeContainerCmd(containerId).withRemoveVolumes(true).exec();
             LOGGER.debug("Removed container: {}", containerId);
         } catch (NotFoundException e) {
             LOGGER.debug("Container already removed: {}", containerId);
@@ -410,7 +402,8 @@ public class DockerContainerManager {
         LOGGER.debug("Force removing container: {}", containerId);
 
         try {
-            dockerClient.removeContainerCmd(containerId)
+            dockerClient
+                    .removeContainerCmd(containerId)
                     .withForce(true)
                     .withRemoveVolumes(true)
                     .exec();

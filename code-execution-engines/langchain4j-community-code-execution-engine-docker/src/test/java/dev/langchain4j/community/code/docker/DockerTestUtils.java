@@ -6,11 +6,10 @@ import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
+import java.time.Duration;
 import org.junit.jupiter.api.Assumptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
 
 /**
  * Test utilities for Docker-based tests.
@@ -40,17 +39,13 @@ public final class DockerTestUtils {
 
     /** Skips the test if Docker is not available. */
     public static void assumeDockerAvailable() {
-        Assumptions.assumeTrue(
-                isDockerAvailable(),
-                "Docker is not available - skipping test"
-        );
+        Assumptions.assumeTrue(isDockerAvailable(), "Docker is not available - skipping test");
     }
 
     /** Creates a Docker client for testing purposes. */
     public static DockerClient createDockerClient() {
-        DockerClientConfig config = DefaultDockerClientConfig
-                .createDefaultConfigBuilder()
-                .build();
+        DockerClientConfig config =
+                DefaultDockerClientConfig.createDefaultConfigBuilder().build();
 
         DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
                 .dockerHost(config.getDockerHost())
@@ -67,18 +62,13 @@ public final class DockerTestUtils {
     public static void ensureImageAvailable(String imageName) {
         try (DockerClient client = createDockerClient()) {
             // Check if image exists locally
-            boolean imageExists = client.listImagesCmd()
-                    .withImageNameFilter(imageName)
-                    .exec()
-                    .stream()
-                    .anyMatch(image -> image.getRepoTags() != null &&
-                            java.util.Arrays.asList(image.getRepoTags()).contains(imageName));
+            boolean imageExists = client.listImagesCmd().withImageNameFilter(imageName).exec().stream()
+                    .anyMatch(image -> image.getRepoTags() != null
+                            && java.util.Arrays.asList(image.getRepoTags()).contains(imageName));
 
             if (!imageExists) {
                 LOGGER.info("Pulling image: {}", imageName);
-                client.pullImageCmd(imageName)
-                        .start()
-                        .awaitCompletion();
+                client.pullImageCmd(imageName).start().awaitCompletion();
                 LOGGER.info("Successfully pulled image: {}", imageName);
             }
         } catch (Exception e) {

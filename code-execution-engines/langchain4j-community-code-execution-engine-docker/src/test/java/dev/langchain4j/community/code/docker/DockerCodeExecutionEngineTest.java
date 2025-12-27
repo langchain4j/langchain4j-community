@@ -1,13 +1,12 @@
 package dev.langchain4j.community.code.docker;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for {@link DockerCodeExecutionEngine}.
@@ -46,9 +45,8 @@ class DockerCodeExecutionEngineTest {
 
     @Test
     void should_create_engine_with_custom_memory_limit() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .memoryLimit("512m")
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().memoryLimit("512m").build();
         DockerCodeExecutionEngine engine = new DockerCodeExecutionEngine(config);
 
         assertThat(engine.getConfig().memoryLimit()).isEqualTo("512m");
@@ -59,9 +57,8 @@ class DockerCodeExecutionEngineTest {
 
     @Test
     void should_create_engine_with_custom_timeout() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .timeout(Duration.ofMinutes(2))
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().timeout(Duration.ofMinutes(2)).build();
         DockerCodeExecutionEngine engine = new DockerCodeExecutionEngine(config);
 
         assertThat(engine.getConfig().timeout()).isEqualTo(Duration.ofMinutes(2));
@@ -71,9 +68,8 @@ class DockerCodeExecutionEngineTest {
 
     @Test
     void should_create_engine_with_network_enabled() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .networkDisabled(false)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().networkDisabled(false).build();
         DockerCodeExecutionEngine engine = new DockerCodeExecutionEngine(config);
 
         assertThat(engine.getConfig().networkDisabled()).isFalse();
@@ -95,9 +91,8 @@ class DockerCodeExecutionEngineTest {
 
     @Test
     void should_create_engine_with_custom_user() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .user("1000:1000")
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().user("1000:1000").build();
         DockerCodeExecutionEngine engine = new DockerCodeExecutionEngine(config);
 
         assertThat(engine.getConfig().user()).isEqualTo("1000:1000");
@@ -107,9 +102,8 @@ class DockerCodeExecutionEngineTest {
 
     @Test
     void should_create_engine_with_read_only_rootfs() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .readOnlyRootfs(true)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().readOnlyRootfs(true).build();
         DockerCodeExecutionEngine engine = new DockerCodeExecutionEngine(config);
 
         assertThat(engine.getConfig().readOnlyRootfs()).isTrue();
@@ -119,9 +113,8 @@ class DockerCodeExecutionEngineTest {
 
     @Test
     void should_create_engine_with_custom_working_dir() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .workingDir("/workspace")
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().workingDir("/workspace").build();
         DockerCodeExecutionEngine engine = new DockerCodeExecutionEngine(config);
 
         assertThat(engine.getConfig().workingDir()).isEqualTo("/workspace");
@@ -150,8 +143,7 @@ class DockerCodeExecutionEngineTest {
                 .build();
         DockerCodeExecutionEngine engine = new DockerCodeExecutionEngine(config);
 
-        assertThat(engine.getConfig().environmentVariables())
-                .containsEntry("MY_VAR", "my_value");
+        assertThat(engine.getConfig().environmentVariables()).containsEntry("MY_VAR", "my_value");
 
         engine.close();
     }
@@ -170,9 +162,8 @@ class DockerCodeExecutionEngineTest {
 
     @Test
     void should_create_engine_with_cpu_shares() {
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .cpuShares(512)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().cpuShares(512).build();
         DockerCodeExecutionEngine engine = new DockerCodeExecutionEngine(config);
 
         assertThat(engine.getConfig().cpuShares()).isEqualTo(512);
@@ -196,9 +187,8 @@ class DockerCodeExecutionEngineTest {
     void should_create_config_with_tls_verify() {
         // Note: We only test the config builder, not the engine,
         // because enabling TLS without certs causes Docker client creation to fail
-        DockerExecutionConfig config = DockerExecutionConfig.builder()
-                .tlsVerify(true)
-                .build();
+        DockerExecutionConfig config =
+                DockerExecutionConfig.builder().tlsVerify(true).build();
 
         assertThat(config.tlsVerify()).isTrue();
     }
@@ -341,54 +331,44 @@ class DockerCodeExecutionEngineTest {
 
     @Test
     void should_reject_null_timeout() {
-        assertThatThrownBy(() -> DockerExecutionConfig.builder()
-                .timeout(null)
-                .build())
+        assertThatThrownBy(() -> DockerExecutionConfig.builder().timeout(null).build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("timeout");
     }
 
     @Test
     void should_reject_blank_memory_limit() {
-        assertThatThrownBy(() -> DockerExecutionConfig.builder()
-                .memoryLimit("")
-                .build())
+        assertThatThrownBy(() -> DockerExecutionConfig.builder().memoryLimit("").build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("memoryLimit");
     }
 
     @Test
     void should_reject_blank_working_dir() {
-        assertThatThrownBy(() -> DockerExecutionConfig.builder()
-                .workingDir("")
-                .build())
+        assertThatThrownBy(() -> DockerExecutionConfig.builder().workingDir("").build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("workingDir");
     }
 
     @Test
     void should_reject_zero_output_size() {
-        assertThatThrownBy(() -> DockerExecutionConfig.builder()
-                .maxOutputSizeBytes(0)
-                .build())
+        assertThatThrownBy(() ->
+                        DockerExecutionConfig.builder().maxOutputSizeBytes(0).build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("maxOutputSizeBytes");
     }
 
     @Test
     void should_reject_negative_output_size() {
-        assertThatThrownBy(() -> DockerExecutionConfig.builder()
-                .maxOutputSizeBytes(-1)
-                .build())
+        assertThatThrownBy(() ->
+                        DockerExecutionConfig.builder().maxOutputSizeBytes(-1).build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("maxOutputSizeBytes");
     }
 
     @Test
     void should_reject_null_cap_drop() {
-        assertThatThrownBy(() -> DockerExecutionConfig.builder()
-                .capDrop(null)
-                .build())
+        assertThatThrownBy(() -> DockerExecutionConfig.builder().capDrop(null).build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("capDrop");
     }
@@ -396,8 +376,8 @@ class DockerCodeExecutionEngineTest {
     @Test
     void should_reject_null_environment_variables() {
         assertThatThrownBy(() -> DockerExecutionConfig.builder()
-                .environmentVariables(null)
-                .build())
+                        .environmentVariables(null)
+                        .build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("environmentVariables");
     }
