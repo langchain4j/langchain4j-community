@@ -155,6 +155,13 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- tools -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-tool-jira</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Spring Boot starters -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
