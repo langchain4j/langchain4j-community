@@ -56,7 +56,7 @@ class JiraToolTest {
         issues.add(issueNode("PROJ-2", "Second", "Done", null, "Low"));
 
         AtomicReference<RecordedRequest> recorded = new AtomicReference<>();
-        try (TestServer server = startServer("/rest/api/3/search", 200, response.toString(), recorded)) {
+        try (TestServer server = startServer("/rest/api/3/search/jql", 200, response.toString(), recorded)) {
             JiraTool tool = new JiraTool(JiraClient.builder()
                     .baseUrl(server.baseUrl())
                     .authentication(JiraClient.Authentication.bearerToken("token"))
@@ -78,7 +78,7 @@ class JiraToolTest {
         response.putArray("issues");
 
         AtomicReference<RecordedRequest> recorded = new AtomicReference<>();
-        try (TestServer server = startServer("/rest/api/3/search", 200, response.toString(), recorded)) {
+        try (TestServer server = startServer("/rest/api/3/search/jql", 200, response.toString(), recorded)) {
             JiraTool tool = new JiraTool(JiraClient.builder()
                     .baseUrl(server.baseUrl())
                     .authentication(JiraClient.Authentication.bearerToken("token"))
@@ -88,6 +88,23 @@ class JiraToolTest {
             String result = tool.searchIssues("project = PROJ");
 
             assertThat(result).isEqualTo("No issues found.");
+        }
+    }
+
+    @Test
+    void searchIssues_returnsErrorForPlainTextBody() throws Exception {
+        String errorBody = "Service unavailable";
+        AtomicReference<RecordedRequest> recorded = new AtomicReference<>();
+        try (TestServer server = startServer("/rest/api/3/search/jql", 503, errorBody, recorded)) {
+            JiraTool tool = new JiraTool(JiraClient.builder()
+                    .baseUrl(server.baseUrl())
+                    .authentication(JiraClient.Authentication.bearerToken("token"))
+                    .timeout(Duration.ofSeconds(5))
+                    .build());
+
+            String result = tool.searchIssues("project = PROJ");
+
+            assertThat(result).isEqualTo("Error: Service unavailable");
         }
     }
 

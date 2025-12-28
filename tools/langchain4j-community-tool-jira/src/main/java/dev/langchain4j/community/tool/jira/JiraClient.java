@@ -74,7 +74,7 @@ public final class JiraClient {
         for (String field : SEARCH_FIELDS) {
             fields.add(field);
         }
-        HttpRequest request = requestBuilder("/rest/api/3/search")
+        HttpRequest request = requestBuilder("/rest/api/3/search/jql")
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(writeJson(payload), StandardCharsets.UTF_8))
                 .build();

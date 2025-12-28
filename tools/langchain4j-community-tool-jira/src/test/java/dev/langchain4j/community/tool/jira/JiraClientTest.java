@@ -47,7 +47,7 @@ class JiraClientTest {
     @Test
     void searchIssues_sendsJqlAndFields() throws Exception {
         AtomicReference<RecordedRequest> recorded = new AtomicReference<>();
-        try (TestServer server = startServer("/rest/api/3/search", 200, "{\"issues\":[]}", recorded)) {
+        try (TestServer server = startServer("/rest/api/3/search/jql", 200, "{\"issues\":[]}", recorded)) {
             JiraClient client = JiraClient.builder()
                     .baseUrl(server.baseUrl())
                     .authentication(JiraClient.Authentication.basic("user@example.com", "token"))
@@ -180,6 +180,15 @@ class JiraClientTest {
         assertThatThrownBy(() -> client.createIssue(null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("payload must not be null");
+    }
+
+    @Test
+    void addComment_nullBody_throwsNullPointerException() {
+        JiraClient client = JiraClient.builder().baseUrl("http://localhost").build();
+
+        assertThatThrownBy(() -> client.addComment("PROJ-1", null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("body must not be null");
     }
 
     private static TestServer startServer(
