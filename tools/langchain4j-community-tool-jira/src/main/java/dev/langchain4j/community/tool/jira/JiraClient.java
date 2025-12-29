@@ -2,6 +2,7 @@ package dev.langchain4j.community.tool.jira;
 
 import static dev.langchain4j.http.client.HttpMethod.GET;
 import static dev.langchain4j.http.client.HttpMethod.POST;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,7 +63,7 @@ public final class JiraClient {
      * @return issue payload as {@link JsonNode}
      */
     public JsonNode getIssue(String issueKey) {
-        String key = requireNotBlank(issueKey, "issueKey");
+        String key = ensureNotBlank(issueKey, "issueKey");
         HttpRequest request = requestBuilder("/rest/api/3/issue/" + encodePathSegment(key))
                 .method(GET)
                 .build();
@@ -77,7 +78,7 @@ public final class JiraClient {
      * @return search response as {@link JsonNode}
      */
     public JsonNode searchIssues(String jql, int maxResults) {
-        String query = requireNotBlank(jql, "jql");
+        String query = ensureNotBlank(jql, "jql");
         if (maxResults <= 0) {
             throw new IllegalArgumentException("maxResults must be greater than 0");
         }
@@ -118,7 +119,7 @@ public final class JiraClient {
      * @return comment response as {@link JsonNode}
      */
     public JsonNode addComment(String issueKey, JsonNode body) {
-        String key = requireNotBlank(issueKey, "issueKey");
+        String key = ensureNotBlank(issueKey, "issueKey");
         Objects.requireNonNull(body, "body must not be null");
         HttpRequest request = requestBuilder("/rest/api/3/issue/" + encodePathSegment(key) + "/comment")
                 .addHeader("Content-Type", "application/json")
@@ -170,15 +171,8 @@ public final class JiraClient {
         }
     }
 
-    private static String requireNotBlank(String value, String name) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(name + " must not be blank");
-        }
-        return value;
-    }
-
     private static URI normalizeBaseUrl(String baseUrl) {
-        String value = requireNotBlank(baseUrl, "baseUrl");
+        String value = ensureNotBlank(baseUrl, "baseUrl");
         String trimmed = value.trim();
         while (trimmed.endsWith("/")) {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
@@ -279,7 +273,7 @@ public final class JiraClient {
         private final String headerValue;
 
         private BearerTokenAuthentication(String token) {
-            String value = requireNotBlank(token, "token");
+            String value = ensureNotBlank(token, "token");
             this.headerValue = "Bearer " + value;
         }
 
@@ -293,8 +287,8 @@ public final class JiraClient {
         private final String headerValue;
 
         private BasicAuthentication(String email, String apiToken) {
-            String user = requireNotBlank(email, "email");
-            String token = requireNotBlank(apiToken, "apiToken");
+            String user = ensureNotBlank(email, "email");
+            String token = ensureNotBlank(apiToken, "apiToken");
             String raw = user + ":" + token;
             String encoded = Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
             this.headerValue = "Basic " + encoded;

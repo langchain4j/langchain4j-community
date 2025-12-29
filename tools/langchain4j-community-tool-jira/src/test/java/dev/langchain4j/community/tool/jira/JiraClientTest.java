@@ -161,7 +161,7 @@ class JiraClientTest {
 
         assertThatThrownBy(() -> client.getIssue(" "))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("issueKey must not be blank");
+                .hasMessageContaining("issueKey cannot be null or blank");
     }
 
     @Test
