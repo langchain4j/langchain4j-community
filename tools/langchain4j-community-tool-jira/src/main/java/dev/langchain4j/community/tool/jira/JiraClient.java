@@ -14,9 +14,7 @@ import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
-import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
@@ -37,7 +35,7 @@ public final class JiraClient {
     private final Authentication authentication;
 
     private JiraClient(Builder builder) {
-        this.baseUri = normalizeBaseUrl(builder.baseUrl);
+        this.baseUri = JiraUtils.normalizeBaseUrl(builder.baseUrl);
         this.timeout = Objects.requireNonNull(builder.timeout, "timeout must not be null");
         this.authentication = builder.authentication;
         if (builder.httpClient != null) {
@@ -64,7 +62,8 @@ public final class JiraClient {
      */
     public JsonNode getIssue(String issueKey) {
         String key = ensureNotBlank(issueKey, "issueKey");
-        HttpRequest request = requestBuilder("/rest/api/3/issue/" + encodePathSegment(key))
+        HttpRequest request =
+                requestBuilder("/rest/api/3/issue/" + JiraUtils.encodePathSegment(key))
                 .method(GET)
                 .build();
         return send(request);
@@ -89,7 +88,7 @@ public final class JiraClient {
         }
         HttpRequest request = requestBuilder("/rest/api/3/search/jql")
                 .addHeader("Content-Type", "application/json")
-                .body(writeJson(payload))
+                .body(JiraUtils.writeJson(payload))
                 .method(POST)
                 .build();
         return send(request);
@@ -105,7 +104,7 @@ public final class JiraClient {
         Objects.requireNonNull(payload, "payload must not be null");
         HttpRequest request = requestBuilder("/rest/api/3/issue")
                 .addHeader("Content-Type", "application/json")
-                .body(writeJson(payload))
+                .body(JiraUtils.writeJson(payload))
                 .method(POST)
                 .build();
         return send(request);
@@ -121,9 +120,13 @@ public final class JiraClient {
     public JsonNode addComment(String issueKey, JsonNode body) {
         String key = ensureNotBlank(issueKey, "issueKey");
         Objects.requireNonNull(body, "body must not be null");
-        HttpRequest request = requestBuilder("/rest/api/3/issue/" + encodePathSegment(key) + "/comment")
+        HttpRequest request =
+                requestBuilder(
+                                "/rest/api/3/issue/"
+                                        + JiraUtils.encodePathSegment(key)
+                                        + "/comment")
                 .addHeader("Content-Type", "application/json")
-                .body(writeJson(body))
+                .body(JiraUtils.writeJson(body))
                 .method(POST)
                 .build();
         return send(request);
@@ -142,7 +145,7 @@ public final class JiraClient {
     private JsonNode send(HttpRequest request) {
         try {
             SuccessfulHttpResponse response = httpClient.execute(request);
-            return readJson(response.body());
+            return JiraUtils.readJson(response.body());
         } catch (HttpException e) {
             throw new JiraClientException(e.statusCode(), e.getMessage());
         } catch (RuntimeException e) {
@@ -150,38 +153,6 @@ public final class JiraClient {
         } catch (Exception e) {
             throw new JiraClientException("I/O error while calling Jira API", e);
         }
-    }
-
-    private static JsonNode readJson(String body) {
-        if (body == null || body.isBlank()) {
-            return OBJECT_MAPPER.nullNode();
-        }
-        try {
-            return OBJECT_MAPPER.readTree(body);
-        } catch (IOException e) {
-            throw new JiraClientException("Failed to parse JSON response from Jira", e);
-        }
-    }
-
-    private static String writeJson(JsonNode payload) {
-        try {
-            return OBJECT_MAPPER.writeValueAsString(payload);
-        } catch (IOException e) {
-            throw new JiraClientException("Failed to serialize JSON request for Jira", e);
-        }
-    }
-
-    private static URI normalizeBaseUrl(String baseUrl) {
-        String value = ensureNotBlank(baseUrl, "baseUrl");
-        String trimmed = value.trim();
-        while (trimmed.endsWith("/")) {
-            trimmed = trimmed.substring(0, trimmed.length() - 1);
-        }
-        return URI.create(trimmed);
-    }
-
-    private static String encodePathSegment(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     /**
