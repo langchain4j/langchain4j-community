@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.http.client.HttpClient;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -276,6 +277,7 @@ public final class JiraTool {
         private String baseUrl;
         private JiraClient.Authentication authentication;
         private Duration timeout = Duration.ofSeconds(30);
+        private HttpClient httpClient;
 
         private Builder() {}
 
@@ -304,14 +306,23 @@ public final class JiraTool {
         }
 
         /**
+         * Sets a custom {@link HttpClient} for the underlying {@link JiraClient}.
+         */
+        public Builder httpClient(HttpClient httpClient) {
+            this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
+            return this;
+        }
+
+        /**
          * Builds a {@link JiraTool} with an underlying {@link JiraClient}.
          */
         public JiraTool build() {
-            JiraClient client = JiraClient.builder()
-                    .baseUrl(baseUrl)
-                    .authentication(authentication)
-                    .timeout(timeout)
-                    .build();
+            JiraClient.Builder clientBuilder =
+                    JiraClient.builder().baseUrl(baseUrl).authentication(authentication).timeout(timeout);
+            if (httpClient != null) {
+                clientBuilder.httpClient(httpClient);
+            }
+            JiraClient client = clientBuilder.build();
             return new JiraTool(client);
         }
     }

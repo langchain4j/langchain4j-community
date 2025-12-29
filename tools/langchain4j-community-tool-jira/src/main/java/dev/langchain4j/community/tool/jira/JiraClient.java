@@ -1,15 +1,21 @@
 package dev.langchain4j.community.tool.jira;
 
+import static dev.langchain4j.http.client.HttpMethod.GET;
+import static dev.langchain4j.http.client.HttpMethod.POST;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.langchain4j.exception.HttpException;
+import dev.langchain4j.http.client.HttpClient;
+import dev.langchain4j.http.client.HttpClientBuilder;
+import dev.langchain4j.http.client.HttpClientBuilderLoader;
+import dev.langchain4j.http.client.HttpRequest;
+import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
@@ -17,7 +23,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Low-level Jira Cloud REST API v3 client backed by {@link java.net.http.HttpClient}.
+ * Low-level Jira Cloud REST API v3 client backed by {@link dev.langchain4j.http.client.HttpClient}.
  */
 public final class JiraClient {
 
@@ -33,7 +39,13 @@ public final class JiraClient {
         this.baseUri = normalizeBaseUrl(builder.baseUrl);
         this.timeout = Objects.requireNonNull(builder.timeout, "timeout must not be null");
         this.authentication = builder.authentication;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
+        if (builder.httpClient != null) {
+            this.httpClient = builder.httpClient;
+        } else {
+            HttpClientBuilder httpClientBuilder =
+                    HttpClientBuilderLoader.loadHttpClientBuilder().connectTimeout(timeout).readTimeout(timeout);
+            this.httpClient = httpClientBuilder.build();
+        }
     }
 
     /**
@@ -52,7 +64,7 @@ public final class JiraClient {
     public JsonNode getIssue(String issueKey) {
         String key = requireNotBlank(issueKey, "issueKey");
         HttpRequest request = requestBuilder("/rest/api/3/issue/" + encodePathSegment(key))
-                .GET()
+                .method(GET)
                 .build();
         return send(request);
     }
@@ -75,8 +87,9 @@ public final class JiraClient {
             fields.add(field);
         }
         HttpRequest request = requestBuilder("/rest/api/3/search/jql")
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(writeJson(payload), StandardCharsets.UTF_8))
+                .addHeader("Content-Type", "application/json")
+                .body(writeJson(payload))
+                .method(POST)
                 .build();
         return send(request);
     }
@@ -90,8 +103,9 @@ public final class JiraClient {
     public JsonNode createIssue(JsonNode payload) {
         Objects.requireNonNull(payload, "payload must not be null");
         HttpRequest request = requestBuilder("/rest/api/3/issue")
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(writeJson(payload), StandardCharsets.UTF_8))
+                .addHeader("Content-Type", "application/json")
+                .body(writeJson(payload))
+                .method(POST)
                 .build();
         return send(request);
     }
@@ -107,15 +121,17 @@ public final class JiraClient {
         String key = requireNotBlank(issueKey, "issueKey");
         Objects.requireNonNull(body, "body must not be null");
         HttpRequest request = requestBuilder("/rest/api/3/issue/" + encodePathSegment(key) + "/comment")
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(writeJson(body), StandardCharsets.UTF_8))
+                .addHeader("Content-Type", "application/json")
+                .body(writeJson(body))
+                .method(POST)
                 .build();
         return send(request);
     }
 
     private HttpRequest.Builder requestBuilder(String path) {
-        HttpRequest.Builder builder =
-                HttpRequest.newBuilder(baseUri.resolve(path)).timeout(timeout).header("Accept", "application/json");
+        HttpRequest.Builder builder = HttpRequest.builder()
+                .url(baseUri.resolve(path).toString())
+                .addHeader("Accept", "application/json");
         if (authentication != null) {
             authentication.apply(builder);
         }
@@ -123,21 +139,16 @@ public final class JiraClient {
     }
 
     private JsonNode send(HttpRequest request) {
-        HttpResponse<String> response;
         try {
-            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        } catch (IOException e) {
+            SuccessfulHttpResponse response = httpClient.execute(request);
+            return readJson(response.body());
+        } catch (HttpException e) {
+            throw new JiraClientException(e.statusCode(), e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
             throw new JiraClientException("I/O error while calling Jira API", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new JiraClientException("Request interrupted while calling Jira API", e);
         }
-        int statusCode = response.statusCode();
-        String body = response.body() == null ? "" : response.body();
-        if (statusCode < 200 || statusCode >= 300) {
-            throw new JiraClientException(statusCode, body);
-        }
-        return readJson(body);
     }
 
     private static JsonNode readJson(String body) {
@@ -220,6 +231,7 @@ public final class JiraClient {
         private String baseUrl;
         private Authentication authentication;
         private Duration timeout = Duration.ofSeconds(30);
+        private HttpClient httpClient;
 
         private Builder() {}
 
@@ -248,6 +260,14 @@ public final class JiraClient {
         }
 
         /**
+         * Sets a custom {@link HttpClient} implementation.
+         */
+        public Builder httpClient(HttpClient httpClient) {
+            this.httpClient = Objects.requireNonNull(httpClient, "httpClient must not be null");
+            return this;
+        }
+
+        /**
          * Builds a {@link JiraClient}.
          */
         public JiraClient build() {
@@ -265,7 +285,7 @@ public final class JiraClient {
 
         @Override
         public void apply(HttpRequest.Builder requestBuilder) {
-            requestBuilder.header("Authorization", headerValue);
+            requestBuilder.addHeader("Authorization", headerValue);
         }
     }
 
@@ -282,7 +302,7 @@ public final class JiraClient {
 
         @Override
         public void apply(HttpRequest.Builder requestBuilder) {
-            requestBuilder.header("Authorization", headerValue);
+            requestBuilder.addHeader("Authorization", headerValue);
         }
     }
 
