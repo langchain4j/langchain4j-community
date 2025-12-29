@@ -192,4 +192,3 @@ final class JiraUtils {
         return doc;
     }
 }
-

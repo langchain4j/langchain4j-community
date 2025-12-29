@@ -41,8 +41,9 @@ public final class JiraClient {
         if (builder.httpClient != null) {
             this.httpClient = builder.httpClient;
         } else {
-            HttpClientBuilder httpClientBuilder =
-                    HttpClientBuilderLoader.loadHttpClientBuilder().connectTimeout(timeout).readTimeout(timeout);
+            HttpClientBuilder httpClientBuilder = HttpClientBuilderLoader.loadHttpClientBuilder()
+                    .connectTimeout(timeout)
+                    .readTimeout(timeout);
             this.httpClient = httpClientBuilder.build();
         }
     }
@@ -62,8 +63,7 @@ public final class JiraClient {
      */
     public JsonNode getIssue(String issueKey) {
         String key = ensureNotBlank(issueKey, "issueKey");
-        HttpRequest request =
-                requestBuilder("/rest/api/3/issue/" + JiraUtils.encodePathSegment(key))
+        HttpRequest request = requestBuilder("/rest/api/3/issue/" + JiraUtils.encodePathSegment(key))
                 .method(GET)
                 .build();
         return send(request);
@@ -120,11 +120,7 @@ public final class JiraClient {
     public JsonNode addComment(String issueKey, JsonNode body) {
         String key = ensureNotBlank(issueKey, "issueKey");
         Objects.requireNonNull(body, "body must not be null");
-        HttpRequest request =
-                requestBuilder(
-                                "/rest/api/3/issue/"
-                                        + JiraUtils.encodePathSegment(key)
-                                        + "/comment")
+        HttpRequest request = requestBuilder("/rest/api/3/issue/" + JiraUtils.encodePathSegment(key) + "/comment")
                 .addHeader("Content-Type", "application/json")
                 .body(JiraUtils.writeJson(body))
                 .method(POST)
@@ -133,9 +129,8 @@ public final class JiraClient {
     }
 
     private HttpRequest.Builder requestBuilder(String path) {
-        HttpRequest.Builder builder = HttpRequest.builder()
-                .url(baseUri.resolve(path).toString())
-                .addHeader("Accept", "application/json");
+        HttpRequest.Builder builder =
+                HttpRequest.builder().url(baseUri.resolve(path).toString()).addHeader("Accept", "application/json");
         if (authentication != null) {
             authentication.apply(builder);
         }

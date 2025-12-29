@@ -38,8 +38,7 @@ public final class JiraTool {
             JsonNode fields = issue.get("fields");
             String summary = JiraUtils.textOrDefault(JiraUtils.getNode(fields, "summary"), "(no summary)");
             String status = JiraUtils.textOrDefault(JiraUtils.getNode(fields, "status", "name"), "Unknown");
-            String priority =
-                    JiraUtils.textOrDefault(JiraUtils.getNode(fields, "priority", "name"), "Unspecified");
+            String priority = JiraUtils.textOrDefault(JiraUtils.getNode(fields, "priority", "name"), "Unspecified");
             String assignee =
                     JiraUtils.textOrDefault(JiraUtils.getNode(fields, "assignee", "displayName"), "Unassigned");
             JsonNode descriptionNode = JiraUtils.getNode(fields, "description");
@@ -70,8 +69,7 @@ public final class JiraTool {
                 JsonNode fields = issue.get("fields");
                 String summary = JiraUtils.textOrDefault(JiraUtils.getNode(fields, "summary"), "(no summary)");
                 String status = JiraUtils.textOrDefault(JiraUtils.getNode(fields, "status", "name"), "Unknown");
-                String priority =
-                        JiraUtils.textOrDefault(JiraUtils.getNode(fields, "priority", "name"), "Unspecified");
+                String priority = JiraUtils.textOrDefault(JiraUtils.getNode(fields, "priority", "name"), "Unspecified");
                 String assignee =
                         JiraUtils.textOrDefault(JiraUtils.getNode(fields, "assignee", "displayName"), "Unassigned");
                 if (sb.length() > 0) {
@@ -177,8 +175,10 @@ public final class JiraTool {
          * Builds a {@link JiraTool} with an underlying {@link JiraClient}.
          */
         public JiraTool build() {
-            JiraClient.Builder clientBuilder =
-                    JiraClient.builder().baseUrl(baseUrl).authentication(authentication).timeout(timeout);
+            JiraClient.Builder clientBuilder = JiraClient.builder()
+                    .baseUrl(baseUrl)
+                    .authentication(authentication)
+                    .timeout(timeout);
             if (httpClient != null) {
                 clientBuilder.httpClient(httpClient);
             }
