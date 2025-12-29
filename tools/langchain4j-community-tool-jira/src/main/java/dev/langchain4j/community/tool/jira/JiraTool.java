@@ -49,7 +49,7 @@ public final class JiraTool {
             return String.format(
                     "[%s] %s (%s) | Assignee: %s | Priority: %s%n%s",
                     issueKey, summary, status, assignee, priority, descriptionLine);
-        } catch (JiraClient.JiraClientException e) {
+        } catch (JiraClientException e) {
             return formatError(e);
         } catch (RuntimeException e) {
             return formatError(e);
@@ -79,7 +79,7 @@ public final class JiraTool {
                         "- [%s] %s (%s) | Assignee: %s | Priority: %s", issueKey, summary, status, assignee, priority));
             }
             return sb.toString();
-        } catch (JiraClient.JiraClientException e) {
+        } catch (JiraClientException e) {
             return formatError(e);
         } catch (RuntimeException e) {
             return formatError(e);
@@ -107,7 +107,7 @@ public final class JiraTool {
             JsonNode response = client.createIssue(payload);
             String key = textOrDefault(response.get("key"), "(unknown key)");
             return "Created issue [" + key + "]";
-        } catch (JiraClient.JiraClientException e) {
+        } catch (JiraClientException e) {
             return formatError(e);
         } catch (RuntimeException e) {
             return formatError(e);
@@ -121,7 +121,7 @@ public final class JiraTool {
             payload.set("body", toADF(body));
             client.addComment(issueKey, payload);
             return "Comment added";
-        } catch (JiraClient.JiraClientException e) {
+        } catch (JiraClientException e) {
             return formatError(e);
         } catch (RuntimeException e) {
             return formatError(e);
@@ -209,7 +209,7 @@ public final class JiraTool {
     }
 
     private static String formatError(RuntimeException exception) {
-        if (exception instanceof JiraClient.JiraClientException jiraException) {
+        if (exception instanceof JiraClientException jiraException) {
             String message = extractErrorMessage(jiraException.getResponseBody());
             if (message == null || message.isBlank()) {
                 if (jiraException.getStatusCode() > 0) {

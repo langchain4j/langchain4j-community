@@ -132,7 +132,7 @@ class JiraClientTest {
                     .build();
 
             assertThatThrownBy(() -> client.getIssue("NOPE-1"))
-                    .isInstanceOf(JiraClient.JiraClientException.class)
+                    .isInstanceOf(JiraClientException.class)
                     .extracting("statusCode", "responseBody")
                     .containsExactly(404, responseJson);
         }
@@ -148,7 +148,7 @@ class JiraClientTest {
                     .build();
 
             assertThatThrownBy(() -> client.getIssue("TEST-JSON"))
-                    .isInstanceOf(JiraClient.JiraClientException.class)
+                    .isInstanceOf(JiraClientException.class)
                     .hasMessageContaining("Failed to parse JSON response from Jira")
                     .extracting("statusCode", "responseBody")
                     .containsExactly(-1, null);
