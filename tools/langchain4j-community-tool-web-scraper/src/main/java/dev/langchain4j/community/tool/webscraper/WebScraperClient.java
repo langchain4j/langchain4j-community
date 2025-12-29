@@ -1,11 +1,14 @@
 package dev.langchain4j.community.tool.webscraper;
 
+import static dev.langchain4j.http.client.HttpMethod.GET;
+
+import dev.langchain4j.exception.HttpException;
+import dev.langchain4j.http.client.HttpClient;
+import dev.langchain4j.http.client.HttpClientBuilderLoader;
+import dev.langchain4j.http.client.HttpRequest;
+import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -32,7 +35,7 @@ public final class WebScraperClient {
     private final HttpClient httpClient;
 
     public WebScraperClient() {
-        this(HttpClient.newHttpClient());
+        this(HttpClientBuilderLoader.loadHttpClientBuilder().build());
     }
 
     public WebScraperClient(HttpClient httpClient) {
@@ -51,18 +54,30 @@ public final class WebScraperClient {
      */
     public String fetchHtml(URI uri) throws IOException, InterruptedException {
         Objects.requireNonNull(uri, "uri");
-        HttpRequest request = HttpRequest.newBuilder(uri)
-                .GET()
-                .header("Accept", "text/html,application/xhtml+xml")
-                .header("User-Agent", "langchain4j-community-web-scraper")
+        HttpRequest request = HttpRequest.builder()
+                .method(GET)
+                .url(uri.toString())
+                .addHeader("Accept", "text/html,application/xhtml+xml")
+                .addHeader("User-Agent", "langchain4j-community-web-scraper")
                 .build();
-        HttpResponse<String> response =
-                httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        int status = response.statusCode();
-        if (status < 200 || status >= 300) {
-            throw new IOException("Unexpected HTTP status: " + status);
+        try {
+            SuccessfulHttpResponse response = httpClient.execute(request);
+            String body = response.body();
+            return body == null ? "" : body;
+        } catch (HttpException e) {
+            throw new IOException("Unexpected HTTP status: " + e.statusCode(), e);
+        } catch (RuntimeException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof InterruptedException interruptedException) {
+                InterruptedException wrapper = new InterruptedException(interruptedException.getMessage());
+                wrapper.initCause(interruptedException);
+                throw wrapper;
+            }
+            if (cause instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw e;
         }
-        return response.body();
     }
 
     /**
