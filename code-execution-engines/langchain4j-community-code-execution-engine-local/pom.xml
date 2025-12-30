@@ -14,7 +14,7 @@
     <description>Implementation uses the local computer env to execute provided command line code.</description>
 
     <properties>
-        <commons-exec.version>1.5.0</commons-exec.version>
+        <commons-exec.version>1.6.0</commons-exec.version>
     </properties>
 
     <dependencies>
