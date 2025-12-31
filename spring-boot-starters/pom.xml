@@ -31,6 +31,7 @@
         <module>langchain4j-community-vearch-spring-boot-starter</module>
         <module>langchain4j-community-xinference-spring-boot-starter</module>
         <module>langchain4j-community-neo4j-spring-boot-starter</module>
+        <module>langchain4j-community-oceanbase-spring-boot-starter</module>
     </modules>
 
     <properties>
