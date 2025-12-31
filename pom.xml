@@ -70,6 +70,9 @@
         <!-- Integration of code execution engines -->
         <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
 
+        <!-- Tool integrations -->
+        <module>tools/langchain4j-community-tool-jira</module>
+
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
 
