@@ -128,6 +128,13 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- document loaders -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-document-loader-confluence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- document parsers -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
