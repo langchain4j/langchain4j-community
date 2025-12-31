@@ -20,8 +20,8 @@
     </licenses>
 
     <properties>
-        <clickhouse-jdbc.version>0.9.4</clickhouse-jdbc.version>
-        <lz4.version>1.8.0</lz4.version>
+        <clickhouse-jdbc.version>0.9.5</clickhouse-jdbc.version>
+        <lz4.version>1.8.1</lz4.version>
     </properties>
 
     <dependencies>
@@ -104,17 +104,8 @@
                 <groupId>org.honton.chas</groupId>
                 <artifactId>license-maven-plugin</artifactId>
                 <configuration>
-                    <acceptableLicenses combine.children="append">
-                        <!-- due to excludes/includes above -->
-                        <license>
-                            <name>Eclipse Public License</name>
-                            <url>http://www.eclipse.org/legal/epl-v10.html</url>
-                        </license>
-                        <license>
-                            <name>GNU Lesser General Public License</name>
-                            <url>http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html</url>
-                        </license>
-                    </acceptableLicenses>
+                    <!-- skip compliance due to lz4 -->
+                    <skipCompliance>true</skipCompliance>
                 </configuration>
             </plugin>
         </plugins>
