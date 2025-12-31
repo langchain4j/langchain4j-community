@@ -1,5 +1,7 @@
 package dev.langchain4j.community.tool.jira;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -20,7 +22,7 @@ public final class JiraTool {
     private final JiraClient client;
 
     public JiraTool(JiraClient client) {
-        this.client = Objects.requireNonNull(client, "client must not be null");
+        this.client = ensureNotNull(client, "client must not be null");
     }
 
     /**
@@ -48,8 +50,6 @@ public final class JiraTool {
             return String.format(
                     "[%s] %s (%s) | Assignee: %s | Priority: %s%n%s",
                     issueKey, summary, status, assignee, priority, descriptionLine);
-        } catch (JiraClientException e) {
-            return JiraUtils.formatError(e);
         } catch (RuntimeException e) {
             return JiraUtils.formatError(e);
         }
@@ -72,15 +72,13 @@ public final class JiraTool {
                 String priority = JiraUtils.textOrDefault(JiraUtils.getNode(fields, "priority", "name"), "Unspecified");
                 String assignee =
                         JiraUtils.textOrDefault(JiraUtils.getNode(fields, "assignee", "displayName"), "Unassigned");
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     sb.append(System.lineSeparator());
                 }
                 sb.append(String.format(
                         "- [%s] %s (%s) | Assignee: %s | Priority: %s", issueKey, summary, status, assignee, priority));
             }
             return sb.toString();
-        } catch (JiraClientException e) {
-            return JiraUtils.formatError(e);
         } catch (RuntimeException e) {
             return JiraUtils.formatError(e);
         }
@@ -107,8 +105,6 @@ public final class JiraTool {
             JsonNode response = client.createIssue(payload);
             String key = JiraUtils.textOrDefault(response.get("key"), "(unknown key)");
             return "Created issue [" + key + "]";
-        } catch (JiraClientException e) {
-            return JiraUtils.formatError(e);
         } catch (RuntimeException e) {
             return JiraUtils.formatError(e);
         }
@@ -121,8 +117,6 @@ public final class JiraTool {
             payload.set("body", JiraUtils.toADF(body));
             client.addComment(issueKey, payload);
             return "Comment added";
-        } catch (JiraClientException e) {
-            return JiraUtils.formatError(e);
         } catch (RuntimeException e) {
             return JiraUtils.formatError(e);
         }

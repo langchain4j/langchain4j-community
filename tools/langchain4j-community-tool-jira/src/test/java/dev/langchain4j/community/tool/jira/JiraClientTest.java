@@ -23,6 +23,39 @@ class JiraClientTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static TestServer startServer(
+            String path, int statusCode, String responseBody, AtomicReference<RecordedRequest> recorded)
+            throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        server.setExecutor(executor);
+        server.createContext(path, exchange -> {
+            RecordedRequest request = new RecordedRequest();
+            request.method = exchange.getRequestMethod();
+            request.path = exchange.getRequestURI().getPath();
+            request.authorization = exchange.getRequestHeaders().getFirst("Authorization");
+            request.contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+            request.body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            recorded.set(request);
+            byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(statusCode, responseBytes.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(responseBytes);
+            }
+        });
+        server.start();
+        return new TestServer(server, executor);
+    }
+
+    private static List<String> toStringList(JsonNode arrayNode) {
+        List<String> values = new ArrayList<>();
+        if (arrayNode != null && arrayNode.isArray()) {
+            arrayNode.forEach(node -> values.add(node.asText()));
+        }
+        return values;
+    }
+
     @Test
     void getIssue_sendsBearerAuthAndParsesResponse() throws Exception {
         AtomicReference<RecordedRequest> recorded = new AtomicReference<>();
@@ -191,47 +224,7 @@ class JiraClientTest {
                 .hasMessageContaining("body must not be null");
     }
 
-    private static TestServer startServer(
-            String path, int statusCode, String responseBody, AtomicReference<RecordedRequest> recorded)
-            throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        server.setExecutor(executor);
-        server.createContext(path, exchange -> {
-            RecordedRequest request = new RecordedRequest();
-            request.method = exchange.getRequestMethod();
-            request.path = exchange.getRequestURI().getPath();
-            request.authorization = exchange.getRequestHeaders().getFirst("Authorization");
-            request.contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-            request.body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            recorded.set(request);
-            byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(statusCode, responseBytes.length);
-            try (OutputStream outputStream = exchange.getResponseBody()) {
-                outputStream.write(responseBytes);
-            }
-        });
-        server.start();
-        return new TestServer(server, executor);
-    }
-
-    private static List<String> toStringList(JsonNode arrayNode) {
-        List<String> values = new ArrayList<>();
-        if (arrayNode != null && arrayNode.isArray()) {
-            arrayNode.forEach(node -> values.add(node.asText()));
-        }
-        return values;
-    }
-
-    private static final class TestServer implements AutoCloseable {
-        private final HttpServer server;
-        private final ExecutorService executor;
-
-        private TestServer(HttpServer server, ExecutorService executor) {
-            this.server = server;
-            this.executor = executor;
-        }
+    private record TestServer(HttpServer server, ExecutorService executor) implements AutoCloseable {
 
         private String baseUrl() {
             return "http://localhost:" + server.getAddress().getPort();

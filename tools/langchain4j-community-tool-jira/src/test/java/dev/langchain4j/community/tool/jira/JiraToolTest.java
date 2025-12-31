@@ -20,6 +20,59 @@ class JiraToolTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static ObjectNode adf(String text) {
+        ObjectNode doc = OBJECT_MAPPER.createObjectNode();
+        doc.put("version", 1);
+        doc.put("type", "doc");
+        var content = doc.putArray("content");
+        ObjectNode paragraph = content.addObject();
+        paragraph.put("type", "paragraph");
+        var paragraphContent = paragraph.putArray("content");
+        ObjectNode textNode = paragraphContent.addObject();
+        textNode.put("type", "text");
+        textNode.put("text", text);
+        return doc;
+    }
+
+    private static ObjectNode issueNode(String key, String summary, String status, String assignee, String priority) {
+        ObjectNode issue = OBJECT_MAPPER.createObjectNode();
+        issue.put("key", key);
+        ObjectNode fields = issue.putObject("fields");
+        fields.put("summary", summary);
+        fields.putObject("status").put("name", status);
+        if (assignee != null) {
+            fields.putObject("assignee").put("displayName", assignee);
+        } else {
+            fields.putNull("assignee");
+        }
+        fields.putObject("priority").put("name", priority);
+        return issue;
+    }
+
+    private static TestServer startServer(
+            String path, int statusCode, String responseBody, AtomicReference<RecordedRequest> recorded)
+            throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        server.setExecutor(executor);
+        server.createContext(path, exchange -> {
+            RecordedRequest request = new RecordedRequest();
+            request.method = exchange.getRequestMethod();
+            request.path = exchange.getRequestURI().getPath();
+            request.contentType = exchange.getRequestHeaders().getFirst("Content-Type");
+            request.body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            recorded.set(request);
+            byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(statusCode, responseBytes.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(responseBytes);
+            }
+        });
+        server.start();
+        return new TestServer(server, executor);
+    }
+
     @Test
     void getIssue_formatsDescriptionAndTruncates() throws Exception {
         String longText = "a".repeat(600);
@@ -224,67 +277,7 @@ class JiraToolTest {
         }
     }
 
-    private static ObjectNode adf(String text) {
-        ObjectNode doc = OBJECT_MAPPER.createObjectNode();
-        doc.put("version", 1);
-        doc.put("type", "doc");
-        var content = doc.putArray("content");
-        ObjectNode paragraph = content.addObject();
-        paragraph.put("type", "paragraph");
-        var paragraphContent = paragraph.putArray("content");
-        ObjectNode textNode = paragraphContent.addObject();
-        textNode.put("type", "text");
-        textNode.put("text", text);
-        return doc;
-    }
-
-    private static ObjectNode issueNode(String key, String summary, String status, String assignee, String priority) {
-        ObjectNode issue = OBJECT_MAPPER.createObjectNode();
-        issue.put("key", key);
-        ObjectNode fields = issue.putObject("fields");
-        fields.put("summary", summary);
-        fields.putObject("status").put("name", status);
-        if (assignee != null) {
-            fields.putObject("assignee").put("displayName", assignee);
-        } else {
-            fields.putNull("assignee");
-        }
-        fields.putObject("priority").put("name", priority);
-        return issue;
-    }
-
-    private static TestServer startServer(
-            String path, int statusCode, String responseBody, AtomicReference<RecordedRequest> recorded)
-            throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        server.setExecutor(executor);
-        server.createContext(path, exchange -> {
-            RecordedRequest request = new RecordedRequest();
-            request.method = exchange.getRequestMethod();
-            request.path = exchange.getRequestURI().getPath();
-            request.contentType = exchange.getRequestHeaders().getFirst("Content-Type");
-            request.body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            recorded.set(request);
-            byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(statusCode, responseBytes.length);
-            try (OutputStream outputStream = exchange.getResponseBody()) {
-                outputStream.write(responseBytes);
-            }
-        });
-        server.start();
-        return new TestServer(server, executor);
-    }
-
-    private static final class TestServer implements AutoCloseable {
-        private final HttpServer server;
-        private final ExecutorService executor;
-
-        private TestServer(HttpServer server, ExecutorService executor) {
-            this.server = server;
-            this.executor = executor;
-        }
+    private record TestServer(HttpServer server, ExecutorService executor) implements AutoCloseable {
 
         private String baseUrl() {
             return "http://localhost:" + server.getAddress().getPort();

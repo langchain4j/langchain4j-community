@@ -3,6 +3,7 @@ package dev.langchain4j.community.tool.jira;
 import static dev.langchain4j.http.client.HttpMethod.GET;
 import static dev.langchain4j.http.client.HttpMethod.POST;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,12 +32,11 @@ public final class JiraClient {
 
     private final HttpClient httpClient;
     private final URI baseUri;
-    private final Duration timeout;
     private final Authentication authentication;
 
     private JiraClient(Builder builder) {
         this.baseUri = JiraUtils.normalizeBaseUrl(builder.baseUrl);
-        this.timeout = Objects.requireNonNull(builder.timeout, "timeout must not be null");
+        Duration timeout = ensureNotNull(builder.timeout, "timeout must not be null");
         this.authentication = builder.authentication;
         if (builder.httpClient != null) {
             this.httpClient = builder.httpClient;
@@ -72,7 +72,7 @@ public final class JiraClient {
     /**
      * Searches Jira issues by JQL.
      *
-     * @param jql JQL query
+     * @param jql        JQL query
      * @param maxResults max number of results to return
      * @return search response as {@link JsonNode}
      */
@@ -114,7 +114,7 @@ public final class JiraClient {
      * Adds a comment to an issue.
      *
      * @param issueKey issue key, e.g. "PROJ-123"
-     * @param body comment payload
+     * @param body     comment payload
      * @return comment response as {@link JsonNode}
      */
     public JsonNode addComment(String issueKey, JsonNode body) {
@@ -156,13 +156,6 @@ public final class JiraClient {
     public interface Authentication {
 
         /**
-         * Applies authentication headers to the request.
-         *
-         * @param requestBuilder request builder
-         */
-        void apply(HttpRequest.Builder requestBuilder);
-
-        /**
          * Creates a bearer token authentication strategy.
          *
          * @param token bearer token value
@@ -175,19 +168,27 @@ public final class JiraClient {
         /**
          * Creates a basic authentication strategy.
          *
-         * @param email Jira account email
+         * @param email    Jira account email
          * @param apiToken Jira API token
          * @return authentication strategy
          */
         static Authentication basic(String email, String apiToken) {
             return new BasicAuthentication(email, apiToken);
         }
+
+        /**
+         * Applies authentication headers to the request.
+         *
+         * @param requestBuilder request builder
+         */
+        void apply(HttpRequest.Builder requestBuilder);
     }
 
     /**
      * Builder for {@link JiraClient}.
      */
     public static final class Builder {
+
         private String baseUrl;
         private Authentication authentication;
         private Duration timeout = Duration.ofSeconds(30);
