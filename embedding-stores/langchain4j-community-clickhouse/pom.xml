@@ -14,7 +14,7 @@
     <properties>
         <clickhouse.version>0.9.5</clickhouse.version>
         <clickhouse-jdbc.version>0.9.5</clickhouse-jdbc.version>
-        <lz4.version>1.8.0</lz4.version>
+        <lz4.version>1.8.1</lz4.version>
     </properties>
 
     <dependencies>
