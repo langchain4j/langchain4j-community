@@ -64,6 +64,7 @@
 
         <!-- Integration of document loaders -->
         <module>document-loaders/langchain4j-community-document-loader-confluence</module>
+        <module>document-loaders/langchain4j-community-document-loader-gitlab</module>
 
         <!-- Integration of document parsers -->
         <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
