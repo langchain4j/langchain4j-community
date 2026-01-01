@@ -59,8 +59,8 @@ class WebScraperToolIT {
         String baseUrl = startServer(new Route("/page", 200, html));
         String url = baseUrl + "/page";
 
-        Result<String> result = assistantWithStrictTools().chat(
-                "Use the web scraper tool to fetch " + url + ". "
+        Result<String> result = assistantWithStrictTools()
+                .chat("Use the web scraper tool to fetch " + url + ". "
                         + "Return the heading text, the list items, and the link URL.");
 
         ToolExecution toolExecution = toolExecutionForUrl(result, url);
@@ -79,14 +79,12 @@ class WebScraperToolIT {
         String htmlOne = "<html><body><h1>" + headingOne + "</h1></body></html>";
         String htmlTwo = "<html><body><h1>" + headingTwo + "</h1></body></html>";
 
-        String baseUrl = startServer(
-                new Route("/page-one", 200, htmlOne),
-                new Route("/page-two", 200, htmlTwo));
+        String baseUrl = startServer(new Route("/page-one", 200, htmlOne), new Route("/page-two", 200, htmlTwo));
         String urlOne = baseUrl + "/page-one";
         String urlTwo = baseUrl + "/page-two";
 
-        Result<String> result = assistantWithStrictTools().chat(
-                "Use the web scraper tool to fetch these URLs:\n"
+        Result<String> result = assistantWithStrictTools()
+                .chat("Use the web scraper tool to fetch these URLs:\n"
                         + urlOne + "\n"
                         + urlTwo + "\n"
                         + "Return the two headings separated by a comma.");
@@ -109,12 +107,13 @@ class WebScraperToolIT {
         String baseUrl = startServer(new Route("/missing", 404, "<html><body>Not Found</body></html>"));
         String url = baseUrl + "/missing";
 
-        Result<String> result = assistantWithStrictTools().chat(
-                "Use the web scraper tool to fetch " + url + ". "
-                        + "Return the tool output only.");
+        Result<String> result = assistantWithStrictTools()
+                .chat("Use the web scraper tool to fetch " + url + ". " + "Return the tool output only.");
 
         ToolExecution toolExecution = toolExecutionForUrl(result, url);
-        assertThat(toolExecution.result()).contains("Error: Failed to fetch URL").contains("404");
+        assertThat(toolExecution.result())
+                .contains("Error: Failed to fetch URL")
+                .contains("404");
         assertThat(result.content()).isNotBlank();
         logger.info(result.content());
     }
@@ -124,20 +123,20 @@ class WebScraperToolIT {
         String baseUrl = startServer(new Route("/boom", 500, "<html><body>Server Error</body></html>"));
         String url = baseUrl + "/boom";
 
-        Result<String> result = assistantWithStrictTools().chat(
-                "Use the web scraper tool to fetch " + url + ". "
-                        + "Return the tool output only.");
+        Result<String> result = assistantWithStrictTools()
+                .chat("Use the web scraper tool to fetch " + url + ". " + "Return the tool output only.");
 
         ToolExecution toolExecution = toolExecutionForUrl(result, url);
-        assertThat(toolExecution.result()).contains("Error: Failed to fetch URL").contains("500");
+        assertThat(toolExecution.result())
+                .contains("Error: Failed to fetch URL")
+                .contains("500");
         assertThat(result.content()).isNotBlank();
         logger.info(result.content());
     }
 
     @Test
     void should_not_call_tool_for_unrelated_question() {
-        Result<String> result = assistant().chat(
-                "Do not call any tools. Answer only with the number: 2 + 2 = ?");
+        Result<String> result = assistant().chat("Do not call any tools. Answer only with the number: 2 + 2 = ?");
 
         assertThat(result.toolExecutions()).isEmpty();
         assertThat(result.content()).contains("4");
