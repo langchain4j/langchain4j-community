@@ -72,6 +72,7 @@
 
         <!-- Tool integrations -->
         <module>tools/langchain4j-community-tool-jira</module>
+        <module>tools/langchain4j-community-tool-web-scraper</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
