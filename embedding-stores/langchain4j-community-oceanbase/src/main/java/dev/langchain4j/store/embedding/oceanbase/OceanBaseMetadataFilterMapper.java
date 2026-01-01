@@ -4,7 +4,15 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
 import dev.langchain4j.store.embedding.filter.Filter;
-import dev.langchain4j.store.embedding.filter.comparison.*;
+import dev.langchain4j.store.embedding.filter.comparison.ContainsString;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
+import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThanOrEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.filter.comparison.IsLessThan;
+import dev.langchain4j.store.embedding.filter.comparison.IsLessThanOrEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsNotEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
@@ -19,7 +27,7 @@ class OceanBaseMetadataFilterMapper {
      * Maps a Filter to SQL WHERE clause expression.
      * Supports filtering by table columns (id, text, metadata, vector) and metadata fields.
      *
-     * @param filter The filter to convert
+     * @param filter          The filter to convert
      * @param fieldDefinition Field definition containing table column names
      * @return SQL WHERE clause expression
      */
@@ -59,7 +67,7 @@ class OceanBaseMetadataFilterMapper {
      * If the key matches a table column name, returns the column name directly.
      * Otherwise, returns JSON_EXTRACT expression for metadata field access.
      *
-     * @param key The filter key
+     * @param key             The filter key
      * @param fieldDefinition Field definition containing table column names
      * @return SQL expression for the key
      */

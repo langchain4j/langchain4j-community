@@ -156,10 +156,8 @@ class OceanBaseFilterIT {
 
         // Should only return documents with category = "programming" AND language = "Java"
         assertThat(results.matches()).hasSize(1);
-        assertThat(results.matches().get(0).embedded().metadata().toMap().get("category"))
-                .isEqualTo("programming");
-        assertThat(results.matches().get(0).embedded().metadata().toMap().get("language"))
-                .isEqualTo("Java");
+        assertThat(results.matches().get(0).embedded().metadata().toMap()).containsEntry("category", "programming");
+        assertThat(results.matches().get(0).embedded().metadata().toMap()).containsEntry("language", "Java");
     }
 
     @Test

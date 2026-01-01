@@ -65,7 +65,6 @@ public class OceanBaseContainerTestBase {
      * Initializes the OceanBase container if environment variables are not set.
      * Should be called in @BeforeAll method.
      */
-    @SuppressWarnings("resource")
     public static void initContainer() {
         String uriFromEnv = System.getenv("OCEANBASE_URI");
         if (uriFromEnv == null) {

@@ -5,12 +5,12 @@ import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.store.embedding.oceanbase.CollectionRequestBuilder.buildWhereExpression;
+import static dev.langchain4j.store.embedding.oceanbase.OceanBaseJsonUtils.toJson;
+import static dev.langchain4j.store.embedding.oceanbase.OceanBaseJsonUtils.toMap;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
-import static dev.langchain4j.store.embedding.oceanbase.OceanBaseJsonUtils.toJson;
-import static dev.langchain4j.store.embedding.oceanbase.OceanBaseJsonUtils.toMap;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -91,6 +91,10 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     private void initializeDatabase() {
         if (!tableExists()) {
             createTable();
@@ -113,19 +117,17 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private void createTable() {
-        StringBuilder sql = new StringBuilder();
-        sql.append("CREATE TABLE IF NOT EXISTS `").append(tableName).append("` (");
-        sql.append("`").append(fieldDefinition.getIdFieldName()).append("` VARCHAR(255) PRIMARY KEY, ");
-        sql.append("`")
-                .append(fieldDefinition.getVectorFieldName())
-                .append("` VECTOR(")
-                .append(dimension)
-                .append(") NOT NULL, ");
-        sql.append("`").append(fieldDefinition.getTextFieldName()).append("` LONGTEXT, ");
-        sql.append("`").append(fieldDefinition.getMetadataFieldName()).append("` JSON");
-        sql.append(")");
+        final String sql = "CREATE TABLE IF NOT EXISTS `" + tableName + "` (" + "`"
+                + fieldDefinition.getIdFieldName() + "` VARCHAR(255) PRIMARY KEY, " + "`"
+                + fieldDefinition.getVectorFieldName()
+                + "` VECTOR("
+                + dimension
+                + ") NOT NULL, "
+                + "`"
+                + fieldDefinition.getTextFieldName() + "` LONGTEXT, " + "`"
+                + fieldDefinition.getMetadataFieldName() + "` JSON" + ")";
 
-        executeUpdate(sql.toString());
+        executeUpdate(sql);
     }
 
     private void createVectorIndex() {
@@ -195,23 +197,17 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
         if (metricType == null) {
             return "cosine";
         }
-        switch (metricType.toLowerCase()) {
-            case "l2":
-            case "euclidean":
-                return "l2";
-            case "cosine":
-                return "cosine";
-            case "inner_product":
-            case "ip":
-                return "inner_product";
-            default:
-                return "cosine";
-        }
+        return switch (metricType.toLowerCase()) {
+            case "l2", "euclidean" -> "l2";
+            case "cosine" -> "cosine";
+            case "inner_product", "ip" -> "inner_product";
+            default -> "cosine";
+        };
     }
 
     /**
      * Gets the OceanBase distance function name for the given metric type.
-     *
+     * <p>
      * Supported metrics:
      * - "cosine" (default): cosine_distance - Best for text embeddings, measures angular similarity [0, 2]
      * - "l2" or "euclidean": l2_distance - Measures Euclidean distance, considers magnitude [0, ∞)
@@ -224,18 +220,12 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
         if (metricType == null) {
             return DISTANCE_FUNCTION_COSINE;
         }
-        switch (metricType.toLowerCase()) {
-            case "l2":
-            case "euclidean":
-                return DISTANCE_FUNCTION_L2;
-            case "cosine":
-                return DISTANCE_FUNCTION_COSINE;
-            case "inner_product":
-            case "ip":
-                return DISTANCE_FUNCTION_INNER_PRODUCT;
-            default:
-                return DISTANCE_FUNCTION_COSINE;
-        }
+        return switch (metricType.toLowerCase()) {
+            case "l2", "euclidean" -> DISTANCE_FUNCTION_L2;
+            case "cosine" -> DISTANCE_FUNCTION_COSINE;
+            case "inner_product", "ip" -> DISTANCE_FUNCTION_INNER_PRODUCT;
+            default -> DISTANCE_FUNCTION_COSINE;
+        };
     }
 
     private String getDistanceFunctionName(String metricType) {
@@ -254,10 +244,6 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
             log.error("Failed to execute SQL: {}", sql, e);
             throw new RequestToOceanBaseFailedException(format("Failed to execute SQL: %s", sql), e);
         }
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public void dropCollection(String tableName) {
@@ -527,10 +513,7 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
                     double normalizedScore = Math.min(1.0, fulltextScore / 10.0);
                     row.put("score", normalizedScore);
 
-                    EmbeddingMatch<TextSegment> match = toEmbeddingMatch(row, 0.0);
-                    if (match != null) {
-                        results.add(match);
-                    }
+                    results.add(toEmbeddingMatch(row, 0.0));
                 }
             }
         } catch (SQLException e) {
@@ -697,8 +680,7 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
                         continue;
                     }
                 }
-                if (value instanceof BigDecimal) {
-                    BigDecimal bd = (BigDecimal) value;
+                if (value instanceof final BigDecimal bd) {
                     if (bd.scale() == 0) {
                         try {
                             long longValue = bd.longValueExact();
@@ -736,8 +718,8 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         double score = defaultScore;
         if (scoreObj != null) {
-            if (scoreObj instanceof Number) {
-                score = ((Number) scoreObj).doubleValue();
+            if (scoreObj instanceof Number number) {
+                score = number.doubleValue();
             } else {
                 try {
                     score = Double.parseDouble(scoreObj.toString());
