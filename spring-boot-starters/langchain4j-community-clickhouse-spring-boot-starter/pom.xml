@@ -21,7 +21,6 @@
 
     <properties>
         <clickhouse-jdbc.version>0.9.5</clickhouse-jdbc.version>
-        <lz4.version>1.10.2</lz4.version>
     </properties>
 
     <dependencies>
@@ -86,13 +85,6 @@
             <groupId>com.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
             <version>${clickhouse-jdbc.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>at.yawk.lz4</groupId>
-            <artifactId>lz4-java</artifactId>
-            <version>${lz4.version}</version>
             <scope>test</scope>
         </dependency>
 
