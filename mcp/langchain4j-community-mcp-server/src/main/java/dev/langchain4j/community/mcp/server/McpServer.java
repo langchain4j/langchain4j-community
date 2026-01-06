@@ -97,17 +97,21 @@ public class McpServer {
         }
 
         String method = message.get("method").asText();
-        return switch (method) {
-            case "initialize" -> handleInitialize(parseInitializeRequest(id, message));
-            case "tools/list" -> handleListTools(parseListToolsRequest(id, message));
-            case "tools/call" -> handleCallTool(parseCallToolRequest(id, message));
-            default -> new McpErrorResponse(
-                    id,
-                    new McpErrorResponse.Error(
-                            ERROR_CODE_METHOD_NOT_FOUND,
-                            "Method not found: " + method,
-                            null));
-        };
+        try {
+            return switch (method) {
+                case "initialize" -> handleInitialize(parseInitializeRequest(id, message));
+                case "tools/list" -> handleListTools(parseListToolsRequest(id, message));
+                case "tools/call" -> handleCallTool(parseCallToolRequest(id, message));
+                default ->
+                    new McpErrorResponse(
+                            id,
+                            new McpErrorResponse.Error(
+                                    ERROR_CODE_METHOD_NOT_FOUND, "Method not found: " + method, null));
+            };
+        } catch (Exception e) {
+            return new McpErrorResponse(
+                    id, new McpErrorResponse.Error(ERROR_CODE_INVALID_PARAMS, safeMessage(e), null));
+        }
     }
 
     private McpInitializeResult handleInitialize(McpInitializeRequest request) {
@@ -117,8 +121,7 @@ public class McpServer {
         }
         McpInitializeResult.Capabilities capabilities =
                 new McpInitializeResult.Capabilities(new McpInitializeResult.Capabilities.Tools(null));
-        McpInitializeResult.Result result =
-                new McpInitializeResult.Result(protocolVersion, capabilities, serverInfo);
+        McpInitializeResult.Result result = new McpInitializeResult.Result(protocolVersion, capabilities, serverInfo);
         return new McpInitializeResult(request.getId(), result);
     }
 
@@ -131,8 +134,7 @@ public class McpServer {
         Map<String, Object> params = request.getParams();
         if (params == null || !params.containsKey("name") || params.get("name") == null) {
             return new McpErrorResponse(
-                    request.getId(),
-                    new McpErrorResponse.Error(ERROR_CODE_INVALID_PARAMS, "Missing tool name", null));
+                    request.getId(), new McpErrorResponse.Error(ERROR_CODE_INVALID_PARAMS, "Missing tool name", null));
         }
 
         String toolName = String.valueOf(params.get("name"));
@@ -151,12 +153,11 @@ public class McpServer {
             }
         }
 
-        ToolExecutionRequest toolRequest =
-                ToolExecutionRequest.builder()
-                        .id(String.valueOf(request.getId()))
-                        .name(toolName)
-                        .arguments(arguments)
-                        .build();
+        ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
+                .id(String.valueOf(request.getId()))
+                .name(toolName)
+                .arguments(arguments)
+                .build();
 
         try {
             ToolExecutionResult result = toolExecutor.executeWithContext(toolRequest, null);
@@ -190,23 +191,22 @@ public class McpServer {
             if (executors.containsKey(toolName)) {
                 throw new IllegalArgumentException("Duplicated tool name: " + toolName);
             }
-            ToolExecutor executor =
-                    DefaultToolExecutor.builder()
-                            .object(tool)
-                            .originalMethod(method)
-                            .methodToInvoke(method)
-                            .wrapToolArgumentsExceptions(true)
-                            .propagateToolExecutionExceptions(true)
-                            .build();
+            ToolExecutor executor = DefaultToolExecutor.builder()
+                    .object(tool)
+                    .originalMethod(method)
+                    .methodToInvoke(method)
+                    .wrapToolArgumentsExceptions(true)
+                    .propagateToolExecutionExceptions(true)
+                    .build();
             executors.put(toolName, executor);
         }
     }
 
     private McpInitializeRequest parseInitializeRequest(Long id, JsonNode message) {
         McpInitializeRequest request = new McpInitializeRequest(id);
-        if (message.has(PARAMS_FIELD)) {
-            McpInitializeParams params =
-                    OBJECT_MAPPER.convertValue(message.get(PARAMS_FIELD), McpInitializeParams.class);
+        JsonNode paramsNode = message.get(PARAMS_FIELD);
+        if (paramsNode != null && paramsNode.isObject()) {
+            McpInitializeParams params = OBJECT_MAPPER.convertValue(paramsNode, McpInitializeParams.class);
             request.setParams(params);
         }
         return request;
@@ -214,19 +214,34 @@ public class McpServer {
 
     private McpListToolsRequest parseListToolsRequest(Long id, JsonNode message) {
         McpListToolsRequest request = new McpListToolsRequest(id);
-        if (message.has(PARAMS_FIELD) && message.get(PARAMS_FIELD).has("cursor")) {
-            request.setCursor(message.get(PARAMS_FIELD).get("cursor").asText());
+        JsonNode paramsNode = message.get(PARAMS_FIELD);
+        if (paramsNode != null && paramsNode.isObject() && paramsNode.has("cursor")) {
+            request.setCursor(paramsNode.get("cursor").asText());
         }
         return request;
     }
 
     private McpCallToolRequest parseCallToolRequest(Long id, JsonNode message) {
-        JsonNode params = message.get(PARAMS_FIELD);
-        String toolName = params != null && params.has("name") ? params.get("name").asText() : null;
-        ObjectNode arguments =
-                params != null && params.has(ARGUMENTS_FIELD)
-                        ? OBJECT_MAPPER.convertValue(params.get(ARGUMENTS_FIELD), ObjectNode.class)
-                        : OBJECT_MAPPER.createObjectNode();
+        JsonNode paramsNode = message.get(PARAMS_FIELD);
+
+        String toolName = null;
+        ObjectNode arguments = OBJECT_MAPPER.createObjectNode();
+
+        if (paramsNode != null && paramsNode.isObject()) {
+            JsonNode nameNode = paramsNode.get("name");
+            if (nameNode != null && !nameNode.isNull()) {
+                toolName = nameNode.asText();
+            }
+
+            JsonNode argumentsNode = paramsNode.get(ARGUMENTS_FIELD);
+            if (argumentsNode != null && !argumentsNode.isNull()) {
+                if (argumentsNode.isObject()) {
+                    arguments = (ObjectNode) argumentsNode;
+                } else {
+                    arguments = OBJECT_MAPPER.createObjectNode();
+                }
+            }
+        }
         return new McpCallToolRequest(id, toolName, arguments);
     }
 
@@ -260,4 +275,3 @@ public class McpServer {
         return info;
     }
 }
-

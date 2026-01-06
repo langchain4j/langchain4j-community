@@ -33,7 +33,8 @@ class McpToolSchemaMapper {
         }
 
         JsonObjectSchema parameters = tool.parameters();
-        JsonObjectSchema schema = parameters != null ? parameters : JsonObjectSchema.builder().build();
+        JsonObjectSchema schema =
+                parameters != null ? parameters : JsonObjectSchema.builder().build();
         map.put("inputSchema", JsonSchemaElementUtils.toMap(schema));
 
         addMetadata(tool.metadata(), map);
@@ -74,4 +75,3 @@ class McpToolSchemaMapper {
         }
     }
 }
-
