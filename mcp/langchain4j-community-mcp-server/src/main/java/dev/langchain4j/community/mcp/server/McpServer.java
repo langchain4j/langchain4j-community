@@ -52,6 +52,7 @@ public class McpServer {
 
     private static final String DEFAULT_PROTOCOL_VERSION = "2025-06-18";
     private static final String DEFAULT_SERVER_NAME = "LangChain4j";
+    private static final int ERROR_CODE_INVALID_REQUEST = -32600;
     private static final int ERROR_CODE_METHOD_NOT_FOUND = -32601;
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
     private static final String PARAMS_FIELD = "params";
@@ -87,7 +88,7 @@ public class McpServer {
     }
 
     public McpJsonRpcMessage handle(JsonNode message) {
-        if (message == null || !message.has("method")) {
+        if (message == null) {
             return null;
         }
 
@@ -96,7 +97,16 @@ public class McpServer {
             return null;
         }
 
-        String method = message.get("method").asText();
+        JsonNode methodNode = message.get("method");
+        if (methodNode == null || methodNode.isNull() || !methodNode.isTextual()) {
+            return invalidRequest(id, "Missing method");
+        }
+
+        String method = methodNode.asText();
+        if (method.isBlank()) {
+            return invalidRequest(id, "Missing method");
+        }
+
         try {
             return switch (method) {
                 case "initialize" -> handleInitialize(parseInitializeRequest(id, message));
@@ -112,6 +122,11 @@ public class McpServer {
             return new McpErrorResponse(
                     id, new McpErrorResponse.Error(ERROR_CODE_INVALID_PARAMS, safeMessage(e), null));
         }
+    }
+
+    private McpErrorResponse invalidRequest(Long id, String message) {
+        String safeMessage = (message == null || message.isBlank()) ? "Invalid Request" : "Invalid Request: " + message;
+        return new McpErrorResponse(id, new McpErrorResponse.Error(ERROR_CODE_INVALID_REQUEST, safeMessage, null));
     }
 
     private McpInitializeResult handleInitialize(McpInitializeRequest request) {

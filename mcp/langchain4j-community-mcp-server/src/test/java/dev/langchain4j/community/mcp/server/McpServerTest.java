@@ -28,6 +28,22 @@ class McpServerTest {
     }
 
     @Test
+    void should_return_invalid_request_error_for_missing_method_with_id() {
+        McpServer server = new McpServer(List.of(new Calculator()));
+
+        ObjectNode request = OBJECT_MAPPER.createObjectNode();
+        request.put("jsonrpc", "2.0");
+        request.put("id", 1);
+
+        McpJsonRpcMessage response = server.handle(request);
+        assertThat(response).isInstanceOf(McpErrorResponse.class);
+
+        McpErrorResponse errorResponse = (McpErrorResponse) response;
+        assertThat(errorResponse.getError().getCode()).isEqualTo(-32600);
+        assertThat(errorResponse.getError().getMessage()).contains("Invalid Request");
+    }
+
+    @Test
     void should_return_null_for_missing_id() {
         McpServer server = new McpServer(List.of(new Calculator()));
 

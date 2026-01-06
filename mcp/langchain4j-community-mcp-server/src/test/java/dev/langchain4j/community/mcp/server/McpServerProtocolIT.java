@@ -50,6 +50,44 @@ class McpServerProtocolIT {
     }
 
     @Test
+    void should_not_respond_to_notifications() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client().send("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
+
+            String request = jsonRequest(2L, "tools/list", Map.of());
+            harness.client().send(request);
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(2L);
+            assertThat(response.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_return_invalid_request_error_for_missing_method() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client().send("{\"jsonrpc\":\"2.0\",\"id\":3}");
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(3L);
+            assertThat(response.get("error").get("code").asInt()).isEqualTo(-32600);
+            assertThat(response.get("error").get("message").asText()).contains("Invalid Request");
+        }
+    }
+
+    @Test
+    void should_return_invalid_params_error_for_non_object_params() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client()
+                    .send("{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":\"not-an-object\"}");
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(4L);
+            assertThat(response.get("error").get("code").asInt()).isEqualTo(-32602);
+        }
+    }
+
+    @Test
     void should_ignore_malformed_json_and_continue() throws Exception {
         try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
             harness.client().send("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\"");
