@@ -161,6 +161,13 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- mcp -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-mcp-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- tools -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>

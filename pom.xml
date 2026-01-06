@@ -71,6 +71,9 @@
         <!-- Integration of code execution engines -->
         <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
 
+        <!-- MCP -->
+        <module>mcp/langchain4j-community-mcp-server</module>
+
         <!-- Tool integrations -->
         <module>tools/langchain4j-community-tool-jira</module>
         <module>tools/langchain4j-community-tool-web-scraper</module>
