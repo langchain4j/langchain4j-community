@@ -230,7 +230,7 @@ class DockerCodeExecutionEngineTest {
     void should_reject_null_image() {
         DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
 
-        assertThatThrownBy(() -> engine.execute(null, ".py", "print(1)", "python"))
+        assertThatThrownBy(() -> engine.execute(null, ".py", "print(1)", "python", Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("image");
 
@@ -241,11 +241,11 @@ class DockerCodeExecutionEngineTest {
     void should_reject_blank_image() {
         DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
 
-        assertThatThrownBy(() -> engine.execute("", ".py", "print(1)", "python"))
+        assertThatThrownBy(() -> engine.execute("", ".py", "print(1)", "python", Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("image");
 
-        assertThatThrownBy(() -> engine.execute("   ", ".py", "print(1)", "python"))
+        assertThatThrownBy(() -> engine.execute("   ", ".py", "print(1)", "python", Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("image");
 
@@ -256,7 +256,7 @@ class DockerCodeExecutionEngineTest {
     void should_reject_null_file_extension() {
         DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
 
-        assertThatThrownBy(() -> engine.execute("python:3.12-slim", null, "print(1)", "python"))
+        assertThatThrownBy(() -> engine.execute("python:3.12-slim", null, "print(1)", "python", Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("fileExtension");
 
@@ -267,7 +267,7 @@ class DockerCodeExecutionEngineTest {
     void should_reject_blank_file_extension() {
         DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
 
-        assertThatThrownBy(() -> engine.execute("python:3.12-slim", "", "print(1)", "python"))
+        assertThatThrownBy(() -> engine.execute("python:3.12-slim", "", "print(1)", "python", Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("fileExtension");
 
@@ -278,7 +278,7 @@ class DockerCodeExecutionEngineTest {
     void should_reject_null_code() {
         DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
 
-        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", null, "python"))
+        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", null, "python", Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("code");
 
@@ -289,7 +289,7 @@ class DockerCodeExecutionEngineTest {
     void should_reject_blank_code() {
         DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
 
-        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", "", "python"))
+        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", "", "python", Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("code");
 
@@ -300,7 +300,7 @@ class DockerCodeExecutionEngineTest {
     void should_reject_null_command() {
         DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
 
-        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", "print(1)", null))
+        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", "print(1)", null, Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("command");
 
@@ -311,9 +311,20 @@ class DockerCodeExecutionEngineTest {
     void should_reject_blank_command() {
         DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
 
-        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", "print(1)", ""))
+        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", "print(1)", "", Duration.ofSeconds(30)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("command");
+
+        engine.close();
+    }
+
+    @Test
+    void should_reject_null_timeout() {
+        DockerCodeExecutionEngine engine = DockerCodeExecutionEngine.withDefaultConfig();
+
+        assertThatThrownBy(() -> engine.execute("python:3.12-slim", ".py", "print(1)", "python", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("timeout");
 
         engine.close();
     }
@@ -330,7 +341,7 @@ class DockerCodeExecutionEngineTest {
     // Config builder validation tests (testing DockerExecutionConfig.Builder)
 
     @Test
-    void should_reject_null_timeout() {
+    void should_reject_null_timeout_in_config() {
         assertThatThrownBy(() -> DockerExecutionConfig.builder().timeout(null).build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("timeout");

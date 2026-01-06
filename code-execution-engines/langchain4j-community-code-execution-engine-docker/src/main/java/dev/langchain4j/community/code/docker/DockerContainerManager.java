@@ -30,7 +30,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Manages Docker container lifecycle: create, copy code, start, wait, get logs, remove.
+ * Manages the lifecycle of Docker containers for code execution.
+ *
+ * <p>Handles container creation, code injection, execution, output collection, and cleanup.
+ * Applies security constraints from {@link DockerExecutionConfig}. Images are automatically
+ * pulled if not available locally.
+ *
+ * <p>This class is thread-safe.
+ *
+ * @see DockerCodeExecutionEngine
  */
 public class DockerContainerManager {
 
@@ -39,13 +47,30 @@ public class DockerContainerManager {
     private final DockerClient dockerClient;
     private final DockerExecutionConfig config;
 
-    /** Creates a new container manager. */
+    /**
+     * Creates a new container manager with the specified Docker client and configuration.
+     *
+     * @param dockerClient the Docker client for API communication
+     * @param config the execution configuration with security constraints
+     * @throws NullPointerException if either parameter is null
+     */
     public DockerContainerManager(DockerClient dockerClient, DockerExecutionConfig config) {
         this.dockerClient = ensureNotNull(dockerClient, "dockerClient");
         this.config = ensureNotNull(config, "config");
     }
 
-    /** Creates a container with the specified image and command. Returns container ID. */
+    /**
+     * Creates a Docker container with the specified image and command.
+     *
+     * <p>Pulls the image if not available locally, applies security constraints, and creates
+     * the container. The container is created but not started.
+     *
+     * @param image the Docker image to use (e.g., "python:3.12-slim")
+     * @param command the command array to execute in the container
+     * @return the container ID
+     * @throws IllegalArgumentException if image is blank or command is null
+     * @throws DockerExecutionException if image pull or container creation fails
+     */
     public String createContainer(String image, String[] command) {
         ensureNotBlank(image, "image");
         ensureNotNull(command, "command");
@@ -85,7 +110,20 @@ public class DockerContainerManager {
         }
     }
 
-    /** Builds host configuration with security constraints. */
+    /**
+     * Builds the Docker host configuration with security constraints.
+     *
+     * <p>This method applies all security settings from the configuration:
+     * <ul>
+     *   <li>Memory limit and swap limit</li>
+     *   <li>CPU period, quota, and shares for CFS scheduler</li>
+     *   <li>Network mode ("none" if network disabled)</li>
+     *   <li>Read-only root filesystem flag</li>
+     *   <li>Linux capabilities to drop</li>
+     * </ul>
+     *
+     * @return a configured HostConfig ready for container creation
+     */
     private HostConfig buildHostConfig() {
         HostConfig hostConfig = HostConfig.newHostConfig();
 
@@ -129,7 +167,11 @@ public class DockerContainerManager {
         return hostConfig;
     }
 
-    /** Builds environment variables list in KEY=VALUE format for Docker. */
+    /**
+     * Builds the environment variables list in Docker's KEY=VALUE format.
+     *
+     * @return a list of environment variable strings for the container
+     */
     private List<String> buildEnvironmentVariables() {
         List<String> envVars = new ArrayList<>();
         for (var entry : config.environmentVariables().entrySet()) {
@@ -138,7 +180,15 @@ public class DockerContainerManager {
         return envVars;
     }
 
-    /** Parses capability strings into Capability enum values. */
+    /**
+     * Parses capability strings into Docker Capability enum values.
+     *
+     * <p>The special value "ALL" adds all available capabilities.
+     * Unknown capability names are logged as warnings and skipped.
+     *
+     * @param capStrings the list of capability names (e.g., ["ALL"], ["NET_ADMIN", "SYS_ADMIN"])
+     * @return a list of Capability enum values
+     */
     private List<Capability> parseCapabilities(List<String> capStrings) {
         List<Capability> capabilities = new ArrayList<>();
         for (String cap : capStrings) {
@@ -156,7 +206,18 @@ public class DockerContainerManager {
         return capabilities;
     }
 
-    /** Pulls the image if not available locally. Uses registry auth if configured. */
+    /**
+     * Pulls the Docker image if not available locally.
+     *
+     * <p>This method first checks if the image exists locally. If not, it pulls
+     * the image from the registry, applying authentication if configured for
+     * that registry.
+     *
+     * <p>The pull operation has a 5-minute timeout.
+     *
+     * @param image the image to pull (e.g., "python:3.12-slim", "ghcr.io/owner/image:tag")
+     * @throws DockerExecutionException if the pull fails or is interrupted
+     */
     private void pullImageIfNeeded(String image) {
         try {
             // Check if image exists locally
@@ -186,7 +247,15 @@ public class DockerContainerManager {
         }
     }
 
-    /** Builds AuthConfig for the image if registry authentication is configured. */
+    /**
+     * Builds authentication configuration for pulling an image from a private registry.
+     *
+     * <p>This method extracts the registry from the image name and looks up
+     * authentication credentials from the configuration.
+     *
+     * @param image the image name to extract registry from
+     * @return the AuthConfig for the registry, or null if no auth configured
+     */
     private AuthConfig buildAuthConfig(String image) {
         String registry = DockerExecutionConfig.extractRegistry(image);
         RegistryAuthConfig registryAuth = config.getRegistryAuth(registry);
@@ -207,7 +276,22 @@ public class DockerContainerManager {
         return authConfig;
     }
 
-    /** Copies code to the container as a file. */
+    /**
+     * Copies source code into a container as a file.
+     *
+     * <p>The code is packaged as a TAR archive and copied to the container's
+     * working directory (configured via {@link DockerExecutionConfig#workingDir()}).
+     * The file is created with mode 0644 (rw-r--r--).
+     *
+     * <p>This method must be called after {@link #createContainer(String, String[])}
+     * and before {@link #startContainer(String)}.
+     *
+     * @param containerId the container ID to copy code into
+     * @param code the source code content
+     * @param filename the filename to create in the container (e.g., "code.py")
+     * @throws IllegalArgumentException if any parameter is blank
+     * @throws DockerExecutionException with type {@code CODE_COPY_FAILED} if the copy fails
+     */
     public void copyCodeToContainer(String containerId, String code, String filename) {
         ensureNotBlank(containerId, "containerId");
         ensureNotBlank(code, "code");
@@ -230,7 +314,17 @@ public class DockerContainerManager {
         }
     }
 
-    /** Creates a tar archive containing the code file. */
+    /**
+     * Creates a TAR archive containing the code file.
+     *
+     * <p>The archive contains a single file with the specified name and content.
+     * The file is encoded as UTF-8 and given mode 0644 (rw-r--r--).
+     *
+     * @param code the source code content
+     * @param filename the filename within the archive
+     * @return the TAR archive as a byte array
+     * @throws IOException if archive creation fails
+     */
     private byte[] createTarArchive(String code, String filename) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 TarArchiveOutputStream tar = new TarArchiveOutputStream(baos)) {
@@ -250,7 +344,17 @@ public class DockerContainerManager {
         }
     }
 
-    /** Starts a container. */
+    /**
+     * Starts a container that was previously created.
+     *
+     * <p>This begins execution of the container's command. After starting,
+     * use {@link #waitForCompletion(String, Duration)} to wait for the
+     * container to finish.
+     *
+     * @param containerId the ID of the container to start
+     * @throws IllegalArgumentException if containerId is blank
+     * @throws DockerExecutionException if the container fails to start
+     */
     public void startContainer(String containerId) {
         ensureNotBlank(containerId, "containerId");
 
@@ -265,7 +369,20 @@ public class DockerContainerManager {
         }
     }
 
-    /** Waits for container to complete. Returns exit code. */
+    /**
+     * Waits for a container to complete execution.
+     *
+     * <p>This method blocks until the container exits or the timeout is reached.
+     * If the timeout is exceeded, the container is forcibly removed and an
+     * exception is thrown.
+     *
+     * @param containerId the ID of the container to wait for
+     * @param timeout the maximum time to wait for completion
+     * @return the container's exit code (0 typically means success)
+     * @throws IllegalArgumentException if containerId is blank or timeout is null
+     * @throws DockerExecutionException with type {@code EXECUTION_TIMEOUT} if the timeout is exceeded
+     * @throws DockerExecutionException for other Docker API errors
+     */
     public int waitForCompletion(String containerId, Duration timeout) {
         ensureNotBlank(containerId, "containerId");
         ensureNotNull(timeout, "timeout");
@@ -306,17 +423,44 @@ public class DockerContainerManager {
         }
     }
 
-    /** Gets stdout from a container. */
+    /**
+     * Retrieves the standard output from a container.
+     *
+     * <p>The output is collected up to the configured maximum size
+     * ({@link DockerExecutionConfig#maxOutputSizeBytes()}) to prevent
+     * memory exhaustion from excessive output.
+     *
+     * @param containerId the ID of the container
+     * @return the stdout content, possibly truncated
+     */
     public String getStdout(String containerId) {
         return getLogs(containerId, StreamType.STDOUT);
     }
 
-    /** Gets stderr from a container. */
+    /**
+     * Retrieves the standard error output from a container.
+     *
+     * <p>The output is collected up to the configured maximum size
+     * ({@link DockerExecutionConfig#maxOutputSizeBytes()}) to prevent
+     * memory exhaustion from excessive output.
+     *
+     * @param containerId the ID of the container
+     * @return the stderr content, possibly truncated
+     */
     public String getStderr(String containerId) {
         return getLogs(containerId, StreamType.STDERR);
     }
 
-    /** Gets logs filtered by stream type. */
+    /**
+     * Retrieves container logs filtered by stream type (stdout or stderr).
+     *
+     * <p>This method collects logs with a 30-second timeout. Output is truncated
+     * at the configured maximum size to prevent memory exhaustion.
+     *
+     * @param containerId the ID of the container
+     * @param streamType the type of stream to collect (STDOUT or STDERR)
+     * @return the collected log content
+     */
     private String getLogs(String containerId, StreamType streamType) {
         ensureNotBlank(containerId, "containerId");
 
@@ -358,7 +502,16 @@ public class DockerContainerManager {
         return output.toString();
     }
 
-    /** Gets exit code, or null if not available. */
+    /**
+     * Retrieves the exit code of a container.
+     *
+     * <p>This method inspects the container state to get the exit code.
+     * It should be called after the container has stopped.
+     *
+     * @param containerId the ID of the container
+     * @return the exit code, or null if not available (e.g., container still running)
+     * @throws IllegalArgumentException if containerId is blank
+     */
     public Integer getExitCode(String containerId) {
         ensureNotBlank(containerId, "containerId");
 
@@ -375,7 +528,18 @@ public class DockerContainerManager {
         return null;
     }
 
-    /** Removes a container. */
+    /**
+     * Removes a container gracefully.
+     *
+     * <p>This method removes a stopped container and its associated volumes.
+     * If the container is still running, this method may fail. Use
+     * {@link #forceRemoveContainer(String)} for running containers.
+     *
+     * <p>If the container has already been removed (not found), this method
+     * silently succeeds.
+     *
+     * @param containerId the ID of the container to remove (may be null or empty)
+     */
     public void removeContainer(String containerId) {
         if (containerId == null || containerId.isEmpty()) {
             return;
@@ -393,7 +557,21 @@ public class DockerContainerManager {
         }
     }
 
-    /** Force removes a container (kills if running). */
+    /**
+     * Forcibly removes a container, killing it if still running.
+     *
+     * <p>This method is safe to call on containers in any state. It:
+     * <ul>
+     *   <li>Kills the container if it's running</li>
+     *   <li>Removes the container and its volumes</li>
+     *   <li>Silently handles "not found" errors</li>
+     * </ul>
+     *
+     * <p>This is the recommended cleanup method for ensuring containers
+     * are always removed, regardless of their execution state.
+     *
+     * @param containerId the ID of the container to remove (may be null or empty)
+     */
     public void forceRemoveContainer(String containerId) {
         if (containerId == null || containerId.isEmpty()) {
             return;

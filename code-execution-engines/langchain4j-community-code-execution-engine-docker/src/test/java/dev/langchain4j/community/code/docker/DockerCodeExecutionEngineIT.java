@@ -43,6 +43,9 @@ class DockerCodeExecutionEngineIT {
         }
     }
 
+    /** Default timeout for integration tests */
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(60);
+
     // =========================================================================
     // Python Tests
     // =========================================================================
@@ -56,7 +59,8 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should execute simple Python print statement")
         void should_execute_simple_python_print() {
-            String result = engine.execute(PYTHON_IMAGE, ".py", "print('Hello from Python!')", "python");
+            String result =
+                    engine.execute(PYTHON_IMAGE, ".py", "print('Hello from Python!')", "python", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("Hello from Python!");
         }
@@ -64,7 +68,7 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should execute Python arithmetic")
         void should_execute_python_arithmetic() {
-            String result = engine.execute(PYTHON_IMAGE, ".py", "print(2 + 2 * 10)", "python");
+            String result = engine.execute(PYTHON_IMAGE, ".py", "print(2 + 2 * 10)", "python", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("22");
         }
@@ -83,7 +87,7 @@ class DockerCodeExecutionEngineIT {
                         print(fibonacci(i), end=' ')
                     """;
 
-            String result = engine.execute(PYTHON_IMAGE, ".py", code, "python");
+            String result = engine.execute(PYTHON_IMAGE, ".py", code, "python", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("0 1 1 2 3 5 8 13 21 34");
         }
@@ -91,7 +95,8 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should capture Python stderr on syntax error")
         void should_capture_python_stderr_on_syntax_error() {
-            assertThatThrownBy(() -> engine.execute(PYTHON_IMAGE, ".py", "print('unclosed string)", "python"))
+            assertThatThrownBy(() ->
+                            engine.execute(PYTHON_IMAGE, ".py", "print('unclosed string)", "python", DEFAULT_TIMEOUT))
                     .isInstanceOf(DockerExecutionException.class)
                     .satisfies(e -> {
                         DockerExecutionException ex = (DockerExecutionException) e;
@@ -103,8 +108,8 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should capture Python stderr on runtime error")
         void should_capture_python_stderr_on_runtime_error() {
-            assertThatThrownBy(() ->
-                            engine.execute(PYTHON_IMAGE, ".py", "raise ValueError('Test error message')", "python"))
+            assertThatThrownBy(() -> engine.execute(
+                            PYTHON_IMAGE, ".py", "raise ValueError('Test error message')", "python", DEFAULT_TIMEOUT))
                     .isInstanceOf(DockerExecutionException.class)
                     .satisfies(e -> {
                         DockerExecutionException ex = (DockerExecutionException) e;
@@ -126,7 +131,7 @@ class DockerCodeExecutionEngineIT {
                     print(json.dumps(data))
                     """;
 
-            String result = engine.execute(PYTHON_IMAGE, ".py", code, "python");
+            String result = engine.execute(PYTHON_IMAGE, ".py", code, "python", DEFAULT_TIMEOUT);
 
             assertThat(result).contains("\"pi\"").contains("3.1416");
         }
@@ -134,7 +139,7 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should handle Python with unicode output")
         void should_handle_python_unicode_output() {
-            String result = engine.execute(PYTHON_IMAGE, ".py", "print('Hello 世界 🐍')", "python");
+            String result = engine.execute(PYTHON_IMAGE, ".py", "print('Hello 世界 🐍')", "python", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("Hello 世界 🐍");
         }
@@ -153,7 +158,8 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should execute simple JavaScript console.log")
         void should_execute_simple_javascript() {
-            String result = engine.execute(NODE_IMAGE, ".js", "console.log('Hello from Node.js!');", "node");
+            String result =
+                    engine.execute(NODE_IMAGE, ".js", "console.log('Hello from Node.js!');", "node", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("Hello from Node.js!");
         }
@@ -168,7 +174,7 @@ class DockerCodeExecutionEngineIT {
                     console.log(sorted.join(', '));
                     """;
 
-            String result = engine.execute(NODE_IMAGE, ".js", code, "node");
+            String result = engine.execute(NODE_IMAGE, ".js", code, "node", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("1, 1, 2, 3, 4, 5, 6, 9");
         }
@@ -182,7 +188,7 @@ class DockerCodeExecutionEngineIT {
                     console.log(JSON.stringify(data));
                     """;
 
-            String result = engine.execute(NODE_IMAGE, ".js", code, "node");
+            String result = engine.execute(NODE_IMAGE, ".js", code, "node", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("{\"name\":\"test\",\"values\":[1,2,3]}");
         }
@@ -204,7 +210,7 @@ class DockerCodeExecutionEngineIT {
                     })();
                     """;
 
-            String result = engine.execute(NODE_IMAGE, ".js", code, "node");
+            String result = engine.execute(NODE_IMAGE, ".js", code, "node", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("async result");
         }
@@ -212,7 +218,8 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should capture JavaScript error with stack trace")
         void should_capture_javascript_error() {
-            assertThatThrownBy(() -> engine.execute(NODE_IMAGE, ".js", "throw new Error('Test JS error');", "node"))
+            assertThatThrownBy(() -> engine.execute(
+                            NODE_IMAGE, ".js", "throw new Error('Test JS error');", "node", DEFAULT_TIMEOUT))
                     .isInstanceOf(DockerExecutionException.class)
                     .satisfies(e -> {
                         DockerExecutionException ex = (DockerExecutionException) e;
@@ -235,7 +242,7 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should execute simple Ruby puts")
         void should_execute_simple_ruby() {
-            String result = engine.execute(RUBY_IMAGE, ".rb", "puts 'Hello from Ruby!'", "ruby");
+            String result = engine.execute(RUBY_IMAGE, ".rb", "puts 'Hello from Ruby!'", "ruby", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("Hello from Ruby!");
         }
@@ -249,7 +256,7 @@ class DockerCodeExecutionEngineIT {
                     puts result
                     """;
 
-            String result = engine.execute(RUBY_IMAGE, ".rb", code, "ruby");
+            String result = engine.execute(RUBY_IMAGE, ".rb", code, "ruby", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("1, 4, 9, 16, 25");
         }
@@ -273,7 +280,7 @@ class DockerCodeExecutionEngineIT {
                     puts greeter.greet
                     """;
 
-            String result = engine.execute(RUBY_IMAGE, ".rb", code, "ruby");
+            String result = engine.execute(RUBY_IMAGE, ".rb", code, "ruby", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("Hello, World!");
         }
@@ -289,7 +296,7 @@ class DockerCodeExecutionEngineIT {
                     puts JSON.generate(data)
                     """;
 
-            String result = engine.execute(RUBY_IMAGE, ".rb", code, "ruby");
+            String result = engine.execute(RUBY_IMAGE, ".rb", code, "ruby", DEFAULT_TIMEOUT);
 
             assertThat(result).contains("\"name\"").contains("\"test\"").contains("42");
         }
@@ -319,7 +326,7 @@ class DockerCodeExecutionEngineIT {
                     }
                     """;
 
-            String result = engine.execute(GO_IMAGE, ".go", code, "go run code.go");
+            String result = engine.execute(GO_IMAGE, ".go", code, "go run code.go", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("Hello from Go!");
         }
@@ -345,7 +352,7 @@ class DockerCodeExecutionEngineIT {
                     }
                     """;
 
-            String result = engine.execute(GO_IMAGE, ".go", code, "go run code.go");
+            String result = engine.execute(GO_IMAGE, ".go", code, "go run code.go", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("3628800");
         }
@@ -369,7 +376,7 @@ class DockerCodeExecutionEngineIT {
                     }
                     """;
 
-            String result = engine.execute(GO_IMAGE, ".go", code, "go run code.go");
+            String result = engine.execute(GO_IMAGE, ".go", code, "go run code.go", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("[1 1 2 3 4 5 6 9]");
         }
@@ -386,7 +393,7 @@ class DockerCodeExecutionEngineIT {
                     }
                     """;
 
-            assertThatThrownBy(() -> engine.execute(GO_IMAGE, ".go", code, "go run code.go"))
+            assertThatThrownBy(() -> engine.execute(GO_IMAGE, ".go", code, "go run code.go", DEFAULT_TIMEOUT))
                     .isInstanceOf(DockerExecutionException.class)
                     .satisfies(e -> {
                         DockerExecutionException ex = (DockerExecutionException) e;
@@ -408,7 +415,7 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should execute simple shell echo")
         void should_execute_simple_shell_echo() {
-            String result = engine.execute(ALPINE_IMAGE, ".sh", "echo 'Hello from Shell!'", "sh");
+            String result = engine.execute(ALPINE_IMAGE, ".sh", "echo 'Hello from Shell!'", "sh", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("Hello from Shell!");
         }
@@ -422,7 +429,7 @@ class DockerCodeExecutionEngineIT {
                     echo "Hello, $NAME!"
                     """;
 
-            String result = engine.execute(ALPINE_IMAGE, ".sh", code, "sh");
+            String result = engine.execute(ALPINE_IMAGE, ".sh", code, "sh", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("Hello, World!");
         }
@@ -437,7 +444,7 @@ class DockerCodeExecutionEngineIT {
                     done
                     """;
 
-            String result = engine.execute(ALPINE_IMAGE, ".sh", code, "sh");
+            String result = engine.execute(ALPINE_IMAGE, ".sh", code, "sh", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("1 2 3 4 5");
         }
@@ -450,7 +457,7 @@ class DockerCodeExecutionEngineIT {
                     echo "apple banana cherry" | tr ' ' '\\n' | sort | head -1
                     """;
 
-            String result = engine.execute(ALPINE_IMAGE, ".sh", code, "sh");
+            String result = engine.execute(ALPINE_IMAGE, ".sh", code, "sh", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("apple");
         }
@@ -472,8 +479,8 @@ class DockerCodeExecutionEngineIT {
                     .build());
 
             try {
-                assertThatThrownBy(() ->
-                                shortTimeoutEngine.execute("python:3.12-slim", ".py", "while True: pass", "python"))
+                assertThatThrownBy(() -> shortTimeoutEngine.execute(
+                                "python:3.12-slim", ".py", "while True: pass", "python", Duration.ofSeconds(3)))
                         .isInstanceOf(DockerExecutionException.class)
                         .satisfies(e -> {
                             DockerExecutionException ex = (DockerExecutionException) e;
@@ -502,7 +509,8 @@ class DockerCodeExecutionEngineIT {
                         print(len(data))
                         """;
 
-                assertThatThrownBy(() -> limitedEngine.execute("python:3.12-slim", ".py", code, "python"))
+                assertThatThrownBy(() -> limitedEngine.execute(
+                                "python:3.12-slim", ".py", code, "python", Duration.ofSeconds(30)))
                         .isInstanceOf(DockerExecutionException.class);
             } finally {
                 limitedEngine.close();
@@ -522,7 +530,7 @@ class DockerCodeExecutionEngineIT {
                         print('NETWORK_BLOCKED')
                     """;
 
-            String result = engine.execute("python:3.12-slim", ".py", code, "python");
+            String result = engine.execute("python:3.12-slim", ".py", code, "python", DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("NETWORK_BLOCKED");
         }
@@ -539,7 +547,7 @@ class DockerCodeExecutionEngineIT {
                     print('running with limited privileges')
                     """;
 
-            String result = engine.execute("python:3.12-slim", ".py", code, "python");
+            String result = engine.execute("python:3.12-slim", ".py", code, "python", DEFAULT_TIMEOUT);
 
             assertThat(result).contains("limited privileges");
         }
@@ -560,7 +568,8 @@ class DockerCodeExecutionEngineIT {
                     "python:3.12-slim",
                     ".py",
                     "x = 1 + 1", // No output
-                    "python");
+                    "python",
+                    DEFAULT_TIMEOUT);
 
             assertThat(result).isEmpty();
         }
@@ -574,7 +583,7 @@ class DockerCodeExecutionEngineIT {
                         print(f"Line {i}")
                     """;
 
-            String result = engine.execute("python:3.12-slim", ".py", code, "python");
+            String result = engine.execute("python:3.12-slim", ".py", code, "python", DEFAULT_TIMEOUT);
 
             assertThat(result).contains("Line 0", "Line 1", "Line 2", "Line 3", "Line 4");
         }
@@ -582,8 +591,12 @@ class DockerCodeExecutionEngineIT {
         @Test
         @DisplayName("Should handle special characters in output")
         void should_handle_special_characters() {
-            String result =
-                    engine.execute("python:3.12-slim", ".py", "print('Special: $HOME \\t tab \\n newline')", "python");
+            String result = engine.execute(
+                    "python:3.12-slim",
+                    ".py",
+                    "print('Special: $HOME \\t tab \\n newline')",
+                    "python",
+                    DEFAULT_TIMEOUT);
 
             assertThat(result).contains("Special:");
         }
@@ -597,7 +610,7 @@ class DockerCodeExecutionEngineIT {
                         print(f"Line {i}: " + "x" * 50)
                     """;
 
-            String result = engine.execute("python:3.12-slim", ".py", code, "python");
+            String result = engine.execute("python:3.12-slim", ".py", code, "python", DEFAULT_TIMEOUT);
 
             assertThat(result).isNotEmpty();
             assertThat(result.split("\n")).hasSizeGreaterThan(100);
@@ -610,7 +623,8 @@ class DockerCodeExecutionEngineIT {
                     "python:3.12-slim",
                     "py", // without leading dot
                     "print('works')",
-                    "python");
+                    "python",
+                    DEFAULT_TIMEOUT);
 
             assertThat(result).isEqualTo("works");
         }

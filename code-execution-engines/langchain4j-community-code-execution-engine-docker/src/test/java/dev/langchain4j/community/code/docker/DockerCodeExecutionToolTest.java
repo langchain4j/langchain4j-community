@@ -2,6 +2,7 @@ package dev.langchain4j.community.code.docker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -11,6 +12,7 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -47,7 +49,7 @@ class DockerCodeExecutionToolTest {
     @Test
     void execute_method_should_have_tool_annotation() throws NoSuchMethodException {
         Method executeMethod = DockerCodeExecutionTool.class.getMethod(
-                "execute", String.class, String.class, String.class, String.class);
+                "execute", String.class, String.class, String.class, String.class, Integer.class);
 
         Tool toolAnnotation = executeMethod.getAnnotation(Tool.class);
 
@@ -58,17 +60,18 @@ class DockerCodeExecutionToolTest {
                 .contains("Execute code")
                 .contains("Docker container")
                 .contains("python:3.12-slim")
-                .contains("node:20-alpine");
+                .contains("node:20-alpine")
+                .contains("timeoutSeconds");
     }
 
     @Test
     void execute_method_parameters_should_have_p_annotations() throws NoSuchMethodException {
         Method executeMethod = DockerCodeExecutionTool.class.getMethod(
-                "execute", String.class, String.class, String.class, String.class);
+                "execute", String.class, String.class, String.class, String.class, Integer.class);
 
         Parameter[] parameters = executeMethod.getParameters();
 
-        assertThat(parameters).hasSize(4);
+        assertThat(parameters).hasSize(5);
 
         // All parameters should have @P annotation
         for (Parameter param : parameters) {
@@ -81,7 +84,7 @@ class DockerCodeExecutionToolTest {
     @Test
     void image_parameter_should_have_descriptive_annotation() throws NoSuchMethodException {
         Method executeMethod = DockerCodeExecutionTool.class.getMethod(
-                "execute", String.class, String.class, String.class, String.class);
+                "execute", String.class, String.class, String.class, String.class, Integer.class);
 
         P pAnnotation = executeMethod.getParameters()[0].getAnnotation(P.class);
 
@@ -91,7 +94,7 @@ class DockerCodeExecutionToolTest {
     @Test
     void fileExtension_parameter_should_have_descriptive_annotation() throws NoSuchMethodException {
         Method executeMethod = DockerCodeExecutionTool.class.getMethod(
-                "execute", String.class, String.class, String.class, String.class);
+                "execute", String.class, String.class, String.class, String.class, Integer.class);
 
         P pAnnotation = executeMethod.getParameters()[1].getAnnotation(P.class);
 
@@ -104,7 +107,7 @@ class DockerCodeExecutionToolTest {
     @Test
     void code_parameter_should_have_descriptive_annotation() throws NoSuchMethodException {
         Method executeMethod = DockerCodeExecutionTool.class.getMethod(
-                "execute", String.class, String.class, String.class, String.class);
+                "execute", String.class, String.class, String.class, String.class, Integer.class);
 
         P pAnnotation = executeMethod.getParameters()[2].getAnnotation(P.class);
 
@@ -114,11 +117,21 @@ class DockerCodeExecutionToolTest {
     @Test
     void command_parameter_should_have_descriptive_annotation() throws NoSuchMethodException {
         Method executeMethod = DockerCodeExecutionTool.class.getMethod(
-                "execute", String.class, String.class, String.class, String.class);
+                "execute", String.class, String.class, String.class, String.class, Integer.class);
 
         P pAnnotation = executeMethod.getParameters()[3].getAnnotation(P.class);
 
         assertThat(pAnnotation.value()).contains("Command").contains("python").contains("node");
+    }
+
+    @Test
+    void timeout_parameter_should_have_descriptive_annotation() throws NoSuchMethodException {
+        Method executeMethod = DockerCodeExecutionTool.class.getMethod(
+                "execute", String.class, String.class, String.class, String.class, Integer.class);
+
+        P pAnnotation = executeMethod.getParameters()[4].getAnnotation(P.class);
+
+        assertThat(pAnnotation.value()).contains("Timeout").contains("seconds");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -126,28 +139,50 @@ class DockerCodeExecutionToolTest {
     // ═══════════════════════════════════════════════════════════════════════════
 
     @Test
-    void should_delegate_execution_to_engine() {
+    void should_delegate_execution_to_engine_with_default_timeout() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenReturn("Hello, World!");
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print('Hello, World!')", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print('Hello, World!')", "python", null);
 
         assertThat(result).isEqualTo("Hello, World!");
-        verify(mockEngine).execute("python:3.12-slim", ".py", "print('Hello, World!')", "python");
+        verify(mockEngine)
+                .execute("python:3.12-slim", ".py", "print('Hello, World!')", "python", Duration.ofSeconds(30));
+    }
+
+    @Test
+    void should_delegate_execution_to_engine_with_custom_timeout() {
+        DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
+                .thenReturn("Hello, World!");
+
+        DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
+
+        String result = tool.execute("python:3.12-slim", ".py", "print('Hello, World!')", "python", 60);
+
+        assertThat(result).isEqualTo("Hello, World!");
+        verify(mockEngine)
+                .execute("python:3.12-slim", ".py", "print('Hello, World!')", "python", Duration.ofSeconds(60));
     }
 
     @Test
     void should_return_success_message_for_empty_output() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenReturn("");
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "x = 1", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "x = 1", "python", null);
 
         assertThat(result).isEqualTo("Execution completed successfully (no output)");
     }
@@ -159,12 +194,15 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_docker_not_available_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(DockerExecutionException.dockerNotAvailable(new RuntimeException("Connection refused")));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python", null);
 
         assertThat(result).contains("Docker is not available").contains("Docker daemon");
     }
@@ -172,12 +210,15 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_image_not_found_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(DockerExecutionException.imageNotFound("nonexistent:latest"));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("nonexistent:latest", ".py", "print('test')", "python");
+        String result = tool.execute("nonexistent:latest", ".py", "print('test')", "python", null);
 
         assertThat(result).contains("nonexistent:latest").contains("not found");
     }
@@ -185,13 +226,16 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_image_pull_failed_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(DockerExecutionException.imagePullFailed(
                         "python:3.12-slim", new RuntimeException("Network error")));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python", null);
 
         assertThat(result).contains("Failed to pull image").contains("python:3.12-slim");
     }
@@ -199,13 +243,16 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_container_create_failed_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(DockerExecutionException.containerCreateFailed(
                         "python:3.12-slim", new RuntimeException("Resource limit")));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python", null);
 
         assertThat(result).contains("Failed to create container").contains("python:3.12-slim");
     }
@@ -213,12 +260,15 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_execution_timeout_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(DockerExecutionException.executionTimeout("python:3.12-slim", 30));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "while True: pass", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "while True: pass", "python", null);
 
         assertThat(result).contains("timed out").contains("too long");
     }
@@ -226,7 +276,10 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_execution_failed_error_with_stderr() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(
                         DockerExecutionException.executionFailed(
                                 "python:3.12-slim",
@@ -235,7 +288,7 @@ class DockerCodeExecutionToolTest {
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print(undefined)", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print(undefined)", "python", null);
 
         assertThat(result).contains("Execution failed").contains("exit code 1").contains("NameError");
     }
@@ -243,7 +296,10 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_execution_failed_error_without_stderr() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(new DockerExecutionException(
                         DockerExecutionException.ErrorType.EXECUTION_FAILED,
                         "Execution failed",
@@ -253,7 +309,7 @@ class DockerCodeExecutionToolTest {
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "nonexistent_command", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "nonexistent_command", "python", null);
 
         assertThat(result).contains("exit code 127");
     }
@@ -261,13 +317,16 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_output_limit_exceeded_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(new DockerExecutionException(
                         DockerExecutionException.ErrorType.OUTPUT_LIMIT_EXCEEDED, "Output limit exceeded"));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print('x' * 10000000)", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print('x' * 10000000)", "python", null);
 
         assertThat(result).contains("Output limit exceeded");
     }
@@ -275,13 +334,16 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_resource_limit_exceeded_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(new DockerExecutionException(
                         DockerExecutionException.ErrorType.RESOURCE_LIMIT_EXCEEDED, "Memory limit exceeded"));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "x = [0] * 10**9", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "x = [0] * 10**9", "python", null);
 
         assertThat(result).contains("Resource limit exceeded").contains("memory");
     }
@@ -289,12 +351,15 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_code_copy_failed_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(DockerExecutionException.codeCopyFailed(new RuntimeException("I/O error")));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python", null);
 
         assertThat(result).contains("Failed to copy code");
     }
@@ -302,13 +367,16 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_format_unknown_error() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(new DockerExecutionException(
                         DockerExecutionException.ErrorType.UNKNOWN, "Something unexpected happened"));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python", null);
 
         assertThat(result).contains("Execution error").contains("Something unexpected happened");
     }
@@ -316,12 +384,15 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_handle_invalid_arguments() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(new IllegalArgumentException("image cannot be blank"));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("", ".py", "print('test')", "python");
+        String result = tool.execute("", ".py", "print('test')", "python", null);
 
         assertThat(result).contains("Invalid arguments").contains("image cannot be blank");
     }
@@ -329,12 +400,15 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_handle_unexpected_exception() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(new RuntimeException("Completely unexpected"));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print('test')", "python", null);
 
         assertThat(result).contains("Unexpected error").contains("Completely unexpected");
     }
@@ -346,13 +420,16 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_truncate_long_stderr() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
         String longStderr = "Error: " + "x".repeat(1000);
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(DockerExecutionException.executionFailed("python:3.12-slim", 1, longStderr));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "invalid", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "invalid", "python", null);
 
         assertThat(result).contains("... (truncated)").hasSizeLessThan(longStderr.length());
     }
@@ -360,13 +437,16 @@ class DockerCodeExecutionToolTest {
     @Test
     void should_not_truncate_short_stderr() {
         DockerCodeExecutionEngine mockEngine = mock(DockerCodeExecutionEngine.class);
+        DockerExecutionConfig mockConfig = mock(DockerExecutionConfig.class);
+        when(mockConfig.timeout()).thenReturn(Duration.ofSeconds(30));
+        when(mockEngine.getConfig()).thenReturn(mockConfig);
         String shortStderr = "NameError: name 'x' is not defined";
-        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString()))
+        when(mockEngine.execute(anyString(), anyString(), anyString(), anyString(), any(Duration.class)))
                 .thenThrow(DockerExecutionException.executionFailed("python:3.12-slim", 1, shortStderr));
 
         DockerCodeExecutionTool tool = new DockerCodeExecutionTool(mockEngine);
 
-        String result = tool.execute("python:3.12-slim", ".py", "print(x)", "python");
+        String result = tool.execute("python:3.12-slim", ".py", "print(x)", "python", null);
 
         assertThat(result).contains(shortStderr).doesNotContain("truncated");
     }

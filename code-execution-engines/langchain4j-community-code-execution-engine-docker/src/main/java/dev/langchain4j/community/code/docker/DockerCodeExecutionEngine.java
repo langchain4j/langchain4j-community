@@ -16,8 +16,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Executes code in isolated Docker containers with security constraints.
- * LLM provides runtime parameters (image, code, command) while the engine enforces security.
+ * A secure code execution engine that runs untrusted code in isolated Docker containers.
+ *
+ * <p>Provides a sandboxed environment for executing code with security constraints including
+ * network isolation, memory/CPU limits, and Linux capability dropping.
+ *
+ * <p>This class is thread-safe and implements {@link Closeable}.
+ *
+ * @see DockerExecutionConfig for configuration options
+ * @see DockerCodeExecutionTool for LLM tool integration
  */
 public class DockerCodeExecutionEngine implements Closeable {
 
@@ -31,8 +38,11 @@ public class DockerCodeExecutionEngine implements Closeable {
     private final boolean ownsDockerClient;
 
     /**
-     * Creates a new engine with the specified configuration.
-     * The engine creates and owns its own DockerClient.
+     * Creates a new engine with the specified configuration, creating its own Docker client.
+     *
+     * @param config the execution configuration
+     * @throws NullPointerException if config is null
+     * @throws DockerExecutionException if Docker daemon is not available
      */
     public DockerCodeExecutionEngine(DockerExecutionConfig config) {
         this.config = ensureNotNull(config, "config");
@@ -42,8 +52,11 @@ public class DockerCodeExecutionEngine implements Closeable {
     }
 
     /**
-     * Creates a new engine with a provided DockerClient.
-     * The caller is responsible for closing the DockerClient.
+     * Creates a new engine with a provided Docker client (caller manages client lifecycle).
+     *
+     * @param dockerClient the pre-configured Docker client to use
+     * @param config the execution configuration
+     * @throws NullPointerException if dockerClient or config is null
      */
     public DockerCodeExecutionEngine(DockerClient dockerClient, DockerExecutionConfig config) {
         this.config = ensureNotNull(config, "config");
@@ -52,22 +65,44 @@ public class DockerCodeExecutionEngine implements Closeable {
         this.ownsDockerClient = false;
     }
 
-    /** Creates a new engine with secure default configuration. */
+    /**
+     * Creates a new engine with secure default configuration.
+     *
+     * @return a new engine instance with secure defaults
+     * @throws DockerExecutionException if Docker daemon is not available
+     */
     public static DockerCodeExecutionEngine withDefaultConfig() {
         return new DockerCodeExecutionEngine(DockerExecutionConfig.builder().build());
     }
 
     /**
-     * Executes code in a Docker container and returns stdout.
-     * Creates container, copies code, runs command, and cleans up.
+     * Executes code in an isolated Docker container.
+     *
+     * <p>Creates a container, copies the code, executes it, and cleans up. Images are
+     * automatically pulled if not available locally.
+     *
+     * @param image the Docker image (e.g., "python:3.12-slim")
+     * @param fileExtension the file extension (e.g., ".py", ".js")
+     * @param code the source code to execute
+     * @param command the command to run (e.g., "python", "node")
+     * @param timeout the maximum execution time
+     * @return the trimmed stdout, or empty string if no output
+     * @throws IllegalArgumentException if any parameter is null or blank
+     * @throws DockerExecutionException if execution fails
      */
-    public String execute(String image, String fileExtension, String code, String command) {
+    public String execute(String image, String fileExtension, String code, String command, Duration timeout) {
         ensureNotBlank(image, "image");
         ensureNotBlank(fileExtension, "fileExtension");
         ensureNotBlank(code, "code");
         ensureNotBlank(command, "command");
+        ensureNotNull(timeout, "timeout");
 
-        LOGGER.debug("Executing code with image: {}, extension: {}, command: {}", image, fileExtension, command);
+        LOGGER.debug(
+                "Executing code with image: {}, extension: {}, command: {}, timeout: {}",
+                image,
+                fileExtension,
+                command,
+                timeout);
 
         // Build filename with proper extension
         String filename = buildFilename(fileExtension);
@@ -85,7 +120,7 @@ public class DockerCodeExecutionEngine implements Closeable {
 
             // 3. Start container and wait for completion
             containerManager.startContainer(containerId);
-            int exitCode = containerManager.waitForCompletion(containerId, config.timeout());
+            int exitCode = containerManager.waitForCompletion(containerId, timeout);
 
             // 4. Get output
             String stdout = containerManager.getStdout(containerId);
@@ -107,13 +142,11 @@ public class DockerCodeExecutionEngine implements Closeable {
         }
     }
 
-    /** Builds filename from file extension, ensuring it starts with a dot. */
     private String buildFilename(String fileExtension) {
         String ext = fileExtension.startsWith(".") ? fileExtension : "." + fileExtension;
         return DEFAULT_FILENAME_PREFIX + ext;
     }
 
-    /** Builds command array, appending filename if not already present. */
     private String[] buildCommandArray(String command, String filename) {
         String processedCommand;
 
@@ -130,12 +163,15 @@ public class DockerCodeExecutionEngine implements Closeable {
         return new String[] {"sh", "-c", processedCommand};
     }
 
-    /** Trims whitespace from output. */
     private String trimOutput(String output) {
         return output != null ? output.trim() : "";
     }
 
-    /** Checks if Docker daemon is available and responsive. */
+    /**
+     * Checks if the Docker daemon is available and responsive.
+     *
+     * @return {@code true} if Docker daemon responded to ping, {@code false} otherwise
+     */
     public boolean isAvailable() {
         try {
             dockerClient.pingCmd().exec();
@@ -151,7 +187,9 @@ public class DockerCodeExecutionEngine implements Closeable {
         return config;
     }
 
-    /** Closes the engine. If this engine owns the DockerClient, it will be closed. */
+    /**
+     * Closes this engine. Only closes the Docker client if this engine owns it.
+     */
     @Override
     public void close() {
         if (ownsDockerClient && dockerClient != null) {
@@ -164,7 +202,6 @@ public class DockerCodeExecutionEngine implements Closeable {
         }
     }
 
-    /** Creates a Docker client with the specified configuration. */
     private static DockerClient createDockerClient(DockerExecutionConfig config) {
         try {
             DefaultDockerClientConfig.Builder configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder();

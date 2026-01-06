@@ -10,9 +10,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Configuration for Docker code execution with security constraints.
- * Includes memory limits, timeout, network isolation, capability dropping, and registry auth.
- * Use {@link #builder()} to create instances.
+ * Immutable configuration for Docker code execution with security constraints.
+ *
+ * <p>Encapsulates resource limits, security policies, and Docker connection settings.
+ * Default configuration prioritizes security: network disabled, 256MB memory, 30s timeout,
+ * all capabilities dropped.
+ *
+ * <p>This class is immutable and thread-safe.
+ *
+ * @see DockerCodeExecutionEngine
  */
 public final class DockerExecutionConfig {
 
@@ -163,7 +169,12 @@ public final class DockerExecutionConfig {
         return registryAuths.get(registry);
     }
 
-    /** Extracts the registry address from an image name. Defaults to docker.io. */
+    /**
+     * Extracts the registry address from a Docker image name.
+     *
+     * @param imageName the Docker image name to parse
+     * @return the registry address, defaulting to "docker.io" for Docker Hub images
+     */
     public static String extractRegistry(String imageName) {
         if (imageName == null || imageName.isEmpty()) {
             return "docker.io";
@@ -189,7 +200,6 @@ public final class DockerExecutionConfig {
         return "docker.io";
     }
 
-    /** Parses memory string (e.g., "256m", "1g") into bytes. */
     private static long parseMemoryString(String memoryString) {
         String value = memoryString.trim().toLowerCase();
         long multiplier = 1;
@@ -208,12 +218,12 @@ public final class DockerExecutionConfig {
         return Long.parseLong(value) * multiplier;
     }
 
-    /** Creates a new builder. */
+    /** Creates a new builder with secure default values. */
     public static Builder builder() {
         return new Builder();
     }
 
-    /** Builder for DockerExecutionConfig. */
+    /** Builder for creating {@link DockerExecutionConfig} instances with secure defaults. */
     public static class Builder {
 
         // Secure defaults
@@ -237,127 +247,240 @@ public final class DockerExecutionConfig {
 
         private Builder() {}
 
-        /** Sets memory limit (e.g., "256m", "1g"). */
+        /** Sets the container memory limit (e.g., "256m", "1g"). */
         public Builder memoryLimit(String memoryLimit) {
             this.memoryLimit = ensureNotBlank(memoryLimit, "memoryLimit");
             return this;
         }
 
-        /** Sets memory swap limit in bytes (-1 for unlimited). */
+        /** Sets the memory swap limit in bytes (-1 for unlimited). */
         public Builder memorySwapBytes(Long memorySwapBytes) {
             this.memorySwapBytes = memorySwapBytes;
             return this;
         }
 
-        /** Sets CPU period in microseconds for CFS scheduler. */
+        /** Sets the CPU period in microseconds for the CFS scheduler. */
         public Builder cpuPeriodMicros(Long cpuPeriodMicros) {
             this.cpuPeriodMicros = cpuPeriodMicros;
             return this;
         }
 
-        /** Sets CPU quota in microseconds for CFS scheduler. */
+        /** Sets the CPU quota in microseconds for the CFS scheduler (-1 for no limit). */
         public Builder cpuQuotaMicros(Long cpuQuotaMicros) {
             this.cpuQuotaMicros = cpuQuotaMicros;
             return this;
         }
 
-        /** Sets CPU shares (default: 1024). */
+        /** Sets the CPU shares (relative weight, default: 1024). */
         public Builder cpuShares(Integer cpuShares) {
             this.cpuShares = cpuShares;
             return this;
         }
 
-        /** Sets execution timeout. */
+        /** Sets the maximum execution time (default: 30 seconds). */
         public Builder timeout(Duration timeout) {
             this.timeout = ensureNotNull(timeout, "timeout");
             return this;
         }
 
-        /** Sets maximum output size in bytes. */
+        /** Sets the maximum stdout/stderr size in bytes (default: 1MB). */
         public Builder maxOutputSizeBytes(int maxOutputSizeBytes) {
             this.maxOutputSizeBytes = ensureGreaterThanZero(maxOutputSizeBytes, "maxOutputSizeBytes");
             return this;
         }
 
-        /** Sets whether network is disabled (default: true). Enabling allows data exfiltration. */
+        /** Sets whether network is disabled (default: true). */
         public Builder networkDisabled(boolean networkDisabled) {
             this.networkDisabled = networkDisabled;
             return this;
         }
 
-        /** Sets whether root filesystem is read-only. */
+        /**
+         * Sets whether the container's root filesystem is read-only.
+         *
+         * <p>Enabling this prevents code from modifying system files, adding security.
+         * However, some images may not work with a read-only filesystem.
+         *
+         * @param readOnlyRootfs true to make root filesystem read-only
+         * @return this builder
+         */
         public Builder readOnlyRootfs(boolean readOnlyRootfs) {
             this.readOnlyRootfs = readOnlyRootfs;
             return this;
         }
 
-        /** Sets Linux capabilities to drop (default: ["ALL"]). */
+        /**
+         * Sets the Linux capabilities to drop from the container.
+         *
+         * <p>By default, ALL capabilities are dropped for maximum security.
+         * Capabilities control what privileged operations a container can perform.
+         *
+         * <p>Examples:
+         * <ul>
+         *   <li>{@code ["ALL"]} - Drop all capabilities (most secure)</li>
+         *   <li>{@code ["NET_RAW", "SYS_ADMIN"]} - Drop specific capabilities</li>
+         * </ul>
+         *
+         * @param capDrop the list of capabilities to drop
+         * @return this builder
+         * @throws NullPointerException if capDrop is null
+         */
         public Builder capDrop(List<String> capDrop) {
             this.capDrop = ensureNotNull(capDrop, "capDrop");
             return this;
         }
 
-        /** Sets container user (e.g., "1000:1000", "nobody"). */
+        /**
+         * Sets the user to run the container as.
+         *
+         * <p>Running as a non-root user adds security by preventing privilege escalation.
+         * Formats: "username", "uid", "uid:gid", "username:groupname".
+         *
+         * @param user the user specification (e.g., "1000:1000", "nobody")
+         * @return this builder
+         */
         public Builder user(String user) {
             this.user = user;
             return this;
         }
 
-        /** Sets working directory inside container. */
+        /**
+         * Sets the working directory inside the container.
+         *
+         * <p>This is where the code file is copied to and the command is executed from.
+         *
+         * @param workingDir the container working directory path (default: "/app")
+         * @return this builder
+         * @throws IllegalArgumentException if workingDir is blank
+         */
         public Builder workingDir(String workingDir) {
             this.workingDir = ensureNotBlank(workingDir, "workingDir");
             return this;
         }
 
-        /** Sets environment variables for container. */
+        /**
+         * Sets environment variables for the container.
+         *
+         * <p>These variables are available to the executed code.
+         *
+         * @param environmentVariables a map of variable names to values
+         * @return this builder
+         * @throws NullPointerException if environmentVariables is null
+         */
         public Builder environmentVariables(Map<String, String> environmentVariables) {
             this.environmentVariables = ensureNotNull(environmentVariables, "environmentVariables");
             return this;
         }
 
-        /** Adds a single environment variable. */
+        /**
+         * Adds a single environment variable.
+         *
+         * @param key the variable name
+         * @param value the variable value
+         * @return this builder
+         * @throws IllegalArgumentException if key is blank
+         * @throws NullPointerException if value is null
+         */
         public Builder addEnvironmentVariable(String key, String value) {
             this.environmentVariables.put(ensureNotBlank(key, "key"), ensureNotNull(value, "value"));
             return this;
         }
 
-        /** Sets Docker host URI. */
+        /**
+         * Sets the Docker daemon host URI.
+         *
+         * <p>Examples:
+         * <ul>
+         *   <li>{@code unix:///var/run/docker.sock} - Local Unix socket</li>
+         *   <li>{@code tcp://localhost:2375} - Local TCP (unencrypted)</li>
+         *   <li>{@code tcp://docker.example.com:2376} - Remote TCP (use with TLS)</li>
+         * </ul>
+         *
+         * @param dockerHost the Docker daemon URI (null for default)
+         * @return this builder
+         */
         public Builder dockerHost(String dockerHost) {
             this.dockerHost = dockerHost;
             return this;
         }
 
-        /** Sets whether TLS verification is enabled. */
+        /**
+         * Sets whether TLS verification is enabled for Docker daemon connections.
+         *
+         * <p>Should be enabled when connecting to remote Docker daemons over TCP.
+         * Use with {@link #tlsCertPath(String)} to specify certificate location.
+         *
+         * @param tlsVerify true to enable TLS verification
+         * @return this builder
+         */
         public Builder tlsVerify(boolean tlsVerify) {
             this.tlsVerify = tlsVerify;
             return this;
         }
 
-        /** Sets the path to TLS certificates for secure Docker connections. */
+        /**
+         * Sets the path to TLS certificates for secure Docker daemon connections.
+         *
+         * <p>The directory should contain: ca.pem, cert.pem, and key.pem files.
+         *
+         * @param tlsCertPath the path to the certificate directory
+         * @return this builder
+         */
         public Builder tlsCertPath(String tlsCertPath) {
             this.tlsCertPath = tlsCertPath;
             return this;
         }
 
-        /** Adds authentication for a Docker registry. */
+        /**
+         * Adds authentication configuration for a Docker registry.
+         *
+         * <p>Used when pulling images from private registries.
+         *
+         * @param authConfig the registry authentication configuration
+         * @return this builder
+         * @throws NullPointerException if authConfig is null
+         * @see RegistryAuthConfig
+         */
         public Builder registryAuth(RegistryAuthConfig authConfig) {
             ensureNotNull(authConfig, "authConfig");
             this.registryAuths.put(authConfig.registry(), authConfig);
             return this;
         }
 
-        /** Adds authentication for a Docker registry using username and password. */
+        /**
+         * Adds authentication for a Docker registry using username and password.
+         *
+         * <p>Convenience method for simple authentication. For tokens (like GitHub PAT),
+         * use the token as the password.
+         *
+         * @param registry the registry address (e.g., "ghcr.io", "docker.io")
+         * @param username the username or account name
+         * @param password the password or access token
+         * @return this builder
+         */
         public Builder registryAuth(String registry, String username, String password) {
             return registryAuth(RegistryAuthConfig.of(registry, username, password));
         }
 
-        /** Sets all registry authentication configurations. */
+        /**
+         * Sets all registry authentication configurations at once.
+         *
+         * <p>Replaces any previously configured registry authentications.
+         *
+         * @param registryAuths a map of registry addresses to their auth configurations
+         * @return this builder
+         * @throws NullPointerException if registryAuths is null
+         */
         public Builder registryAuths(Map<String, RegistryAuthConfig> registryAuths) {
             this.registryAuths = new HashMap<>(ensureNotNull(registryAuths, "registryAuths"));
             return this;
         }
 
-        /** Builds the configuration. */
+        /**
+         * Builds an immutable {@link DockerExecutionConfig} with the configured settings.
+         *
+         * @return the built configuration instance
+         */
         public DockerExecutionConfig build() {
             return new DockerExecutionConfig(this);
         }

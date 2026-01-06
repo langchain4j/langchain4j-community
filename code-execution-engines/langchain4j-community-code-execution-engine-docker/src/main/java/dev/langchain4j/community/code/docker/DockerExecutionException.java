@@ -4,21 +4,35 @@ import dev.langchain4j.exception.LangChain4jException;
 
 /**
  * Exception thrown when Docker code execution fails.
- * Provides error type, image, exit code, and stderr when available.
+ *
+ * <p>Provides error classification via {@link ErrorType}, along with the Docker image,
+ * exit code, and stderr output when available.
+ *
+ * @see DockerCodeExecutionEngine
  */
 public class DockerExecutionException extends LangChain4jException {
 
     /** Classification of Docker execution errors. */
     public enum ErrorType {
+        /** Docker daemon is not running or not accessible. */
         DOCKER_NOT_AVAILABLE,
+        /** The specified Docker image was not found. */
         IMAGE_NOT_FOUND,
+        /** Failed to pull the Docker image from a registry. */
         IMAGE_PULL_FAILED,
+        /** Failed to create a Docker container. */
         CONTAINER_CREATE_FAILED,
+        /** Code execution exceeded the configured timeout. */
         EXECUTION_TIMEOUT,
+        /** Code execution returned a non-zero exit code. */
         EXECUTION_FAILED,
+        /** Output exceeded the configured size limit. */
         OUTPUT_LIMIT_EXCEEDED,
+        /** Container exceeded memory or CPU limits. */
         RESOURCE_LIMIT_EXCEEDED,
+        /** Failed to copy code into the container. */
         CODE_COPY_FAILED,
+        /** Unclassified error. */
         UNKNOWN
     }
 
@@ -27,7 +41,15 @@ public class DockerExecutionException extends LangChain4jException {
     private final Integer exitCode;
     private final String stderr;
 
-    /** Creates exception with message and cause. */
+    /**
+     * Creates an exception with message and cause.
+     *
+     * <p>The error type defaults to {@link ErrorType#UNKNOWN} and no image,
+     * exit code, or stderr information is captured.
+     *
+     * @param message the detail message describing the error
+     * @param cause the underlying cause of the exception
+     */
     public DockerExecutionException(String message, Throwable cause) {
         super(message, cause);
         this.errorType = ErrorType.UNKNOWN;
@@ -36,7 +58,12 @@ public class DockerExecutionException extends LangChain4jException {
         this.stderr = null;
     }
 
-    /** Creates exception with error type and message. */
+    /**
+     * Creates an exception with a specific error type and message.
+     *
+     * @param errorType the classification of the error
+     * @param message the detail message describing the error
+     */
     public DockerExecutionException(ErrorType errorType, String message) {
         super(message);
         this.errorType = errorType;
@@ -45,7 +72,13 @@ public class DockerExecutionException extends LangChain4jException {
         this.stderr = null;
     }
 
-    /** Creates exception with error type, message, and image. */
+    /**
+     * Creates an exception with error type, message, and Docker image name.
+     *
+     * @param errorType the classification of the error
+     * @param message the detail message describing the error
+     * @param image the Docker image involved (e.g., "python:3.12-slim")
+     */
     public DockerExecutionException(ErrorType errorType, String message, String image) {
         super(message);
         this.errorType = errorType;
@@ -54,7 +87,18 @@ public class DockerExecutionException extends LangChain4jException {
         this.stderr = null;
     }
 
-    /** Creates exception with full execution details. */
+    /**
+     * Creates an exception with full execution details including exit code and stderr.
+     *
+     * <p>Use this constructor for execution failures where the code ran but
+     * returned a non-zero exit code.
+     *
+     * @param errorType the classification of the error
+     * @param message the detail message describing the error
+     * @param image the Docker image used for execution
+     * @param exitCode the exit code returned by the container
+     * @param stderr the standard error output from the execution
+     */
     public DockerExecutionException(
             ErrorType errorType, String message, String image, Integer exitCode, String stderr) {
         super(message);
@@ -64,7 +108,14 @@ public class DockerExecutionException extends LangChain4jException {
         this.stderr = stderr;
     }
 
-    /** Creates exception with error type, message, image, and cause. */
+    /**
+     * Creates an exception with error type, message, Docker image, and underlying cause.
+     *
+     * @param errorType the classification of the error
+     * @param message the detail message describing the error
+     * @param image the Docker image involved in the error
+     * @param cause the underlying cause of the exception
+     */
     public DockerExecutionException(ErrorType errorType, String message, String image, Throwable cause) {
         super(message, cause);
         this.errorType = errorType;
@@ -73,27 +124,50 @@ public class DockerExecutionException extends LangChain4jException {
         this.stderr = null;
     }
 
-    /** Returns the error type. */
+    /**
+     * Returns the error type classification.
+     *
+     * @return the error type, never null
+     */
     public ErrorType getErrorType() {
         return errorType;
     }
 
-    /** Returns the Docker image, or null. */
+    /**
+     * Returns the Docker image involved in the error.
+     *
+     * @return the Docker image name, or null if not applicable
+     */
     public String getImage() {
         return image;
     }
 
-    /** Returns exit code, or null. */
+    /**
+     * Returns the container's exit code.
+     *
+     * <p>Common exit codes: 0=success, 1=general error, 137=killed (OOM), 139=segfault.
+     *
+     * @return the exit code, or null if execution did not complete
+     */
     public Integer getExitCode() {
         return exitCode;
     }
 
-    /** Returns stderr, or null. */
+    /**
+     * Returns the standard error output from the execution.
+     *
+     * @return the stderr output, or null if not available
+     */
     public String getStderr() {
         return stderr;
     }
 
-    /** Creates "Docker not available" exception. */
+    /**
+     * Creates an exception indicating that Docker daemon is not available.
+     *
+     * @param cause the underlying cause (e.g., connection refused)
+     * @return a new exception with type {@link ErrorType#DOCKER_NOT_AVAILABLE}
+     */
     public static DockerExecutionException dockerNotAvailable(Throwable cause) {
         return new DockerExecutionException(
                 ErrorType.DOCKER_NOT_AVAILABLE,
@@ -102,30 +176,60 @@ public class DockerExecutionException extends LangChain4jException {
                 cause);
     }
 
-    /** Creates "image not found" exception. */
+    /**
+     * Creates an exception indicating that a Docker image was not found.
+     *
+     * @param image the Docker image that was not found
+     * @return a new exception with type {@link ErrorType#IMAGE_NOT_FOUND}
+     */
     public static DockerExecutionException imageNotFound(String image) {
         return new DockerExecutionException(ErrorType.IMAGE_NOT_FOUND, "Docker image not found: " + image, image);
     }
 
-    /** Creates "image pull failed" exception. */
+    /**
+     * Creates an exception indicating that pulling a Docker image failed.
+     *
+     * @param image the Docker image that could not be pulled
+     * @param cause the underlying cause of the pull failure
+     * @return a new exception with type {@link ErrorType#IMAGE_PULL_FAILED}
+     */
     public static DockerExecutionException imagePullFailed(String image, Throwable cause) {
         return new DockerExecutionException(
                 ErrorType.IMAGE_PULL_FAILED, "Failed to pull Docker image: " + image, image, cause);
     }
 
-    /** Creates "container create failed" exception. */
+    /**
+     * Creates an exception indicating that container creation failed.
+     *
+     * @param image the Docker image from which container creation was attempted
+     * @param cause the underlying cause of the creation failure
+     * @return a new exception with type {@link ErrorType#CONTAINER_CREATE_FAILED}
+     */
     public static DockerExecutionException containerCreateFailed(String image, Throwable cause) {
         return new DockerExecutionException(
                 ErrorType.CONTAINER_CREATE_FAILED, "Failed to create container with image: " + image, image, cause);
     }
 
-    /** Creates "execution timeout" exception. */
+    /**
+     * Creates an exception indicating that code execution timed out.
+     *
+     * @param image the Docker image used for execution
+     * @param timeout the timeout duration in seconds that was exceeded
+     * @return a new exception with type {@link ErrorType#EXECUTION_TIMEOUT}
+     */
     public static DockerExecutionException executionTimeout(String image, long timeout) {
         return new DockerExecutionException(
                 ErrorType.EXECUTION_TIMEOUT, "Code execution timed out after " + timeout + " seconds", image);
     }
 
-    /** Creates "execution failed" exception. */
+    /**
+     * Creates an exception indicating that code execution failed.
+     *
+     * @param image the Docker image used for execution
+     * @param exitCode the non-zero exit code returned by the container
+     * @param stderr the standard error output containing error details
+     * @return a new exception with type {@link ErrorType#EXECUTION_FAILED}
+     */
     public static DockerExecutionException executionFailed(String image, int exitCode, String stderr) {
         return new DockerExecutionException(
                 ErrorType.EXECUTION_FAILED,
@@ -135,7 +239,12 @@ public class DockerExecutionException extends LangChain4jException {
                 stderr);
     }
 
-    /** Creates "code copy failed" exception. */
+    /**
+     * Creates an exception indicating that copying code to the container failed.
+     *
+     * @param cause the underlying cause of the copy failure
+     * @return a new exception with type {@link ErrorType#CODE_COPY_FAILED}
+     */
     public static DockerExecutionException codeCopyFailed(Throwable cause) {
         return new DockerExecutionException(
                 ErrorType.CODE_COPY_FAILED, "Failed to copy code to container", null, cause);
