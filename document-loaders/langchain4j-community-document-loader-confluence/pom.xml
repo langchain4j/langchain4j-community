@@ -7,9 +7,11 @@
         <version>1.11.0-beta19-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
+
     <artifactId>langchain4j-community-document-loader-confluence</artifactId>
     <packaging>jar</packaging>
     <name>LangChain4j :: Community :: Document loader :: Confluence</name>
+
     <licenses>
         <license>
             <name>Apache-2.0</name>
@@ -18,9 +20,11 @@
             <comments>A business-friendly OSS license</comments>
         </license>
     </licenses>
+
     <properties>
-        <jsoup.version>1.17.2</jsoup.version>
+        <jsoup.version>1.21.2</jsoup.version>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.langchain4j</groupId>

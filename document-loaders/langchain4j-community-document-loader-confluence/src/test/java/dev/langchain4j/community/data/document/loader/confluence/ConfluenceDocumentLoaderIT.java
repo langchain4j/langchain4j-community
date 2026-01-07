@@ -106,8 +106,7 @@ class ConfluenceDocumentLoaderIT {
 
         assertThatThrownBy(loader::load)
                 .isInstanceOf(ConfluenceDocumentLoaderException.class)
-                .satisfies(e -> assertThat(e.getMessage())
-                .matches(".*status code (401|403).*"));
+                .satisfies(e -> assertThat(e.getMessage()).matches(".*status code (401|403).*"));
     }
 
     private static String envRequired(String name) {
