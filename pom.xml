@@ -62,6 +62,9 @@
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-duckduckgo</module>
 
+        <!-- Integration of document loaders -->
+        <module>document-loaders/langchain4j-community-document-loader-confluence</module>
+
         <!-- Integration of document parsers -->
         <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
 
