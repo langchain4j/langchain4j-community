@@ -38,6 +38,3 @@ build/
 
 ### .env files contain local environment variables ###
 .env
-
-### Claude Code ###
-.claude/
