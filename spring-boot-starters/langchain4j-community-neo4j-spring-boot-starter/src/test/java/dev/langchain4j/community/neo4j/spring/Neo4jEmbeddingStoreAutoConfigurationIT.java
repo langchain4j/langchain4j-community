@@ -20,9 +20,9 @@ import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.neo4j.Neo4jContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
@@ -34,8 +34,8 @@ class Neo4jEmbeddingStoreAutoConfigurationIT extends EmbeddingStoreAutoConfigura
     public static final String CUSTOM_LABEL = "TestLabel";
 
     @Container
-    static Neo4jContainer<?> neo4jContainer =
-            new Neo4jContainer<>(DockerImageName.parse("neo4j:" + NEO4J_VERSION)).withAdminPassword(ADMIN_PASSWORD);
+    static Neo4jContainer neo4jContainer =
+            new Neo4jContainer(DockerImageName.parse("neo4j:" + NEO4J_VERSION)).withAdminPassword(ADMIN_PASSWORD);
 
     private static Session session;
 

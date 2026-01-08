@@ -26,9 +26,9 @@ import org.neo4j.driver.internal.value.PathValue;
 import org.neo4j.driver.types.Node;
 import org.neo4j.driver.types.Path;
 import org.neo4j.driver.types.Relationship;
-import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.neo4j.Neo4jContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
@@ -110,7 +110,7 @@ abstract class Neo4jKnowledgeGraphWriterBaseTest {
     public static String CUSTOM_LABEL = "Label ` to \\ sanitize";
 
     @Container
-    static Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>(DockerImageName.parse("neo4j:" + NEO4J_VERSION))
+    static Neo4jContainer neo4jContainer = new Neo4jContainer(DockerImageName.parse("neo4j:" + NEO4J_VERSION))
             .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
             .withAdminPassword(ADMIN_PASSWORD)
             .withPlugins("apoc");

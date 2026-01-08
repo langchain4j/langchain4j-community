@@ -7,8 +7,8 @@ import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Session;
-import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.neo4j.Neo4jContainer;
 
 public class Neo4jContainerBaseTest {
 
@@ -17,9 +17,8 @@ public class Neo4jContainerBaseTest {
     protected static Driver driver;
 
     @Container
-    protected static final Neo4jContainer<?> neo4jContainer = new Neo4jContainer<>("neo4j:" + NEO4J_VERSION)
-            .withoutAuthentication()
-            .withPlugins("apoc");
+    protected static final Neo4jContainer neo4jContainer =
+            new Neo4jContainer("neo4j:" + NEO4J_VERSION).withoutAuthentication().withPlugins("apoc");
 
     @BeforeAll
     static void beforeAll() {

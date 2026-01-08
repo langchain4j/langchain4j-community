@@ -6,7 +6,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import java.util.Map;
 import org.jspecify.annotations.NonNull;
 import org.testcontainers.containers.JdbcDatabaseContainer;
-import org.testcontainers.containers.MSSQLServerContainer;
+import org.testcontainers.mssqlserver.MSSQLServerContainer;
 
 public class SQLServerTestsUtil {
 

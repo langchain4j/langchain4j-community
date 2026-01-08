@@ -1,6 +1,6 @@
 package dev.langchain4j.community.store.embedding.cloudsql;
 
-import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
+import static org.apache.commons.lang3.RandomUtils.nextInt;
 
 import dev.langchain4j.community.store.embedding.cloudsql.index.DistanceStrategy;
 import dev.langchain4j.data.segment.TextSegment;
@@ -10,15 +10,15 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Testcontainers
 class PostgresEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     @Container
-    static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
+    static PostgreSQLContainer pgVector = new PostgreSQLContainer("pgvector/pgvector:pg15");
 
     final String tableName = "test" + nextInt(2000, 3000);
     static PostgresEngine engine;
