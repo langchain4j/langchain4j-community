@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
-import org.testcontainers.containers.BrowserWebDriverContainer;
+import org.testcontainers.selenium.BrowserWebDriverContainer;
 
 @EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
@@ -55,8 +55,7 @@ class Neo4jEmbeddingStoreIT extends Neo4jEmbeddingStoreBaseTest {
 
         DocumentParser parser = new TextDocumentParser();
         HtmlToTextDocumentTransformer extractor = new HtmlToTextDocumentTransformer();
-        BrowserWebDriverContainer<?> chromeContainer =
-                new BrowserWebDriverContainer<>().withCapabilities(new ChromeOptions());
+        BrowserWebDriverContainer chromeContainer = new BrowserWebDriverContainer("selenium/standalone-chrome");
         chromeContainer.start();
         RemoteWebDriver webDriver = new RemoteWebDriver(chromeContainer.getSeleniumAddress(), new ChromeOptions());
         SeleniumDocumentLoader loader = SeleniumDocumentLoader.builder()
