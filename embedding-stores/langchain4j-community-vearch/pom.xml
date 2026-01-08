@@ -11,6 +11,10 @@
     <artifactId>langchain4j-community-vearch</artifactId>
     <name>LangChain4j :: Community :: Integration :: Vearch</name>
 
+    <properties>
+        <skipVearchITs>false</skipVearchITs>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.langchain4j</groupId>

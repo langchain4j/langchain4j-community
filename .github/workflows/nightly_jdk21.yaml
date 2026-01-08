@@ -39,6 +39,7 @@ jobs:
               --fail-at-end \
               -DskipXinferenceITs \
               -DskipSearXNGITs \
+              -DskipVearchITs \
               -Dmaven.test.failure.ignore=true \
               ${{ matrix.mvn_opts }}
 
