@@ -7,6 +7,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class UtilTest {
+
     @Test
     void test_make_url() {
         String path = "search";

@@ -16,15 +16,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Testcontainers
 class AlloyDBEngineIT {
 
     @Container
-    static PostgreSQLContainer<?> pgVector = new PostgreSQLContainer<>("pgvector/pgvector:pg15");
+    static PostgreSQLContainer pgVector = new PostgreSQLContainer("pgvector/pgvector:pg15");
 
     private static final String TABLE_NAME = "java_engine_test_table" + randomUUID();
     private static final String CUSTOM_TABLE_NAME = "java_engine_test_custom_table" + randomUUID();

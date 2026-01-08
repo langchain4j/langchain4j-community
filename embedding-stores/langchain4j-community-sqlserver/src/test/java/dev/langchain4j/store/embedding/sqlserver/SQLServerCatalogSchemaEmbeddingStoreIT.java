@@ -3,9 +3,9 @@ package dev.langchain4j.store.embedding.sqlserver;
 import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
 import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.DEFAULT_CONTAINER;
 import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.getSqlServerDataSource;
+import static org.apache.commons.lang3.RandomUtils.nextInt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Percentage.withPercentage;
-import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
