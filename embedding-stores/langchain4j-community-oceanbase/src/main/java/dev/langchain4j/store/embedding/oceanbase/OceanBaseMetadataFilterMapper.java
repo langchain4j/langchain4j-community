@@ -23,6 +23,10 @@ import java.util.UUID;
 
 class OceanBaseMetadataFilterMapper {
 
+    private OceanBaseMetadataFilterMapper() throws InstantiationException {
+        throw new InstantiationException("Cannot instantiate utility class");
+    }
+
     /**
      * Maps a Filter to SQL WHERE clause expression.
      * Supports filtering by table columns (id, text, metadata, vector) and metadata fields.
@@ -299,9 +303,5 @@ class OceanBaseMetadataFilterMapper {
         } else {
             return value.toString();
         }
-    }
-
-    protected static List<String> formatValues(Collection<?> values) {
-        return values.stream().map(OceanBaseMetadataFilterMapper::formatValue).collect(toList());
     }
 }

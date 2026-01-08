@@ -31,7 +31,8 @@ class OceanBaseJsonUtils {
 
     static Map<String, Object> toMap(String jsonStr) {
         try {
-            return OBJECT_MAPPER.readValue(jsonStr, new TypeReference<Map<String, Object>>() {});
+            return OBJECT_MAPPER.readValue(jsonStr, new TypeReference<>() {
+            });
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

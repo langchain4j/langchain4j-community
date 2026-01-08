@@ -63,6 +63,9 @@
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-duckduckgo</module>
 
+        <!-- Integration of document loaders -->
+        <module>document-loaders/langchain4j-community-document-loader-confluence</module>
+
         <!-- Integration of document parsers -->
         <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
 
@@ -71,6 +74,7 @@
 
         <!-- Integration of code execution engines -->
         <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
+        <module>code-execution-engines/langchain4j-community-code-execution-engine-docker</module>
 
         <!-- Tool integrations -->
         <module>tools/langchain4j-community-tool-jira</module>
@@ -298,7 +302,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>6.26.0</version>
+                        <version>6.27.0</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
@@ -311,12 +315,12 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>3.22.0</version>
+                                <version>3.24.0</version>
                             </dependency>
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-migrate-java</artifactId>
-                                <version>3.23.0</version>
+                                <version>3.25.0</version>
                             </dependency>
                         </dependencies>
                     </plugin>

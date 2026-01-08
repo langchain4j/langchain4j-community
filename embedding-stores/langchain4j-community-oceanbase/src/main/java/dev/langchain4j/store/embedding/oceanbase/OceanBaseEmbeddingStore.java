@@ -112,7 +112,7 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
         } catch (SQLException e) {
             log.error("Failed to check if table '{}' exists", tableName, e);
-            throw new RequestToOceanBaseFailedException(format("Failed to check if table '%s' exists", tableName), e);
+            throw new OceanBaseRequestFailedException(format("Failed to check if table '%s' exists", tableName), e);
         }
     }
 
@@ -242,7 +242,7 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
             stmt.executeUpdate(sql);
         } catch (SQLException e) {
             log.error("Failed to execute SQL: {}", sql, e);
-            throw new RequestToOceanBaseFailedException(format("Failed to execute SQL: %s", sql), e);
+            throw new OceanBaseRequestFailedException(format("Failed to execute SQL: %s", sql), e);
         }
     }
 
@@ -321,7 +321,7 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
             pstmt.executeBatch();
         } catch (SQLException e) {
             log.error("Failed to insert {} embeddings into table '{}'", ids.size(), tableName, e);
-            throw new RequestToOceanBaseFailedException(
+            throw new OceanBaseRequestFailedException(
                     format("Failed to insert embeddings into table '%s'", tableName), e);
         }
     }
@@ -440,7 +440,7 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
         } catch (SQLException e) {
             log.error("Failed to perform similarity search in table '{}'", tableName, e);
-            throw new RequestToOceanBaseFailedException(
+            throw new OceanBaseRequestFailedException(
                     format("Failed to perform similarity search in table '%s'", tableName), e);
         }
 
@@ -749,7 +749,7 @@ public class OceanBaseEmbeddingStore implements EmbeddingStore<TextSegment> {
             pstmt.executeBatch();
         } catch (SQLException e) {
             log.error("Failed to delete {} embeddings from table '{}'", ids.size(), tableName, e);
-            throw new RequestToOceanBaseFailedException(
+            throw new OceanBaseRequestFailedException(
                     format("Failed to delete embeddings from table '%s'", tableName), e);
         }
     }

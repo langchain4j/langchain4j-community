@@ -11,6 +11,10 @@
     <packaging>jar</packaging>
     <name>LangChain4j :: Community :: Spring Boot starter :: Vearch</name>
 
+    <properties>
+        <skipVearchITs>false</skipVearchITs>
+    </properties>
+
     <dependencies>
 
         <dependency>
