@@ -5,20 +5,17 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
-
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3vectors.S3VectorsClient;
 import software.amazon.awssdk.services.s3vectors.model.CreateVectorBucketRequest;
 import software.amazon.awssdk.services.s3vectors.model.DeleteIndexRequest;
 import software.amazon.awssdk.services.s3vectors.model.DeleteVectorBucketRequest;
 import software.amazon.awssdk.services.s3vectors.model.DistanceMetric;
-
-import java.util.UUID;
 
 @EnabledIfEnvironmentVariable(named = "AWS_SECRET_ACCESS_KEY", matches = ".+")
 class S3VectorsEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
@@ -49,9 +46,7 @@ class S3VectorsEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
             region = "us-east-1";
         }
 
-        s3VectorsClient = S3VectorsClient.builder()
-                .region(Region.of(region))
-                .build();
+        s3VectorsClient = S3VectorsClient.builder().region(Region.of(region)).build();
 
         if (bucketCreatedByTest) {
             try {
@@ -122,4 +117,3 @@ class S3VectorsEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
         return false;
     }
 }
-

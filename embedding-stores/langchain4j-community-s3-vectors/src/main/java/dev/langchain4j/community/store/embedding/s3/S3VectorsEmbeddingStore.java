@@ -17,7 +17,17 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
-
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.document.Document;
@@ -37,19 +47,6 @@ import software.amazon.awssdk.services.s3vectors.model.QueryVectorsRequest;
 import software.amazon.awssdk.services.s3vectors.model.QueryVectorsResponse;
 import software.amazon.awssdk.services.s3vectors.model.VectorData;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 /**
  * EmbeddingStore using Amazon S3 Vectors as the backend.
  * Supports cosine and euclidean distance metrics.
@@ -64,6 +61,7 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
 
     /** Default metadata key, aligned with Python langchain-aws. */
     public static final String DEFAULT_TEXT_METADATA_KEY = "_page_content";
+
     private static final Region DEFAULT_REGION = Region.US_EAST_1;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
     private static final int SECONDS_TO_WAIT_FOR_INDEX = 30;
@@ -88,20 +86,14 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
         this.distanceMetric = getOrDefault(builder.distanceMetric, DistanceMetric.COSINE);
         this.createIndexIfNotExists = getOrDefault(builder.createIndexIfNotExists, true);
         this.textMetadataKey = getOrDefault(builder.textMetadataKey, DEFAULT_TEXT_METADATA_KEY);
-        this.s3VectorsClient = isNull(builder.s3VectorsClient)
-                ? createClient(builder)
-                : builder.s3VectorsClient;
+        this.s3VectorsClient = isNull(builder.s3VectorsClient) ? createClient(builder) : builder.s3VectorsClient;
     }
 
     private S3VectorsClient createClient(Builder builder) {
-        Region region = isNull(builder.region)
-                ? DEFAULT_REGION
-                : Region.of(builder.region);
+        Region region = isNull(builder.region) ? DEFAULT_REGION : Region.of(builder.region);
 
-        AwsCredentialsProvider credentialsProvider = getOrDefault(
-                builder.credentialsProvider,
-                DefaultCredentialsProvider.create()
-        );
+        AwsCredentialsProvider credentialsProvider =
+                getOrDefault(builder.credentialsProvider, DefaultCredentialsProvider.create());
 
         Duration timeout = getOrDefault(builder.timeout, DEFAULT_TIMEOUT);
 
@@ -280,18 +272,14 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
 
     @Override
     public List<String> addAll(List<Embedding> embeddings) {
-        List<String> ids = embeddings.stream()
-                .map(ignored -> randomUUID())
-                .collect(toList());
+        List<String> ids = embeddings.stream().map(ignored -> randomUUID()).collect(toList());
         addAll(ids, embeddings, null);
         return ids;
     }
 
     @Override
     public List<String> addAll(List<Embedding> embeddings, List<TextSegment> textSegments) {
-        List<String> ids = embeddings.stream()
-                .map(ignored -> randomUUID())
-                .collect(toList());
+        List<String> ids = embeddings.stream().map(ignored -> randomUUID()).collect(toList());
         addAll(ids, embeddings, textSegments);
         return ids;
     }
@@ -301,7 +289,8 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
         ensureNotEmpty(ids, "ids");
         ensureNotEmpty(embeddings, "embeddings");
         ensureTrue(ids.size() == embeddings.size(), "ids and embeddings must have the same size");
-        ensureTrue(textSegments == null || textSegments.size() == embeddings.size(),
+        ensureTrue(
+                textSegments == null || textSegments.size() == embeddings.size(),
                 "textSegments and embeddings must have the same size");
 
         if (createIndexIfNotExists && !indexExists()) {
@@ -340,15 +329,16 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
         addAll(
                 Collections.singletonList(id),
                 Collections.singletonList(embedding),
-                textSegment == null ? null : Collections.singletonList(textSegment)
-        );
+                textSegment == null ? null : Collections.singletonList(textSegment));
     }
 
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
         if (request.maxResults() > MAX_TOP_K) {
-            log.warn("S3 Vectors limits maxResults to {}. Requested: {}. Results will be capped.",
-                    MAX_TOP_K, request.maxResults());
+            log.warn(
+                    "S3 Vectors limits maxResults to {}. Requested: {}. Results will be capped.",
+                    MAX_TOP_K,
+                    request.maxResults());
         }
         int topK = Math.max(1, Math.min(request.maxResults(), MAX_TOP_K));
         QueryVectorsRequest.Builder queryBuilder = QueryVectorsRequest.builder()
@@ -381,12 +371,7 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
                 if (score >= request.minScore()) {
                     TextSegment textSegment = extractTextSegment(vectorResult.metadata());
 
-                    matches.add(new EmbeddingMatch<>(
-                            score,
-                            vectorResult.key(),
-                            null,
-                            textSegment
-                    ));
+                    matches.add(new EmbeddingMatch<>(score, vectorResult.key(), null, textSegment));
                 }
             }
         }
@@ -591,4 +576,3 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
         return indexName;
     }
 }
-

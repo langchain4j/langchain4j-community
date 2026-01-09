@@ -16,12 +16,11 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.core.document.Document;
-
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.core.document.Document;
 
 class S3VectorsMetadataFilterMapperTest {
 
@@ -162,10 +161,7 @@ class S3VectorsMetadataFilterMapperTest {
     @Test
     void should_map_and() {
         // given
-        And filter = new And(
-                new IsEqualTo("genre", "scifi"),
-                new IsGreaterThanOrEqualTo("year", 2020)
-        );
+        And filter = new And(new IsEqualTo("genre", "scifi"), new IsGreaterThanOrEqualTo("year", 2020));
 
         // when
         Document result = S3VectorsMetadataFilterMapper.map(filter);
@@ -180,10 +176,7 @@ class S3VectorsMetadataFilterMapperTest {
 
     @Test
     void should_map_or() {
-        Or filter = new Or(
-                new IsEqualTo("genre", "scifi"),
-                new IsEqualTo("genre", "fantasy")
-        );
+        Or filter = new Or(new IsEqualTo("genre", "scifi"), new IsEqualTo("genre", "fantasy"));
         Document result = S3VectorsMetadataFilterMapper.map(filter);
 
         assertThat(result.asMap()).containsKey("$or");
@@ -276,10 +269,7 @@ class S3VectorsMetadataFilterMapperTest {
     @Test
     void should_map_not_and_to_or_of_nots() {
         // given
-        Not filter = new Not(new And(
-                new IsEqualTo("genre", "horror"),
-                new IsEqualTo("year", 2020)
-        ));
+        Not filter = new Not(new And(new IsEqualTo("genre", "horror"), new IsEqualTo("year", 2020)));
 
         // when
         Document result = S3VectorsMetadataFilterMapper.map(filter);
@@ -291,10 +281,7 @@ class S3VectorsMetadataFilterMapperTest {
     @Test
     void should_map_not_or_to_and_of_nots() {
         // given
-        Not filter = new Not(new Or(
-                new IsEqualTo("genre", "horror"),
-                new IsEqualTo("year", 2020)
-        ));
+        Not filter = new Not(new Or(new IsEqualTo("genre", "horror"), new IsEqualTo("year", 2020)));
 
         // when
         Document result = S3VectorsMetadataFilterMapper.map(filter);
@@ -308,11 +295,7 @@ class S3VectorsMetadataFilterMapperTest {
         // given
         And filter = new And(
                 new IsEqualTo("genre", "scifi"),
-                new Or(
-                        new IsGreaterThanOrEqualTo("year", 2020),
-                        new IsGreaterThan("rating", 4)
-                )
-        );
+                new Or(new IsGreaterThanOrEqualTo("year", 2020), new IsGreaterThan("rating", 4)));
 
         // when
         Document result = S3VectorsMetadataFilterMapper.map(filter);
@@ -337,4 +320,3 @@ class S3VectorsMetadataFilterMapperTest {
                 .hasMessageContaining("Unsupported filter type");
     }
 }
-
