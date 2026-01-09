@@ -1,26 +1,23 @@
 package dev.langchain4j.community.store.embedding.s3;
 
+import static org.assertj.core.data.Percentage.withPercentage;
+
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIT;
-
+import java.util.UUID;
 import org.assertj.core.data.Percentage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
-import static org.assertj.core.data.Percentage.withPercentage;
-
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3vectors.S3VectorsClient;
 import software.amazon.awssdk.services.s3vectors.model.CreateVectorBucketRequest;
 import software.amazon.awssdk.services.s3vectors.model.DeleteIndexRequest;
 import software.amazon.awssdk.services.s3vectors.model.DeleteVectorBucketRequest;
 import software.amazon.awssdk.services.s3vectors.model.DistanceMetric;
-
-import java.util.UUID;
 
 @EnabledIfEnvironmentVariable(named = "AWS_SECRET_ACCESS_KEY", matches = ".+")
 class S3VectorsEmbeddingStoreIT extends EmbeddingStoreIT {
@@ -51,9 +48,7 @@ class S3VectorsEmbeddingStoreIT extends EmbeddingStoreIT {
             region = "us-east-1";
         }
 
-        s3VectorsClient = S3VectorsClient.builder()
-                .region(Region.of(region))
-                .build();
+        s3VectorsClient = S3VectorsClient.builder().region(Region.of(region)).build();
 
         if (bucketCreatedByTest) {
             try {
@@ -130,6 +125,4 @@ class S3VectorsEmbeddingStoreIT extends EmbeddingStoreIT {
     protected boolean testLong1746714878034235396() {
         return false;
     }
-
 }
-

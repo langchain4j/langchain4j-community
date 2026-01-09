@@ -12,14 +12,13 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-import software.amazon.awssdk.core.document.Document;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import software.amazon.awssdk.core.document.Document;
 
 /**
  * Maps langchain4j Filter to AWS S3 Vectors filter format.
@@ -57,7 +56,8 @@ class S3VectorsMetadataFilterMapper {
         } else if (filter instanceof Not) {
             return mapNot((Not) filter);
         } else {
-            throw new UnsupportedOperationException("Unsupported filter type: " + filter.getClass().getName());
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
         }
     }
 
@@ -137,7 +137,8 @@ class S3VectorsMetadataFilterMapper {
             Or orExpr = (Or) expression;
             expression = new And(Filter.not(orExpr.left()), Filter.not(orExpr.right()));
         } else {
-            throw new UnsupportedOperationException("Unsupported filter type: " + expression.getClass().getName());
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + expression.getClass().getName());
         }
         return map(expression);
     }
@@ -192,4 +193,3 @@ class S3VectorsMetadataFilterMapper {
         }
     }
 }
-
