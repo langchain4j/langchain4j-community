@@ -41,15 +41,9 @@ public class RedisEmbeddingStoreAutoConfiguration {
     public RedisEmbeddingStore redisEmbeddingStore(
             RedisEmbeddingStoreProperties properties,
             ObjectProvider<EmbeddingModel> embeddingModelProvider,
-            ObjectProvider<UnifiedJedis> unifiedJedisProvider,
-            ObjectProvider<JedisClientConfig> clientConfigProvider) {
+            ObjectProvider<UnifiedJedis> unifiedJedisProvider) {
         return RedisEmbeddingStore.builder()
-                .host(properties.getHost())
-                .port(properties.getPort())
-                .user(properties.getUser())
-                .password(properties.getPassword())
                 .unifiedJedis(unifiedJedisProvider.getIfAvailable())
-                .clientConfig(clientConfigProvider.getIfAvailable())
                 .prefix(properties.getPrefix())
                 .indexName(properties.getIndexName())
                 .dimension(Optional.ofNullable(embeddingModelProvider.getIfAvailable())
