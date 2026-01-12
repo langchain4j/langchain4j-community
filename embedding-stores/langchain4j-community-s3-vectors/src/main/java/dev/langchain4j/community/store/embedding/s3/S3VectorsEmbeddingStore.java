@@ -484,12 +484,12 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
     }
 
     private Document toDocument(Object value) {
-        if (value instanceof String) {
-            return Document.fromString((String) value);
-        } else if (value instanceof Number) {
-            return Document.fromNumber(((Number) value).toString());
-        } else if (value instanceof Boolean) {
-            return Document.fromBoolean((Boolean) value);
+        if (value instanceof String string) {
+            return Document.fromString(string);
+        } else if (value instanceof Number number) {
+            return Document.fromNumber(number.toString());
+        } else if (value instanceof Boolean b) {
+            return Document.fromBoolean(b);
         } else {
             return Document.fromString(String.valueOf(value));
         }
@@ -562,17 +562,5 @@ public class S3VectorsEmbeddingStore implements EmbeddingStore<TextSegment>, Aut
         if (s3VectorsClient != null) {
             s3VectorsClient.close();
         }
-    }
-
-    S3VectorsClient getS3VectorsClient() {
-        return s3VectorsClient;
-    }
-
-    String getVectorBucketName() {
-        return vectorBucketName;
-    }
-
-    String getIndexName() {
-        return indexName;
     }
 }

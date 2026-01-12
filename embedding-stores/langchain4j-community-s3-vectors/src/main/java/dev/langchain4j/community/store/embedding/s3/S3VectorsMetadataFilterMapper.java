@@ -33,28 +33,28 @@ class S3VectorsMetadataFilterMapper {
     static Document map(Filter filter) {
         if (filter == null) {
             return null;
-        } else if (filter instanceof IsEqualTo) {
-            return mapEqual((IsEqualTo) filter);
-        } else if (filter instanceof IsNotEqualTo) {
-            return mapNotEqual((IsNotEqualTo) filter);
-        } else if (filter instanceof IsGreaterThan) {
-            return mapGreaterThan((IsGreaterThan) filter);
-        } else if (filter instanceof IsGreaterThanOrEqualTo) {
-            return mapGreaterThanOrEqual((IsGreaterThanOrEqualTo) filter);
-        } else if (filter instanceof IsLessThan) {
-            return mapLessThan((IsLessThan) filter);
-        } else if (filter instanceof IsLessThanOrEqualTo) {
-            return mapLessThanOrEqual((IsLessThanOrEqualTo) filter);
-        } else if (filter instanceof IsIn) {
-            return mapIn((IsIn) filter);
-        } else if (filter instanceof IsNotIn) {
-            return mapNotIn((IsNotIn) filter);
-        } else if (filter instanceof And) {
-            return mapAnd((And) filter);
-        } else if (filter instanceof Or) {
-            return mapOr((Or) filter);
-        } else if (filter instanceof Not) {
-            return mapNot((Not) filter);
+        } else if (filter instanceof IsEqualTo isEqualTo) {
+            return mapEqual(isEqualTo);
+        } else if (filter instanceof IsNotEqualTo isNotEqualTo) {
+            return mapNotEqual(isNotEqualTo);
+        } else if (filter instanceof IsGreaterThan isGreaterThan) {
+            return mapGreaterThan(isGreaterThan);
+        } else if (filter instanceof IsGreaterThanOrEqualTo isGreaterThanOrEqualTo) {
+            return mapGreaterThanOrEqual(isGreaterThanOrEqualTo);
+        } else if (filter instanceof IsLessThan isLessThan) {
+            return mapLessThan(isLessThan);
+        } else if (filter instanceof IsLessThanOrEqualTo isLessThanOrEqualTo) {
+            return mapLessThanOrEqual(isLessThanOrEqualTo);
+        } else if (filter instanceof IsIn isIn) {
+            return mapIn(isIn);
+        } else if (filter instanceof IsNotIn isNotIn) {
+            return mapNotIn(isNotIn);
+        } else if (filter instanceof And and) {
+            return mapAnd(and);
+        } else if (filter instanceof Or or) {
+            return mapOr(or);
+        } else if (filter instanceof Not not) {
+            return mapNot(not);
         } else {
             throw new UnsupportedOperationException(
                     "Unsupported filter type: " + filter.getClass().getName());
@@ -106,35 +106,25 @@ class S3VectorsMetadataFilterMapper {
      */
     private static Document mapNot(Not not) {
         Filter expression = not.expression();
-        if (expression instanceof IsEqualTo) {
-            IsEqualTo eq = (IsEqualTo) expression;
+        if (expression instanceof IsEqualTo eq) {
             expression = new IsNotEqualTo(eq.key(), eq.comparisonValue());
-        } else if (expression instanceof IsNotEqualTo) {
-            IsNotEqualTo neq = (IsNotEqualTo) expression;
+        } else if (expression instanceof IsNotEqualTo neq) {
             expression = new IsEqualTo(neq.key(), neq.comparisonValue());
-        } else if (expression instanceof IsGreaterThan) {
-            IsGreaterThan gt = (IsGreaterThan) expression;
+        } else if (expression instanceof IsGreaterThan gt) {
             expression = new IsLessThanOrEqualTo(gt.key(), gt.comparisonValue());
-        } else if (expression instanceof IsGreaterThanOrEqualTo) {
-            IsGreaterThanOrEqualTo gte = (IsGreaterThanOrEqualTo) expression;
+        } else if (expression instanceof IsGreaterThanOrEqualTo gte) {
             expression = new IsLessThan(gte.key(), gte.comparisonValue());
-        } else if (expression instanceof IsLessThan) {
-            IsLessThan lt = (IsLessThan) expression;
+        } else if (expression instanceof IsLessThan lt) {
             expression = new IsGreaterThanOrEqualTo(lt.key(), lt.comparisonValue());
-        } else if (expression instanceof IsLessThanOrEqualTo) {
-            IsLessThanOrEqualTo lte = (IsLessThanOrEqualTo) expression;
+        } else if (expression instanceof IsLessThanOrEqualTo lte) {
             expression = new IsGreaterThan(lte.key(), lte.comparisonValue());
-        } else if (expression instanceof IsIn) {
-            IsIn in = (IsIn) expression;
+        } else if (expression instanceof IsIn in) {
             expression = new IsNotIn(in.key(), in.comparisonValues());
-        } else if (expression instanceof IsNotIn) {
-            IsNotIn notIn = (IsNotIn) expression;
+        } else if (expression instanceof IsNotIn notIn) {
             expression = new IsIn(notIn.key(), notIn.comparisonValues());
-        } else if (expression instanceof And) {
-            And andExpr = (And) expression;
+        } else if (expression instanceof And andExpr) {
             expression = new Or(Filter.not(andExpr.left()), Filter.not(andExpr.right()));
-        } else if (expression instanceof Or) {
-            Or orExpr = (Or) expression;
+        } else if (expression instanceof Or orExpr) {
             expression = new And(Filter.not(orExpr.left()), Filter.not(orExpr.right()));
         } else {
             throw new UnsupportedOperationException(
