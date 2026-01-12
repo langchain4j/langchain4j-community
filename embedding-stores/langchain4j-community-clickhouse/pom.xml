@@ -13,7 +13,7 @@
 
     <properties>
         <clickhouse.version>0.9.5</clickhouse.version>
-        <clickhouse-jdbc.version>0.9.5</clickhouse-jdbc.version>
+        <clickhouse-jdbc.version>0.9.6</clickhouse-jdbc.version>
     </properties>
 
     <dependencies>
