@@ -16,6 +16,17 @@
         <clickhouse-jdbc.version>0.9.6</clickhouse-jdbc.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Skip managed commons-lang3 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.20.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
 
         <dependency>
