@@ -28,9 +28,8 @@ class McpToolSchemaMapperTest {
                         .build())
                 .build();
 
-        McpToolSchemaMapper mapper = new McpToolSchemaMapper();
         Map<String, Object> mapped =
-                mapper.toMcpTools(List.of(toolSpecification)).get(0);
+                McpToolSchemaMapper.toMcpTools(List.of(toolSpecification)).get(0);
 
         assertThat(mapped)
                 .containsEntry("name", "createPerson")
@@ -70,9 +69,8 @@ class McpToolSchemaMapperTest {
                         "customValue"))
                 .build();
 
-        McpToolSchemaMapper mapper = new McpToolSchemaMapper();
         Map<String, Object> mapped =
-                mapper.toMcpTools(List.of(toolSpecification)).get(0);
+                McpToolSchemaMapper.toMcpTools(List.of(toolSpecification)).get(0);
 
         assertThat(mapped).containsEntry("title", "Do Something");
 
@@ -95,9 +93,8 @@ class McpToolSchemaMapperTest {
         ToolSpecification toolSpecification =
                 ToolSpecification.builder().name("noop").metadata(Map.of()).build();
 
-        McpToolSchemaMapper mapper = new McpToolSchemaMapper();
         Map<String, Object> mapped =
-                mapper.toMcpTools(List.of(toolSpecification)).get(0);
+                McpToolSchemaMapper.toMcpTools(List.of(toolSpecification)).get(0);
 
         assertThat(mapped).doesNotContainKeys("annotations", "_meta", "title");
     }

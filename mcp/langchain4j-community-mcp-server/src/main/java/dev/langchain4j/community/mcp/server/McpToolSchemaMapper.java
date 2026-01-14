@@ -17,7 +17,7 @@ import java.util.Map;
 
 class McpToolSchemaMapper {
 
-    public List<Map<String, Object>> toMcpTools(List<ToolSpecification> tools) {
+    public static List<Map<String, Object>> toMcpTools(List<ToolSpecification> tools) {
         List<Map<String, Object>> result = new ArrayList<>();
         for (ToolSpecification tool : tools) {
             result.add(toMcpTool(tool));
@@ -25,7 +25,7 @@ class McpToolSchemaMapper {
         return result;
     }
 
-    private Map<String, Object> toMcpTool(ToolSpecification tool) {
+    private static Map<String, Object> toMcpTool(ToolSpecification tool) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("name", tool.name());
         if (tool.description() != null) {
@@ -42,7 +42,7 @@ class McpToolSchemaMapper {
         return map;
     }
 
-    private void addMetadata(Map<String, Object> metadata, Map<String, Object> target) {
+    private static void addMetadata(Map<String, Object> metadata, Map<String, Object> target) {
         if (metadata == null || metadata.isEmpty()) {
             return;
         }

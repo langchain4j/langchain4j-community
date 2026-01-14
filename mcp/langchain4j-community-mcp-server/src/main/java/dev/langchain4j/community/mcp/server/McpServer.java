@@ -82,8 +82,7 @@ public class McpServer {
 
         this.toolExecutors = Map.copyOf(executors);
         List<ToolSpecification> toolSpecifications = List.copyOf(specs);
-        McpToolSchemaMapper toolSchemaMapper = new McpToolSchemaMapper();
-        this.mcpTools = List.copyOf(toolSchemaMapper.toMcpTools(toolSpecifications));
+        this.mcpTools = List.copyOf(McpToolSchemaMapper.toMcpTools(toolSpecifications));
     }
 
     public McpJsonRpcMessage handle(JsonNode message) {
