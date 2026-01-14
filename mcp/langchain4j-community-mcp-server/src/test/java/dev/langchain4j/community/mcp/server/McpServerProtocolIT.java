@@ -108,6 +108,78 @@ class McpServerProtocolIT {
     }
 
     @Test
+    void should_ignore_non_numeric_id_and_continue() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client()
+                    .send("{\"jsonrpc\":\"2.0\",\"id\":\"string-id\",\"method\":\"tools/list\"}");
+
+            String request = jsonRequest(10L, "tools/list", Map.of());
+            harness.client().send(request);
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(10L);
+            assertThat(response.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_continue_after_method_not_found_error() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            String request = jsonRequest(11L, "does/not/exist", Map.of());
+            harness.client().send(request);
+
+            JsonNode errorResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(errorResponse.get("id").asLong()).isEqualTo(11L);
+            assertThat(errorResponse.get("error").get("code").asInt()).isEqualTo(-32601);
+
+            String okRequest = jsonRequest(12L, "tools/list", Map.of());
+            harness.client().send(okRequest);
+
+            JsonNode okResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(okResponse.get("id").asLong()).isEqualTo(12L);
+            assertThat(okResponse.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_continue_after_blank_method_error() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            String request = jsonRequest(13L, "   ", Map.of());
+            harness.client().send(request);
+
+            JsonNode errorResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(errorResponse.get("id").asLong()).isEqualTo(13L);
+            assertThat(errorResponse.get("error").get("code").asInt()).isEqualTo(-32600);
+
+            String okRequest = jsonRequest(14L, "tools/list", Map.of());
+            harness.client().send(okRequest);
+
+            JsonNode okResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(okResponse.get("id").asLong()).isEqualTo(14L);
+            assertThat(okResponse.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_continue_after_missing_tool_name_error() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client()
+                    .send("{\"jsonrpc\":\"2.0\",\"id\":15,\"method\":\"tools/call\",\"params\":{\"arguments\":{}}}");
+
+            JsonNode errorResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(errorResponse.get("id").asLong()).isEqualTo(15L);
+            assertThat(errorResponse.get("error").get("code").asInt()).isEqualTo(-32602);
+
+            String okRequest = jsonRequest(16L, "tools/list", Map.of());
+            harness.client().send(okRequest);
+
+            JsonNode okResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(okResponse.get("id").asLong()).isEqualTo(16L);
+            assertThat(okResponse.has("error")).isFalse();
+        }
+    }
+
+    @Test
     void should_return_initialize_response() throws Exception {
         try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
             String request = jsonRequest(3L, "initialize", Map.of("protocolVersion", "2025-06-18"));

@@ -98,4 +98,44 @@ class McpToolSchemaMapperTest {
 
         assertThat(mapped).doesNotContainKeys("annotations", "_meta", "title");
     }
+
+    @Test
+    void should_not_include_description_when_description_is_null() {
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name("noop")
+                .build();
+
+        Map<String, Object> mapped =
+                McpToolSchemaMapper.toMcpTools(List.of(toolSpecification)).get(0);
+
+        assertThat(mapped).containsEntry("name", "noop").doesNotContainKey("description");
+    }
+
+    @Test
+    void should_use_empty_object_schema_when_parameters_are_null() {
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name("noop")
+                .parameters(null)
+                .build();
+
+        Map<String, Object> mapped =
+                McpToolSchemaMapper.toMcpTools(List.of(toolSpecification)).get(0);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> inputSchema = (Map<String, Object>) mapped.get("inputSchema");
+        assertThat(inputSchema).containsEntry("type", "object");
+    }
+
+    @Test
+    void should_only_add_annotations_when_metadata_contains_only_hints() {
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name("noop")
+                .metadata(Map.of(READ_ONLY_HINT, true))
+                .build();
+
+        Map<String, Object> mapped =
+                McpToolSchemaMapper.toMcpTools(List.of(toolSpecification)).get(0);
+
+        assertThat(mapped).containsKey("annotations").doesNotContainKeys("title", "_meta");
+    }
 }
