@@ -58,7 +58,6 @@ public class McpServer {
     private static final String PARAMS_FIELD = "params";
     private static final String ARGUMENTS_FIELD = "arguments";
 
-    private final List<ToolSpecification> toolSpecifications;
     private final Map<String, ToolExecutor> toolExecutors;
     private final List<Map<String, Object>> mcpTools;
     private final McpImplementation serverInfo;
@@ -82,9 +81,9 @@ public class McpServer {
 
         ToolSpecifications.validateSpecifications(specs);
 
-        this.toolSpecifications = List.copyOf(specs);
         this.toolExecutors = Map.copyOf(executors);
-        this.mcpTools = List.copyOf(toolSchemaMapper.toMcpTools(this.toolSpecifications));
+        List<ToolSpecification> toolSpecifications = List.copyOf(specs);
+        this.mcpTools = List.copyOf(toolSchemaMapper.toMcpTools(toolSpecifications));
     }
 
     public McpJsonRpcMessage handle(JsonNode message) {
