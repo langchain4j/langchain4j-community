@@ -101,9 +101,8 @@ class McpToolSchemaMapperTest {
 
     @Test
     void should_not_include_description_when_description_is_null() {
-        ToolSpecification toolSpecification = ToolSpecification.builder()
-                .name("noop")
-                .build();
+        ToolSpecification toolSpecification =
+                ToolSpecification.builder().name("noop").build();
 
         Map<String, Object> mapped =
                 McpToolSchemaMapper.toMcpTools(List.of(toolSpecification)).get(0);
@@ -113,10 +112,8 @@ class McpToolSchemaMapperTest {
 
     @Test
     void should_use_empty_object_schema_when_parameters_are_null() {
-        ToolSpecification toolSpecification = ToolSpecification.builder()
-                .name("noop")
-                .parameters(null)
-                .build();
+        ToolSpecification toolSpecification =
+                ToolSpecification.builder().name("noop").parameters(null).build();
 
         Map<String, Object> mapped =
                 McpToolSchemaMapper.toMcpTools(List.of(toolSpecification)).get(0);

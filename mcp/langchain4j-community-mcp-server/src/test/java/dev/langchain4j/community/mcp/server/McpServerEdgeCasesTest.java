@@ -78,8 +78,7 @@ class McpServerEdgeCasesTest {
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isTrue();
         assertThat(callToolResult.getResult().getContent()).hasSize(1);
-        assertThat(callToolResult.getResult().getContent().get(0).getText())
-                .contains("ToolExecutionException");
+        assertThat(callToolResult.getResult().getContent().get(0).getText()).contains("ToolExecutionException");
     }
 
     @Test

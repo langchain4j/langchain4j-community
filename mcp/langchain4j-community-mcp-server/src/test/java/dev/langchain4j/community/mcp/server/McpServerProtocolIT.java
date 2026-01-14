@@ -110,8 +110,7 @@ class McpServerProtocolIT {
     @Test
     void should_ignore_non_numeric_id_and_continue() throws Exception {
         try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
-            harness.client()
-                    .send("{\"jsonrpc\":\"2.0\",\"id\":\"string-id\",\"method\":\"tools/list\"}");
+            harness.client().send("{\"jsonrpc\":\"2.0\",\"id\":\"string-id\",\"method\":\"tools/list\"}");
 
             String request = jsonRequest(10L, "tools/list", Map.of());
             harness.client().send(request);
