@@ -61,7 +61,6 @@ public class McpServer {
     private final Map<String, ToolExecutor> toolExecutors;
     private final List<Map<String, Object>> mcpTools;
     private final McpImplementation serverInfo;
-    private final McpToolSchemaMapper toolSchemaMapper = new McpToolSchemaMapper();
 
     public McpServer(List<Object> tools) {
         this(tools, defaultServerInfo());
@@ -83,6 +82,7 @@ public class McpServer {
 
         this.toolExecutors = Map.copyOf(executors);
         List<ToolSpecification> toolSpecifications = List.copyOf(specs);
+        McpToolSchemaMapper toolSchemaMapper = new McpToolSchemaMapper();
         this.mcpTools = List.copyOf(toolSchemaMapper.toMcpTools(toolSpecifications));
     }
 
