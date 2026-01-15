@@ -17,7 +17,7 @@
             The s3vectors artifact was introduced in SDK 2.41.0 (May 2025).
             Parent POM uses an older version that doesn't include this artifact.
         -->
-        <aws.sdk.version>2.41.0</aws.sdk.version>
+        <aws.sdk.version>2.41.8</aws.sdk.version>
     </properties>
 
     <dependencyManagement>
