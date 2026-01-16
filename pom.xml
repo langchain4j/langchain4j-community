@@ -101,7 +101,22 @@
         <langchain4j.version>1.11.0-SNAPSHOT</langchain4j.version>
         <langchain4j.http-client-jdk.version>1.11.0-SNAPSHOT</langchain4j.http-client-jdk.version>
         <langchain4j.open-ai.version>1.11.0-SNAPSHOT</langchain4j.open-ai.version>
+
+        <!-- test dependencies -->
+        <testcontainers.version>2.0.3</testcontainers.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <repositories>
         <repository>
@@ -311,7 +326,8 @@
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
                                 <recipe>org.openrewrite.java.testing.assertj.Assertj</recipe>
-                                <recipe>org.openrewrite.java.migrate.UpgradeToJava17</recipe>
+                                <!--                                <recipe>org.openrewrite.java.migrate.UpgradeToJava17</recipe>-->
+                                <!--                                <recipe>org.openrewrite.java.testing.testcontainers.Testcontainers2Migration</recipe>-->
                             </activeRecipes>
                             <failOnDryRunResults>true</failOnDryRunResults>
                         </configuration>
