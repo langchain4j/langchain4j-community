@@ -53,28 +53,29 @@ class WebScraperClientTest {
 
         String result = client.htmlToMarkdown(html, URI.create("http://localhost:8080/base"));
 
-        assertThat(result).contains("# Main Title");
-        assertThat(result).contains("###### Footer Title");
-        assertThat(result).contains("- Item 1");
-        assertThat(result).contains("  - Nested 1");
-        assertThat(result).contains("- Item 2");
-        assertThat(result).contains("- First");
-        assertThat(result).contains("- Second");
-        assertThat(result).contains("[Link](http://localhost:8080/path)");
-        assertThat(result).contains("TextOnly");
-        assertThat(result).contains("http://localhost:8080/blank");
-        assertThat(result).contains("Bold");
-        assertThat(result).contains("Italic");
-        assertThat(result).contains("Line two");
-        assertThat(result).doesNotContain("Navigation");
-        assertThat(result).doesNotContain(".hidden{}");
-        assertThat(result).doesNotContain("Copyright");
-        assertThat(result).doesNotContain("example.com");
-        assertThat(result).doesNotContain("console.log");
+        assertThat(result)
+                .contains("# Main Title")
+                .contains("###### Footer Title")
+                .contains("- Item 1")
+                .contains("  - Nested 1")
+                .contains("- Item 2")
+                .contains("- First")
+                .contains("- Second")
+                .contains("[Link](http://localhost:8080/path)")
+                .contains("TextOnly")
+                .contains("http://localhost:8080/blank")
+                .contains("Bold")
+                .contains("Italic")
+                .contains("Line two")
+                .doesNotContain("Navigation")
+                .doesNotContain(".hidden{}")
+                .doesNotContain("Copyright")
+                .doesNotContain("example.com")
+                .doesNotContain("console.log");
     }
 
     @Test
-    void should_send_user_agent_header() throws IOException, InterruptedException {
+    void should_send_user_agent_header() throws Exception {
         AtomicReference<String> userAgent = new AtomicReference<>();
         AtomicReference<String> acceptHeader = new AtomicReference<>();
         String url = startServer(exchange -> {
@@ -118,8 +119,7 @@ class WebScraperClientTest {
 
         String result = client.htmlToMarkdown(html);
 
-        assertThat(result).contains("Line 1 Line 2");
-        assertThat(result).contains("Quoted");
+        assertThat(result).contains("Line 1 Line 2").contains("Quoted");
     }
 
     @Test
@@ -130,7 +130,7 @@ class WebScraperClientTest {
     }
 
     @Test
-    void should_fetch_plain_text_content_type() throws IOException, InterruptedException {
+    void should_fetch_plain_text_content_type() throws Exception {
         String url = startServer(200, "plain-text", "text/plain; charset=UTF-8");
 
         String body = client.fetchHtml(url);
@@ -139,17 +139,17 @@ class WebScraperClientTest {
     }
 
     @Test
-    void should_fetch_large_response() throws IOException, InterruptedException {
+    void should_fetch_large_response() throws Exception {
         String body = "x".repeat(200_000);
         String url = startServer(200, body);
 
         String result = client.fetchHtml(url);
 
-        assertThat(result).hasSize(body.length());
+        assertThat(result).hasSameSizeAs(body);
     }
 
     @Test
-    void should_throw_on_404() throws IOException {
+    void should_throw_on_404() throws Exception {
         String url = startServer(404, "<html><body>Not Found</body></html>");
 
         assertThatThrownBy(() -> client.fetchHtml(url))
@@ -158,7 +158,7 @@ class WebScraperClientTest {
     }
 
     @Test
-    void should_throw_on_500() throws IOException {
+    void should_throw_on_500() throws Exception {
         String url = startServer(500, "<html><body>Server Error</body></html>");
 
         assertThatThrownBy(() -> client.fetchHtml(url))

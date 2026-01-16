@@ -36,24 +36,22 @@ class WebScraperToolTest {
     }
 
     @Test
-    void should_scrape_url_successfully() throws IOException {
+    void should_scrape_url_successfully() throws Exception {
         String html = "<html><body><h1>Title</h1><p>Content</p></body></html>";
         String url = startServer(200, html);
 
         String result = tool.scrapeUrl(url);
 
-        assertThat(result).contains("Title");
-        assertThat(result).doesNotStartWith("Error:");
+        assertThat(result).contains("Title").doesNotStartWith("Error:");
     }
 
     @Test
-    void should_return_error_string_on_failure() throws IOException {
+    void should_return_error_string_on_failure() throws Exception {
         String url = startServer(500, "<html><body>Server Error</body></html>");
 
         String result = tool.scrapeUrl(url);
 
-        assertThat(result).startsWith("Error:");
-        assertThat(result).contains("500");
+        assertThat(result).startsWith("Error:").contains("500");
     }
 
     @Test
@@ -89,7 +87,7 @@ class WebScraperToolTest {
     }
 
     @Test
-    void should_return_error_for_connection_refused() throws IOException {
+    void should_return_error_for_connection_refused() throws Exception {
         int port = findUnusedPort();
         String url = "http://localhost:" + port + "/missing";
 
@@ -99,13 +97,12 @@ class WebScraperToolTest {
     }
 
     @Test
-    void should_return_error_for_not_found() throws IOException {
+    void should_return_error_for_not_found() throws Exception {
         String url = startServer(404, "<html><body>Not Found</body></html>");
 
         String result = tool.scrapeUrl(url);
 
-        assertThat(result).startsWith("Error:");
-        assertThat(result).contains("404");
+        assertThat(result).startsWith("Error:").contains("404");
     }
 
     private String startServer(int status, String body) throws IOException {

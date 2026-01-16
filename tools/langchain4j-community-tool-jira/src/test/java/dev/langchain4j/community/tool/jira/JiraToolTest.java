@@ -96,8 +96,9 @@ class JiraToolTest {
 
             String response = tool.getIssue("PROJ-1");
 
-            assertThat(response).contains("[PROJ-1] Test summary (Open) | Assignee: Alice | Priority: High");
-            assertThat(response).contains("Description: " + "a".repeat(500) + "...");
+            assertThat(response)
+                    .contains("[PROJ-1] Test summary (Open) | Assignee: Alice | Priority: High")
+                    .contains("Description: " + "a".repeat(500) + "...");
         }
     }
 

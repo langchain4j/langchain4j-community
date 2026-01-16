@@ -44,8 +44,7 @@ class StdioMcpServerTransportDispatchIT {
 
             String threadName = client.executeTool(request).resultText();
 
-            assertThat(threadName).isEqualTo("mcp-stdio-server-dispatcher");
-            assertThat(threadName).isNotEqualTo("mcp-stdio-server");
+            assertThat(threadName).isEqualTo("mcp-stdio-server-dispatcher").isNotEqualTo("mcp-stdio-server");
         }
     }
 

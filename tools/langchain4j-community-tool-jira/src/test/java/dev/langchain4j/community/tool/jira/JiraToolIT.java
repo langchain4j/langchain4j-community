@@ -54,7 +54,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_get_issue_via_tool() throws IOException {
+    void should_get_issue_via_tool() throws Exception {
         String issueKey = "PROJ-101";
         String summary = "Summary-" + UUID.randomUUID();
         String status = "Open";
@@ -77,7 +77,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_handle_non_ascii_issue_text() throws IOException {
+    void should_handle_non_ascii_issue_text() throws Exception {
         String issueKey = "PROJ-UNICODE";
         String summary = "\u4e2d\u6587-\u6d4b\u8bd5-" + UUID.randomUUID();
         String description = "\u65e5\u672c\u8a9e-\u30c6\u30b9\u30c8-" + UUID.randomUUID();
@@ -96,7 +96,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_search_issues_with_jql() throws IOException {
+    void should_search_issues_with_jql() throws Exception {
         String jql = "project = PROJ ORDER BY created DESC";
         ObjectNode response = OBJECT_MAPPER.createObjectNode();
         var issues = response.putArray("issues");
@@ -117,7 +117,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_no_issues_for_empty_search_results() throws IOException {
+    void should_return_no_issues_for_empty_search_results() throws Exception {
         String jql = "project = PROJ AND status = Done";
         ObjectNode response = OBJECT_MAPPER.createObjectNode();
         response.putArray("issues");
@@ -135,7 +135,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_request_max_results_for_search_pagination() throws IOException {
+    void should_request_max_results_for_search_pagination() throws Exception {
         String jql = "project = PROJ ORDER BY created DESC";
         ObjectNode response = OBJECT_MAPPER.createObjectNode();
         var issues = response.putArray("issues");
@@ -158,7 +158,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_create_issue_with_fields() throws IOException {
+    void should_create_issue_with_fields() throws Exception {
         String projectKey = "PROJ";
         String summary = "Summary-" + UUID.randomUUID();
         String description = "Description-" + UUID.randomUUID();
@@ -196,7 +196,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_error_for_create_issue_failure() throws IOException {
+    void should_return_error_for_create_issue_failure() throws Exception {
         String projectKey = "PROJ";
         String summary = "Summary-" + UUID.randomUUID();
         String description = "Description-" + UUID.randomUUID();
@@ -218,7 +218,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_add_comment_with_adf() throws IOException {
+    void should_add_comment_with_adf() throws Exception {
         String issueKey = "PROJ-7";
         String comment = "Comment-" + UUID.randomUUID();
         ObjectNode response = OBJECT_MAPPER.createObjectNode().put("id", "10000");
@@ -248,7 +248,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_error_for_comment_failure() throws IOException {
+    void should_return_error_for_comment_failure() throws Exception {
         String issueKey = "PROJ-8";
         String comment = "Comment-" + UUID.randomUUID();
         String errorBody = "Service unavailable";
@@ -267,7 +267,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_error_for_missing_issue() throws IOException {
+    void should_return_error_for_missing_issue() throws Exception {
         String issueKey = "PROJ-404";
         String errorBody = "{\"errorMessages\":[\"Issue not found\"]}";
 
@@ -285,7 +285,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_error_for_invalid_jql() throws IOException {
+    void should_return_error_for_invalid_jql() throws Exception {
         String jql = "project = PROJ AND ???";
         String errorBody = "{\"errorMessages\":[\"JQL is invalid\"]}";
 
@@ -303,7 +303,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_error_for_unauthorized() throws IOException {
+    void should_return_error_for_unauthorized() throws Exception {
         String issueKey = "PROJ-401";
         String errorBody = "{\"errorMessages\":[\"Unauthorized\"]}";
 
@@ -321,7 +321,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_error_for_forbidden() throws IOException {
+    void should_return_error_for_forbidden() throws Exception {
         String issueKey = "PROJ-403";
         String errorBody = "{\"errorMessages\":[\"Forbidden\"]}";
 
@@ -339,7 +339,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_error_for_rate_limited() throws IOException {
+    void should_return_error_for_rate_limited() throws Exception {
         String jql = "project = PROJ";
         String errorBody = "{\"errorMessages\":[\"Rate limit exceeded\"]}";
 
@@ -357,7 +357,7 @@ class JiraToolIT {
     }
 
     @Test
-    void should_return_error_for_timeout_without_retry() throws IOException {
+    void should_return_error_for_timeout_without_retry() throws Exception {
         String issueKey = "PROJ-408";
         String path = "/rest/api/3/issue/" + issueKey;
 
@@ -371,7 +371,7 @@ class JiraToolIT {
 
         ToolExecution execution = toolExecutionByName(result, "getIssue");
         assertThat(execution.result()).startsWith("Error:");
-        assertThat(server.requestCount(path)).isEqualTo(1);
+        assertThat(server.requestCount(path)).isOne();
         assertThat(result.content()).isNotBlank();
         logger.info(result.content());
     }

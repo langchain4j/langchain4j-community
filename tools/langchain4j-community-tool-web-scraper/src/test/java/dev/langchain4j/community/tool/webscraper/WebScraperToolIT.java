@@ -40,7 +40,7 @@ class WebScraperToolIT {
     }
 
     @Test
-    void should_scrape_page_with_links_and_lists() throws IOException {
+    void should_scrape_page_with_links_and_lists() throws Exception {
         String heading = "WEB_SCRAPER_HEADING_" + UUID.randomUUID();
         String itemOne = "ITEM_ONE_" + UUID.randomUUID();
         String itemTwo = "ITEM_TWO_" + UUID.randomUUID();
@@ -73,7 +73,7 @@ class WebScraperToolIT {
     }
 
     @Test
-    void should_scrape_two_pages_and_return_both_headings() throws IOException {
+    void should_scrape_two_pages_and_return_both_headings() throws Exception {
         String headingOne = "HEADING_ONE_" + UUID.randomUUID();
         String headingTwo = "HEADING_TWO_" + UUID.randomUUID();
         String htmlOne = "<html><body><h1>" + headingOne + "</h1></body></html>";
@@ -103,7 +103,7 @@ class WebScraperToolIT {
     }
 
     @Test
-    void should_return_error_for_not_found() throws IOException {
+    void should_return_error_for_not_found() throws Exception {
         String baseUrl = startServer(new Route("/missing", 404, "<html><body>Not Found</body></html>"));
         String url = baseUrl + "/missing";
 
@@ -119,7 +119,7 @@ class WebScraperToolIT {
     }
 
     @Test
-    void should_return_error_for_server_error() throws IOException {
+    void should_return_error_for_server_error() throws Exception {
         String baseUrl = startServer(new Route("/boom", 500, "<html><body>Server Error</body></html>"));
         String url = baseUrl + "/boom";
 

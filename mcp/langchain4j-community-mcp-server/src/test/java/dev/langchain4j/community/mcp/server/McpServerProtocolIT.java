@@ -42,7 +42,7 @@ class McpServerProtocolIT {
             harness.client().send(request);
 
             JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
-            assertThat(response.get("id").asLong()).isEqualTo(1L);
+            assertThat(response.get("id").asLong()).isOne();
             assertThat(response.has("error")).isFalse();
             assertThat(response.get("result").get("content").get(0).get("text").asText())
                     .isEqualTo("hello");
