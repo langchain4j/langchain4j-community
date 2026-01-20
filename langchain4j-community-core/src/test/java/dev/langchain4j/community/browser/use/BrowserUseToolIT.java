@@ -1,11 +1,12 @@
-package dev.langchain4j.community.browser.use.playwright;
+package dev.langchain4j.community.browser.use;
 
-import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
-import dev.langchain4j.community.browser.use.BrowserUseTool;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModelName;
 import dev.langchain4j.service.AiServices;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -17,7 +18,7 @@ public class BrowserUseToolIT {
             .baseUrl(System.getenv("OPENAI_BASE_URL"))
             .apiKey(System.getenv("OPENAI_API_KEY"))
             .organizationId(System.getenv("OPENAI_ORGANIZATION_ID"))
-            .modelName(GPT_4_O_MINI)
+            .modelName(OpenAiChatModelName.GPT_4_O_MINI)
             .logRequests(true)
             .logResponses(true)
             .build();
@@ -29,8 +30,8 @@ public class BrowserUseToolIT {
 
     @Test
     void should_execute_tool() {
-
-        BrowserUseTool tool = BrowserUseTool.from(new PlaywrightBrowserExecutionEngine());
+        final MockBrowserExecutionEngine mockBrowserExecutionEngine = spy(new MockBrowserExecutionEngine());
+        BrowserUseTool tool = BrowserUseTool.from(mockBrowserExecutionEngine);
 
         Assistant assistant = AiServices.builder(Assistant.class)
                 .chatModel(model)
@@ -42,5 +43,8 @@ public class BrowserUseToolIT {
 
         assertThat(answer).contains("Java");
         assertThat(answer).contains("LLM");
+
+        verify(mockBrowserExecutionEngine).navigate("https://docs.langchain4j.dev/");
+        verify(mockBrowserExecutionEngine).getText();
     }
 }

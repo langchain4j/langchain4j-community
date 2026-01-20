@@ -7,9 +7,7 @@ import io.orangebuffalo.testcontainers.playwright.PlaywrightContainer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-@EnabledIfEnvironmentVariable(named = "OPENAI_API_KEY", matches = ".+")
 public class PlaywrightBrowserExecutionEngineIT {
 
     static PlaywrightContainer playwrightContainer;
@@ -22,7 +20,7 @@ public class PlaywrightBrowserExecutionEngineIT {
         playwrightContainer = new PlaywrightContainer();
         playwrightContainer.start();
         browser = playwrightContainer.getPlaywrightApi().chromium();
-        engine = new PlaywrightBrowserExecutionEngine(browser);
+        engine = PlaywrightBrowserExecutionEngine.builder().build();
     }
 
     @AfterAll

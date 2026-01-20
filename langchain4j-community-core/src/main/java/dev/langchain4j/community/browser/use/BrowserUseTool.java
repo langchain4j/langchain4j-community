@@ -5,6 +5,9 @@ import dev.langchain4j.agent.tool.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A tool that executes browser actions using BrowserExecutionEngine.
+ */
 public class BrowserUseTool {
     private static final Logger LOGGER = LoggerFactory.getLogger(BrowserUseTool.class);
 
@@ -20,23 +23,6 @@ public class BrowserUseTool {
                     """
             A browser automation tool that allows interaction with a web browser to perform various actions.
             Use this when you need to browse websites, fill forms, click buttons, or extract content, etc.
-
-            The browser_use tool supported actions: [
-             - 'NAVIGATE': Go to a specific URL.
-             - 'CLICK': Click an element by a XPath / CSS selector.
-             - 'RELOAD': Reload / refresh the current page.
-             - 'GO_BACK': Navigate to the previous page in history.
-             - 'GO_FORWARD': Navigate to the next page in history.
-             - 'GET_TITLE': Return the page's title.
-             - 'GET_HTML': Get HTML content of the page.
-             - 'GET_TEXT': Get text content of the page.
-             - 'PRESS_ENTER': Hit the Enter key.
-             - 'WAIT': Wait for some seconds.
-             - 'TYPE_TEXT': Type text into a focused element.
-             - 'INPUT_TEXT': Input text into an element.
-             - 'DRAG_DROP': Drag the source element to the target element.
-             ]
-
             Each action requires specific parameters as the following: {
             'NAVIGATE': ['url'],
             'CLICK': ['element'],
@@ -54,7 +40,25 @@ public class BrowserUseTool {
             }
             """)
     public String execute(
-            @P("The browser action to perform.") Action action,
+            @P(
+                            """
+             The browser action to perform. Supported actions: [
+             - 'NAVIGATE': Go to a specific URL.
+             - 'CLICK': Click an element by a XPath / CSS selector.
+             - 'RELOAD': Reload / refresh the current page.
+             - 'GO_BACK': Navigate to the previous page in history.
+             - 'GO_FORWARD': Navigate to the next page in history.
+             - 'GET_TITLE': Return the page's title.
+             - 'GET_HTML': Get HTML content of the page.
+             - 'GET_TEXT': Get text content of the page.
+             - 'PRESS_ENTER': Hit the Enter key.
+             - 'WAIT': Wait for some seconds.
+             - 'TYPE_TEXT': Type text into a focused element.
+             - 'INPUT_TEXT': Input text into an element.
+             - 'DRAG_DROP': Drag the source element to the target element.
+             ]
+             """)
+                    Action action,
             @P(value = "URL for 'NAVIGATE' action", required = false) String url,
             @P(value = "Element(XPath / CSS selector) for 'CLICK' or 'INPUT_TEXT' actions", required = false)
                     String element,
@@ -110,22 +114,6 @@ public class BrowserUseTool {
                 throw new IllegalArgumentException("Unknown action: " + action);
         }
         return ret;
-    }
-
-    enum Action {
-        NAVIGATE,
-        CLICK,
-        RELOAD,
-        GO_BACK,
-        GO_FORWARD,
-        GET_TITLE,
-        GET_HTML,
-        GET_TEXT,
-        PRESS_ENTER,
-        WAIT,
-        TYPE_TEXT,
-        INPUT_TEXT,
-        DRAG_DROP
     }
 
     /**

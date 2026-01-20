@@ -1,34 +1,22 @@
 package dev.langchain4j.community.browser.use.playwright;
 
 import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.WaitUntilState;
 import dev.langchain4j.community.browser.use.BrowserExecutionEngine;
 
+/**
+ * An implementation of a {@link BrowserExecutionEngine} that uses
+ * <a href="https://playwright.dev/java/">Playwright Java API</a> for performing browser actions.
+ */
 public class PlaywrightBrowserExecutionEngine implements BrowserExecutionEngine {
 
     private final Browser browser;
     private final Page page;
 
-    public PlaywrightBrowserExecutionEngine() {
-        this(true, "chrome", true, 500);
-    }
-
-    public PlaywrightBrowserExecutionEngine(boolean headless, String channel, boolean sandbox, double slowMo) {
-        Playwright playwright = Playwright.create();
-        BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
-                .setHeadless(headless)
-                .setChannel(channel)
-                .setChromiumSandbox(sandbox)
-                .setSlowMo(slowMo);
-        this.browser = playwright.chromium().launch(options);
-        this.page = browser.newPage();
-    }
-
     public PlaywrightBrowserExecutionEngine(Browser browser) {
         this.browser = browser;
+        // Currently only keep one page
         this.page = browser.newPage();
     }
 
@@ -99,13 +87,22 @@ public class PlaywrightBrowserExecutionEngine implements BrowserExecutionEngine 
         page.dragAndDrop(source, target);
     }
 
-    @Override
-    public void close() {
-        if (page != null) {
-            page.close();
+    public static PlaywrightBrowserExecutionEngineBuilder builder() {
+        return new PlaywrightBrowserExecutionEngineBuilder();
+    }
+
+    public static class PlaywrightBrowserExecutionEngineBuilder {
+        private Browser browser;
+
+        PlaywrightBrowserExecutionEngineBuilder() {}
+
+        public PlaywrightBrowserExecutionEngineBuilder browser(Browser browser) {
+            this.browser = browser;
+            return this;
         }
-        if (browser != null) {
-            browser.close();
+
+        public PlaywrightBrowserExecutionEngine build() {
+            return new PlaywrightBrowserExecutionEngine(browser);
         }
     }
 }
