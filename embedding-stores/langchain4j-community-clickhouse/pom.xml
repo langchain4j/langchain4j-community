@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.10.0-beta18-SNAPSHOT</version>
+        <version>1.11.0-beta19-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -12,10 +12,20 @@
     <name>LangChain4j :: Community :: Integration :: ClickHouse</name>
 
     <properties>
-        <clickhouse.version>0.9.4</clickhouse.version>
-        <clickhouse-jdbc.version>0.9.4</clickhouse-jdbc.version>
-        <lz4.version>1.8.0</lz4.version>
+        <clickhouse.version>0.9.6</clickhouse.version>
+        <clickhouse-jdbc.version>0.9.6</clickhouse-jdbc.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Skip managed commons-lang3 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.20.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
 
@@ -97,13 +107,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.lz4</groupId>
-            <artifactId>lz4-java</artifactId>
-            <version>${lz4.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.tinylog</groupId>
             <artifactId>tinylog-impl</artifactId>
             <scope>test</scope>
@@ -122,5 +125,18 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <!-- skip compliance due to lz4 -->
+                    <skipCompliance>true</skipCompliance>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

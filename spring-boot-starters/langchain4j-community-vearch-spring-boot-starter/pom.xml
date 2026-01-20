@@ -4,12 +4,16 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
-        <version>1.10.0-beta18-SNAPSHOT</version>
+        <version>1.11.0-beta19-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-vearch-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
     <name>LangChain4j :: Community :: Spring Boot starter :: Vearch</name>
+
+    <properties>
+        <skipVearchITs>false</skipVearchITs>
+    </properties>
 
     <dependencies>
 

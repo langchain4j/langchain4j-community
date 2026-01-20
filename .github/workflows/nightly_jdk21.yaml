@@ -39,12 +39,13 @@ jobs:
               --fail-at-end \
               -DskipXinferenceITs \
               -DskipSearXNGITs \
+              -DskipVearchITs \
               -Dmaven.test.failure.ignore=true \
               ${{ matrix.mvn_opts }}
 
       - name: Upload Test Reports
         if: always() # always run even if the previous step failed or was cancelled
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: Test-Reports-${{ matrix.java-version }}
           path: '**/target/*-reports/*'

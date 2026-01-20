@@ -75,6 +75,7 @@ jobs:
           mvn -B -U verify \
             -DskipXinferenceITs \
             -DskipSearXNGITs \
+            -DskipVearchITs \
             -Dgib.disable=false -Dgib.referenceBranch=__branch_before \
             ${{ matrix.mvn_opts }}
 

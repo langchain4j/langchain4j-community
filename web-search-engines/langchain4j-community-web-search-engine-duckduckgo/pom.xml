@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.10.0-beta18-SNAPSHOT</version>
+        <version>1.11.0-beta19-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -25,7 +25,7 @@
 
     <properties>
         <skipDuckDuckGoITs>false</skipDuckDuckGoITs>
-        <jsoup.version>1.21.2</jsoup.version>
+        <jsoup.version>1.22.1</jsoup.version>
     </properties>
 
     <dependencies>

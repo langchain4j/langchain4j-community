@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.10.0-beta18-SNAPSHOT</version>
+        <version>1.11.0-beta19-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -51,7 +51,9 @@
         <module>embedding-stores/langchain4j-community-neo4j</module>
         <module>embedding-stores/langchain4j-community-yugabytedb</module>
         <module>embedding-stores/langchain4j-community-sqlserver</module>
+        <module>embedding-stores/langchain4j-community-oceanbase</module>
         <module>embedding-stores/langchain4j-community-jvector</module>
+        <module>embedding-stores/langchain4j-community-s3-vectors</module>
 
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
@@ -61,6 +63,10 @@
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-duckduckgo</module>
 
+        <!-- Integration of document loaders -->
+        <module>document-loaders/langchain4j-community-document-loader-confluence</module>
+        <module>document-loaders/langchain4j-community-document-loader-gitlab</module>
+
         <!-- Integration of document parsers -->
         <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
 
@@ -69,6 +75,14 @@
 
         <!-- Integration of code execution engines -->
         <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
+        <module>code-execution-engines/langchain4j-community-code-execution-engine-docker</module>
+
+        <!-- MCP -->
+        <module>mcp/langchain4j-community-mcp-server</module>
+
+        <!-- Tool integrations -->
+        <module>tools/langchain4j-community-tool-jira</module>
+        <module>tools/langchain4j-community-tool-web-scraper</module>
 
         <!-- Integration of browser-use engines -->
         <module>browser-use/langchain4j-community-browser-use-playwright</module>
@@ -86,10 +100,10 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.10.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.10.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.10.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.10.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.11.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.11.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.11.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.11.0-SNAPSHOT</langchain4j.open-ai.version>
     </properties>
 
     <repositories>
@@ -208,7 +222,7 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.9.0</version>
+                <version>0.10.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <publishingServerId>central</publishingServerId>
@@ -295,7 +309,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>6.24.0</version>
+                        <version>6.27.0</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
@@ -308,12 +322,12 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>3.22.0</version>
+                                <version>3.25.0</version>
                             </dependency>
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-migrate-java</artifactId>
-                                <version>3.22.0</version>
+                                <version>3.25.0</version>
                             </dependency>
                         </dependencies>
                     </plugin>

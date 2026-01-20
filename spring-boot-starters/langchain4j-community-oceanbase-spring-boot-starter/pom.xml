@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-community-spring-boot-starters</artifactId>
+        <version>1.11.0-beta19-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>langchain4j-community-oceanbase-spring-boot-starter</artifactId>
+    <packaging>jar</packaging>
+    <name>LangChain4j :: Community :: Spring Boot starter :: OceanBase</name>
+
+    <properties>
+        <oceanbase-client.version>2.4.16</oceanbase-client.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-oceanbase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.oceanbase</groupId>
+            <artifactId>oceanbase-client</artifactId>
+            <version>${oceanbase-client.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-spring-boot-tests</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>oceanbase</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <acceptableLicenses combine.children="append">
+                        <!-- due to excludes/includes above -->
+                        <license>
+                            <name>Eclipse Public License</name>
+                            <url>http://www.eclipse.org/legal/epl-v10.html</url>
+                        </license>
+                        <license>
+                            <name>GNU Lesser General Public License</name>
+                            <url>http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html</url>
+                        </license>
+                        <license>
+                            <name>LGPL-2.1</name>
+                            <url>https://spdx.org/licenses/LGPL-2.1.html</url>
+                        </license>
+                    </acceptableLicenses>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

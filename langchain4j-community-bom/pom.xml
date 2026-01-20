@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.10.0-beta18-SNAPSHOT</version>
+        <version>1.11.0-beta19-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-bom</artifactId>
@@ -115,6 +115,18 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-oceanbase</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-s3-vectors</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- content retrievers -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
@@ -125,6 +137,19 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-neo4j-retriever</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- document loaders -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-document-loader-confluence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-document-loader-gitlab</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -152,6 +177,20 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-web-search-engine-duckduckgo</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- mcp -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-mcp-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- tools -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-tool-jira</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -200,13 +239,19 @@
 
             <dependency>
                 <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-oceanbase-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-code-execution-engine-local</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-community-browser-use-playwright</artifactId>
+                <artifactId>langchain4j-community-code-execution-engine-docker</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
-        <version>1.10.0-beta18-SNAPSHOT</version>
+        <version>1.11.0-beta19-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-clickhouse-spring-boot-starter</artifactId>
@@ -20,9 +20,19 @@
     </licenses>
 
     <properties>
-        <clickhouse-jdbc.version>0.9.4</clickhouse-jdbc.version>
-        <lz4.version>1.8.0</lz4.version>
+        <clickhouse-jdbc.version>0.9.6</clickhouse-jdbc.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Skip managed commons-lang3 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.20.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
 
@@ -89,13 +99,6 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.lz4</groupId>
-            <artifactId>lz4-java</artifactId>
-            <version>${lz4.version}</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 
     <build>
@@ -104,17 +107,8 @@
                 <groupId>org.honton.chas</groupId>
                 <artifactId>license-maven-plugin</artifactId>
                 <configuration>
-                    <acceptableLicenses combine.children="append">
-                        <!-- due to excludes/includes above -->
-                        <license>
-                            <name>Eclipse Public License</name>
-                            <url>http://www.eclipse.org/legal/epl-v10.html</url>
-                        </license>
-                        <license>
-                            <name>GNU Lesser General Public License</name>
-                            <url>http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html</url>
-                        </license>
-                    </acceptableLicenses>
+                    <!-- skip compliance due to lz4 -->
+                    <skipCompliance>true</skipCompliance>
                 </configuration>
             </plugin>
         </plugins>

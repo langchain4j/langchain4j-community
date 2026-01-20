@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.10.0-beta18-SNAPSHOT</version>
+        <version>1.11.0-beta19-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -14,7 +14,7 @@
     <description>Implementation uses the local computer env to execute provided command line code.</description>
 
     <properties>
-        <commons-exec.version>1.5.0</commons-exec.version>
+        <commons-exec.version>1.6.0</commons-exec.version>
     </properties>
 
     <dependencies>
