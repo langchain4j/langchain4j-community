@@ -70,7 +70,7 @@ public interface BrowserExecutionEngine {
     /**
      * Fill the text to an element matching selector.
      * @param element  A selector to search for an element.
-     * @param text Value to fill for the <input>, <textarea> or [contenteditable] element.
+     * @param text Value to fill for the {@code <input>}, {@code <textarea>} or {@code [contenteditable]} element.
      */
     void inputText(String element, String text);
 
