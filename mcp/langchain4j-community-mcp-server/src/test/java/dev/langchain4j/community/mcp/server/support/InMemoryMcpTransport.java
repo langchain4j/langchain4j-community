@@ -3,12 +3,14 @@ package dev.langchain4j.community.mcp.server.support;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.mcp.client.McpCallContext;
 import dev.langchain4j.mcp.client.transport.McpOperationHandler;
 import dev.langchain4j.mcp.client.transport.McpTransport;
+import dev.langchain4j.mcp.protocol.McpClientMessage;
 import dev.langchain4j.mcp.protocol.McpInitializationNotification;
 import dev.langchain4j.mcp.protocol.McpInitializeRequest;
-import dev.langchain4j.mcp.protocol.McpJsonRpcMessage;
 import dev.langchain4j.mcp.transport.stdio.JsonRpcIoHandler;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -52,7 +54,7 @@ public class InMemoryMcpTransport implements McpTransport {
     }
 
     @Override
-    public CompletableFuture<JsonNode> executeOperationWithResponse(McpJsonRpcMessage request) {
+    public CompletableFuture<JsonNode> executeOperationWithResponse(McpClientMessage request) {
         try {
             String requestString = OBJECT_MAPPER.writeValueAsString(request);
             return execute(requestString, request.getId());
@@ -62,13 +64,23 @@ public class InMemoryMcpTransport implements McpTransport {
     }
 
     @Override
-    public void executeOperationWithoutResponse(McpJsonRpcMessage request) {
+    public CompletableFuture<JsonNode> executeOperationWithResponse(McpCallContext context) {
+        return executeOperationWithResponse(context.message());
+    }
+
+    @Override
+    public void executeOperationWithoutResponse(McpClientMessage request) {
         try {
             String requestString = OBJECT_MAPPER.writeValueAsString(request);
             execute(requestString, null);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void executeOperationWithoutResponse(McpCallContext context) {
+        executeOperationWithoutResponse(context.message());
     }
 
     @Override
