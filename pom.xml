@@ -84,6 +84,9 @@
         <module>tools/langchain4j-community-tool-jira</module>
         <module>tools/langchain4j-community-tool-web-scraper</module>
 
+        <!-- Integration of browser-use engines -->
+        <module>browser-use/langchain4j-community-browser-use-playwright</module>
+
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
 
