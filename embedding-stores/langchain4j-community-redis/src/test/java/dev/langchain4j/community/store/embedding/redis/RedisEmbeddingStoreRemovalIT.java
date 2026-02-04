@@ -14,6 +14,9 @@ import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.search.schemafields.TagField;
 
 class RedisEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
@@ -22,9 +25,12 @@ class RedisEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
+    UnifiedJedis unifiedJedis = new UnifiedJedis(
+            new HostAndPort(redis.getHost(), redis.getFirstMappedPort()),
+            DefaultJedisClientConfig.builder().build());
+
     RedisEmbeddingStore embeddingStore = RedisEmbeddingStore.builder()
-            .host(redis.getHost())
-            .port(redis.getFirstMappedPort())
+            .unifiedJedis(unifiedJedis)
             .indexName(randomUUID())
             .prefix(randomUUID() + ":")
             .dimension(embeddingModel.dimension())
