@@ -1,6 +1,6 @@
 package dev.langchain4j.community.store.embedding.alloydb;
 
-import static org.testcontainers.shaded.org.apache.commons.lang3.RandomUtils.nextInt;
+import static org.apache.commons.lang3.RandomUtils.nextInt;
 
 import dev.langchain4j.community.store.embedding.alloydb.index.DistanceStrategy;
 import dev.langchain4j.data.segment.TextSegment;
@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Testcontainers
 class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
@@ -23,8 +23,8 @@ class AlloyDBEmbeddingStoreIT extends EmbeddingStoreIT {
     // Does support WithFilteringIT but can not handle different age data types.
 
     @Container
-    static PostgreSQLContainer<?> pgVector =
-            new PostgreSQLContainer<>("pgvector/pgvector:pg15").withCommand("postgres -c max_connections=100");
+    static PostgreSQLContainer pgVector =
+            new PostgreSQLContainer("pgvector/pgvector:pg15").withCommand("postgres -c max_connections=100");
 
     final String tableName = "test" + nextInt(2000, 3000);
     static AlloyDBEngine engine;

@@ -6,9 +6,9 @@ import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2Quantize
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 import org.junit.jupiter.api.AfterEach;
-import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.neo4j.Neo4jContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
@@ -20,8 +20,8 @@ class Neo4jEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
     private static final String LABEL_TO_SANITIZE = "Label ` to \\ sanitize";
 
     @Container
-    static Neo4jContainer<?> neo4jContainer =
-            new Neo4jContainer<>(DockerImageName.parse("neo4j:" + NEO4J_VERSION)).withAdminPassword(ADMIN_PASSWORD);
+    static Neo4jContainer neo4jContainer =
+            new Neo4jContainer(DockerImageName.parse("neo4j:" + NEO4J_VERSION)).withAdminPassword(ADMIN_PASSWORD);
 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
