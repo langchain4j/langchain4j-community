@@ -1,8 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-
 import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.AiMessage;
@@ -14,6 +11,8 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.message.VideoContent;
 import dev.langchain4j.data.video.Video;
+import org.junit.jupiter.params.provider.Arguments;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +21,9 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 class QwenTestHelper {
 
@@ -66,6 +67,14 @@ class QwenTestHelper {
 
     public static Stream<Arguments> embeddingModelNameProvider() {
         return Stream.of(Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
+    }
+
+    public static Stream<Arguments> imageModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE));
+    }
+
+    public static Stream<Arguments> imageEditModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_EDIT), Arguments.of(WanxModelName.WAN2_6_IMAGE));
     }
 
     public static String apiKey() {
@@ -168,5 +177,19 @@ class QwenTestHelper {
         }
 
         return Base64.getEncoder().encodeToString(buffer.toByteArray());
+    }
+
+    public static List<ChatMessage> textToImageChatMessages() {
+        TextContent textContent = TextContent.from("Draw a parrot.");
+        return Collections.singletonList(UserMessage.from(textContent));
+    }
+
+    public static List<ChatMessage> textToImageChatMessagesWithImageUrl() {
+        Image image = Image.builder()
+                .url("https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg")
+                .build();
+        ImageContent imageContent = ImageContent.from(image);
+        TextContent textContent = TextContent.from("Change the background.");
+        return Collections.singletonList(UserMessage.from(imageContent, textContent));
     }
 }

@@ -1,22 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
-import static dev.langchain4j.data.message.ChatMessageType.AI;
-import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
-import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
-import static dev.langchain4j.data.message.ChatMessageType.USER;
-import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
-import static dev.langchain4j.model.output.FinishReason.LENGTH;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.Objects.isNull;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-
 import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationOutput.Choice;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
@@ -61,6 +44,9 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,8 +58,24 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.data.message.AiMessage.GENERATED_IMAGES_KEY;
+import static dev.langchain4j.data.message.ChatMessageType.AI;
+import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
+import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
+import static dev.langchain4j.data.message.ChatMessageType.USER;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.Objects.isNull;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 class QwenHelper {
 
@@ -273,8 +275,9 @@ class QwenHelper {
                 .map(choices -> choices.get(0))
                 .map(MultiModalConversationOutput.Choice::getMessage)
                 .map(MultiModalMessage::getContent)
-                .filter(contents -> !contents.isEmpty())
-                .isPresent();
+                .orElse(Collections.emptyList())
+                .stream()
+                .anyMatch(content -> content.containsKey("text"));
     }
 
     static String answerFrom(MultiModalConversationResult result) {
@@ -286,11 +289,29 @@ class QwenHelper {
                 .map(MultiModalConversationOutput.Choice::getMessage)
                 .map(MultiModalMessage::getContent)
                 .filter(contents -> !contents.isEmpty())
-                .map(contents -> contents.get(0))
+                .orElse(Collections.emptyList())
+                .stream()
+                .filter(content -> content.containsKey("text"))
                 .map(content -> content.get("text"))
                 .map(String.class::cast)
-                // Model may send empty content in streaming mode
-                .orElse("");
+                .collect(joining("\n"));
+    }
+
+    static List<Image> imagesFrom(MultiModalConversationResult result) {
+        return Optional.of(result)
+                .map(MultiModalConversationResult::getOutput)
+                .map(MultiModalConversationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(MultiModalConversationOutput.Choice::getMessage)
+                .map(MultiModalMessage::getContent)
+                .filter(contents -> !contents.isEmpty())
+                .orElse(Collections.emptyList())
+                .stream()
+                .filter(content -> content.containsKey("image"))
+                .map(content -> content.get("image"))
+                .map(url -> Image.builder().url((String) url).mimeType("image/png").build())
+                .collect(toList());
     }
 
     static TokenUsage tokenUsageFrom(GenerationResult result) {
@@ -363,7 +384,10 @@ class QwenHelper {
 
     static boolean isMultimodalModelName(String modelName) {
         // rough judgment
-        return modelName.contains("-vl-") || modelName.contains("-audio-") || modelName.contains("-omni-");
+        return modelName.contains("-vl-")
+                || modelName.contains("-audio-")
+                || modelName.contains("-omni-")
+                || modelName.contains("-image-");
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
@@ -439,7 +463,8 @@ class QwenHelper {
         String reasoningContentFrom = reasoningContentFrom(result);
         AiMessage.Builder aiMessageBuilder = AiMessage.builder()
                 .text(isNullOrBlank(text) ? null : text)
-                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom);
+                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
+                .attributes(Map.of());
         if (isFunctionToolCalls(result)) {
             aiMessageBuilder = aiMessageBuilder.toolExecutionRequests(toolExecutionRequestsFrom(result));
         }
@@ -525,9 +550,11 @@ class QwenHelper {
     static AiMessage aiMessageFrom(MultiModalConversationResult result) {
         String text = answerFrom(result);
         String reasoningContentFrom = reasoningContentFrom(result);
+        List<Image> images = imagesFrom(result);
         AiMessage.Builder aiMessageBuilder = AiMessage.builder()
-                .text(isNullOrBlank(text) ? null : text)
-                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom);
+                .text(text)
+                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
+                .attributes(isNullOrEmpty(images) ? Map.of() : Map.of(GENERATED_IMAGES_KEY, images));
 
         return aiMessageBuilder.build();
     }
@@ -702,6 +729,22 @@ class QwenHelper {
         if (parameters.responseFormat() != null && parameters.responseFormat().jsonSchema() != null) {
             throw new UnsupportedFeatureException("JSON response format is not supported by " + parameters.modelName());
         }
+
+        if (parameters.n() != null) {
+            throw new UnsupportedFeatureException("n is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.size() != null) {
+            throw new UnsupportedFeatureException("size is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.promptExtend() != null) {
+            throw new UnsupportedFeatureException("promptExtend is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.negativePrompt() != null) {
+            throw new UnsupportedFeatureException("negativePrompt is not supported by " + parameters.modelName());
+        }
     }
 
     static void validateMultimodalConversationParameters(QwenChatRequestParameters parameters) {
@@ -813,7 +856,12 @@ class QwenHelper {
                         .seed(parameters.seed())
                         .maxTokens(parameters.maxOutputTokens())
                         .messages(toQwenMultiModalMessages(chatRequest.messages()))
-                        .incrementalOutput(incrementalOutput);
+                        .incrementalOutput(incrementalOutput)
+                        .vlHighResolutionImages(parameters.vlHighResolutionImages())
+                        .n(parameters.n())
+                        .size(parameters.size())
+                        .promptExtend(parameters.promptExtend())
+                        .negativePrompt(parameters.negativePrompt());
 
         if (parameters.temperature() != null) {
             builder.temperature(parameters.temperature().floatValue());
@@ -821,11 +869,6 @@ class QwenHelper {
 
         if (!isNullOrEmpty(parameters.stopSequences())) {
             builder.parameter("stop", parameters.stopSequences());
-        }
-
-        if (parameters.vlHighResolutionImages() != null) {
-            // no java field is provided yet
-            builder.parameter("vl_high_resolution_images", parameters.vlHighResolutionImages());
         }
 
         if (parameters.custom() != null) {

@@ -1,27 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.chatMessages;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageData;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageUrl;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoData;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoUrl;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultimodalChatModelNameProvider;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
-import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
-import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -40,13 +18,38 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.chatMessages;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageData;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoData;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultimodalChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessages;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessagesWithImageUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
+import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
+import static dev.langchain4j.data.message.UserMessage.userMessage;
+import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
@@ -549,6 +552,58 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.aiMessage().thinking()).isBlank();
         assertThat(response.metadata()).isNotNull();
         assertThat(response.metadata()).isInstanceOf(QwenChatResponseMetadata.class);
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageModelNameProvider")
+    void should_send_prompt_and_receive_image(String modelName) {
+        StreamingChatModel model =
+                QwenStreamingChatModel.builder().apiKey(apiKey()).modelName(modelName).isMultimodalModel(true).build();
+
+        QwenChatRequestParameters parameters =
+                QwenChatRequestParameters.builder().n(1).size("1028*1028").promptExtend(true).negativePrompt("low quality,bad proportions").build();
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(textToImageChatMessages())
+                .parameters(parameters)
+                .build();
+
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().images()).isNotEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageEditModelNameProvider")
+    void should_send_image_and_receive_image(String modelName) {
+        QwenStreamingChatModel model =
+                QwenStreamingChatModel.builder().apiKey(apiKey()).modelName(modelName).isMultimodalModel(true).build();
+
+        QwenChatRequestParameters parameters =
+                QwenChatRequestParameters.builder().n(1).size("1028*1028").promptExtend(true).negativePrompt("low quality,bad proportions").build();
+
+        model.setMultimodalConversationParamCustomizer(paramBuilder -> {
+            if (modelName.equals(WanxModelName.WAN2_6_IMAGE)) {
+                // Test the interleave feature. Only the streaming mode is supported.
+                // https://modelstudio.console.alibabacloud.com/ap-southeast-1/?tab=api#/api/?type=model&url=3001143
+                paramBuilder.parameter("enable_interleave", true);
+                paramBuilder.parameter("stream", true);
+                paramBuilder.parameter("prompt_extend", false);
+            }
+        });
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(textToImageChatMessagesWithImageUrl())
+                .parameters(parameters)
+                .build();
+
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().images()).isNotEmpty();
     }
 
     @Override

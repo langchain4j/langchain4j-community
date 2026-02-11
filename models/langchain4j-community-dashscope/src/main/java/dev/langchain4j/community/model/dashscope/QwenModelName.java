@@ -68,10 +68,18 @@ public class QwenModelName {
     public static final String QWEN_AUDIO_TURBO = "qwen-audio-turbo"; // Qwen audio understanding model, stable version
     public static final String QWEN_AUDIO_TURBO_LATEST =
             "qwen-audio-turbo-latest"; // Qwen audio understanding model, latest version
-    public static final String QWEN_MT_TURBO = "qwen-mt-turbo"; // Qwen turbo model for translation
+    public static final String QWEN_MT_TURBO = "qwen-mt-turbo"; // Qwen turbo model for translation (deprecated)
     public static final String QWEN_MT_PLUS = "qwen-mt-plus"; // Qwen plus model for translation
+    public static final String QWEN_MT_FLASH = "qwen-mt-flash"; // Qwen flash model (2b) for translation
+    public static final String QWEN_MT_LITE = "qwen-mt-lite"; // Qwen lite model (0.5b) for translation
     public static final String QWQ_PLUS = "qwq-plus"; // Qwen reasoning model, stable version
     public static final String QWQ_PLUS_LATEST = "qwq-plus-latest"; // Qwen reasoning model, latest version
+    public static final String QWEN_IMAGE = "qwen-image";
+    public static final String QWEN_IMAGE_PLUS = "qwen-image-plus";
+    public static final String QWEN_IMAGE_MAX = "qwen-image-max";
+    public static final String QWEN_IMAGE_EDIT = "qwen-image-edit";
+    public static final String QWEN_IMAGE_EDIT_PLUS = "qwen-image-edit-plus";
+    public static final String QWEN_IMAGE_EDIT_MAX = "qwen-image-edit-max";
 
     // Use with QwenEmbeddingModel
     @Deprecated

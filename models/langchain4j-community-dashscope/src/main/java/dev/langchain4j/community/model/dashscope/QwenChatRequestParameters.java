@@ -1,13 +1,14 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.quoted;
-
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.quoted;
 
 /**
  * Parameter details are available <a href="https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api#2ed5ee7377fum">here</a>.
@@ -68,6 +69,29 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      */
     private final Boolean enableSanitizeMessages;
     /**
+     * The number of images to generate.
+     */
+    private final Integer n;
+    /**
+     * Specifies the resolution of the output image in the width*height format, such as "1024*1536".
+     * The width and height values must be in the range of [512, 2048] pixels.
+     */
+    private final String size;
+    /**
+     * Specifies whether to enable prompt rewriting, which is on by default (true).
+     * When enabled, the model optimizes the positive prompt (text).
+     * This feature significantly improves results when prompts lack detail.
+     */
+    private final Boolean promptExtend;
+    /**
+     * The negative prompt, describing content you do not want in the generated image.
+     * This parameter supports Chinese and English with a maximum length of 500 characters.
+     * Each Chinese character or English letter counts as one character. Content that exceeds the limit is automatically truncated.
+     * Example: low resolution, error, worst quality, low quality, disfigured, extra fingers, bad proportions.
+     */
+    private final String negativePrompt;
+
+    /**
      * User-defined parameters. They may have special effects on some special models.
      */
     private final Map<String, Object> custom;
@@ -84,6 +108,10 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.enableThinking = getOrDefault(builder.enableThinking, Boolean.FALSE);
         this.thinkingBudget = builder.thinkingBudget;
         this.enableSanitizeMessages = getOrDefault(builder.enableSanitizeMessages, Boolean.TRUE);
+        this.n = builder.n;
+        this.size = builder.size;
+        this.promptExtend = builder.promptExtend;
+        this.negativePrompt = builder.negativePrompt;
         this.custom = builder.custom;
     }
 
@@ -125,6 +153,22 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
     public Boolean enableSanitizeMessages() {
         return enableSanitizeMessages;
+    }
+
+    public Integer n() {
+        return n;
+    }
+
+    public String size() {
+        return size;
+    }
+
+    public Boolean promptExtend() {
+        return promptExtend;
+    }
+
+    public String negativePrompt() {
+        return negativePrompt;
     }
 
     public Map<String, Object> custom() {
@@ -201,6 +245,10 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private Boolean enableThinking;
         private Integer thinkingBudget;
         private Boolean enableSanitizeMessages;
+        private Integer n;
+        private String size;
+        private Boolean promptExtend;
+        private String negativePrompt;
         private Map<String, Object> custom;
 
         @Override
@@ -215,6 +263,10 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 enableThinking(getOrDefault(qwenParameters.enableThinking(), enableThinking));
                 thinkingBudget(getOrDefault(qwenParameters.thinkingBudget(), thinkingBudget));
                 enableSanitizeMessages(getOrDefault(qwenParameters.enableSanitizeMessages(), enableSanitizeMessages));
+                n(getOrDefault(qwenParameters.n(), n));
+                size(getOrDefault(qwenParameters.size(), size));
+                promptExtend(getOrDefault(qwenParameters.promptExtend(), promptExtend));
+                negativePrompt(getOrDefault(qwenParameters.negativePrompt(), negativePrompt));
                 custom(getOrDefault(qwenParameters.custom(), custom));
                 isMultimodalModel(getOrDefault(qwenParameters.isMultimodalModel(), isMultimodalModel));
                 supportIncrementalOutput(
@@ -270,6 +322,26 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder enableSanitizeMessages(Boolean enableSanitizeMessages) {
             this.enableSanitizeMessages = enableSanitizeMessages;
+            return this;
+        }
+
+        public Builder n(Integer n) {
+            this.n = n;
+            return this;
+        }
+
+        public Builder size(String size) {
+            this.size = size;
+            return this;
+        }
+
+        public Builder promptExtend(Boolean promptExtend) {
+            this.promptExtend = promptExtend;
+            return this;
+        }
+
+        public Builder negativePrompt(String negativePrompt) {
+            this.negativePrompt = negativePrompt;
             return this;
         }
 
