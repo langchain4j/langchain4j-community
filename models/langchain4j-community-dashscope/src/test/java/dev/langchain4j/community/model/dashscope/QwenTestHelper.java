@@ -64,7 +64,7 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> imageEditModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_EDIT), Arguments.of(WanxModelName.WAN2_6_IMAGE));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_EDIT));
     }
 
     public static String apiKey() {

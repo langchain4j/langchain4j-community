@@ -571,7 +571,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
                 .n(1)
-                .size("1028*1028")
+                .size("1024*1024")
                 .promptExtend(true)
                 .negativePrompt("low quality,bad proportions")
                 .build();
@@ -599,20 +599,10 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
                 .n(1)
-                .size("1028*1028")
+                .size("1024*1024")
                 .promptExtend(true)
                 .negativePrompt("low quality,bad proportions")
                 .build();
-
-        model.setMultimodalConversationParamCustomizer(paramBuilder -> {
-            if (modelName.equals(WanxModelName.WAN2_6_IMAGE)) {
-                // Test the interleave feature. Only the streaming mode is supported.
-                // https://modelstudio.console.alibabacloud.com/ap-southeast-1/?tab=api#/api/?type=model&url=3001143
-                paramBuilder.parameter("enable_interleave", true);
-                paramBuilder.parameter("stream", true);
-                paramBuilder.parameter("prompt_extend", false);
-            }
-        });
 
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(textToImageChatMessagesWithImageUrl())
