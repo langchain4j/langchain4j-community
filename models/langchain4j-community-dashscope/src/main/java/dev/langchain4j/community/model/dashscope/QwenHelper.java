@@ -5,6 +5,7 @@ import com.alibaba.dashscope.aigc.generation.GenerationOutput.Choice;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.generation.SearchInfo;
+import com.alibaba.dashscope.aigc.generation.TranslationOptions;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
@@ -50,7 +51,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -392,7 +392,7 @@ class QwenHelper {
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
         // rough judgment
-        return !modelName.contains("-mt-");
+        return true;
     }
 
     static boolean isMultimodalModel(ChatRequest chatRequest) {
@@ -462,11 +462,14 @@ class QwenHelper {
         String text = answerFrom(result);
         String reasoningContentFrom = reasoningContentFrom(result);
         AiMessage.Builder aiMessageBuilder = AiMessage.builder()
-                .text(isNullOrBlank(text) ? null : text)
+                .text(text)
                 .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
                 .attributes(Map.of());
         if (isFunctionToolCalls(result)) {
             aiMessageBuilder = aiMessageBuilder.toolExecutionRequests(toolExecutionRequestsFrom(result));
+            if (text.isBlank()) {
+                aiMessageBuilder.text(null);
+            }
         }
 
         return aiMessageBuilder.build();
@@ -802,7 +805,8 @@ class QwenHelper {
                 .resultFormat(MESSAGE)
                 .incrementalOutput(incrementalOutput)
                 .enableThinking(parameters.enableThinking())
-                .thinkingBudget(parameters.thinkingBudget());
+                .thinkingBudget(parameters.thinkingBudget())
+                .translationOptions(toQwenTranslationOptions(parameters.translationOptions()));
 
         if (parameters.temperature() != null) {
             builder.temperature(parameters.temperature().floatValue());
@@ -818,11 +822,6 @@ class QwenHelper {
                 builder.toolChoice(
                         toToolFunction((parameters.toolSpecifications().get(0))));
             }
-        }
-
-        if (parameters.translationOptions() != null) {
-            // no java field is provided yet
-            builder.parameter("translation_options", toQwenTranslationOptions(parameters.translationOptions()));
         }
 
         if (parameters.custom() != null) {
@@ -912,28 +911,44 @@ class QwenHelper {
                 .build();
     }
 
-    static Map<String, Object> toQwenTranslationOptions(
+    static TranslationOptions toQwenTranslationOptions(
             QwenChatRequestParameters.TranslationOptions translationOptions) {
         if (translationOptions == null) {
             return null;
         }
 
-        // no java class is provided yet
-        Map<String, Object> translationOptionsMap = new HashMap<>(5);
-        translationOptionsMap.put("source_lang", translationOptions.sourceLang());
-        translationOptionsMap.put("target_lang", translationOptions.targetLang());
-        translationOptionsMap.put("terms", toTermList(translationOptions.terms()));
-        translationOptionsMap.put("tm_list", toTermList(translationOptions.tmList()));
-        translationOptionsMap.put("domains", translationOptions.domains());
-        return translationOptionsMap;
+        return TranslationOptions.builder()
+                .sourceLang(translationOptions.sourceLang())
+                .targetLang(translationOptions.targetLang())
+                .terms(toTermList(translationOptions.terms()))
+                .tmList(toTmList(translationOptions.tmList()))
+                .domains(translationOptions.domains())
+                .build();
     }
 
-    static List<Map<String, String>> toTermList(List<QwenChatRequestParameters.TranslationOptionTerm> list) {
+    static List<TranslationOptions.Term> toTermList(List<QwenChatRequestParameters.TranslationOptionTerm> list) {
         if (list == null) {
             return null;
         }
+
         return list.stream()
-                .map(term -> Map.of("source", term.source(), "target", term.target()))
+                .map(term -> TranslationOptions.Term.builder()
+                        .source(term.source())
+                        .target(term.target())
+                        .build())
+                .collect(toList());
+    }
+
+    static List<TranslationOptions.Tm> toTmList(List<QwenChatRequestParameters.TranslationOptionTerm> list) {
+        if (list == null) {
+            return null;
+        }
+
+        return list.stream()
+                .map(term -> TranslationOptions.Tm.builder()
+                        .source(term.source())
+                        .target(term.target())
+                        .build())
                 .collect(toList());
     }
 
