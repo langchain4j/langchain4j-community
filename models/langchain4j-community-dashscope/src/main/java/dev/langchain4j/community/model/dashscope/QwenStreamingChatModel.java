@@ -21,8 +21,13 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.CompleteToolCall;
+import dev.langchain4j.model.chat.response.PartialResponse;
+import dev.langchain4j.model.chat.response.PartialResponseContext;
+import dev.langchain4j.model.chat.response.PartialThinkingContext;
 import dev.langchain4j.model.chat.response.PartialToolCall;
+import dev.langchain4j.model.chat.response.PartialToolCallContext;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import dev.langchain4j.model.chat.response.StreamingHandle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -149,22 +154,27 @@ public class QwenStreamingChatModel implements StreamingChatModel {
         GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, incrementalOutput);
         QwenStreamingResponseBuilder responseBuilder =
                 new QwenStreamingResponseBuilder(param.getModel(), incrementalOutput);
+        StreamingHandle streamingHandle = new QwenStreamingHandle();
+
         try {
             generation.streamCall(param, new ResultCallback<>() {
                 @Override
                 public void onEvent(GenerationResult result) {
                     try {
+                        if (streamingHandle.isCancelled()) {
+                            return;
+                        }
                         QwenPartialResponse partialResponse = responseBuilder.append(result);
                         if (isNotNullOrEmpty(partialResponse.delta())) {
-                            handler.onPartialResponse(partialResponse.delta());
+                            handler.onPartialResponse(new PartialResponse(partialResponse.delta()), new PartialResponseContext(streamingHandle));
                         }
                         if (partialResponse.partialThinking() != null) {
-                            handler.onPartialThinking(partialResponse.partialThinking());
+                            handler.onPartialThinking(partialResponse.partialThinking(), new PartialThinkingContext(streamingHandle));
                         }
                         List<PartialToolCall> partialToolCalls = partialResponse.partialToolCalls();
                         if (!isNullOrEmpty(partialToolCalls)) {
                             for (PartialToolCall toolCall : partialToolCalls) {
-                                handler.onPartialToolCall(toolCall);
+                                handler.onPartialToolCall(toolCall, new PartialToolCallContext(streamingHandle));
                             }
                         }
                         List<CompleteToolCall> completeToolCalls = partialResponse.completeToolCalls();
@@ -182,11 +192,14 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                 @Override
                 public void onComplete() {
                     try {
-                        handler.onCompleteResponse(responseBuilder.build());
+                        if (streamingHandle.isCancelled()) {
+                            return;
+                        }
                         CompleteToolCall completeToolCall = responseBuilder.buildCompleteToolCall();
                         if (completeToolCall != null) {
                             handler.onCompleteToolCall(completeToolCall);
                         }
+                        handler.onCompleteResponse(responseBuilder.build());
                     } catch (Throwable t) {
                         RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(t);
                         withLoggingExceptions(() -> handler.onError(mappedException));
@@ -195,6 +208,9 @@ public class QwenStreamingChatModel implements StreamingChatModel {
 
                 @Override
                 public void onError(Exception e) {
+                    if (streamingHandle.isCancelled()) {
+                        return;
+                    }
                     RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(e);
                     withLoggingExceptions(() -> handler.onError(mappedException));
                 }
@@ -210,23 +226,35 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                 apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
         QwenStreamingResponseBuilder responseBuilder =
                 new QwenStreamingResponseBuilder(param.getModel(), incrementalOutput);
+        StreamingHandle streamingHandle = new QwenStreamingHandle();
+
         try {
             conv.streamCall(param, new ResultCallback<>() {
                 @Override
                 public void onEvent(MultiModalConversationResult result) {
+                    if (streamingHandle.isCancelled()) {
+                        return;
+                    }
+
                     String delta = responseBuilder.append(result);
                     if (isNotNullOrEmpty(delta)) {
-                        handler.onPartialResponse(delta);
+                        handler.onPartialResponse(new PartialResponse(delta), new PartialResponseContext(streamingHandle));
                     }
                 }
 
                 @Override
                 public void onComplete() {
+                    if (streamingHandle.isCancelled()) {
+                        return;
+                    }
                     handler.onCompleteResponse(responseBuilder.build());
                 }
 
                 @Override
                 public void onError(Exception e) {
+                    if (streamingHandle.isCancelled()) {
+                        return;
+                    }
                     handler.onError(e);
                 }
             });
