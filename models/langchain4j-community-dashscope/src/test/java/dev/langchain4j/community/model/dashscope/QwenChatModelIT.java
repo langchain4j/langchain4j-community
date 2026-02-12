@@ -290,6 +290,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
+    @Disabled("only served in China")
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_url_and_receive_response(String modelName) {
@@ -301,6 +302,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
+    @Disabled("only served in China")
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_data_and_receive_response(String modelName) {
@@ -569,6 +571,11 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
+    protected boolean supportsJsonResponseFormatWithRawSchema() {
+        return false;
+    }
+
+    @Override
     protected String catImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/Felis_silvestris_silvestris_small_gradual_decrease_of_quality.png";
     }
@@ -599,5 +606,11 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @Override
     protected void should_execute_multiple_tools_in_parallel_then_answer(ChatModel model) {
         super.should_execute_multiple_tools_in_parallel_then_answer(model);
+    }
+
+    @Disabled("qwen max does not support JSON response format")
+    @Override
+    protected void should_respect_JsonRawSchema_responseFormat(ChatModel model) {
+        super.should_respect_JsonRawSchema_responseFormat(model);
     }
 }

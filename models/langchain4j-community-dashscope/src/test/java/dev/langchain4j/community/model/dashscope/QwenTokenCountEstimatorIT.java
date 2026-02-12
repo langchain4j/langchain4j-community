@@ -1,5 +1,18 @@
 package dev.langchain4j.community.model.dashscope;
 
+import dev.langchain4j.data.message.ChatMessage;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.data.message.AiMessage.aiMessage;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
@@ -7,17 +20,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import dev.langchain4j.data.message.ChatMessage;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenTokenCountEstimatorIT {
@@ -28,7 +30,7 @@ class QwenTokenCountEstimatorIT {
     void setUp() {
         tokenCountEstimator = QwenTokenCountEstimator.builder()
                 .apiKey(apiKey())
-                .modelName(QwenModelName.QWEN_PLUS)
+                .modelName(QWEN3_MAX)
                 .build();
     }
 
