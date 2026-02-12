@@ -1,34 +1,5 @@
 package dev.langchain4j.community.model.dashscope;
 
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
-import dev.langchain4j.model.chat.TestStreamingResponseHandler;
-import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
-import dev.langchain4j.model.chat.listener.ChatModelListener;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import dev.langchain4j.model.output.Response;
-import dev.langchain4j.model.output.TokenUsage;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.InOrder;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
 import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
@@ -55,6 +26,34 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
+
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
+import dev.langchain4j.model.chat.TestStreamingResponseHandler;
+import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.output.TokenUsage;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.InOrder;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
@@ -564,11 +563,18 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageModelNameProvider")
     void should_send_prompt_and_receive_image(String modelName) {
-        StreamingChatModel model =
-                QwenStreamingChatModel.builder().apiKey(apiKey()).modelName(modelName).isMultimodalModel(true).build();
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .isMultimodalModel(true)
+                .build();
 
-        QwenChatRequestParameters parameters =
-                QwenChatRequestParameters.builder().n(1).size("1028*1028").promptExtend(true).negativePrompt("low quality,bad proportions").build();
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .n(1)
+                .size("1028*1028")
+                .promptExtend(true)
+                .negativePrompt("low quality,bad proportions")
+                .build();
 
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(textToImageChatMessages())
@@ -585,11 +591,18 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageEditModelNameProvider")
     void should_send_image_and_receive_image(String modelName) {
-        QwenStreamingChatModel model =
-                QwenStreamingChatModel.builder().apiKey(apiKey()).modelName(modelName).isMultimodalModel(true).build();
+        QwenStreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .isMultimodalModel(true)
+                .build();
 
-        QwenChatRequestParameters parameters =
-                QwenChatRequestParameters.builder().n(1).size("1028*1028").promptExtend(true).negativePrompt("low quality,bad proportions").build();
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .n(1)
+                .size("1028*1028")
+                .promptExtend(true)
+                .negativePrompt("low quality,bad proportions")
+                .build();
 
         model.setMultimodalConversationParamCustomizer(paramBuilder -> {
             if (modelName.equals(WanxModelName.WAN2_6_IMAGE)) {

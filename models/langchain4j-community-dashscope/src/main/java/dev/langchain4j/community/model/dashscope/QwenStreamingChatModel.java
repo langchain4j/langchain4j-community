@@ -1,5 +1,22 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions;
+import static dev.langchain4j.internal.Utils.copyIfNotNull;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.Utils.quoted;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.spi.ServiceHelper.loadFactories;
+import static java.util.Collections.emptyList;
+import static java.util.Objects.isNull;
+
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
@@ -28,27 +45,9 @@ import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.model.chat.response.PartialToolCallContext;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.chat.response.StreamingHandle;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
-import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions;
-import static dev.langchain4j.internal.Utils.copyIfNotNull;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.internal.Utils.quoted;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.spi.ServiceHelper.loadFactories;
-import static java.util.Collections.emptyList;
-import static java.util.Objects.isNull;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
@@ -166,10 +165,13 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                         }
                         QwenPartialResponse partialResponse = responseBuilder.append(result);
                         if (isNotNullOrEmpty(partialResponse.delta())) {
-                            handler.onPartialResponse(new PartialResponse(partialResponse.delta()), new PartialResponseContext(streamingHandle));
+                            handler.onPartialResponse(
+                                    new PartialResponse(partialResponse.delta()),
+                                    new PartialResponseContext(streamingHandle));
                         }
                         if (partialResponse.partialThinking() != null) {
-                            handler.onPartialThinking(partialResponse.partialThinking(), new PartialThinkingContext(streamingHandle));
+                            handler.onPartialThinking(
+                                    partialResponse.partialThinking(), new PartialThinkingContext(streamingHandle));
                         }
                         List<PartialToolCall> partialToolCalls = partialResponse.partialToolCalls();
                         if (!isNullOrEmpty(partialToolCalls)) {
@@ -238,7 +240,8 @@ public class QwenStreamingChatModel implements StreamingChatModel {
 
                     String delta = responseBuilder.append(result);
                     if (isNotNullOrEmpty(delta)) {
-                        handler.onPartialResponse(new PartialResponse(delta), new PartialResponseContext(streamingHandle));
+                        handler.onPartialResponse(
+                                new PartialResponse(delta), new PartialResponseContext(streamingHandle));
                     }
                 }
 

@@ -1,18 +1,17 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_MAX;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
+import static java.util.Collections.singletonList;
+
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.service.common.AbstractStreamingAiServiceIT;
+import java.util.List;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.List;
-
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_MAX;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
-import static java.util.Collections.singletonList;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 public class QwenStreamingAiServiceIT extends AbstractStreamingAiServiceIT {

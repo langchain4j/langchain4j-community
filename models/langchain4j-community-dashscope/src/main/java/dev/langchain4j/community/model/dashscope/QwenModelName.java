@@ -66,10 +66,8 @@ public class QwenModelName {
             "qwen-vl-max"; // Qwen multi-modal model, offers optimal performance, stable version
     public static final String QWEN_VL_MAX_LATEST =
             "qwen-vl-max-latest"; // Qwen multi-modal model, offers optimal performance, stable version
-    public static final String QWEN3_VL_PLUS =
-            "qwen3-vl-plus"; // Qwen3 multi-modal model v3 (plus)
-    public static final String QWEN3_VL_FLASH =
-            "qwen3-vl-flash"; // Qwen3 multi-modal model v3 (flash)
+    public static final String QWEN3_VL_PLUS = "qwen3-vl-plus"; // Qwen3 multi-modal model v3 (plus)
+    public static final String QWEN3_VL_FLASH = "qwen3-vl-flash"; // Qwen3 multi-modal model v3 (flash)
     public static final String QWEN_AUDIO_TURBO = "qwen-audio-turbo"; // Qwen audio understanding model, stable version
     public static final String QWEN_AUDIO_TURBO_LATEST =
             "qwen-audio-turbo-latest"; // Qwen audio understanding model, latest version
