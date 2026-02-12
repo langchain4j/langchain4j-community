@@ -14,7 +14,7 @@
     <description>Docker-based sandboxed code execution engine for langchain4j with security isolation</description>
 
     <properties>
-        <docker-java.version>3.3.6</docker-java.version>
+        <docker-java.version>3.7.0</docker-java.version>
     </properties>
 
     <dependencies>
