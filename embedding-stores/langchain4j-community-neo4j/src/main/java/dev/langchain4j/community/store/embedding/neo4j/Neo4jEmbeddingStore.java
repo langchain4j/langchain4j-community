@@ -45,6 +45,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -89,6 +90,26 @@ import org.slf4j.LoggerFactory;
 public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final Logger log = LoggerFactory.getLogger(Neo4jEmbeddingStore.class);
+
+    /**
+     * Configuration for the search strategy.
+     */
+    public enum SearchType {
+        /**
+         * Uses standard vector functions (vector.similarity.cosine) or procedures (db.index.vector.queryNodes).
+         * This performs exact KNN if no filters are applied, or brute-force similarity calculation if filters are present.
+         * This is the default behavior compatible with most Neo4j versions.
+         */
+        VECTOR_FUNCTION,
+
+        /**
+         * Uses the new GQL standard 'MATCH ... SEARCH ...' syntax available in Neo4j 2026.01.
+         * This allows efficient pre-filtering directly within the vector index search.
+         * Requires Neo4j 2026.01+ and CYPHER 25 enabled.
+         */
+        MATCH_SEARCH_CLAUSE
+    }
+
     public static final String ENTITIES_CREATION =
             """
                     UNWIND $rows AS row
@@ -102,15 +123,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     It's not possible to create an index for the label `%s` and the property `%s`,
                     as there is another index with name `%s` with different labels: `%s` and properties `%s`.
                     Please provide another indexName to create the vector index, or delete the existing one""";
-    public static final String CREATE_VECTOR_INDEX =
-            """
-                    CREATE VECTOR INDEX %s IF NOT EXISTS
-                    FOR (m:%s) ON m.%s
-                    OPTIONS { indexConfig: {
-                        `vector.dimensions`: %s,
-                        `vector.similarity_function`: 'cosine'
-                    }}
-                    """;
+    // NOTE: CREATE_VECTOR_INDEX is now dynamically built in createIndex() to support WITH clause
     public static final String COLUMNS_NOT_ALLOWED_ERR = "There are columns not allowed in the search query: ";
 
     /* Neo4j Java Driver settings */
@@ -140,6 +153,10 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final String fullTextRetrievalQuery;
     private final boolean autoCreateFullText;
 
+    /* Search configuration */
+    private final SearchType searchType;
+    private final List<String> filterMetadata;
+
     /**
      * Creates an instance of Neo4jEmbeddingStore
      *
@@ -155,7 +172,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param databaseName           the optional database name (default: "neo4j")
      * @param awaitIndexTimeout      the optional awaiting timeout for all indexes to come online, in seconds (default: 60s)
      * @param retrievalQuery         the optional retrieval query
-     *                               (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
+     * (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
      * @param fullTextIndexName      the optional full-text index name, to perform a hybrid search (default: `fulltext`)
      * @param fullTextQuery          the optional full-text index query, required if we want to perform a hybrid search
      * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
@@ -163,6 +180,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param initializeSchema       if true, it will create vector index and constraints (default: true)
      * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
      * @param additionalParams       the additional entity creation parameters (default: empty maps)
+     * @param searchType             the searchType (default: VECTOR_FUNCTION)
+     * @param filterMetadata         list of metadata keys to include in the vector index for native filtering (MATCH_SEARCH_CLAUSE)
      */
     public Neo4jEmbeddingStore(
             SessionConfig config,
@@ -183,7 +202,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             boolean autoCreateFullText,
             boolean initializeSchema,
             String entityCreationQuery,
-            Map<String, Object> additionalParams) {
+            Map<String, Object> additionalParams,
+            SearchType searchType,
+            List<String> filterMetadata) {
 
         /* required configs */
         this.driver = ensureNotNull(driver, "driver");
@@ -200,6 +221,10 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.textProperty = getOrDefault(textProperty, DEFAULT_TEXT_PROP);
         this.awaitIndexTimeout = getOrDefault(awaitIndexTimeout, DEFAULT_AWAIT_INDEX_TIMEOUT);
         this.additionalParams = copy(additionalParams);
+
+        // Default to VECTOR_FUNCTION to maintain backward compatibility
+        this.searchType = getOrDefault(searchType, SearchType.VECTOR_FUNCTION);
+        this.filterMetadata = getOrDefault(filterMetadata, Collections.emptyList());
 
         /* sanitize labels and property names, to prevent from Cypher Injections */
         this.sanitizedLabel = sanitizeOrThrows(this.label, "label");
@@ -394,6 +419,12 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         Value embeddingValue = Values.value(request.queryEmbedding().vector());
 
         try (Session session = session()) {
+            // Check if we are using the new Neo4j 2026.01+ syntax
+            if (this.searchType == SearchType.MATCH_SEARCH_CLAUSE) {
+                return searchWithMatchSearchClause(request, embeddingValue, session);
+            }
+
+            // Fallback to VECTOR_FUNCTION logic (Legacy)
             Filter filter = request.filter();
             if (filter == null) {
                 return getSearchResUsingVectorIndex(request, embeddingValue, session);
@@ -405,6 +436,74 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     /*
     Private methods
     */
+
+    /**
+     * Executes search using the Neo4j 2026.01+ Syntax (CYPHER 25):
+     * MATCH (n)
+     * SEARCH n IN (VECTOR INDEX indexName FOR $embedding WHERE ... LIMIT k) SCORE as score
+     * RETURN ...
+     */
+    private EmbeddingSearchResult<TextSegment> searchWithMatchSearchClause(
+            EmbeddingSearchRequest request, Value embeddingValue, Session session) {
+
+        String filterClause = "";
+
+        // Convert LangChain4j Filter -> Cypher String
+        if (request.filter() != null) {
+            Node node = node(this.label).named("node");
+            Neo4jFilterMapper mapper = new Neo4jFilterMapper(node);
+            Condition condition = mapper.getCondition(request.filter());
+
+            // 1. Create a temporary statement to render the Condition into a String using the default Renderer.
+            //    Statement structure: MATCH (node) WHERE <condition> RETURN node
+            Statement conditionStatement = match(node).where(condition).returning(node).build();
+            String renderedStatement = Renderer.getDefaultRenderer().render(conditionStatement);
+
+            // 2. Extract specific WHERE clause from the rendered string
+            int whereIndex = renderedStatement.indexOf("WHERE");
+            if (whereIndex != -1) {
+                // Remove the "RETURN node" part at the end, if present
+                int returnIndex = renderedStatement.lastIndexOf("RETURN");
+                if (returnIndex > whereIndex) {
+                    filterClause = renderedStatement.substring(whereIndex, returnIndex).trim();
+                } else {
+                    filterClause = renderedStatement.substring(whereIndex).trim();
+                }
+
+                // 3. FIX FOR `MATCH ... SEARCH` SYNTAX:
+                // Cypher-DSL safely renders properties using bracket notation, e.g., node['category']
+                // However, the GQL SEARCH clause specifically requires dot notation, e.g., node.category
+                // We use regex to replace ['property'] with .property
+                filterClause = filterClause.replaceAll("\\['([a-zA-Z0-9_]+)'\\]", ".$1");
+            }
+        }
+
+        // 4. Construct the GQL query manually
+        // We inject the filterClause (which contains "WHERE ...") directly into the SEARCH block.
+        String gqlQuery = String.format(
+                """
+                CYPHER 25
+                MATCH (node)
+                SEARCH node IN (
+                   VECTOR INDEX %s
+                   FOR $embeddingValue
+                   %s
+                   LIMIT $maxResults
+                ) SCORE AS score
+                %s
+                """,
+                this.indexName,
+                filterClause,
+                this.retrievalQuery
+        );
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("embeddingValue", embeddingValue);
+        params.put("maxResults", request.maxResults());
+
+        return getEmbeddingSearchResult(session, gqlQuery, params);
+    }
+
     private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorSimilarity(
             EmbeddingSearchRequest request, Filter filter, Value embeddingValue, Session session) {
         /* Build an
@@ -452,7 +551,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         // Render the Cypher query
         String cypherQuery = getRender(statement);
 
-        Map<String, Object> params = new HashMap<>(); // entry.getValue();
+        Map<String, Object> params = new HashMap<>();
         params.put("minScore", request.minScore());
         params.put("maxResults", request.maxResults());
         return getEmbeddingSearchResult(session, cypherQuery, params);
@@ -676,21 +775,44 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private void createIndex() {
-        Map<String, Object> params = Map.of(
-                "indexName",
-                this.indexName,
-                "label",
-                this.label,
-                "embeddingProperty",
-                this.embeddingProperty,
-                "dimension",
-                this.dimension);
+        // Construct the query dynamically to handle the WITH clause for filterMetadata
+        StringBuilder queryBuilder = new StringBuilder();
 
-        // create vector index
+        // Use CYPHER 25 parser to enable the GQL standard syntax (WITH clause in index creation)
+        if (this.searchType == SearchType.MATCH_SEARCH_CLAUSE) {
+            queryBuilder.append("CYPHER 25 ");
+        }
+
+        queryBuilder.append(String.format("CREATE VECTOR INDEX %s IF NOT EXISTS ", this.indexName));
+        queryBuilder.append(String.format("FOR (m:%s) ON (m.%s) ", this.sanitizedLabel, this.sanitizedEmbeddingProperty));
+
+        if (!filterMetadata.isEmpty()) {
+            queryBuilder.append("WITH [");
+            for (int i = 0; i < filterMetadata.size(); i++) {
+                String key = filterMetadata.get(i);
+                // Handle metadata prefix
+                String propertyName = this.metadataPrefix + key;
+                // Sanitize and escape properly for Cypher
+                String sanitizedProperty = sanitizeOrThrows(propertyName, "filterMetadata property");
+                queryBuilder.append("m.").append(sanitizedProperty);
+
+                if (i < filterMetadata.size() - 1) {
+                    queryBuilder.append(", ");
+                }
+            }
+            queryBuilder.append("] ");
+        }
+
+        queryBuilder.append(String.format("""
+                OPTIONS { indexConfig: {
+                    `vector.dimensions`: %d,
+                    `vector.similarity_function`: 'cosine'
+                }}
+                """, this.dimension));
+
         try (Session session = session()) {
-            String createIndexQuery = String.format(
-                    CREATE_VECTOR_INDEX, indexName, sanitizedLabel, sanitizedEmbeddingProperty, dimension);
-            session.run(createIndexQuery, params);
+            String createIndexQuery = queryBuilder.toString();
+            session.run(createIndexQuery);
 
             session.run("CALL db.awaitIndexes($timeout)", Map.of("timeout", awaitIndexTimeout))
                     .consume();
@@ -722,6 +844,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         private boolean initializeSchema = true;
         private String entityCreationQuery;
         private Map<String, Object> additionalParams;
+        private SearchType searchType;
+        private List<String> filterMetadata;
 
         /**
          * @param indexName the optional index name (default: "vector")
@@ -877,6 +1001,27 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
+         * Sets the search configuration.
+         *
+         * @param searchType the searchType (default: VECTOR_FUNCTION)
+         */
+        public Builder searchType(SearchType searchType) {
+            this.searchType = searchType;
+            return this;
+        }
+
+        /**
+         * Specifies which metadata keys should be included in the vector index definition.
+         * This is required when using {@link SearchType#MATCH_SEARCH_CLAUSE} to filter by these properties
+         * inside the `SEARCH` clause.
+         * Example: Arrays.asList("category", "year", "author")
+         */
+        public Builder filterMetadata(List<String> filterMetadata) {
+            this.filterMetadata = filterMetadata;
+            return this;
+        }
+
+        /**
          * Creates an instance a {@link Driver}, starting from uri, user and password
          *
          * @param uri      the Bolt URI to a Neo4j instance
@@ -908,7 +1053,9 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     autoCreateFullText,
                     initializeSchema,
                     entityCreationQuery,
-                    additionalParams);
+                    additionalParams,
+                    searchType,
+                    filterMetadata);
         }
     }
 }
