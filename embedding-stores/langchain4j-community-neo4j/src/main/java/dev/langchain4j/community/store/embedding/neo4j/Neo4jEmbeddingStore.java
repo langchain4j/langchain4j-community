@@ -222,7 +222,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.awaitIndexTimeout = getOrDefault(awaitIndexTimeout, DEFAULT_AWAIT_INDEX_TIMEOUT);
         this.additionalParams = copy(additionalParams);
 
-        // Default to VECTOR_FUNCTION to maintain backward compatibility
         this.searchType = getOrDefault(searchType, SearchType.VECTOR_FUNCTION);
         this.filterMetadata = getOrDefault(filterMetadata, Collections.emptyList());
 
@@ -424,7 +423,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 return searchWithMatchSearchClause(request, embeddingValue, session);
             }
 
-            // Fallback to VECTOR_FUNCTION logic (Legacy)
+            // Fallback to VECTOR_FUNCTION logic
             Filter filter = request.filter();
             if (filter == null) {
                 return getSearchResUsingVectorIndex(request, embeddingValue, session);
@@ -456,7 +455,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             // 1. Create a temporary statement to render the Condition into a String using the default Renderer.
             //    Statement structure: MATCH (node) WHERE <condition> RETURN node
-            Statement conditionStatement = match(node).where(condition).returning(node).build();
+            Statement conditionStatement =
+                    match(node).where(condition).returning(node).build();
             String renderedStatement = Renderer.getDefaultRenderer().render(conditionStatement);
 
             // 2. Extract specific WHERE clause from the rendered string
@@ -465,7 +465,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 // Remove the "RETURN node" part at the end, if present
                 int returnIndex = renderedStatement.lastIndexOf("RETURN");
                 if (returnIndex > whereIndex) {
-                    filterClause = renderedStatement.substring(whereIndex, returnIndex).trim();
+                    filterClause =
+                            renderedStatement.substring(whereIndex, returnIndex).trim();
                 } else {
                     filterClause = renderedStatement.substring(whereIndex).trim();
                 }
@@ -492,10 +493,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 ) SCORE AS score
                 %s
                 """,
-                this.indexName,
-                filterClause,
-                this.retrievalQuery
-        );
+                this.indexName, filterClause, this.retrievalQuery);
 
         Map<String, Object> params = new HashMap<>();
         params.put("embeddingValue", embeddingValue);
@@ -784,7 +782,8 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         queryBuilder.append(String.format("CREATE VECTOR INDEX %s IF NOT EXISTS ", this.indexName));
-        queryBuilder.append(String.format("FOR (m:%s) ON (m.%s) ", this.sanitizedLabel, this.sanitizedEmbeddingProperty));
+        queryBuilder.append(
+                String.format("FOR (m:%s) ON (m.%s) ", this.sanitizedLabel, this.sanitizedEmbeddingProperty));
 
         if (!filterMetadata.isEmpty()) {
             queryBuilder.append("WITH [");
@@ -803,12 +802,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             queryBuilder.append("] ");
         }
 
-        queryBuilder.append(String.format("""
+        queryBuilder.append(String.format(
+                """
                 OPTIONS { indexConfig: {
                     `vector.dimensions`: %d,
                     `vector.similarity_function`: 'cosine'
                 }}
-                """, this.dimension));
+                """,
+                this.dimension));
 
         try (Session session = session()) {
             String createIndexQuery = queryBuilder.toString();

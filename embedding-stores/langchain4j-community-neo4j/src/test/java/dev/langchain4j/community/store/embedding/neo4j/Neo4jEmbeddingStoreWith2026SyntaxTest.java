@@ -1,5 +1,9 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore.SearchType.MATCH_SEARCH_CLAUSE;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -7,18 +11,13 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.Filter;
-import org.junit.jupiter.api.Test;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore.SearchType.MATCH_SEARCH_CLAUSE;
-import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class Neo4jEmbeddingStoreWith2026SyntaxTest extends Neo4jEmbeddingStoreBaseTest {
-    
+
     @Test
     void should_search_using_match_search_syntax() {
         String gqlLabel = "GqlDocSimple";

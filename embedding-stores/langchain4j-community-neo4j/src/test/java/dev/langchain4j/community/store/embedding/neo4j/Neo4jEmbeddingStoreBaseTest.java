@@ -1,5 +1,12 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_EMBEDDING_PROP;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_ID_PROP;
+import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_TEXT_PROP;
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.Percentage.withPercentage;
+
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -9,6 +16,14 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIT;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
@@ -22,22 +37,6 @@ import org.neo4j.driver.types.Node;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.stream.IntStream;
-
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_EMBEDDING_PROP;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_ID_PROP;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.DEFAULT_TEXT_PROP;
-import static dev.langchain4j.internal.Utils.randomUUID;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.data.Percentage.withPercentage;
 
 @Testcontainers
 public abstract class Neo4jEmbeddingStoreBaseTest extends EmbeddingStoreIT {
@@ -58,11 +57,9 @@ public abstract class Neo4jEmbeddingStoreBaseTest extends EmbeddingStoreIT {
     static void beforeAll(TestInfo testInfo) {
         // If test class name contains "2026" the default neo4j version is ""2026.x.y-enterprise"
         // otherwise the 5.26.y-enterprise
-        String defaultVersion = testInfo.getDisplayName().contains("2026")
-                ? "2026.01.3-enterprise"
-                : "5.26-enterprise";
+        String defaultVersion = testInfo.getDisplayName().contains("2026") ? "2026.01.3-enterprise" : "5.26-enterprise";
         String version = System.getProperty("neo4jVersion", defaultVersion);
-        
+
         neo4jContainer = new Neo4jContainer<>(DockerImageName.parse("neo4j:" + version))
                 .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
                 .withAdminPassword(ADMIN_PASSWORD);
