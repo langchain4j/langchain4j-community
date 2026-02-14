@@ -21,6 +21,20 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 /**
  * A {@link ChatModel} implementation that routes requests to other chat models
  * using a provided routing strategy.
+ *
+ * <p>Usage example:
+ * <pre>{@code
+ * ChatModel oneModel = ...;
+ * ChatModel otherModel = ...;
+ *
+ * ModelRouter router = ModelRouter.builder()
+ *         .addRoutes(oneModel, otherModel)
+ *         .routingStrategy(new FailoverStrategy())
+ *         .build();
+ *
+ * ChatResponse response = router.chat(ChatRequest.userMessage("Explain this complex topic"));
+ * }
+ * </pre>
  */
 @Experimental
 public class ModelRouter implements ChatModel, StreamingChatModel {

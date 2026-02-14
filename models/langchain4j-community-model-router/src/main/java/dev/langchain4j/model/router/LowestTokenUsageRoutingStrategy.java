@@ -11,7 +11,7 @@ import dev.langchain4j.model.router.FailoverStrategy.FailureListener;
 
 /**
  * A {@link ModelRoutingStrategy} that picks the model with the lowest recorded
- * total token usage. Token usage is expected to be stored under the
+ * total token usage. Token usage is stored under the
  * {@link LowestTokenUsageRoutingStrategy#TOTAL_TOKEN_USAGE} key in each
  * {@link ChatModelWrapper}'s routing metadata.
  */
