@@ -707,8 +707,13 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id1, String id2) {
-        io.verify(handler, atLeastOnce()).onPartialToolCall(any(), any());
-
+        io.verify(handler, atLeastOnce())
+                .onPartialToolCall(
+                        argThat(toolCall -> toolCall.index() == 0
+                                && toolCall.id().equals(id1)
+                                && toolCall.name().equals("getWeather")
+                                && !toolCall.partialArguments().isBlank()),
+                        any());
         io.verify(handler).onCompleteToolCall(argThat(toolCall -> {
             ToolExecutionRequest request = toolCall.toolExecutionRequest();
             return toolCall.index() == 0
@@ -717,6 +722,13 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                     && request.arguments().replace(" ", "").equals("{\"city\":\"Munich\"}");
         }));
 
+        io.verify(handler, atLeastOnce())
+                .onPartialToolCall(
+                        argThat(toolCall -> toolCall.index() == 1
+                                && toolCall.id().equals(id2)
+                                && toolCall.name().equals("getTime")
+                                && !toolCall.partialArguments().isBlank()),
+                        any());
         io.verify(handler).onCompleteToolCall(argThat(toolCall -> {
             ToolExecutionRequest request = toolCall.toolExecutionRequest();
             return toolCall.index() == 1
