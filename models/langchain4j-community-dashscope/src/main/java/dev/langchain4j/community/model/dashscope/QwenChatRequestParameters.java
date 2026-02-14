@@ -89,7 +89,6 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      * Example: low resolution, error, worst quality, low quality, disfigured, extra fingers, bad proportions.
      */
     private final String negativePrompt;
-
     /**
      * User-defined parameters. They may have special effects on some special models.
      */
@@ -196,6 +195,15 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 && Objects.equals(searchOptions, that.searchOptions)
                 && Objects.equals(translationOptions, that.translationOptions)
                 && Objects.equals(vlHighResolutionImages, that.vlHighResolutionImages)
+                && Objects.equals(isMultimodalModel, that.isMultimodalModel)
+                && Objects.equals(supportIncrementalOutput, that.supportIncrementalOutput)
+                && Objects.equals(enableThinking, that.enableThinking)
+                && Objects.equals(thinkingBudget, that.thinkingBudget)
+                && Objects.equals(enableSanitizeMessages, that.enableSanitizeMessages)
+                && Objects.equals(n, that.n)
+                && Objects.equals(size, that.size)
+                && Objects.equals(promptExtend, that.promptExtend)
+                && Objects.equals(negativePrompt, that.negativePrompt)
                 && Objects.equals(custom, that.custom);
     }
 
@@ -208,6 +216,15 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 searchOptions,
                 translationOptions,
                 vlHighResolutionImages,
+                isMultimodalModel,
+                supportIncrementalOutput,
+                enableThinking,
+                thinkingBudget,
+                enableSanitizeMessages,
+                n,
+                size,
+                promptExtend,
+                negativePrompt,
                 custom);
     }
 
@@ -229,7 +246,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 + enableSearch + ", searchOptions="
                 + searchOptions + ", translationOptions="
                 + translationOptions + ", vlHighResolutionImages="
-                + vlHighResolutionImages + ", custom="
+                + vlHighResolutionImages + ", isMultimodalModel="
+                + isMultimodalModel + ", supportIncrementalOutput="
+                + supportIncrementalOutput + ", enableThinking="
+                + enableThinking + ", thinkingBudget="
+                + thinkingBudget + ", enableSanitizeMessages="
+                + enableSanitizeMessages + ", n="
+                + n + ", size="
+                + quoted(size) + ", promptExtend="
+                + promptExtend + ", negativePrompt="
+                + quoted(negativePrompt) + ", custom="
                 + custom + '}';
     }
 
