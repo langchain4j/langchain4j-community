@@ -194,7 +194,8 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.chat-model.parameters.n=1",
                         "langchain4j.community.dashscope.chat-model.parameters.size=1024*1024",
                         "langchain4j.community.dashscope.chat-model.parameters.promptExtend=true",
-                        "langchain4j.community.dashscope.chat-model.parameters.negativePrompt=disfigured")
+                        "langchain4j.community.dashscope.chat-model.parameters.negativePrompt=disfigured",
+                        "langchain4j.community.dashscope.chat-model.parameters.parallel_tool_calls=true")
                 .run(context -> {
                     ChatModel chatModel = context.getBean(ChatModel.class);
                     assertThat(chatModel).isInstanceOf(QwenChatModel.class);
@@ -260,6 +261,7 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.size()).isEqualTo("1024*1024");
                     assertThat(defaultParameters.promptExtend()).isTrue();
                     assertThat(defaultParameters.negativePrompt()).isEqualTo("disfigured");
+                    assertThat(defaultParameters.parallelToolCalls()).isTrue();
 
                     assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatModel);
                 });
@@ -301,7 +303,8 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.n=1",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.size=1024*1024",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.promptExtend=true",
-                        "langchain4j.community.dashscope.streaming-chat-model.parameters.negativePrompt=disfigured")
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.negativePrompt=disfigured",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.parallel_tool_calls=true")
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
                     assertThat(streamingChatModel).isInstanceOf(QwenStreamingChatModel.class);
@@ -368,6 +371,7 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.size()).isEqualTo("1024*1024");
                     assertThat(defaultParameters.promptExtend()).isTrue();
                     assertThat(defaultParameters.negativePrompt()).isEqualTo("disfigured");
+                    assertThat(defaultParameters.parallelToolCalls()).isTrue();
 
                     assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatModel);
                 });

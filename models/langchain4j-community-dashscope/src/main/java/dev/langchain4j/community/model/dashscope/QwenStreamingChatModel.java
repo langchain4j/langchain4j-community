@@ -133,6 +133,7 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                 .size(qwenParameters.size())
                 .promptExtend(qwenParameters.promptExtend())
                 .negativePrompt(qwenParameters.negativePrompt())
+                .parallelToolCalls(qwenParameters.parallelToolCalls())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 
@@ -173,16 +174,16 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                             handler.onPartialThinking(
                                     partialResponse.partialThinking(), new PartialThinkingContext(streamingHandle));
                         }
-                        List<PartialToolCall> partialToolCalls = partialResponse.partialToolCalls();
-                        if (!isNullOrEmpty(partialToolCalls)) {
-                            for (PartialToolCall toolCall : partialToolCalls) {
-                                handler.onPartialToolCall(toolCall, new PartialToolCallContext(streamingHandle));
-                            }
-                        }
                         List<CompleteToolCall> completeToolCalls = partialResponse.completeToolCalls();
                         if (!isNullOrEmpty(completeToolCalls)) {
                             for (CompleteToolCall toolCall : completeToolCalls) {
                                 handler.onCompleteToolCall(toolCall);
+                            }
+                        }
+                        List<PartialToolCall> partialToolCalls = partialResponse.partialToolCalls();
+                        if (!isNullOrEmpty(partialToolCalls)) {
+                            for (PartialToolCall toolCall : partialToolCalls) {
+                                handler.onPartialToolCall(toolCall, new PartialToolCallContext(streamingHandle));
                             }
                         }
                     } catch (Throwable t) {
