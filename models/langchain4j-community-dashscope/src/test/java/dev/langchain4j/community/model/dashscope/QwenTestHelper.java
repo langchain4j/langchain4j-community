@@ -27,45 +27,44 @@ import org.junit.jupiter.params.provider.Arguments;
 class QwenTestHelper {
 
     public static Stream<Arguments> languageModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN_TURBO),
-                Arguments.of(QwenModelName.QWEN_PLUS),
-                Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_LONG));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN_TURBO),
-                Arguments.of(QwenModelName.QWEN_PLUS),
-                Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN3_32B));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_32B), Arguments.of(QwenModelName.QWEN3_235B_A22B));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
     }
 
     public static Stream<Arguments> vlChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_VL_FLASH));
     }
 
     public static Stream<Arguments> mtChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_MT_TURBO), Arguments.of(QwenModelName.QWEN_MT_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_MT_FLASH));
     }
 
     public static Stream<Arguments> audioChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_AUDIO_TURBO_LATEST));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_AUDIO_TURBO));
     }
 
     public static Stream<Arguments> embeddingModelNameProvider() {
         return Stream.of(Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
+    }
+
+    public static Stream<Arguments> imageModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE));
+    }
+
+    public static Stream<Arguments> imageEditModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_EDIT));
     }
 
     public static String apiKey() {
@@ -168,5 +167,19 @@ class QwenTestHelper {
         }
 
         return Base64.getEncoder().encodeToString(buffer.toByteArray());
+    }
+
+    public static List<ChatMessage> textToImageChatMessages() {
+        TextContent textContent = TextContent.from("Draw a parrot.");
+        return Collections.singletonList(UserMessage.from(textContent));
+    }
+
+    public static List<ChatMessage> textToImageChatMessagesWithImageUrl() {
+        Image image = Image.builder()
+                .url("https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg")
+                .build();
+        ImageContent imageContent = ImageContent.from(image);
+        TextContent textContent = TextContent.from("Change the background.");
+        return Collections.singletonList(UserMessage.from(imageContent, textContent));
     }
 }

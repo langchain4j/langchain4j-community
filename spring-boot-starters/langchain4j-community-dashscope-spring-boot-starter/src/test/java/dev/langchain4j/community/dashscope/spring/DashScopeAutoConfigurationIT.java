@@ -190,7 +190,11 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.chat-model.parameters.vl-high-resolution-images=false",
                         "langchain4j.community.dashscope.chat-model.parameters.enable-thinking=true",
                         "langchain4j.community.dashscope.chat-model.parameters.thinking-budget=1000",
-                        "langchain4j.community.dashscope.chat-model.parameters.enable-sanitize-messages=true")
+                        "langchain4j.community.dashscope.chat-model.parameters.enable-sanitize-messages=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.n=1",
+                        "langchain4j.community.dashscope.chat-model.parameters.size=1024*1024",
+                        "langchain4j.community.dashscope.chat-model.parameters.promptExtend=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.negativePrompt=disfigured")
                 .run(context -> {
                     ChatModel chatModel = context.getBean(ChatModel.class);
                     assertThat(chatModel).isInstanceOf(QwenChatModel.class);
@@ -252,6 +256,10 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.enableThinking()).isTrue();
                     assertThat(defaultParameters.thinkingBudget()).isEqualTo(1000);
                     assertThat(defaultParameters.enableSanitizeMessages()).isTrue();
+                    assertThat(defaultParameters.n()).isEqualTo(1);
+                    assertThat(defaultParameters.size()).isEqualTo("1024*1024");
+                    assertThat(defaultParameters.promptExtend()).isTrue();
+                    assertThat(defaultParameters.negativePrompt()).isEqualTo("disfigured");
 
                     assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatModel);
                 });
@@ -289,7 +297,11 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.vl-high-resolution-images=false",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.enable-thinking=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.thinking-budget=1000",
-                        "langchain4j.community.dashscope.streaming-chat-model.parameters.enable-sanitize-messages=true")
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.enable-sanitize-messages=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.n=1",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.size=1024*1024",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.promptExtend=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.negativePrompt=disfigured")
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
                     assertThat(streamingChatModel).isInstanceOf(QwenStreamingChatModel.class);
@@ -352,6 +364,10 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.enableThinking()).isTrue();
                     assertThat(defaultParameters.thinkingBudget()).isEqualTo(1000);
                     assertThat(defaultParameters.enableSanitizeMessages()).isTrue();
+                    assertThat(defaultParameters.n()).isEqualTo(1);
+                    assertThat(defaultParameters.size()).isEqualTo("1024*1024");
+                    assertThat(defaultParameters.promptExtend()).isTrue();
+                    assertThat(defaultParameters.negativePrompt()).isEqualTo("disfigured");
 
                     assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatModel);
                 });

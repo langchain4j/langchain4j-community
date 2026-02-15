@@ -12,6 +12,8 @@ import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimoda
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultimodalChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessages;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessagesWithImageUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
@@ -21,6 +23,9 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -38,6 +43,7 @@ import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
@@ -47,6 +53,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.InOrder;
 
 @EnabledIfEnvironmentVariable(named = "DASHSCOPE_API_KEY", matches = ".+")
 class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
@@ -347,6 +354,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
+    @Disabled("only served in China")
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_url_and_receive_response(String modelName) {
@@ -365,6 +373,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
+    @Disabled("only served in China")
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_data_and_receive_response(String modelName) {
@@ -551,6 +560,62 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.metadata()).isInstanceOf(QwenChatResponseMetadata.class);
     }
 
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageModelNameProvider")
+    void should_send_prompt_and_receive_image(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .isMultimodalModel(true)
+                .build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .n(1)
+                .size("1024*1024")
+                .promptExtend(true)
+                .negativePrompt("low quality,bad proportions")
+                .build();
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(textToImageChatMessages())
+                .parameters(parameters)
+                .build();
+
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().images()).isNotEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageEditModelNameProvider")
+    void should_send_image_and_receive_image(String modelName) {
+        QwenStreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .isMultimodalModel(true)
+                .build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .n(1)
+                .size("1024*1024")
+                .promptExtend(true)
+                .negativePrompt("low quality,bad proportions")
+                .build();
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(textToImageChatMessagesWithImageUrl())
+                .parameters(parameters)
+                .build();
+
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().images()).isNotEmpty();
+    }
+
     @Override
     protected List<StreamingChatModel> models() {
         return nonMultimodalChatModelNameProvider()
@@ -623,6 +688,57 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @Override
+    protected boolean supportsJsonResponseFormatWithRawSchema() {
+        return false;
+    }
+
+    @Override
+    protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id) {
+        io.verify(handler, atLeastOnce()).onPartialToolCall(any(), any());
+
+        io.verify(handler).onCompleteToolCall(argThat(toolCall -> {
+            ToolExecutionRequest request = toolCall.toolExecutionRequest();
+            return toolCall.index() == 0
+                    && request.id().equals(id)
+                    && request.name().equals("getWeather")
+                    && request.arguments().replace(" ", "").equals("{\"city\":\"Munich\"}");
+        }));
+    }
+
+    @Override
+    protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id1, String id2) {
+        io.verify(handler, atLeastOnce())
+                .onPartialToolCall(
+                        argThat(toolCall -> toolCall.index() == 0
+                                && toolCall.id().equals(id1)
+                                && toolCall.name().equals("getWeather")
+                                && !toolCall.partialArguments().isBlank()),
+                        any());
+        io.verify(handler).onCompleteToolCall(argThat(toolCall -> {
+            ToolExecutionRequest request = toolCall.toolExecutionRequest();
+            return toolCall.index() == 0
+                    && request.id().equals(id1)
+                    && request.name().equals("getWeather")
+                    && request.arguments().replace(" ", "").equals("{\"city\":\"Munich\"}");
+        }));
+
+        io.verify(handler, atLeastOnce())
+                .onPartialToolCall(
+                        argThat(toolCall -> toolCall.index() == 1
+                                && toolCall.id().equals(id2)
+                                && toolCall.name().equals("getTime")
+                                && !toolCall.partialArguments().isBlank()),
+                        any());
+        io.verify(handler).onCompleteToolCall(argThat(toolCall -> {
+            ToolExecutionRequest request = toolCall.toolExecutionRequest();
+            return toolCall.index() == 1
+                    && request.id().equals(id2)
+                    && request.name().equals("getTime")
+                    && request.arguments().replace(" ", "").equals("{\"country\":\"France\"}");
+        }));
+    }
+
+    @Override
     protected String catImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/Felis_silvestris_silvestris_small_gradual_decrease_of_quality.png";
     }
@@ -663,5 +779,11 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected void should_execute_multiple_tools_in_parallel_then_answer(StreamingChatModel model) {
         super.should_execute_multiple_tools_in_parallel_then_answer(model);
+    }
+
+    @Disabled("qwen max does not support JSON response format")
+    @Override
+    protected void should_respect_JsonRawSchema_responseFormat(StreamingChatModel model) {
+        super.should_respect_JsonRawSchema_responseFormat(model);
     }
 }
