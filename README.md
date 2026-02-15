@@ -13,6 +13,8 @@ Please use [Discord](https://discord.gg/JzTFvyjG6R) or [StackOverFlow](https://s
 ## Request Features
 Please let us know what features you need by [opening an issue](https://github.com/langchain4j/langchain4j-community/issues/new/choose).
 
+## Guides
+- [Prompt repetition (non-RAG + RAG)](docs/prompt-repetition.md)
 
 ## Contribute
 Contribution guidelines can be found [here](https://github.com/langchain4j/langchain4j-community/blob/main/CONTRIBUTING.md).
