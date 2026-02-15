@@ -26,6 +26,16 @@ public enum PromptRepetitionReason {
     SKIPPED_RAG_DETECTED,
 
     /**
+     * Skipped because input length is over the configured limit.
+     */
+    SKIPPED_TOO_LONG,
+
+    /**
+     * Skipped because the text appears to request explicit reasoning.
+     */
+    SKIPPED_REASONING_INTENT,
+
+    /**
      * Skipped because the input is already repeated with the configured separator.
      */
     SKIPPED_ALREADY_REPEATED

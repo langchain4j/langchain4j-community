@@ -59,4 +59,45 @@ class RepeatingQueryTransformerTest {
         assertThat(transformedQueries).containsExactly(query);
         assertThat(transformer.decide(query).reason()).isEqualTo(PromptRepetitionReason.SKIPPED_ALREADY_REPEATED);
     }
+
+    @Test
+    void should_skip_when_query_is_too_long_in_auto_mode() {
+
+        // given
+        PromptRepetitionPolicy policy = PromptRepetitionPolicy.builder()
+                .mode(PromptRepetitionMode.AUTO)
+                .maxChars(4)
+                .reasoningKeywords(java.util.Set.of())
+                .build();
+        RepeatingQueryTransformer transformer = new RepeatingQueryTransformer(policy);
+        Metadata metadata = Metadata.from(UserMessage.from("query"), "memory-id", List.of());
+        Query query = Query.from("query-too-long", metadata);
+
+        // when
+        Collection<Query> transformedQueries = transformer.transform(query);
+
+        // then
+        assertThat(transformedQueries).containsExactly(Query.from("query-too-long", metadata));
+        assertThat(transformer.decide(query).reason()).isEqualTo(PromptRepetitionReason.SKIPPED_TOO_LONG);
+    }
+
+    @Test
+    void should_skip_when_reasoning_intent_is_detected_in_auto_mode() {
+
+        // given
+        PromptRepetitionPolicy policy = PromptRepetitionPolicy.builder()
+                .mode(PromptRepetitionMode.AUTO)
+                .maxChars(1000)
+                .reasoningKeywords(java.util.Set.of("step by step"))
+                .build();
+        RepeatingQueryTransformer transformer = new RepeatingQueryTransformer(policy);
+        Query query = Query.from("Please answer step by step");
+
+        // when
+        Collection<Query> transformedQueries = transformer.transform(query);
+
+        // then
+        assertThat(transformedQueries).containsExactly(query);
+        assertThat(transformer.decide(query).reason()).isEqualTo(PromptRepetitionReason.SKIPPED_REASONING_INTENT);
+    }
 }

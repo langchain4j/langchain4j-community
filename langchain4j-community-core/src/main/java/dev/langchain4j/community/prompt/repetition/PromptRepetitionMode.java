@@ -11,6 +11,11 @@ public enum PromptRepetitionMode {
     NEVER,
 
     /**
+     * Apply stop-loss gates first, then repeat only when eligible.
+     */
+    AUTO,
+
+    /**
      * Always repeat when input is eligible.
      */
     ALWAYS
