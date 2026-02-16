@@ -55,15 +55,17 @@ public class PromptRepetitionPolicy {
 
     private boolean isAlreadyRepeated(String text) {
         int index = text.indexOf(separator);
-        while (index > 0) {
-            String left = text.substring(0, index);
-            if (!left.isBlank()) {
-                String right = text.substring(index + separator.length());
-                if (left.equals(right)) {
-                    return true;
+        while (index >= 0) {
+            if (index > 0) {
+                String left = text.substring(0, index);
+                if (!left.isBlank()) {
+                    String right = text.substring(index + separator.length());
+                    if (left.equals(right)) {
+                        return true;
+                    }
                 }
             }
-            index = text.indexOf(separator, index + separator.length());
+            index = text.indexOf(separator, index + 1);
         }
         return false;
     }
