@@ -124,52 +124,12 @@ Practical recommendation:
 
 ## Validation snapshot (PR evidence)
 
-The following results were produced on February 16, 2026 using the implementation in this PR:
+- Functional verification passed:
+  - `langchain4j-community-core` module tests (`108/108`).
+  - End-to-end harness checks for rewrite behavior, idempotence, RAG skip in input guardrail, and query-transformer wiring.
+- Quantitative verification confirms value with expected boundaries:
+  - Non-RAG objective buckets showed measurable quality gains (aggregate exact-match improvement in A/B runs).
+  - `AUTO` mode skipped reasoning-intent prompts as designed.
+  - RAG query-side repetition was validated separately and treated as a distinct rollout path.
 
-### 1) Functional correctness
-
-- `langchain4j-community-core` module tests: `108/108` passed.
-- Additional end-to-end harness checks using real `AiServices` wiring:
-  - non-RAG input rewrite works in `ALWAYS`.
-  - `AUTO` skips explicit reasoning prompts.
-  - idempotence prevents repeated growth (`Q -> Q\nQ`, not `Q\nQ\nQ\nQ`).
-  - `PromptRepeatingInputGuardrail` skips when RAG augmentation is present.
-  - `RepeatingQueryTransformer` preserves `Query.metadata`.
-  - `RepeatingQueryTransformer` executes inside `DefaultRetrievalAugmentor` flow.
-
-These checks confirm the feature is functional and implements the intended behavior.
-
-### 2) Quantified value (A/B)
-
-Setup:
-- Model: `gpt-4.1-mini`
-- Variant A: baseline (no repetition)
-- Variant B: repetition enabled through PR components
-- Metric: exact-match accuracy, plus token/latency deltas
-
-Non-RAG paper-aligned buckets (`mode=ALWAYS`):
-
-| Bucket | Cases | Exact A | Exact B | Delta | Avg Tokens A | Avg Tokens B | Token Delta |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| NameIndex | 120 | 61.67% | 79.17% | +17.50pp | 136.45 | 262.98 | +126.53 |
-| OptionsFirst | 120 | 80.00% | 100.00% | +20.00pp | 288.18 | 564.35 | +276.18 |
-| MiddleMatch | 120 | 97.50% | 100.00% | +2.50pp | 159.87 | 309.82 | +149.95 |
-| **Aggregate** | **360** | **79.72%** | **93.06%** | **+13.33pp** | **194.83** | **379.05** | **+184.22** |
-
-Reasoning-control bucket (`mode=AUTO`):
-- Cases: `80`
-- Applied rate: `0%`
-- Reason distribution: `SKIPPED_REASONING_INTENT=80`
-
-This confirms `AUTO` behaves conservatively in reasoning-like prompts.
-
-RAG bucket (`mode=AUTO`, query-side repetition via `RepeatingQueryTransformer`):
-- Cases: `30`
-- Exact match: `1.00 -> 1.00` (no quality change in this bucket)
-
-### Interpretation
-
-- The PR code is functional and enforces the expected safety gates.
-- Prompt repetition shows measurable gains in non-RAG objective tasks.
-- Gains are task-dependent: high-baseline tasks show smaller improvements.
-- `AUTO` mode remains conservative for reasoning prompts and should be the default rollout mode.
+Detailed A/B tables, run configuration, and per-bucket metrics are kept in PR discussion for reproducibility while keeping this guide stable over time.
