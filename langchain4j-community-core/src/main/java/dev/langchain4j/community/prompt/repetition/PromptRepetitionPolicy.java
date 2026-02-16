@@ -97,18 +97,18 @@ public class PromptRepetitionPolicy {
     }
 
     private boolean isAlreadyRepeated(String text) {
-        int index = text.lastIndexOf(separator);
-        if (index <= 0) {
-            return false;
+        int index = text.indexOf(separator);
+        while (index > 0) {
+            String left = text.substring(0, index);
+            if (!left.isBlank()) {
+                String right = text.substring(index + separator.length());
+                if (left.equals(right)) {
+                    return true;
+                }
+            }
+            index = text.indexOf(separator, index + separator.length());
         }
-
-        String left = text.substring(0, index);
-        if (left.isBlank()) {
-            return false;
-        }
-
-        String right = text.substring(index + separator.length());
-        return left.equals(right);
+        return false;
     }
 
     public PromptRepetitionMode mode() {

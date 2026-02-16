@@ -60,6 +60,24 @@ class PromptRepetitionPolicyTest {
     }
 
     @Test
+    void should_be_idempotent_when_original_input_contains_separator() {
+
+        // given
+        PromptRepetitionPolicy policy = new PromptRepetitionPolicy(PromptRepetitionMode.ALWAYS, "\n");
+        String query = "first line\nsecond line";
+
+        // when
+        PromptRepetitionDecision first = policy.decide(query);
+        PromptRepetitionDecision second = policy.decide(first.text());
+
+        // then
+        assertThat(first.applied()).isTrue();
+        assertThat(second.applied()).isFalse();
+        assertThat(second.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_ALREADY_REPEATED);
+        assertThat(second.text()).isEqualTo(first.text());
+    }
+
+    @Test
     void should_apply_repetition_when_mode_is_auto_and_prompt_is_short() {
 
         // given
