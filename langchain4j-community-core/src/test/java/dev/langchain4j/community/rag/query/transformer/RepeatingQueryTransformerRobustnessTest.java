@@ -24,7 +24,7 @@ class RepeatingQueryTransformerRobustnessTest {
         RepeatingQueryTransformer transformer = new RepeatingQueryTransformer();
 
         // then
-        assertThat(transformer.policy().mode()).isEqualTo(PromptRepetitionMode.ALWAYS);
+        assertThat(transformer.policy().mode()).isEqualTo(PromptRepetitionMode.AUTO);
         assertThat(transformer.policy().separator()).isEqualTo("\n");
     }
 
@@ -114,6 +114,73 @@ class RepeatingQueryTransformerRobustnessTest {
         // then
         assertThat(decision.applied()).isFalse();
         assertThat(decision.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_MODE_NEVER);
+        assertThat(transformed).isEqualTo(query);
+    }
+
+    @Test
+    void should_skip_too_long_query_in_auto_mode() {
+
+        // given
+        PromptRepetitionPolicy policy = PromptRepetitionPolicy.builder()
+                .mode(PromptRepetitionMode.AUTO)
+                .maxChars(4)
+                .reasoningKeywords(List.of())
+                .build();
+        RepeatingQueryTransformer transformer = new RepeatingQueryTransformer(policy);
+        Query query = Query.from("query-too-long");
+
+        // when
+        PromptRepetitionDecision decision = transformer.decide(query);
+        Query transformed = transformer.transform(query).iterator().next();
+
+        // then
+        assertThat(decision.applied()).isFalse();
+        assertThat(decision.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_TOO_LONG);
+        assertThat(transformed).isEqualTo(query);
+    }
+
+    @Test
+    void should_skip_reasoning_query_in_auto_mode() {
+
+        // given
+        PromptRepetitionPolicy policy = PromptRepetitionPolicy.builder()
+                .mode(PromptRepetitionMode.AUTO)
+                .maxChars(1000)
+                .reasoningKeywords(List.of("step by step"))
+                .build();
+        RepeatingQueryTransformer transformer = new RepeatingQueryTransformer(policy);
+        Query query = Query.from("Please solve step by step");
+
+        // when
+        PromptRepetitionDecision decision = transformer.decide(query);
+        Query transformed = transformer.transform(query).iterator().next();
+
+        // then
+        assertThat(decision.applied()).isFalse();
+        assertThat(decision.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_REASONING_INTENT);
+        assertThat(transformed).isEqualTo(query);
+    }
+
+    @Test
+    void should_prioritize_already_repeated_before_other_auto_gates() {
+
+        // given
+        PromptRepetitionPolicy policy = PromptRepetitionPolicy.builder()
+                .mode(PromptRepetitionMode.AUTO)
+                .separator("::")
+                .maxChars(3)
+                .reasoningKeywords(List.of("step by step"))
+                .build();
+        RepeatingQueryTransformer transformer = new RepeatingQueryTransformer(policy);
+        Query query = Query.from("hello::hello");
+
+        // when
+        PromptRepetitionDecision decision = transformer.decide(query);
+        Query transformed = transformer.transform(query).iterator().next();
+
+        // then
+        assertThat(decision.applied()).isFalse();
+        assertThat(decision.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_ALREADY_REPEATED);
         assertThat(transformed).isEqualTo(query);
     }
 

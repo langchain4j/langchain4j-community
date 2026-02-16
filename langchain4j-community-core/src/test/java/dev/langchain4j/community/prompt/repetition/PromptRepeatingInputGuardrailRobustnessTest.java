@@ -24,7 +24,7 @@ class PromptRepeatingInputGuardrailRobustnessTest {
         PromptRepeatingInputGuardrail guardrail = new PromptRepeatingInputGuardrail();
 
         // then
-        assertThat(guardrail.policy().mode()).isEqualTo(PromptRepetitionMode.ALWAYS);
+        assertThat(guardrail.policy().mode()).isEqualTo(PromptRepetitionMode.AUTO);
         assertThat(guardrail.allowRagInput()).isFalse();
         assertThat(PromptRepeatingInputGuardrail.DEFAULT_ALLOW_RAG_INPUT).isFalse();
     }
@@ -141,6 +141,68 @@ class PromptRepeatingInputGuardrailRobustnessTest {
         // then
         assertThat(decision.applied()).isFalse();
         assertThat(decision.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_MODE_NEVER);
+    }
+
+    @Test
+    void should_skip_reasoning_intent_in_auto_mode() {
+
+        // given
+        PromptRepetitionPolicy policy = PromptRepetitionPolicy.builder()
+                .mode(PromptRepetitionMode.AUTO)
+                .maxChars(1000)
+                .reasoningKeywords(List.of("step by step"))
+                .build();
+        PromptRepeatingInputGuardrail guardrail = new PromptRepeatingInputGuardrail(policy, true);
+        InputGuardrailRequest request = request(UserMessage.from("Please solve it step by step"), false);
+
+        // when
+        PromptRepetitionDecision decision = guardrail.decide(request);
+        InputGuardrailResult result = guardrail.validate(request);
+
+        // then
+        assertThat(decision.applied()).isFalse();
+        assertThat(decision.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_REASONING_INTENT);
+        assertThat(result.hasRewrittenResult()).isFalse();
+    }
+
+    @Test
+    void should_skip_too_long_input_in_auto_mode() {
+
+        // given
+        PromptRepetitionPolicy policy = PromptRepetitionPolicy.builder()
+                .mode(PromptRepetitionMode.AUTO)
+                .maxChars(5)
+                .reasoningKeywords(List.of())
+                .build();
+        PromptRepeatingInputGuardrail guardrail = new PromptRepeatingInputGuardrail(policy, true);
+        InputGuardrailRequest request = request(UserMessage.from("this is too long"), false);
+
+        // when
+        PromptRepetitionDecision decision = guardrail.decide(request);
+
+        // then
+        assertThat(decision.applied()).isFalse();
+        assertThat(decision.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_TOO_LONG);
+    }
+
+    @Test
+    void should_prioritize_rag_skip_before_auto_mode_gates_when_rag_not_allowed() {
+
+        // given
+        PromptRepetitionPolicy policy = PromptRepetitionPolicy.builder()
+                .mode(PromptRepetitionMode.AUTO)
+                .maxChars(3)
+                .reasoningKeywords(List.of("step by step"))
+                .build();
+        PromptRepeatingInputGuardrail guardrail = new PromptRepeatingInputGuardrail(policy, false);
+        InputGuardrailRequest request = request(UserMessage.from("Please solve it step by step"), true);
+
+        // when
+        PromptRepetitionDecision decision = guardrail.decide(request);
+
+        // then
+        assertThat(decision.applied()).isFalse();
+        assertThat(decision.reason()).isEqualTo(PromptRepetitionReason.SKIPPED_RAG_DETECTED);
     }
 
     @Test
