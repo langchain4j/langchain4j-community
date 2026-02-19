@@ -1,6 +1,5 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingStore.SearchType.MATCH_SEARCH_CLAUSE;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,6 +17,8 @@ import org.junit.jupiter.api.Test;
 
 class Neo4jEmbeddingStoreWith2026SyntaxTest extends Neo4jEmbeddingStoreBaseTest {
 
+    private final MatchSearchClauseStrategy matchSearchClauseStrategy = new MatchSearchClauseStrategy();
+
     @Test
     void should_search_using_match_search_syntax() {
         String gqlLabel = "GqlDocSimple";
@@ -26,7 +27,7 @@ class Neo4jEmbeddingStoreWith2026SyntaxTest extends Neo4jEmbeddingStoreBaseTest 
                 .dimension(384)
                 .label(gqlLabel)
                 .indexName("new_syntax")
-                .searchType(MATCH_SEARCH_CLAUSE)
+                .searchStrategy(matchSearchClauseStrategy)
                 .filterMetadata(Collections.emptyList()) // Explicitly no metadata
                 .build();
 
@@ -52,7 +53,7 @@ class Neo4jEmbeddingStoreWith2026SyntaxTest extends Neo4jEmbeddingStoreBaseTest 
                 .dimension(384)
                 .label(gqlLabel)
                 .indexName("new_syntax_2")
-                .searchType(MATCH_SEARCH_CLAUSE)
+                .searchStrategy(matchSearchClauseStrategy)
                 // .filterMetadata() is NOT called, implicitly empty
                 .build();
 
@@ -78,7 +79,7 @@ class Neo4jEmbeddingStoreWith2026SyntaxTest extends Neo4jEmbeddingStoreBaseTest 
                 .dimension(384)
                 .label(gqlLabel)
                 .indexName("new_syntax_3")
-                .searchType(MATCH_SEARCH_CLAUSE)
+                .searchStrategy(matchSearchClauseStrategy)
                 .filterMetadata(Arrays.asList("category")) // Enable filtering for 'category'
                 .build();
 

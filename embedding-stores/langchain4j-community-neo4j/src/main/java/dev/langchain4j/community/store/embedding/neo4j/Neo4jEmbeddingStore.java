@@ -15,8 +15,6 @@ import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtil
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.getRowsBatched;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.sanitizeOrThrows;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jEmbeddingUtils.toEmbeddingMatch;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jFilterMapper.toCypherLiteral;
-import static dev.langchain4j.community.store.embedding.neo4j.Neo4jUtils.functionDef;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
@@ -26,14 +24,10 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 import static java.util.Collections.singletonList;
-import static org.neo4j.cypherdsl.core.Cypher.call;
-import static org.neo4j.cypherdsl.core.Cypher.mapOf;
 import static org.neo4j.cypherdsl.core.Cypher.match;
 import static org.neo4j.cypherdsl.core.Cypher.name;
 import static org.neo4j.cypherdsl.core.Cypher.node;
 import static org.neo4j.cypherdsl.core.Cypher.parameter;
-import static org.neo4j.cypherdsl.core.Cypher.raw;
-import static org.neo4j.cypherdsl.core.Cypher.size;
 import static org.neo4j.cypherdsl.core.Cypher.unwind;
 
 import dev.langchain4j.data.embedding.Embedding;
@@ -53,12 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.neo4j.cypherdsl.core.Condition;
-import org.neo4j.cypherdsl.core.Cypher;
-import org.neo4j.cypherdsl.core.Expression;
-import org.neo4j.cypherdsl.core.FunctionInvocation;
 import org.neo4j.cypherdsl.core.Node;
-import org.neo4j.cypherdsl.core.Parameter;
 import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.SymbolicName;
 import org.neo4j.cypherdsl.core.renderer.Renderer;
@@ -91,25 +80,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final Logger log = LoggerFactory.getLogger(Neo4jEmbeddingStore.class);
 
-    /**
-     * Configuration for the search strategy.
-     */
-    public enum SearchType {
-        /**
-         * Uses standard vector functions (vector.similarity.cosine) or procedures (db.index.vector.queryNodes).
-         * This performs exact KNN if no filters are applied, or brute-force similarity calculation if filters are present.
-         * This is the default behavior compatible with most Neo4j versions.
-         */
-        VECTOR_FUNCTION,
-
-        /**
-         * Uses the new GQL standard 'MATCH ... SEARCH ...' syntax available in Neo4j 2026.01.
-         * This allows efficient pre-filtering directly within the vector index search.
-         * Requires Neo4j 2026.01+ and CYPHER 25 enabled.
-         */
-        MATCH_SEARCH_CLAUSE
-    }
-
     public static final String ENTITIES_CREATION =
             """
                     UNWIND $rows AS row
@@ -123,7 +93,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     It's not possible to create an index for the label `%s` and the property `%s`,
                     as there is another index with name `%s` with different labels: `%s` and properties `%s`.
                     Please provide another indexName to create the vector index, or delete the existing one""";
-    // NOTE: CREATE_VECTOR_INDEX is now dynamically built in createIndex() to support WITH clause
     public static final String COLUMNS_NOT_ALLOWED_ERR = "There are columns not allowed in the search query: ";
 
     /* Neo4j Java Driver settings */
@@ -154,7 +123,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
     private final boolean autoCreateFullText;
 
     /* Search configuration */
-    private final SearchType searchType;
+    private final SearchStrategy searchStrategy;
     private final List<String> filterMetadata;
 
     /**
@@ -180,7 +149,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * @param initializeSchema       if true, it will create vector index and constraints (default: true)
      * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
      * @param additionalParams       the additional entity creation parameters (default: empty maps)
-     * @param searchType             the searchType (default: VECTOR_FUNCTION)
+     * @param searchStrategy         the searchStrategy (default: VectorFunctionStrategy)
      * @param filterMetadata         list of metadata keys to include in the vector index for native filtering (MATCH_SEARCH_CLAUSE)
      */
     public Neo4jEmbeddingStore(
@@ -203,7 +172,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             boolean initializeSchema,
             String entityCreationQuery,
             Map<String, Object> additionalParams,
-            SearchType searchType,
+            SearchStrategy searchStrategy,
             List<String> filterMetadata) {
 
         /* required configs */
@@ -222,7 +191,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         this.awaitIndexTimeout = getOrDefault(awaitIndexTimeout, DEFAULT_AWAIT_INDEX_TIMEOUT);
         this.additionalParams = copy(additionalParams);
 
-        this.searchType = getOrDefault(searchType, SearchType.VECTOR_FUNCTION);
+        this.searchStrategy = getOrDefault(searchStrategy, new VectorFunctionStrategy());
         this.filterMetadata = getOrDefault(filterMetadata, Collections.emptyList());
 
         /* sanitize labels and property names, to prevent from Cypher Injections */
@@ -303,6 +272,22 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     public String getSanitizedEmbeddingProperty() {
         return sanitizedEmbeddingProperty;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public String getFullTextIndexName() {
+        return fullTextIndexName;
+    }
+
+    public String getFullTextQuery() {
+        return fullTextQuery;
+    }
+
+    public String getFullTextRetrievalQuery() {
+        return fullTextRetrievalQuery;
     }
 
     public void setAdditionalParams(final Map<String, Object> additionalParams) {
@@ -414,215 +399,24 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
-
         Value embeddingValue = Values.value(request.queryEmbedding().vector());
 
         try (Session session = session()) {
-            // Check if we are using the new Neo4j 2026.01+ syntax
-            if (this.searchType == SearchType.MATCH_SEARCH_CLAUSE) {
-                return searchWithMatchSearchClause(request, embeddingValue, session);
-            }
-
-            // Fallback to VECTOR_FUNCTION logic
-            Filter filter = request.filter();
-            if (filter == null) {
-                return getSearchResUsingVectorIndex(request, embeddingValue, session);
-            }
-            return getSearchResUsingVectorSimilarity(request, filter, embeddingValue, session);
+            return searchStrategy.search(this, request, embeddingValue, session);
         }
     }
-
+    
+    
     /*
-    Private methods
+    Package-private methods
     */
 
-    /**
-     * Executes search using the Neo4j 2026.01+ Syntax (CYPHER 25):
-     * MATCH (n)
-     * SEARCH n IN (VECTOR INDEX indexName FOR $embedding WHERE ... LIMIT k) SCORE as score
-     * RETURN ...
-     */
-    private EmbeddingSearchResult<TextSegment> searchWithMatchSearchClause(
-            EmbeddingSearchRequest request, Value embeddingValue, Session session) {
+    EmbeddingSearchResult<TextSegment> getEmbeddingSearchResult(
+            Session session, String query, Map<String, Object> params) {
+        List<EmbeddingMatch<TextSegment>> matches =
+                session.executeRead(tx -> tx.run(query, params).list(item -> toEmbeddingMatch(this, item)));
 
-        String filterClause = "";
-
-        // Convert LangChain4j Filter -> Cypher String
-        if (request.filter() != null) {
-            Node node = node(this.label).named("node");
-            Neo4jFilterMapper mapper = new Neo4jFilterMapper(node);
-            Condition condition = mapper.getCondition(request.filter());
-
-            // 1. Create a temporary statement to render the Condition into a String using the default Renderer.
-            //    Statement structure: MATCH (node) WHERE <condition> RETURN node
-            Statement conditionStatement =
-                    match(node).where(condition).returning(node).build();
-            String renderedStatement = Renderer.getDefaultRenderer().render(conditionStatement);
-
-            // 2. Extract specific WHERE clause from the rendered string
-            int whereIndex = renderedStatement.indexOf("WHERE");
-            if (whereIndex != -1) {
-                // Remove the "RETURN node" part at the end, if present
-                int returnIndex = renderedStatement.lastIndexOf("RETURN");
-                if (returnIndex > whereIndex) {
-                    filterClause =
-                            renderedStatement.substring(whereIndex, returnIndex).trim();
-                } else {
-                    filterClause = renderedStatement.substring(whereIndex).trim();
-                }
-
-                // 3. FIX FOR `MATCH ... SEARCH` SYNTAX:
-                // Cypher-DSL safely renders properties using bracket notation, e.g., node['category']
-                // However, the GQL SEARCH clause specifically requires dot notation, e.g., node.category
-                // We use regex to replace ['property'] with .property
-                filterClause = filterClause.replaceAll("\\['([a-zA-Z0-9_]+)'\\]", ".$1");
-            }
-        }
-
-        // 4. Construct the GQL query manually
-        // We inject the filterClause (which contains "WHERE ...") directly into the SEARCH block.
-        String gqlQuery = String.format(
-                """
-                CYPHER 25
-                MATCH (node)
-                SEARCH node IN (
-                   VECTOR INDEX %s
-                   FOR $embeddingValue
-                   %s
-                   LIMIT $maxResults
-                ) SCORE AS score
-                %s
-                """,
-                this.indexName, filterClause, this.retrievalQuery);
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("embeddingValue", embeddingValue);
-        params.put("maxResults", request.maxResults());
-
-        return getEmbeddingSearchResult(session, gqlQuery, params);
-    }
-
-    private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorSimilarity(
-            EmbeddingSearchRequest request, Filter filter, Value embeddingValue, Session session) {
-        /* Build an
-            CYPHER runtime = parallel parallelRuntimeSupport=all
-            MATCH (n:%1$s)
-            WHERE n.%2$s IS NOT NULL AND size(n.%2$s) = toInteger(%3$s) AND %4$s
-            WITH n, vector.similarity.cosine(n.%2$s, %5$s) AS score
-            WHERE score >= $minScore
-            WITH n AS node, score
-            ORDER BY score DESC
-            LIMIT $maxResults
-        */
-
-        // Match Clause
-        Node node = node(this.label).named("node");
-
-        Neo4jFilterMapper neo4jFilterMapper = new Neo4jFilterMapper(node);
-
-        // WHERE conditions
-        Condition condition = node.property(this.embeddingProperty)
-                .isNotNull()
-                .and(size(node.property(this.embeddingProperty)).eq(toCypherLiteral(this.dimension)))
-                .and(neo4jFilterMapper.getCondition(filter));
-
-        // Cosine similarity
-        Expression similarity = FunctionInvocation.create(
-                functionDef("vector.similarity.cosine"),
-                node.property(this.embeddingProperty),
-                toCypherLiteral(embeddingValue));
-
-        // Filtering by score
-        Condition scoreCondition = similarity.gte(parameter("minScore"));
-
-        // Final query construction
-        Statement statement = match(node)
-                .where(condition)
-                .with(node.as("node"), similarity.as("score"))
-                .where(scoreCondition)
-                .returning(raw(retrievalQuery))
-                .orderBy(name("score"))
-                .descending()
-                .limit(parameter("maxResults"))
-                .build();
-
-        // Render the Cypher query
-        String cypherQuery = getRender(statement);
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("minScore", request.minScore());
-        params.put("maxResults", request.maxResults());
-        return getEmbeddingSearchResult(session, cypherQuery, params);
-    }
-
-    private EmbeddingSearchResult<TextSegment> getSearchResUsingVectorIndex(
-            EmbeddingSearchRequest request, Value embeddingValue, Session session) {
-
-        Map<String, Object> params = new HashMap<>(Map.of(
-                "indexName",
-                indexName,
-                "embeddingValue",
-                embeddingValue,
-                "minScore",
-                request.minScore(),
-                "maxResults",
-                request.maxResults()));
-
-        Parameter<Object> indexNameParam = parameter("indexName");
-        Parameter<Object> maxResultsParam = parameter("maxResults");
-        Parameter<Object> embeddingValueParam = parameter("embeddingValue");
-        Parameter<Object> minScoreParam = parameter("minScore");
-
-        // Build a "CALL db.index.vector.queryNodes($indexName, $maxResults, $embeddingValue) YIELD node, score WHERE
-        // score >= $minScore <retrievalQuery>"
-        Statement vectorQuery = call("db.index.vector.queryNodes")
-                .withArgs(indexNameParam, maxResultsParam, embeddingValueParam)
-                .yield("node", "score")
-                .where(name("score").gte(minScoreParam))
-                .returning(raw(retrievalQuery))
-                .build();
-
-        Statement statement;
-
-        // Full-text search condition
-        if (fullTextQuery != null) {
-            /* Build a
-            UNION
-            CALL db.index.fulltext.queryNodes($fullTextIndexName, $fullTextQuery, {limit: $maxResults})
-            YIELD node, score
-            WHERE score >= $minScore
-             */
-            Parameter<Object> fullTextIndexNameParam = parameter("fullTextIndexName");
-            Parameter<Object> fullTextQueryParam = parameter("fullTextQuery");
-
-            Statement fullTextSearch = call("db.index.fulltext.queryNodes")
-                    .withArgs(fullTextIndexNameParam, fullTextQueryParam, mapOf("limit", maxResultsParam))
-                    .yield("node", "score")
-                    .where(name("score").gte(minScoreParam))
-                    .returning(raw(fullTextRetrievalQuery))
-                    .build();
-
-            // UNION with full-text search
-            statement = Cypher.union(vectorQuery, fullTextSearch);
-
-            params.putAll(Map.of(
-                    "fullTextIndexName", fullTextIndexName,
-                    "fullTextQuery", fullTextQuery));
-        } else {
-            statement = vectorQuery;
-        }
-
-        // Render the Cypher query
-        String cypherQuery = getRender(statement);
-
-        Set<String> columns = getColumnNames(session, cypherQuery);
-        Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
-
-        if (!allowedColumn.containsAll(columns) || columns.size() > allowedColumn.size()) {
-            throw new RuntimeException(COLUMNS_NOT_ALLOWED_ERR + columns);
-        }
-
-        return getEmbeddingSearchResult(session, cypherQuery, params);
+        return new EmbeddingSearchResult<>(matches);
     }
 
     /**
@@ -633,21 +427,26 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * We just check MATCH, CALL, WHERE and RETURN since the other clauses (e.g. "SET")
      * should not be passed as they perform write operations, not read operations
      */
-    private static String getRender(Statement statement) {
+    String getRender(Statement statement) {
         final String input = Renderer.getDefaultRenderer().render(statement);
         return input.replaceAll("(?i)RETURN\\s+MATCH", "MATCH")
                 .replaceAll("(?i)RETURN\\s+WHERE", "WHERE")
                 .replaceAll("(?i)RETURN\\s+CALL", "CALL")
                 .replaceAll("(?i)RETURN\\s+RETURN", "RETURN");
     }
+    
+    void validateColumns(Session session, String cypherQuery) {
+        Set<String> columns = getColumnNames(session, cypherQuery);
+        Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
 
-    private EmbeddingSearchResult<TextSegment> getEmbeddingSearchResult(
-            Session session, String query, Map<String, Object> params) {
-        List<EmbeddingMatch<TextSegment>> matches =
-                session.executeRead(tx -> tx.run(query, params).list(item -> toEmbeddingMatch(this, item)));
-
-        return new EmbeddingSearchResult<>(matches);
+        if (!allowedColumn.containsAll(columns) || columns.size() > allowedColumn.size()) {
+            throw new RuntimeException(COLUMNS_NOT_ALLOWED_ERR + columns);
+        }
     }
+    
+    /*
+    Private methods
+    */
 
     private Set<String> getColumnNames(Session session, String query) {
         // retrieve column names
@@ -777,7 +576,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         StringBuilder queryBuilder = new StringBuilder();
 
         // Use CYPHER 25 parser to enable the GQL standard syntax (WITH clause in index creation)
-        if (this.searchType == SearchType.MATCH_SEARCH_CLAUSE) {
+        if (this.searchStrategy.usesCypher25()) {
             queryBuilder.append("CYPHER 25 ");
         }
 
@@ -804,11 +603,11 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         queryBuilder.append(String.format(
                 """
-                OPTIONS { indexConfig: {
-                    `vector.dimensions`: %d,
-                    `vector.similarity_function`: 'cosine'
-                }}
-                """,
+                        OPTIONS { indexConfig: {
+                            `vector.dimensions`: %d,
+                            `vector.similarity_function`: 'cosine'
+                        }}
+                        """,
                 this.dimension));
 
         try (Session session = session()) {
@@ -845,7 +644,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         private boolean initializeSchema = true;
         private String entityCreationQuery;
         private Map<String, Object> additionalParams;
-        private SearchType searchType;
+        private SearchStrategy searchStrategy;
         private List<String> filterMetadata;
 
         /**
@@ -906,7 +705,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param retrievalQuery the optional retrieval query
-         *                       (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
+         * (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
          */
         public Builder retrievalQuery(String retrievalQuery) {
             this.retrievalQuery = retrievalQuery;
@@ -1004,16 +803,16 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         /**
          * Sets the search configuration.
          *
-         * @param searchType the searchType (default: VECTOR_FUNCTION)
+         * @param searchStrategy the searchStrategy (default: VectorFunctionStrategy)
          */
-        public Builder searchType(SearchType searchType) {
-            this.searchType = searchType;
+        public Builder searchStrategy(SearchStrategy searchStrategy) {
+            this.searchStrategy = searchStrategy;
             return this;
         }
 
         /**
          * Specifies which metadata keys should be included in the vector index definition.
-         * This is required when using {@link SearchType#MATCH_SEARCH_CLAUSE} to filter by these properties
+         * This is required when using {@link MatchSearchClauseStrategy} to filter by these properties
          * inside the `SEARCH` clause.
          * Example: Arrays.asList("category", "year", "author")
          */
@@ -1055,7 +854,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                     initializeSchema,
                     entityCreationQuery,
                     additionalParams,
-                    searchType,
+                    searchStrategy,
                     filterMetadata);
         }
     }
