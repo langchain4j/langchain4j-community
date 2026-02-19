@@ -1,19 +1,18 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
+import static org.neo4j.cypherdsl.core.Cypher.match;
+import static org.neo4j.cypherdsl.core.Cypher.node;
+
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import java.util.HashMap;
+import java.util.Map;
 import org.neo4j.cypherdsl.core.Condition;
 import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.renderer.Renderer;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Value;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.neo4j.cypherdsl.core.Cypher.match;
-import static org.neo4j.cypherdsl.core.Cypher.node;
 
 public class MatchSearchClauseStrategy implements SearchStrategy {
 
@@ -23,7 +22,8 @@ public class MatchSearchClauseStrategy implements SearchStrategy {
     }
 
     @Override
-    public EmbeddingSearchResult<TextSegment> search(Neo4jEmbeddingStore store, EmbeddingSearchRequest request, Value embeddingValue, Session session) {
+    public EmbeddingSearchResult<TextSegment> search(
+            Neo4jEmbeddingStore store, EmbeddingSearchRequest request, Value embeddingValue, Session session) {
         String filterClause = "";
 
         if (request.filter() != null) {
@@ -31,14 +31,16 @@ public class MatchSearchClauseStrategy implements SearchStrategy {
             var mapper = new Neo4jFilterMapper(node);
             Condition condition = mapper.getCondition(request.filter());
 
-            Statement conditionStatement = match(node).where(condition).returning(node).build();
+            Statement conditionStatement =
+                    match(node).where(condition).returning(node).build();
             String renderedStatement = Renderer.getDefaultRenderer().render(conditionStatement);
 
             int whereIndex = renderedStatement.indexOf("WHERE");
             if (whereIndex != -1) {
                 int returnIndex = renderedStatement.lastIndexOf("RETURN");
                 if (returnIndex > whereIndex) {
-                    filterClause = renderedStatement.substring(whereIndex, returnIndex).trim();
+                    filterClause =
+                            renderedStatement.substring(whereIndex, returnIndex).trim();
                 } else {
                     filterClause = renderedStatement.substring(whereIndex).trim();
                 }

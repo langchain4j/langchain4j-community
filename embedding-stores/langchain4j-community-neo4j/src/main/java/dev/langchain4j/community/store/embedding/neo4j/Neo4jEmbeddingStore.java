@@ -405,8 +405,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             return searchStrategy.search(this, request, embeddingValue, session);
         }
     }
-    
-    
+
     /*
     Package-private methods
     */
@@ -434,7 +433,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                 .replaceAll("(?i)RETURN\\s+CALL", "CALL")
                 .replaceAll("(?i)RETURN\\s+RETURN", "RETURN");
     }
-    
+
     void validateColumns(Session session, String cypherQuery) {
         Set<String> columns = getColumnNames(session, cypherQuery);
         Set<Object> allowedColumn = Set.of(textProperty, embeddingProperty, idProperty, SCORE, METADATA);
@@ -443,7 +442,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             throw new RuntimeException(COLUMNS_NOT_ALLOWED_ERR + columns);
         }
     }
-    
+
     /*
     Private methods
     */

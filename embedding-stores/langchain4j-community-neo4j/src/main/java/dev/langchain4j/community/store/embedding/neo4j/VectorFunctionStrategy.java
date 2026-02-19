@@ -1,17 +1,5 @@
 package dev.langchain4j.community.store.embedding.neo4j;
 
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.filter.Filter;
-import org.neo4j.cypherdsl.core.Cypher;
-import org.neo4j.cypherdsl.core.Statement;
-import org.neo4j.driver.Session;
-import org.neo4j.driver.Value;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jFilterMapper.toCypherLiteral;
 import static dev.langchain4j.community.store.embedding.neo4j.Neo4jUtils.functionDef;
 import static org.neo4j.cypherdsl.core.Cypher.call;
@@ -23,10 +11,22 @@ import static org.neo4j.cypherdsl.core.Cypher.parameter;
 import static org.neo4j.cypherdsl.core.Cypher.raw;
 import static org.neo4j.cypherdsl.core.Cypher.size;
 
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.filter.Filter;
+import java.util.HashMap;
+import java.util.Map;
+import org.neo4j.cypherdsl.core.Cypher;
+import org.neo4j.cypherdsl.core.Statement;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Value;
+
 public class VectorFunctionStrategy implements SearchStrategy {
 
     @Override
-    public EmbeddingSearchResult<TextSegment> search(Neo4jEmbeddingStore store, EmbeddingSearchRequest request, Value embeddingValue, Session session) {
+    public EmbeddingSearchResult<TextSegment> search(
+            Neo4jEmbeddingStore store, EmbeddingSearchRequest request, Value embeddingValue, Session session) {
         Filter filter = request.filter();
         if (filter == null) {
             return searchUsingVectorIndex(store, request, embeddingValue, session);
@@ -34,7 +34,12 @@ public class VectorFunctionStrategy implements SearchStrategy {
         return searchUsingVectorSimilarity(store, request, filter, embeddingValue, session);
     }
 
-    private EmbeddingSearchResult<TextSegment> searchUsingVectorSimilarity(Neo4jEmbeddingStore store, EmbeddingSearchRequest request, Filter filter, Value embeddingValue, Session session) {
+    private EmbeddingSearchResult<TextSegment> searchUsingVectorSimilarity(
+            Neo4jEmbeddingStore store,
+            EmbeddingSearchRequest request,
+            Filter filter,
+            Value embeddingValue,
+            Session session) {
         var node = node(store.getLabel()).named("node");
         var neo4jFilterMapper = new Neo4jFilterMapper(node);
 
@@ -66,7 +71,8 @@ public class VectorFunctionStrategy implements SearchStrategy {
         return store.getEmbeddingSearchResult(session, cypherQuery, params);
     }
 
-    private EmbeddingSearchResult<TextSegment> searchUsingVectorIndex(Neo4jEmbeddingStore store, EmbeddingSearchRequest request, Value embeddingValue, Session session) {
+    private EmbeddingSearchResult<TextSegment> searchUsingVectorIndex(
+            Neo4jEmbeddingStore store, EmbeddingSearchRequest request, Value embeddingValue, Session session) {
         var indexNameParam = parameter("indexName");
         var maxResultsParam = parameter("maxResults");
         var embeddingValueParam = parameter("embeddingValue");

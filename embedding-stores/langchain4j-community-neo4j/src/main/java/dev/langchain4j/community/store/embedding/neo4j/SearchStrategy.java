@@ -11,10 +11,8 @@ public interface SearchStrategy {
     /**
      * Executes the search logic.
      */
-    EmbeddingSearchResult<TextSegment> search(Neo4jEmbeddingStore store,
-                                              EmbeddingSearchRequest request,
-                                              Value embeddingValue,
-                                              Session session);
+    EmbeddingSearchResult<TextSegment> search(
+            Neo4jEmbeddingStore store, EmbeddingSearchRequest request, Value embeddingValue, Session session);
 
     /**
      * Indicates if this strategy requires the CYPHER 25 prefix
