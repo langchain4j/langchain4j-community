@@ -39,7 +39,7 @@ class ChatModelWrapper implements ChatModel, StreamingChatModel {
 
     ChatModelWrapper(StreamingChatModel streamingModel, Map<String, Serializable> routingMetadata) {
         this.streamingModel = Objects.requireNonNull(streamingModel, "streamingModel");
-        this.model = streamingModel instanceof ChatModel ? (ChatModel) streamingModel : null;
+        this.model = streamingModel instanceof ChatModel chatModel ? chatModel : null;
         this.metadata = routingMetadata == null ? new HashMap<>() : new HashMap<>(routingMetadata);
     }
 
