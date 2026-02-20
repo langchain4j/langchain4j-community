@@ -49,6 +49,13 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>${langchain4j.open-ai.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
