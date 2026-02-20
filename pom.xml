@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.11.0-beta19-SNAPSHOT</version>
+        <version>1.12.0-beta20-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -101,10 +101,10 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.11.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.11.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.11.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.11.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.12.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.12.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.12.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.12.0-SNAPSHOT</langchain4j.open-ai.version>
     </properties>
 
     <repositories>
@@ -310,7 +310,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>6.27.0</version>
+                        <version>6.28.1</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->

@@ -123,6 +123,11 @@ public class DashScopeAutoConfiguration {
                 .enableThinking(parameters.getEnableThinking())
                 .thinkingBudget(parameters.getThinkingBudget())
                 .enableSanitizeMessages(parameters.getEnableSanitizeMessages())
+                .n(parameters.getN())
+                .size(parameters.getSize())
+                .promptExtend(parameters.getPromptExtend())
+                .negativePrompt(parameters.getNegativePrompt())
+                .parallelToolCalls(parameters.getParallelToolCalls())
                 .build();
     }
 

@@ -1,6 +1,7 @@
 package dev.langchain4j.community.model.dashscope;
 
 import static com.alibaba.dashscope.aigc.conversation.ConversationParam.ResultFormat.MESSAGE;
+import static dev.langchain4j.data.message.AiMessage.GENERATED_IMAGES_KEY;
 import static dev.langchain4j.data.message.ChatMessageType.AI;
 import static dev.langchain4j.data.message.ChatMessageType.SYSTEM;
 import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT;
@@ -22,6 +23,7 @@ import com.alibaba.dashscope.aigc.generation.GenerationOutput.Choice;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.generation.SearchInfo;
+import com.alibaba.dashscope.aigc.generation.TranslationOptions;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
@@ -64,7 +66,6 @@ import dev.langchain4j.model.output.TokenUsage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -273,8 +274,9 @@ class QwenHelper {
                 .map(choices -> choices.get(0))
                 .map(MultiModalConversationOutput.Choice::getMessage)
                 .map(MultiModalMessage::getContent)
-                .filter(contents -> !contents.isEmpty())
-                .isPresent();
+                .orElse(Collections.emptyList())
+                .stream()
+                .anyMatch(content -> content.containsKey("text"));
     }
 
     static String answerFrom(MultiModalConversationResult result) {
@@ -286,11 +288,30 @@ class QwenHelper {
                 .map(MultiModalConversationOutput.Choice::getMessage)
                 .map(MultiModalMessage::getContent)
                 .filter(contents -> !contents.isEmpty())
-                .map(contents -> contents.get(0))
+                .orElse(Collections.emptyList())
+                .stream()
+                .filter(content -> content.containsKey("text"))
                 .map(content -> content.get("text"))
                 .map(String.class::cast)
-                // Model may send empty content in streaming mode
-                .orElse("");
+                .collect(joining("\n"));
+    }
+
+    static List<Image> imagesFrom(MultiModalConversationResult result) {
+        return Optional.of(result)
+                .map(MultiModalConversationResult::getOutput)
+                .map(MultiModalConversationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(MultiModalConversationOutput.Choice::getMessage)
+                .map(MultiModalMessage::getContent)
+                .filter(contents -> !contents.isEmpty())
+                .orElse(Collections.emptyList())
+                .stream()
+                .filter(content -> content.containsKey("image"))
+                .map(content -> content.get("image"))
+                .map(url ->
+                        Image.builder().url((String) url).mimeType("image/png").build())
+                .collect(toList());
     }
 
     static TokenUsage tokenUsageFrom(GenerationResult result) {
@@ -363,12 +384,15 @@ class QwenHelper {
 
     static boolean isMultimodalModelName(String modelName) {
         // rough judgment
-        return modelName.contains("-vl-") || modelName.contains("-audio-") || modelName.contains("-omni-");
+        return modelName.contains("-vl-")
+                || modelName.contains("-audio-")
+                || modelName.contains("-omni-")
+                || modelName.contains("-image-");
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
         // rough judgment
-        return !modelName.contains("-mt-");
+        return true;
     }
 
     static boolean isMultimodalModel(ChatRequest chatRequest) {
@@ -438,10 +462,14 @@ class QwenHelper {
         String text = answerFrom(result);
         String reasoningContentFrom = reasoningContentFrom(result);
         AiMessage.Builder aiMessageBuilder = AiMessage.builder()
-                .text(isNullOrBlank(text) ? null : text)
-                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom);
+                .text(text)
+                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
+                .attributes(Map.of());
         if (isFunctionToolCalls(result)) {
             aiMessageBuilder = aiMessageBuilder.toolExecutionRequests(toolExecutionRequestsFrom(result));
+            if (text.isBlank()) {
+                aiMessageBuilder.text(null);
+            }
         }
 
         return aiMessageBuilder.build();
@@ -525,9 +553,11 @@ class QwenHelper {
     static AiMessage aiMessageFrom(MultiModalConversationResult result) {
         String text = answerFrom(result);
         String reasoningContentFrom = reasoningContentFrom(result);
+        List<Image> images = imagesFrom(result);
         AiMessage.Builder aiMessageBuilder = AiMessage.builder()
-                .text(isNullOrBlank(text) ? null : text)
-                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom);
+                .text(text)
+                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
+                .attributes(isNullOrEmpty(images) ? Map.of() : Map.of(GENERATED_IMAGES_KEY, images));
 
         return aiMessageBuilder.build();
     }
@@ -702,6 +732,22 @@ class QwenHelper {
         if (parameters.responseFormat() != null && parameters.responseFormat().jsonSchema() != null) {
             throw new UnsupportedFeatureException("JSON response format is not supported by " + parameters.modelName());
         }
+
+        if (parameters.n() != null) {
+            throw new UnsupportedFeatureException("n is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.size() != null) {
+            throw new UnsupportedFeatureException("size is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.promptExtend() != null) {
+            throw new UnsupportedFeatureException("promptExtend is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.negativePrompt() != null) {
+            throw new UnsupportedFeatureException("negativePrompt is not supported by " + parameters.modelName());
+        }
     }
 
     static void validateMultimodalConversationParameters(QwenChatRequestParameters parameters) {
@@ -734,6 +780,11 @@ class QwenHelper {
             throw new UnsupportedFeatureException(
                     "'responseFormat' parameter is not supported by " + parameters.modelName());
         }
+
+        if (parameters.parallelToolCalls() != null) {
+            throw new UnsupportedFeatureException(
+                    "'parallelToolCalls' parameter is not supported by " + parameters.modelName());
+        }
     }
 
     static GenerationParam toGenerationParam(
@@ -759,7 +810,8 @@ class QwenHelper {
                 .resultFormat(MESSAGE)
                 .incrementalOutput(incrementalOutput)
                 .enableThinking(parameters.enableThinking())
-                .thinkingBudget(parameters.thinkingBudget());
+                .thinkingBudget(parameters.thinkingBudget())
+                .translationOptions(toQwenTranslationOptions(parameters.translationOptions()));
 
         if (parameters.temperature() != null) {
             builder.temperature(parameters.temperature().floatValue());
@@ -775,11 +827,7 @@ class QwenHelper {
                 builder.toolChoice(
                         toToolFunction((parameters.toolSpecifications().get(0))));
             }
-        }
-
-        if (parameters.translationOptions() != null) {
-            // no java field is provided yet
-            builder.parameter("translation_options", toQwenTranslationOptions(parameters.translationOptions()));
+            builder.parallelToolCalls(parameters.parallelToolCalls());
         }
 
         if (parameters.custom() != null) {
@@ -813,7 +861,12 @@ class QwenHelper {
                         .seed(parameters.seed())
                         .maxTokens(parameters.maxOutputTokens())
                         .messages(toQwenMultiModalMessages(chatRequest.messages()))
-                        .incrementalOutput(incrementalOutput);
+                        .incrementalOutput(incrementalOutput)
+                        .vlHighResolutionImages(parameters.vlHighResolutionImages())
+                        .n(parameters.n())
+                        .size(parameters.size())
+                        .promptExtend(parameters.promptExtend())
+                        .negativePrompt(parameters.negativePrompt());
 
         if (parameters.temperature() != null) {
             builder.temperature(parameters.temperature().floatValue());
@@ -821,11 +874,6 @@ class QwenHelper {
 
         if (!isNullOrEmpty(parameters.stopSequences())) {
             builder.parameter("stop", parameters.stopSequences());
-        }
-
-        if (parameters.vlHighResolutionImages() != null) {
-            // no java field is provided yet
-            builder.parameter("vl_high_resolution_images", parameters.vlHighResolutionImages());
         }
 
         if (parameters.custom() != null) {
@@ -869,28 +917,44 @@ class QwenHelper {
                 .build();
     }
 
-    static Map<String, Object> toQwenTranslationOptions(
+    static TranslationOptions toQwenTranslationOptions(
             QwenChatRequestParameters.TranslationOptions translationOptions) {
         if (translationOptions == null) {
             return null;
         }
 
-        // no java class is provided yet
-        Map<String, Object> translationOptionsMap = new HashMap<>(5);
-        translationOptionsMap.put("source_lang", translationOptions.sourceLang());
-        translationOptionsMap.put("target_lang", translationOptions.targetLang());
-        translationOptionsMap.put("terms", toTermList(translationOptions.terms()));
-        translationOptionsMap.put("tm_list", toTermList(translationOptions.tmList()));
-        translationOptionsMap.put("domains", translationOptions.domains());
-        return translationOptionsMap;
+        return TranslationOptions.builder()
+                .sourceLang(translationOptions.sourceLang())
+                .targetLang(translationOptions.targetLang())
+                .terms(toTermList(translationOptions.terms()))
+                .tmList(toTmList(translationOptions.tmList()))
+                .domains(translationOptions.domains())
+                .build();
     }
 
-    static List<Map<String, String>> toTermList(List<QwenChatRequestParameters.TranslationOptionTerm> list) {
+    static List<TranslationOptions.Term> toTermList(List<QwenChatRequestParameters.TranslationOptionTerm> list) {
         if (list == null) {
             return null;
         }
+
         return list.stream()
-                .map(term -> Map.of("source", term.source(), "target", term.target()))
+                .map(term -> TranslationOptions.Term.builder()
+                        .source(term.source())
+                        .target(term.target())
+                        .build())
+                .collect(toList());
+    }
+
+    static List<TranslationOptions.Tm> toTmList(List<QwenChatRequestParameters.TranslationOptionTerm> list) {
+        if (list == null) {
+            return null;
+        }
+
+        return list.stream()
+                .map(term -> TranslationOptions.Tm.builder()
+                        .source(term.source())
+                        .target(term.target())
+                        .build())
                 .collect(toList());
     }
 

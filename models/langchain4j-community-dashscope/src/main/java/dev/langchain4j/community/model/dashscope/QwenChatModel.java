@@ -113,6 +113,11 @@ public class QwenChatModel implements ChatModel {
                 .enableThinking(qwenParameters.enableThinking())
                 .thinkingBudget(qwenParameters.thinkingBudget())
                 .enableSanitizeMessages(qwenParameters.enableSanitizeMessages())
+                .n(qwenParameters.n())
+                .size(qwenParameters.size())
+                .promptExtend(qwenParameters.promptExtend())
+                .negativePrompt(qwenParameters.negativePrompt())
+                .parallelToolCalls(qwenParameters.parallelToolCalls())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 

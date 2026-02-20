@@ -28,7 +28,7 @@ steps:
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artificatId>langchain4j-community-alloydb-pg</artificatId>
-    <version>1.11.0-beta19-SNAPSHOT</version>
+    <version>1.12.0-beta20-SNAPSHOT</version>
 </dependency>
 ```
 

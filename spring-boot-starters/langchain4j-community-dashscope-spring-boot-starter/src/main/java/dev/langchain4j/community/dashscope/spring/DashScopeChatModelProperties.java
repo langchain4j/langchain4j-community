@@ -145,6 +145,11 @@ public class DashScopeChatModelProperties {
         private Boolean enableThinking;
         private Integer thinkingBudget;
         private Boolean enableSanitizeMessages;
+        private Integer n;
+        private String size;
+        private Boolean promptExtend;
+        private String negativePrompt;
+        private Boolean parallelToolCalls;
 
         public String getModelName() {
             return modelName;
@@ -304,6 +309,46 @@ public class DashScopeChatModelProperties {
 
         public void setEnableSanitizeMessages(Boolean enableSanitizeMessages) {
             this.enableSanitizeMessages = enableSanitizeMessages;
+        }
+
+        public Integer getN() {
+            return n;
+        }
+
+        public void setN(Integer n) {
+            this.n = n;
+        }
+
+        public String getSize() {
+            return size;
+        }
+
+        public void setSize(String size) {
+            this.size = size;
+        }
+
+        public Boolean getPromptExtend() {
+            return promptExtend;
+        }
+
+        public void setPromptExtend(Boolean promptExtend) {
+            this.promptExtend = promptExtend;
+        }
+
+        public String getNegativePrompt() {
+            return negativePrompt;
+        }
+
+        public void setNegativePrompt(String negativePrompt) {
+            this.negativePrompt = negativePrompt;
+        }
+
+        public Boolean getParallelToolCalls() {
+            return parallelToolCalls;
+        }
+
+        public void setParallelToolCalls(Boolean parallelToolCalls) {
+            this.parallelToolCalls = parallelToolCalls;
         }
     }
 
