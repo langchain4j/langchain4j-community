@@ -504,28 +504,78 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(chatResponse.aiMessage().text().trim()).isEqualTo("我的内存");
     }
 
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
+    void should_respect_parallelToolCalls_parameter(String modelName) {
+
+        // given
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name("add")
+                .description("adds two numbers")
+                .parameters(JsonObjectSchema.builder()
+                        .addIntegerProperty("a")
+                        .addNumberProperty("b")
+                        .required("a", "b")
+                        .build())
+                .build();
+
+        ChatRequest.Builder chatRequestBuilder =
+                ChatRequest.builder().messages(UserMessage.from("How much is 2+2 and 3+3?"));
+
+        ChatModel model = QwenChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .defaultRequestParameters(QwenChatRequestParameters.builder()
+                        .temperature(0.0d)
+                        .enableSanitizeMessages(false)
+                        .toolChoice(REQUIRED)
+                        .build())
+                .build();
+
+        // when parallelToolCalls = true
+        QwenChatRequestParameters qwenParameters = QwenChatRequestParameters.builder()
+                .toolSpecifications(toolSpecification)
+                .parallelToolCalls(true)
+                .build();
+        ChatRequest chatRequest = chatRequestBuilder.parameters(qwenParameters).build();
+        ChatResponse chatResponse = model.chat(chatRequest);
+        // then
+        assertThat(chatResponse.aiMessage().toolExecutionRequests()).hasSize(2);
+    }
+
     @Override
     protected List<ChatModel> models() {
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .build();
+
         return nonMultimodalChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenChatModel.builder()
                         .apiKey(apiKey())
                         .modelName((String) modelName)
-                        .temperature(0.0f)
+                        .defaultRequestParameters(parameters)
                         .build())
                 .collect(Collectors.toList());
     }
 
     @Override
     protected List<ChatModel> modelsSupportingTools() {
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .parallelToolCalls(true)
+                .build();
+
         return functionCallChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenChatModel.builder()
                         .apiKey(apiKey())
                         .modelName((String) modelName)
-                        .temperature(0.0f)
+                        .defaultRequestParameters(parameters)
                         .build())
                 .collect(Collectors.toList());
     }
@@ -605,12 +655,6 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @Override
     protected void should_respect_JSON_response_format_with_schema(ChatModel model) {
         super.should_respect_JSON_response_format_with_schema(model);
-    }
-
-    @Disabled("qwen max does not support parallel tool call")
-    @Override
-    protected void should_execute_multiple_tools_in_parallel_then_answer(ChatModel model) {
-        super.should_execute_multiple_tools_in_parallel_then_answer(model);
     }
 
     @Disabled("qwen max does not support JSON response format")

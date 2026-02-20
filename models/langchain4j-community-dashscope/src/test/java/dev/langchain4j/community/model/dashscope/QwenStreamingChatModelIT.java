@@ -561,6 +561,46 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
+    void should_respect_parallelToolCalls_parameter(String modelName) {
+        // given
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name("add")
+                .description("adds two numbers")
+                .parameters(JsonObjectSchema.builder()
+                        .addIntegerProperty("a")
+                        .addNumberProperty("b")
+                        .required("a", "b")
+                        .build())
+                .build();
+
+        ChatRequest.Builder chatRequestBuilder =
+                ChatRequest.builder().messages(UserMessage.from("How much is 2+2 and 3+3?"));
+
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .defaultRequestParameters(QwenChatRequestParameters.builder()
+                        .temperature(0.0d)
+                        .enableSanitizeMessages(false)
+                        .toolChoice(REQUIRED)
+                        .build())
+                .build();
+
+        // when parallelToolCalls = true
+        QwenChatRequestParameters qwenParameters = QwenChatRequestParameters.builder()
+                .toolSpecifications(toolSpecification)
+                .parallelToolCalls(true)
+                .build();
+        ChatRequest chatRequest = chatRequestBuilder.parameters(qwenParameters).build();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse chatResponse = handler.get();
+        // then
+        assertThat(chatResponse.aiMessage().toolExecutionRequests()).hasSize(2);
+    }
+
+    @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageModelNameProvider")
     void should_send_prompt_and_receive_image(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
@@ -618,26 +658,37 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected List<StreamingChatModel> models() {
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .build();
+
         return nonMultimodalChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenStreamingChatModel.builder()
                         .apiKey(apiKey())
                         .modelName((String) modelName)
-                        .temperature(0.0f)
+                        .defaultRequestParameters(parameters)
                         .build())
                 .collect(Collectors.toList());
     }
 
     @Override
     protected List<StreamingChatModel> modelsSupportingTools() {
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .parallelToolCalls(true)
+                .build();
+
         return functionCallChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenStreamingChatModel.builder()
                         .apiKey(apiKey())
                         .modelName((String) modelName)
-                        .temperature(0.0f)
+                        .defaultRequestParameters(parameters)
                         .build())
                 .collect(Collectors.toList());
     }
@@ -695,7 +746,6 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id) {
         io.verify(handler, atLeastOnce()).onPartialToolCall(any(), any());
-
         io.verify(handler).onCompleteToolCall(argThat(toolCall -> {
             ToolExecutionRequest request = toolCall.toolExecutionRequest();
             return toolCall.index() == 0
@@ -773,12 +823,6 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     @Override
     protected void should_respect_JSON_response_format_with_schema(StreamingChatModel model) {
         super.should_respect_JSON_response_format_with_schema(model);
-    }
-
-    @Disabled("qwen max does not support parallel tool call")
-    @Override
-    protected void should_execute_multiple_tools_in_parallel_then_answer(StreamingChatModel model) {
-        super.should_execute_multiple_tools_in_parallel_then_answer(model);
     }
 
     @Disabled("qwen max does not support JSON response format")

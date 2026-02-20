@@ -149,6 +149,7 @@ public class DashScopeChatModelProperties {
         private String size;
         private Boolean promptExtend;
         private String negativePrompt;
+        private Boolean parallelToolCalls;
 
         public String getModelName() {
             return modelName;
@@ -340,6 +341,14 @@ public class DashScopeChatModelProperties {
 
         public void setNegativePrompt(String negativePrompt) {
             this.negativePrompt = negativePrompt;
+        }
+
+        public Boolean getParallelToolCalls() {
+            return parallelToolCalls;
+        }
+
+        public void setParallelToolCalls(Boolean parallelToolCalls) {
+            this.parallelToolCalls = parallelToolCalls;
         }
     }
 
