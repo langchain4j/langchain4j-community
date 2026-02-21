@@ -95,6 +95,12 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      */
     private final Boolean parallelToolCalls;
     /**
+     * Specifies whether to enable the code interpreter feature.
+     * Defaults to false.
+     * See <a href="https://www.alibabacloud.com/help/en/model-studio/code-interpreter">Code Interpreter</a> for more information.
+     */
+    private final Boolean enableCodeInterpreter;
+    /**
      * User-defined parameters. They may have special effects on some special models.
      */
     private final Map<String, Object> custom;
@@ -116,6 +122,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.promptExtend = builder.promptExtend;
         this.negativePrompt = builder.negativePrompt;
         this.parallelToolCalls = builder.parallelToolCalls;
+        this.enableCodeInterpreter = builder.enableCodeInterpreter;
         this.custom = builder.custom;
     }
 
@@ -179,6 +186,10 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         return parallelToolCalls;
     }
 
+    public Boolean enableCodeInterpreter() {
+        return enableCodeInterpreter;
+    }
+
     public Map<String, Object> custom() {
         return custom;
     }
@@ -215,6 +226,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 && Objects.equals(promptExtend, that.promptExtend)
                 && Objects.equals(negativePrompt, that.negativePrompt)
                 && Objects.equals(parallelToolCalls, that.parallelToolCalls)
+                && Objects.equals(enableCodeInterpreter, that.enableCodeInterpreter)
                 && Objects.equals(custom, that.custom);
     }
 
@@ -237,6 +249,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 promptExtend,
                 negativePrompt,
                 parallelToolCalls,
+                enableCodeInterpreter,
                 custom);
     }
 
@@ -268,7 +281,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 + quoted(size) + ", promptExtend="
                 + promptExtend + ", negativePrompt="
                 + quoted(negativePrompt) + ", parallelToolCalls="
-                + parallelToolCalls + ", custom="
+                + parallelToolCalls + ", enableCodeInterpreter="
+                + enableCodeInterpreter + ", custom="
                 + custom + '}';
     }
 
@@ -288,6 +302,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private Boolean promptExtend;
         private String negativePrompt;
         private Boolean parallelToolCalls;
+        private Boolean enableCodeInterpreter;
         private Map<String, Object> custom;
 
         @Override
@@ -307,6 +322,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 promptExtend(getOrDefault(qwenParameters.promptExtend(), promptExtend));
                 negativePrompt(getOrDefault(qwenParameters.negativePrompt(), negativePrompt));
                 parallelToolCalls(getOrDefault(qwenParameters.parallelToolCalls(), parallelToolCalls));
+                enableCodeInterpreter(getOrDefault(qwenParameters.enableCodeInterpreter(), enableCodeInterpreter));
                 custom(getOrDefault(qwenParameters.custom(), custom));
                 isMultimodalModel(getOrDefault(qwenParameters.isMultimodalModel(), isMultimodalModel));
                 supportIncrementalOutput(
@@ -387,6 +403,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder parallelToolCalls(Boolean parallelToolCalls) {
             this.parallelToolCalls = parallelToolCalls;
+            return this;
+        }
+
+        public Builder enableCodeInterpreter(Boolean enableCodeInterpreter) {
+            this.enableCodeInterpreter = enableCodeInterpreter;
             return this;
         }
 
