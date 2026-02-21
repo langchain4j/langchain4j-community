@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.data.message.AiMessage.aiMessage;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
@@ -28,7 +29,7 @@ class QwenTokenCountEstimatorIT {
     void setUp() {
         tokenCountEstimator = QwenTokenCountEstimator.builder()
                 .apiKey(apiKey())
-                .modelName(QwenModelName.QWEN_PLUS)
+                .modelName(QWEN3_MAX)
                 .build();
     }
 

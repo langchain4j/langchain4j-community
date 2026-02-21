@@ -10,6 +10,8 @@ import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimoda
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultimodalChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessages;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessagesWithImageUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
@@ -287,6 +289,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
+    @Disabled("only served in China")
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_url_and_receive_response(String modelName) {
@@ -298,6 +301,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
+    @Disabled("only served in China")
     @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
     void should_send_multimodal_audio_data_and_receive_response(String modelName) {
@@ -329,6 +333,34 @@ class QwenChatModelIT extends AbstractChatModelIT {
         ChatResponse response = model.chat(multimodalChatMessagesWithVideoData());
 
         assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageModelNameProvider")
+    void should_send_prompt_and_receive_image(String modelName) {
+        ChatModel model = QwenChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .isMultimodalModel(true)
+                .build();
+
+        ChatResponse response = model.chat(textToImageChatMessages());
+
+        assertThat(response.aiMessage().images()).isNotEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageEditModelNameProvider")
+    void should_send_image_and_receive_image(String modelName) {
+        ChatModel model = QwenChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .isMultimodalModel(true)
+                .build();
+
+        ChatResponse response = model.chat(textToImageChatMessagesWithImageUrl());
+
+        assertThat(response.aiMessage().images()).isNotEmpty();
     }
 
     @Test
@@ -472,28 +504,78 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(chatResponse.aiMessage().text().trim()).isEqualTo("我的内存");
     }
 
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
+    void should_respect_parallelToolCalls_parameter(String modelName) {
+
+        // given
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name("add")
+                .description("adds two numbers")
+                .parameters(JsonObjectSchema.builder()
+                        .addIntegerProperty("a")
+                        .addNumberProperty("b")
+                        .required("a", "b")
+                        .build())
+                .build();
+
+        ChatRequest.Builder chatRequestBuilder =
+                ChatRequest.builder().messages(UserMessage.from("How much is 2+2 and 3+3?"));
+
+        ChatModel model = QwenChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .defaultRequestParameters(QwenChatRequestParameters.builder()
+                        .temperature(0.0d)
+                        .enableSanitizeMessages(false)
+                        .toolChoice(REQUIRED)
+                        .build())
+                .build();
+
+        // when parallelToolCalls = true
+        QwenChatRequestParameters qwenParameters = QwenChatRequestParameters.builder()
+                .toolSpecifications(toolSpecification)
+                .parallelToolCalls(true)
+                .build();
+        ChatRequest chatRequest = chatRequestBuilder.parameters(qwenParameters).build();
+        ChatResponse chatResponse = model.chat(chatRequest);
+        // then
+        assertThat(chatResponse.aiMessage().toolExecutionRequests()).hasSize(2);
+    }
+
     @Override
     protected List<ChatModel> models() {
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .build();
+
         return nonMultimodalChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenChatModel.builder()
                         .apiKey(apiKey())
                         .modelName((String) modelName)
-                        .temperature(0.0f)
+                        .defaultRequestParameters(parameters)
                         .build())
                 .collect(Collectors.toList());
     }
 
     @Override
     protected List<ChatModel> modelsSupportingTools() {
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .parallelToolCalls(true)
+                .build();
+
         return functionCallChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenChatModel.builder()
                         .apiKey(apiKey())
                         .modelName((String) modelName)
-                        .temperature(0.0f)
+                        .defaultRequestParameters(parameters)
                         .build())
                 .collect(Collectors.toList());
     }
@@ -544,6 +626,11 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
+    protected boolean supportsJsonResponseFormatWithRawSchema() {
+        return false;
+    }
+
+    @Override
     protected String catImageUrl() {
         return "https://cdn.wanx.aliyuncs.com/upload/commons/Felis_silvestris_silvestris_small_gradual_decrease_of_quality.png";
     }
@@ -570,9 +657,9 @@ class QwenChatModelIT extends AbstractChatModelIT {
         super.should_respect_JSON_response_format_with_schema(model);
     }
 
-    @Disabled("qwen max does not support parallel tool call")
+    @Disabled("qwen max does not support JSON response format")
     @Override
-    protected void should_execute_multiple_tools_in_parallel_then_answer(ChatModel model) {
-        super.should_execute_multiple_tools_in_parallel_then_answer(model);
+    protected void should_respect_JsonRawSchema_responseFormat(ChatModel model) {
+        super.should_respect_JsonRawSchema_responseFormat(model);
     }
 }

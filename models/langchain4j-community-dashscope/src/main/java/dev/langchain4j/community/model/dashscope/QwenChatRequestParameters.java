@@ -36,7 +36,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     /**
      * Whether to increase the default token limit for input images. The default token
      * limit for input images is 1280. When configured to true, the token limit for input
-     * images is 16384. Default value is false.
+     * images is 16384. Defaults to false.
      */
     private final Boolean vlHighResolutionImages;
     /**
@@ -54,7 +54,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     private final Boolean supportIncrementalOutput;
     /**
      * Specifies whether to use the reasoning mode. Applicable for Qwen3 models.
-     * Default value is false.
+     * Defaults to false.
      */
     private final Boolean enableThinking;
     /**
@@ -64,9 +64,36 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     private final Integer thinkingBudget;
     /**
      * Specifies whether to sanitize messages before sending to llm provider.
-     * Default value is true.
+     * Defaults to true.
      */
     private final Boolean enableSanitizeMessages;
+    /**
+     * The number of images to generate.
+     */
+    private final Integer n;
+    /**
+     * Specifies the resolution of the output image in the width*height format, such as "1024*1536".
+     * The width and height values must be in the range of [512, 2048] pixels.
+     */
+    private final String size;
+    /**
+     * Specifies whether to enable prompt rewriting, which is on by default (true).
+     * When enabled, the model optimizes the positive prompt (text).
+     * This feature significantly improves results when prompts lack detail.
+     */
+    private final Boolean promptExtend;
+    /**
+     * The negative prompt, describing content you do not want in the generated image.
+     * This parameter supports Chinese and English with a maximum length of 500 characters.
+     * Each Chinese character or English letter counts as one character. Content that exceeds the limit is automatically truncated.
+     * Example: low resolution, error, worst quality, low quality, disfigured, extra fingers, bad proportions.
+     */
+    private final String negativePrompt;
+    /**
+     * Specifies whether to enable parallel tool calling.
+     * Defaults to false.
+     */
+    private final Boolean parallelToolCalls;
     /**
      * User-defined parameters. They may have special effects on some special models.
      */
@@ -84,6 +111,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.enableThinking = getOrDefault(builder.enableThinking, Boolean.FALSE);
         this.thinkingBudget = builder.thinkingBudget;
         this.enableSanitizeMessages = getOrDefault(builder.enableSanitizeMessages, Boolean.TRUE);
+        this.n = builder.n;
+        this.size = builder.size;
+        this.promptExtend = builder.promptExtend;
+        this.negativePrompt = builder.negativePrompt;
+        this.parallelToolCalls = builder.parallelToolCalls;
         this.custom = builder.custom;
     }
 
@@ -127,6 +159,26 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         return enableSanitizeMessages;
     }
 
+    public Integer n() {
+        return n;
+    }
+
+    public String size() {
+        return size;
+    }
+
+    public Boolean promptExtend() {
+        return promptExtend;
+    }
+
+    public String negativePrompt() {
+        return negativePrompt;
+    }
+
+    public Boolean parallelToolCalls() {
+        return parallelToolCalls;
+    }
+
     public Map<String, Object> custom() {
         return custom;
     }
@@ -153,6 +205,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 && Objects.equals(searchOptions, that.searchOptions)
                 && Objects.equals(translationOptions, that.translationOptions)
                 && Objects.equals(vlHighResolutionImages, that.vlHighResolutionImages)
+                && Objects.equals(isMultimodalModel, that.isMultimodalModel)
+                && Objects.equals(supportIncrementalOutput, that.supportIncrementalOutput)
+                && Objects.equals(enableThinking, that.enableThinking)
+                && Objects.equals(thinkingBudget, that.thinkingBudget)
+                && Objects.equals(enableSanitizeMessages, that.enableSanitizeMessages)
+                && Objects.equals(n, that.n)
+                && Objects.equals(size, that.size)
+                && Objects.equals(promptExtend, that.promptExtend)
+                && Objects.equals(negativePrompt, that.negativePrompt)
+                && Objects.equals(parallelToolCalls, that.parallelToolCalls)
                 && Objects.equals(custom, that.custom);
     }
 
@@ -165,6 +227,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 searchOptions,
                 translationOptions,
                 vlHighResolutionImages,
+                isMultimodalModel,
+                supportIncrementalOutput,
+                enableThinking,
+                thinkingBudget,
+                enableSanitizeMessages,
+                n,
+                size,
+                promptExtend,
+                negativePrompt,
+                parallelToolCalls,
                 custom);
     }
 
@@ -186,7 +258,17 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 + enableSearch + ", searchOptions="
                 + searchOptions + ", translationOptions="
                 + translationOptions + ", vlHighResolutionImages="
-                + vlHighResolutionImages + ", custom="
+                + vlHighResolutionImages + ", isMultimodalModel="
+                + isMultimodalModel + ", supportIncrementalOutput="
+                + supportIncrementalOutput + ", enableThinking="
+                + enableThinking + ", thinkingBudget="
+                + thinkingBudget + ", enableSanitizeMessages="
+                + enableSanitizeMessages + ", n="
+                + n + ", size="
+                + quoted(size) + ", promptExtend="
+                + promptExtend + ", negativePrompt="
+                + quoted(negativePrompt) + ", parallelToolCalls="
+                + parallelToolCalls + ", custom="
                 + custom + '}';
     }
 
@@ -201,6 +283,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private Boolean enableThinking;
         private Integer thinkingBudget;
         private Boolean enableSanitizeMessages;
+        private Integer n;
+        private String size;
+        private Boolean promptExtend;
+        private String negativePrompt;
+        private Boolean parallelToolCalls;
         private Map<String, Object> custom;
 
         @Override
@@ -215,6 +302,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 enableThinking(getOrDefault(qwenParameters.enableThinking(), enableThinking));
                 thinkingBudget(getOrDefault(qwenParameters.thinkingBudget(), thinkingBudget));
                 enableSanitizeMessages(getOrDefault(qwenParameters.enableSanitizeMessages(), enableSanitizeMessages));
+                n(getOrDefault(qwenParameters.n(), n));
+                size(getOrDefault(qwenParameters.size(), size));
+                promptExtend(getOrDefault(qwenParameters.promptExtend(), promptExtend));
+                negativePrompt(getOrDefault(qwenParameters.negativePrompt(), negativePrompt));
+                parallelToolCalls(getOrDefault(qwenParameters.parallelToolCalls(), parallelToolCalls));
                 custom(getOrDefault(qwenParameters.custom(), custom));
                 isMultimodalModel(getOrDefault(qwenParameters.isMultimodalModel(), isMultimodalModel));
                 supportIncrementalOutput(
@@ -270,6 +362,31 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder enableSanitizeMessages(Boolean enableSanitizeMessages) {
             this.enableSanitizeMessages = enableSanitizeMessages;
+            return this;
+        }
+
+        public Builder n(Integer n) {
+            this.n = n;
+            return this;
+        }
+
+        public Builder size(String size) {
+            this.size = size;
+            return this;
+        }
+
+        public Builder promptExtend(Boolean promptExtend) {
+            this.promptExtend = promptExtend;
+            return this;
+        }
+
+        public Builder negativePrompt(String negativePrompt) {
+            this.negativePrompt = negativePrompt;
+            return this;
+        }
+
+        public Builder parallelToolCalls(Boolean parallelToolCalls) {
+            this.parallelToolCalls = parallelToolCalls;
             return this;
         }
 
