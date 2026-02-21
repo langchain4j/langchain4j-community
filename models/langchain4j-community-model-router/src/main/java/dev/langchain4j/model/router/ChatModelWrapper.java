@@ -25,7 +25,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
  */
 @Experimental
 @Internal
-class ChatModelWrapper implements ChatModel, StreamingChatModel {
+public class ChatModelWrapper implements ChatModel, StreamingChatModel {
     
     private final ChatModel           model;
     private final StreamingChatModel  streamingModel;
@@ -99,7 +99,7 @@ class ChatModelWrapper implements ChatModel, StreamingChatModel {
         if (streamingModel != null) {
             capabilities.addAll(streamingModel.supportedCapabilities());
         }
-        return capabilities;
+        throw new NullPointerException("both model and streamingModel are null");
     }
     
     @Override
@@ -110,7 +110,7 @@ class ChatModelWrapper implements ChatModel, StreamingChatModel {
         if (streamingModel != null) {
             return streamingModel.provider();
         }
-        return ChatModel.super.provider();
+        throw new NullPointerException("both model and streamingModel are null");
     }
     
     @Override
@@ -121,7 +121,7 @@ class ChatModelWrapper implements ChatModel, StreamingChatModel {
         if (streamingModel != null) {
             return streamingModel.listeners();
         }
-        return ChatModel.super.listeners();
+        throw new NullPointerException("both model and streamingModel are null");
     }
     
     @Override
@@ -132,7 +132,7 @@ class ChatModelWrapper implements ChatModel, StreamingChatModel {
         if (streamingModel != null) {
             return streamingModel.defaultRequestParameters();
         }
-        return ChatModel.super.defaultRequestParameters();
+        throw new NullPointerException("both model and streamingModel are null");
     }
     
     boolean isStreaming() {
