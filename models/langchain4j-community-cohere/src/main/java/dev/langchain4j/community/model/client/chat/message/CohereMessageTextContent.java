@@ -15,14 +15,11 @@ import static dev.langchain4j.community.model.client.chat.message.CohereContentT
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereMessageTextContent extends CohereMessageContent {
 
-    private String text;
-
-    public String getText() {
-        return text;
-    }
+    public CohereMessageTextContent() {}
 
     public CohereMessageTextContent(String text) {
-        super(TEXT);
+        super();
+        this.type = TEXT;
         this.text = text;
     }
 

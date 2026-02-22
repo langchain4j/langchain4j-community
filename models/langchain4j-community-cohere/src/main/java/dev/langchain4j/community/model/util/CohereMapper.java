@@ -3,6 +3,7 @@ package dev.langchain4j.community.model.util;
 import dev.langchain4j.Internal;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.CohereChatResponse;
+import dev.langchain4j.community.model.client.chat.message.CohereContentType;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 import dev.langchain4j.community.model.client.chat.message.CohereMessageContent;
 import dev.langchain4j.community.model.client.chat.message.CohereMessageTextContent;
@@ -63,11 +64,10 @@ public class CohereMapper {
 
     public static ChatResponse fromCohereChatResponse(CohereChatResponse cohereChatResponse) {
         String text = cohereChatResponse.message.getContent().stream()
-                .filter(CohereMessageTextContent.class::isInstance)
+                .filter(c -> c.type == CohereContentType.TEXT)
                 .findFirst()
-                .map(CohereMessageTextContent.class::cast)
-                .map(CohereMessageTextContent::getText)
-                .orElse("XD");
+                .map(c -> c.text)
+                .orElseThrow(() -> new LangChain4jException("No text content found!"));
 
         return ChatResponse.builder()
                 .aiMessage(AiMessage.from(text))

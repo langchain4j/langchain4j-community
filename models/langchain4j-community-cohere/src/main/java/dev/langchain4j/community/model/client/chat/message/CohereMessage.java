@@ -18,6 +18,8 @@ public class CohereMessage {
     private CohereRole role;
     private List<CohereMessageContent> content;
 
+    public CohereMessage() {}
+
     public CohereMessage(CohereRole role, List<CohereMessageContent> content) {
         this.role = role;
         this.content = content;

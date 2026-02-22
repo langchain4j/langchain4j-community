@@ -13,12 +13,21 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 @JsonInclude(NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public abstract class CohereMessageContent {
+public class CohereMessageContent {
 
     public CohereContentType type;
 
-    public CohereMessageContent(CohereContentType type) {
+    public String text;
+
+    public CohereMessageContent() {}
+
+    private CohereMessageContent(Builder builder) {
         this.type = type;
+        this.text = text;
+    }
+
+    public Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -31,5 +40,25 @@ public abstract class CohereMessageContent {
     @Override
     public int hashCode() {
         return Objects.hash(type);
+    }
+
+    public static class Builder {
+
+        private CohereContentType type;
+        private String text;
+
+        public Builder CohereContentType(CohereContentType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder text(String text) {
+            this.text = text;
+            return this;
+        }
+
+        public CohereMessageContent build() {
+            return new CohereMessageContent(this);
+        }
     }
 }

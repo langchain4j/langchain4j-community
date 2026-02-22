@@ -44,6 +44,7 @@ public class CohereClient {
         return HttpRequest.builder()
                 .method(POST)
                 .url(baseUrl, "/chat")
+                .addHeader("Content-Type", "application/json")
                 .addHeader("Authorization", "bearer " + authToken)
                 .body(toJson(cohereChatRequest))
                 .build();
