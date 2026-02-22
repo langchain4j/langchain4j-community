@@ -5,6 +5,7 @@ import dev.langchain4j.community.model.client.chat.CohereChatResponse;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.time.Duration;
@@ -14,6 +15,7 @@ import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatRequ
 import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptions;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.model.chat.request.DefaultChatRequestParameters.EMPTY;
 
 public class CohereChatModel implements ChatModel {
 
@@ -21,16 +23,17 @@ public class CohereChatModel implements ChatModel {
     private final ChatRequestParameters defaultRequestParameters;
     private final int maxRetries;
 
-
     public CohereChatModel(Builder builder) {
         this.client = CohereClient.builder()
                 .baseUrl(getOrDefault(builder.baseUrl, "https://api.cohere.com/v2/"))
                 .timeout(builder.timeout)
-                .authToken(builder.authToken)
+                .authToken(builder.apiKey)
                 .build();
 
+        ChatRequestParameters commonParameters = getOrDefault(builder.defaultRequestParameters, EMPTY);
+
         this.defaultRequestParameters = ChatRequestParameters.builder()
-                .modelName(ensureNotBlank(builder.modelName, "Model name"))
+                .modelName(getOrDefault(builder.modelName, commonParameters.modelName()))
                 .build();
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
@@ -55,10 +58,11 @@ public class CohereChatModel implements ChatModel {
     public static class Builder {
 
         private String baseUrl;
-        private String authToken;
+        private String apiKey;
         private String modelName;
         private Duration timeout;
         private Integer maxRetries;
+        private ChatRequestParameters defaultRequestParameters;
 
         public Builder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
@@ -66,7 +70,7 @@ public class CohereChatModel implements ChatModel {
         }
 
         public Builder authToken(String authToken) {
-            this.authToken = authToken;
+            this.apiKey = authToken;
             return this;
         }
 
@@ -82,6 +86,11 @@ public class CohereChatModel implements ChatModel {
 
         public Builder maxRetries(Integer maxRetries) {
             this.maxRetries = maxRetries;
+            return this;
+        }
+
+        public Builder defaultRequestParameters(ChatRequestParameters defaultRequestParameters) {
+            this.defaultRequestParameters = defaultRequestParameters;
             return this;
         }
 

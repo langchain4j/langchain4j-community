@@ -21,7 +21,7 @@ public class CohereClient {
 
     private final HttpClient httpClient;
     private final String baseUrl;
-    private final String authToken;
+    private final String apiKey;
 
     public CohereClient(Builder builder) {
         HttpClientBuilder httpClientBuilder = getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
@@ -32,7 +32,7 @@ public class CohereClient {
                 .build();
 
         this.baseUrl = builder.baseUrl;
-        this.authToken = builder.authToken;
+        this.apiKey = builder.authToken;
     }
 
     public CohereChatResponse createMessage(CohereChatRequest cohereChatRequest) {
@@ -45,7 +45,7 @@ public class CohereClient {
                 .method(POST)
                 .url(baseUrl, "/chat")
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "bearer " + authToken)
+                .addHeader("Authorization", "bearer " + apiKey)
                 .body(toJson(cohereChatRequest))
                 .build();
     }
