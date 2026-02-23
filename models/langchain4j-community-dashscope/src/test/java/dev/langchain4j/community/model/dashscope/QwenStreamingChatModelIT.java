@@ -601,6 +601,35 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
+    void should_execute_code_interpretation(String modelName) {
+        // given
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .enableCodeInterpreter(true)
+                .enableThinking(true)
+                .build();
+
+        // when
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(UserMessage.from("What is 123 to the power of 21? Use Python to solve it."))
+                .parameters(parameters)
+                .build();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse chatResponse = handler.get();
+        // then
+        assertThat(chatResponse.aiMessage().text()).contains("77269364466549865653073473388030061522211723");
+        assertThat(chatResponse.aiMessage().thinking()).contains("using Python");
+    }
+
+    @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageModelNameProvider")
     void should_send_prompt_and_receive_image(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()

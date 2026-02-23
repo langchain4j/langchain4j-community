@@ -78,12 +78,16 @@
         <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
         <module>code-execution-engines/langchain4j-community-code-execution-engine-docker</module>
 
+        <!-- Integration of browser execution engines -->
+        <module>browser-execution-engines/langchain4j-community-browser-execution-engine-playwright</module>
+
         <!-- MCP -->
         <module>mcp/langchain4j-community-mcp-server</module>
 
         <!-- Tool integrations -->
         <module>tools/langchain4j-community-tool-jira</module>
         <module>tools/langchain4j-community-tool-web-scraper</module>
+        <module>tools/langchain4j-community-tool-browser-use</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>

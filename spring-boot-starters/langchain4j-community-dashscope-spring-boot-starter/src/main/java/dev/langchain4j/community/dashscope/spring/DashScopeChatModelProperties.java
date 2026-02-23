@@ -150,6 +150,7 @@ public class DashScopeChatModelProperties {
         private Boolean promptExtend;
         private String negativePrompt;
         private Boolean parallelToolCalls;
+        private Boolean enableCodeInterpreter;
 
         public String getModelName() {
             return modelName;
@@ -349,6 +350,14 @@ public class DashScopeChatModelProperties {
 
         public void setParallelToolCalls(Boolean parallelToolCalls) {
             this.parallelToolCalls = parallelToolCalls;
+        }
+
+        public Boolean getEnableCodeInterpreter() {
+            return enableCodeInterpreter;
+        }
+
+        public void setEnableCodeInterpreter(Boolean enableCodeInterpreter) {
+            this.enableCodeInterpreter = enableCodeInterpreter;
         }
     }
 
