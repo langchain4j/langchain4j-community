@@ -59,24 +59,39 @@ public class ModelRouter implements ChatModel, StreamingChatModel {
 			target = defaultTarget;
 		}
 		if (target == null) {
-			throw new IllegalStateException("No matching route for request and no default route configured");
+			throw new IllegalStateException("No matching route for request found");
 		}
-
 		return target;
 	}
 
 	@Override
 	public ChatResponse doChat(ChatRequest chatRequest) {
 		ChatModelWrapper delegate = resolveDelegate(chatRequest);
-		ChatResponse response = delegate.chat(chatRequest);
-		return response;
+		try {
+			ChatResponse response = delegate.chat(chatRequest);
+			return response;
+		} 
+		catch (NoMatchingModelFoundException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			return doChat(chatRequest);
+		}
 
 	}
 
 	@Override
 	public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
 		ChatModelWrapper delegate = resolveDelegate(chatRequest);
-		delegate.chat(chatRequest, handler);
+		try {
+			delegate.chat(chatRequest, handler);
+		} 
+		catch (NoMatchingModelFoundException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			doChat(chatRequest, handler);
+		}
 	}
 
 	@Override

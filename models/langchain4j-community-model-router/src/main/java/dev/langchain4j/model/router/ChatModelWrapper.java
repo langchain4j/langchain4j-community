@@ -1,12 +1,14 @@
 package dev.langchain4j.model.router;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import dev.langchain4j.Experimental;
 import dev.langchain4j.Internal;
@@ -30,6 +32,7 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
     private final ChatModel           model;
     private final StreamingChatModel  streamingModel;
     private Map<String, Serializable> metadata;
+    private List<ChatModelListener> listeners =  new ArrayList<>();
 
     ChatModelWrapper(ChatModel model, Map<String, Serializable> metadata) {
         this.model = Objects.requireNonNull(model, "model");
@@ -115,11 +118,13 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
     
     @Override
     public List<ChatModelListener> listeners() {
-        if (model != null) {
-            return model.listeners();
+    	if (model != null) {
+            return Stream.concat(model.listeners().stream(), listeners.stream())
+                      .toList();
         }
         if (streamingModel != null) {
-            return streamingModel.listeners();
+        	return Stream.concat(streamingModel.listeners().stream(), listeners.stream())
+                      .toList();
         }
         throw new NullPointerException("both model and streamingModel are null");
     }
@@ -135,7 +140,15 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
         throw new NullPointerException("both model and streamingModel are null");
     }
     
-    boolean isStreaming() {
+    public boolean isStreaming() {
     	return streamingModel != null;
     }
+    
+    public boolean addListener(ChatModelListener listener) {
+    	return listeners.add(listener);
+    }
+    
+    public boolean removeListener(ChatModelListener listener) {
+    	return listeners.remove(listener);
+    }    
 }

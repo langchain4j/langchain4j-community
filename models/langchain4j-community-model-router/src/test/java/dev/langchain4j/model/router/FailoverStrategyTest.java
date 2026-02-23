@@ -1,6 +1,7 @@
 package dev.langchain4j.model.router;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.Duration;
@@ -9,10 +10,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariables;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.ModelProvider;
+import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -123,5 +127,29 @@ class FailoverStrategyTest {
         public Set<Capability> supportedCapabilities() {
             return Set.of();
         }
+    }
+    
+    @Test
+    @EnabledIfEnvironmentVariables({ 
+		@EnabledIfEnvironmentVariable(named = "FIRST_AZURE_OPENAI_ENDPOINT", matches = ".+"),
+		@EnabledIfEnvironmentVariable(named = "FIRST_AZURE_OPENAI_DEPLOYMENT_NAME", matches = ".+"),
+		@EnabledIfEnvironmentVariable(named = "SECOND_AZURE_OPENAI_KEY", matches = ".+"),
+		@EnabledIfEnvironmentVariable(named = "SECOND_AZURE_OPENAI_ENDPOINT", matches = ".+"),
+		@EnabledIfEnvironmentVariable(named = "SECOND_AZURE_OPENAI_DEPLOYMENT_NAME", matches = ".+") })
+    void ignoreFailedModelIT() {
+        ChatModel firstModel = AzureOpenAiChatModel.builder()
+                .apiKey("INVALID")
+                .endpoint(System.getenv("FIRST_AZURE_OPENAI_ENDPOINT"))
+                .deploymentName(System.getenv("FIRST_AZURE_OPENAI_DEPLOYMENT_NAME"))
+                .build();
+     
+        ChatModel secondModel = AzureOpenAiChatModel.builder()
+                .apiKey(System.getenv("SECOND_AZURE_OPENAI_KEY"))
+                .endpoint(System.getenv("SECOND_AZURE_OPENAI_ENDPOINT"))
+                .deploymentName(System.getenv("SECOND_AZURE_OPENAI_DEPLOYMENT_NAME"))
+                .build();
+        
+        ModelRouter router = ModelRouter.builder().addRoutes(firstModel, secondModel).routingStrategy(new FailoverStrategy()).build();
+        assertNotNull(router.chat(new UserMessage("hello")));
     }
 }

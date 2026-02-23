@@ -57,7 +57,9 @@ public class FailoverStrategy extends DelegatingModelRoutingStrategy {
     @Override
     public ChatModelWrapper route(List<ChatModelWrapper> availableModels, ChatRequest chatRequest) {
     	// add FailureListener to each not already having one
-    	availableModels.stream().filter(FailureListener.class::isInstance).forEach(m -> m.listeners().add(new FailureListener(m)));
+    	availableModels.stream()
+    	        .filter(m -> m.listeners().stream().noneMatch(FailureListener.class::isInstance))
+    	        .forEach(m -> m.addListener(new FailureListener(m)));
     	
         Instant now = Instant.now();
         
@@ -104,7 +106,7 @@ public class FailoverStrategy extends DelegatingModelRoutingStrategy {
     		this.wrapper = wrapper;
     	}
     	
-    	 @Override
+    	@Override
     	public void onError(ChatModelErrorContext errorContext) {
     		 wrapper.setMetadata(FAILED, Boolean.TRUE);
     		 wrapper.setMetadata(FAILED_TIME, Instant.now());

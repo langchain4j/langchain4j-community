@@ -7,7 +7,6 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.output.TokenUsage;
-import dev.langchain4j.model.router.FailoverStrategy.FailureListener;
 
 /**
  * A {@link ModelRoutingStrategy} that picks the model with the lowest recorded
@@ -26,7 +25,9 @@ public class LowestTokenUsageRoutingStrategy implements ModelRoutingStrategy {
     @Override
     public ChatModelWrapper route(List<ChatModelWrapper> availableModels, ChatRequest chatRequest) {
     	// add FailureListener to each not already having one
-    	availableModels.stream().filter(FailureListener.class::isInstance).forEach(m -> m.listeners().add(new UsageTrackerListener(m)));
+    	availableModels.stream()
+        .filter(m -> m.listeners().stream().noneMatch(UsageTrackerListener.class::isInstance))
+        .forEach(m -> m.addListener(new UsageTrackerListener(m)));
     	
     	ChatModelWrapper selectedModel = null;
         long selectedUsage = Long.MAX_VALUE;
