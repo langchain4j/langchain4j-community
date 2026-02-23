@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import dev.langchain4j.Experimental;
-import dev.langchain4j.Internal;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
