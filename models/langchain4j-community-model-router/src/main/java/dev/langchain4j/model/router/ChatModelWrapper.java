@@ -26,7 +26,6 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
  * Wraps a {@link ChatModel} or {@link StreamingChatModel} adding optional routing metadata.
  */
 @Experimental
-@Internal
 public class ChatModelWrapper implements ChatModel, StreamingChatModel {
     
     private final ChatModel           model;
