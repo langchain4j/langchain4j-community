@@ -1,9 +1,8 @@
 package dev.langchain4j.model.router;
 
-import java.util.List;
-
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import java.util.List;
 
 /**
  * Encapsulates the logic for choosing which model to route a chat request to.
@@ -11,7 +10,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 @Experimental
 @FunctionalInterface
 public interface ModelRoutingStrategy {
-    
+
     /**
      * Determines the route key to use for the given chat messages.
      *
@@ -21,5 +20,5 @@ public interface ModelRoutingStrategy {
      *            the incoming chat request
      * @return the key of the route to use
      */
-	ChatModelWrapper route(List<ChatModelWrapper> availableModels, ChatRequest chatRequest);
+    ChatModelWrapper route(List<ChatModelWrapper> availableModels, ChatRequest chatRequest);
 }

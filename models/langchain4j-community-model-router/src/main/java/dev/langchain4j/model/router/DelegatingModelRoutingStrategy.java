@@ -1,9 +1,8 @@
 package dev.langchain4j.model.router;
 
-import java.util.List;
-
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import java.util.List;
 
 /**
  * Base class for strategies that can optionally delegate parts of the routing decision to

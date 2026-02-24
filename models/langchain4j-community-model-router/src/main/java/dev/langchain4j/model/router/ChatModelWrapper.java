@@ -1,15 +1,5 @@
 package dev.langchain4j.model.router;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Stream;
-
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
@@ -20,17 +10,26 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Wraps a {@link ChatModel} or {@link StreamingChatModel} adding optional routing metadata.
  */
 @Experimental
 public class ChatModelWrapper implements ChatModel, StreamingChatModel {
-    
-    private final ChatModel           model;
-    private final StreamingChatModel  streamingModel;
+
+    private final ChatModel model;
+    private final StreamingChatModel streamingModel;
     private Map<String, Serializable> metadata;
-    private List<ChatModelListener> listeners =  new ArrayList<>();
+    private List<ChatModelListener> listeners = new ArrayList<>();
 
     ChatModelWrapper(ChatModel model, Map<String, Serializable> metadata) {
         this.model = Objects.requireNonNull(model, "model");
@@ -55,26 +54,25 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
     public ChatModel model() {
         return model;
     }
-    
+
     public Map<String, Serializable> routingMetadata() {
         return metadata;
     }
-    
+
     public Serializable getMetadata(String key) {
         Objects.requireNonNull(key, "key");
         return metadata.get(key);
     }
-    
+
     public void setMetadata(String key, Serializable value) {
         Objects.requireNonNull(key, "key");
         if (value == null) {
             metadata.remove(key);
-        }
-        else {
+        } else {
             metadata.put(key, value);
         }
     }
-    
+
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
         if (model == null) {
@@ -82,7 +80,7 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
         }
         return model.chat(chatRequest);
     }
-    
+
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
         if (streamingModel == null) {
@@ -90,7 +88,7 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
         }
         streamingModel.chat(chatRequest, handler);
     }
-    
+
     @Override
     public Set<Capability> supportedCapabilities() {
         Set<Capability> capabilities = new HashSet<>();
@@ -102,7 +100,7 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
         }
         throw new NullPointerException("both model and streamingModel are null");
     }
-    
+
     @Override
     public ModelProvider provider() {
         if (model != null) {
@@ -113,20 +111,19 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
         }
         throw new NullPointerException("both model and streamingModel are null");
     }
-    
+
     @Override
     public List<ChatModelListener> listeners() {
-    	if (model != null) {
-            return Stream.concat(model.listeners().stream(), listeners.stream())
-                      .toList();
+        if (model != null) {
+            return Stream.concat(model.listeners().stream(), listeners.stream()).toList();
         }
         if (streamingModel != null) {
-        	return Stream.concat(streamingModel.listeners().stream(), listeners.stream())
-                      .toList();
+            return Stream.concat(streamingModel.listeners().stream(), listeners.stream())
+                    .toList();
         }
         throw new NullPointerException("both model and streamingModel are null");
     }
-    
+
     @Override
     public ChatRequestParameters defaultRequestParameters() {
         if (model != null) {
@@ -137,16 +134,16 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
         }
         throw new NullPointerException("both model and streamingModel are null");
     }
-    
+
     public boolean isStreaming() {
-    	return streamingModel != null;
+        return streamingModel != null;
     }
-    
+
     public boolean addListener(ChatModelListener listener) {
-    	return listeners.add(listener);
+        return listeners.add(listener);
     }
-    
+
     public boolean removeListener(ChatModelListener listener) {
-    	return listeners.remove(listener);
-    }    
+        return listeners.remove(listener);
+    }
 }
