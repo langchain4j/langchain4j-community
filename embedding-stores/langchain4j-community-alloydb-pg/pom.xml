@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.9</version>
+            <version>42.7.10</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.checkerframework</groupId>
@@ -68,7 +68,7 @@
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>alloydb-jdbc-connector</artifactId>
-            <version>1.2.7</version>
+            <version>1.2.10</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.code.gson</groupId>

@@ -780,6 +780,16 @@ class QwenHelper {
             throw new UnsupportedFeatureException(
                     "'responseFormat' parameter is not supported by " + parameters.modelName());
         }
+
+        if (parameters.parallelToolCalls() != null) {
+            throw new UnsupportedFeatureException(
+                    "'parallelToolCalls' parameter is not supported by " + parameters.modelName());
+        }
+
+        if (parameters.enableCodeInterpreter() != null) {
+            throw new UnsupportedFeatureException(
+                    "'enableCodeInterpreter' parameter is not supported by " + parameters.modelName());
+        }
     }
 
     static GenerationParam toGenerationParam(
@@ -822,6 +832,12 @@ class QwenHelper {
                 builder.toolChoice(
                         toToolFunction((parameters.toolSpecifications().get(0))));
             }
+            builder.parallelToolCalls(parameters.parallelToolCalls());
+        }
+
+        if (parameters.enableCodeInterpreter() != null) {
+            // no java field is provided yet
+            builder.parameter("enable_code_interpreter", parameters.enableCodeInterpreter());
         }
 
         if (parameters.custom() != null) {
