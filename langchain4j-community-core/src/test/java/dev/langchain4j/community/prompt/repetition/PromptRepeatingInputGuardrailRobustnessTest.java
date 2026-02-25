@@ -148,9 +148,8 @@ class PromptRepeatingInputGuardrailRobustnessTest {
 
         // given
         PromptRepeatingInputGuardrail guardrail = new PromptRepeatingInputGuardrail();
-        UserMessage mixed = UserMessage.from(List.of(
-                TextContent.from("first text"),
-                ImageContent.from("https://example.com/image.png")));
+        UserMessage mixed = UserMessage.from(
+                List.of(TextContent.from("first text"), ImageContent.from("https://example.com/image.png")));
         InputGuardrailRequest request = request(mixed, false);
 
         // when
