@@ -8,7 +8,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class PlaywrightBrowserExecutionEngineIT {
+class PlaywrightBrowserExecutionEngineIT {
 
     static PlaywrightContainer playwrightContainer;
     static Browser browser;
@@ -20,7 +20,7 @@ public class PlaywrightBrowserExecutionEngineIT {
         playwrightContainer = new PlaywrightContainer();
         playwrightContainer.start();
         browser = playwrightContainer.getPlaywrightApi().chromium();
-        engine = PlaywrightBrowserExecutionEngine.builder().build();
+        engine = PlaywrightBrowserExecutionEngine.builder().browser(browser).build();
     }
 
     @AfterAll
