@@ -91,12 +91,11 @@ public class ChatModelWrapper implements ChatModel, StreamingChatModel {
 
     @Override
     public Set<Capability> supportedCapabilities() {
-        Set<Capability> capabilities = new HashSet<>();
         if (model != null) {
-            capabilities.addAll(model.supportedCapabilities());
+            return model.supportedCapabilities();
         }
         if (streamingModel != null) {
-            capabilities.addAll(streamingModel.supportedCapabilities());
+            return streamingModel.supportedCapabilities();
         }
         throw new NullPointerException("both model and streamingModel are null");
     }

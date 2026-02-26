@@ -49,8 +49,10 @@ class LowestTokenUsageRoutingStrategyTest {
         LowestTokenUsageRoutingStrategy strategy = new LowestTokenUsageRoutingStrategy();
 
         ChatModelWrapper selected = strategy.route(List.of(first, second), REQUEST);
+        Set<Capability> capabilities = selected.supportedCapabilities();
 
         assertEquals(first, selected);
+        assertTrue(capabilities.isEmpty());
     }
 
     @Test
