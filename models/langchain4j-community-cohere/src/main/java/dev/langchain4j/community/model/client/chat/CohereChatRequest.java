@@ -18,8 +18,8 @@ public class CohereChatRequest {
     private String model;
     private List<CohereMessage> messages;
     private Double temperature;
-    private Double topP;
-    private Integer topK;
+    private Double p;
+    private Integer k;
     private Double presencePenalty;
     private Double frequencyPenalty;
     private Integer maxOutputTokens;
@@ -29,8 +29,8 @@ public class CohereChatRequest {
         this.model = builder.model;
         this.messages = builder.messages;
         this.temperature = builder.temperature;
-        this.topP = builder.topP;
-        this.topK = builder.topK;
+        this.p = builder.p;
+        this.k = builder.k;
         this.presencePenalty = builder.presencePenalty;
         this.frequencyPenalty = builder.frequencyPenalty;
         this.maxOutputTokens = builder.maxOutputTokens;
@@ -55,13 +55,13 @@ public class CohereChatRequest {
 
     public Double getTemperature() { return this.temperature; }
 
-    public void setTopP(Double topP) { this.topP = topP; }
+    public void setP(Double p) { this.p = p; }
 
-    public Double getTopP() { return this.topP; }
+    public Double getP() { return this.p; }
 
-    public void setTopK(Integer topK) { this.topK = topK; }
+    public void setK(Integer k) { this.k = k; }
 
-    public Integer getTopK() { return this.topK; }
+    public Integer getK() { return this.k; }
 
     public void setPresencePenalty(Double presencePenalty) {
         this.presencePenalty = presencePenalty;
@@ -96,8 +96,8 @@ public class CohereChatRequest {
         private String model;
         private List<CohereMessage> messages;
         private Double temperature;
-        private Double topP;
-        private Integer topK;
+        private Double p;
+        private Integer k;
         private Double presencePenalty;
         private Double frequencyPenalty;
         private Integer maxOutputTokens;
@@ -118,13 +118,13 @@ public class CohereChatRequest {
             return this;
         }
 
-        public Builder topP(Double topP) {
-            this.topP = topP;
+        public Builder p(Double p) {
+            this.p = p;
             return this;
         }
 
-        public Builder topK(Integer topK) {
-            this.topK = topK;
+        public Builder k(Integer k) {
+            this.k = k;
             return this;
         }
 
