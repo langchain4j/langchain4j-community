@@ -5,7 +5,6 @@ import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;

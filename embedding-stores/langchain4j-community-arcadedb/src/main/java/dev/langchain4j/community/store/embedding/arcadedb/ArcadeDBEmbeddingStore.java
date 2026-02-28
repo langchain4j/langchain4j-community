@@ -1,5 +1,17 @@
 package dev.langchain4j.community.store.embedding.arcadedb;
 
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_DELETED;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_EMBEDDING;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_ID;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_TEXT;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.embeddingToFloatArray;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.extractMetadata;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.toEmbeddingMatch;
+import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
+
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
 import com.arcadedb.database.Identifiable;
@@ -22,13 +34,17 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
-import dev.langchain4j.store.embedding.filter.comparison.*;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
+import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThanOrEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.filter.comparison.IsLessThan;
+import dev.langchain4j.store.embedding.filter.comparison.IsLessThanOrEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsNotEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,18 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-
-import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_EMBEDDING;
-import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_ID;
-import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_DELETED;
-import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_TEXT;
-import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.embeddingToFloatArray;
-import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.extractMetadata;
-import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.toEmbeddingMatch;
-import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ArcadeDB implementation of {@link EmbeddingStore} using embedded database with native HNSW vector indexing.
