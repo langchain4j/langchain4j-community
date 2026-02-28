@@ -30,6 +30,13 @@ public class CohereMapper {
         return CohereChatRequest.builder()
                 .model(chatRequest.modelName())
                 .messages(toCohereChatMessages(chatRequest.messages()))
+                .temperature(chatRequest.temperature())
+                .topP(chatRequest.topP())
+                .topK(chatRequest.topK())
+                .presencePenalty(chatRequest.presencePenalty())
+                .frequencyPenalty(chatRequest.frequencyPenalty())
+                .maxOutputTokens(chatRequest.maxOutputTokens())
+                .stopSequences(chatRequest.stopSequences())
                 .build();
     }
 

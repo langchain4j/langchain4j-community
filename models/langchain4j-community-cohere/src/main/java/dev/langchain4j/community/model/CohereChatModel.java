@@ -5,17 +5,19 @@ import dev.langchain4j.community.model.client.chat.CohereChatResponse;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 
 import static dev.langchain4j.community.model.util.CohereMapper.fromCohereChatResponse;
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatRequest;
 import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptions;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.model.chat.request.DefaultChatRequestParameters.EMPTY;
+import static java.util.Arrays.asList;
 
 public class CohereChatModel implements ChatModel {
 
@@ -34,6 +36,13 @@ public class CohereChatModel implements ChatModel {
 
         this.defaultRequestParameters = ChatRequestParameters.builder()
                 .modelName(getOrDefault(builder.modelName, commonParameters.modelName()))
+                .temperature(getOrDefault(builder.temperature, commonParameters.temperature()))
+                .topP(getOrDefault(builder.topP, commonParameters.topP()))
+                .topK(getOrDefault(builder.topK, commonParameters.topK()))
+                .frequencyPenalty(getOrDefault(builder.frequencyPenalty, commonParameters.frequencyPenalty()))
+                .presencePenalty(getOrDefault(builder.presencePenalty, commonParameters.presencePenalty()))
+                .maxOutputTokens(getOrDefault(builder.maxOutputTokens, commonParameters.maxOutputTokens()))
+                .stopSequences(getOrDefault(copy(builder.stopSequences), commonParameters.stopSequences()))
                 .build();
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
@@ -59,9 +68,17 @@ public class CohereChatModel implements ChatModel {
 
         private String baseUrl;
         private String apiKey;
-        private String modelName;
         private Duration timeout;
         private Integer maxRetries;
+        private String modelName;
+        private Double temperature;
+        private Double topP;
+        private Integer topK;
+        private Double frequencyPenalty;
+        private Double presencePenalty;
+        private Integer maxOutputTokens;
+        private List<String> stopSequences;
+
         private ChatRequestParameters defaultRequestParameters;
 
         public Builder baseUrl(String baseUrl) {
@@ -74,11 +91,6 @@ public class CohereChatModel implements ChatModel {
             return this;
         }
 
-        public Builder modelName(String modelName) {
-            this.modelName = modelName;
-            return this;
-        }
-
         public Builder timeout(Duration timeout) {
             this.timeout = timeout;
             return this;
@@ -86,6 +98,51 @@ public class CohereChatModel implements ChatModel {
 
         public Builder maxRetries(Integer maxRetries) {
             this.maxRetries = maxRetries;
+            return this;
+        }
+
+        public Builder modelName(String modelName) {
+            this.modelName = modelName;
+            return this;
+        }
+
+        public Builder temperature(Double temperature) {
+            this.temperature = temperature;
+            return this;
+        }
+
+        public Builder topP(Double topP) {
+            this.topP = topP;
+            return this;
+        }
+
+        public Builder topK(Integer topK) {
+            this.topK = topK;
+            return this;
+        }
+
+        public Builder frequencyPenalty(Double frequencyPenalty) {
+            this.frequencyPenalty = frequencyPenalty;
+            return this;
+        }
+
+        public Builder presencePenalty(Double presencePenalty) {
+            this.presencePenalty = presencePenalty;
+            return this;
+        }
+
+        public Builder maxOutputTokens(Integer maxOutputTokens) {
+            this.maxOutputTokens = maxOutputTokens;
+            return this;
+        }
+
+        public Builder stopSequences(String... stopSequences) {
+            this.stopSequences = asList(stopSequences);
+            return this;
+        }
+
+        public Builder stopSequences(List<String> stopSequences) {
+            this.stopSequences = stopSequences;
             return this;
         }
 
