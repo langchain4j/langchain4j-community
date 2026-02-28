@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model;
 
 import dev.langchain4j.community.model.client.CohereClient;
-import dev.langchain4j.community.model.client.chat.CohereChatResponse;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 
 import static dev.langchain4j.community.model.util.CohereMapper.fromCohereChatResponse;

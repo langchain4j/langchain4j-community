@@ -2,7 +2,7 @@ package dev.langchain4j.community.model.client;
 
 import dev.langchain4j.Internal;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
-import dev.langchain4j.community.model.client.chat.CohereChatResponse;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
