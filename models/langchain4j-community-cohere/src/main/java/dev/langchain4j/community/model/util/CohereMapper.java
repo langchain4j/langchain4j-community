@@ -26,6 +26,8 @@ import static dev.langchain4j.community.model.client.chat.message.CohereRole.USE
 @Internal
 public class CohereMapper {
 
+    private CohereMapper() {}
+
     public static CohereChatRequest toCohereChatRequest(ChatRequest chatRequest) {
         return CohereChatRequest.builder()
                 .model(chatRequest.modelName())
