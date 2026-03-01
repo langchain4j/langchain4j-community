@@ -1,4 +1,4 @@
-package dev.langchain4j.community.model.client.chat.message;
+package dev.langchain4j.community.model.client.chat.message.content;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -19,11 +19,14 @@ public class CohereMessageContent {
 
     public String text;
 
+    public String thinking;
+
     public CohereMessageContent() {}
 
     private CohereMessageContent(Builder builder) {
         this.type = type;
         this.text = text;
+        this.thinking = thinking;
     }
 
     public Builder builder() {
@@ -46,6 +49,7 @@ public class CohereMessageContent {
 
         private CohereContentType type;
         private String text;
+        private String thinking;
 
         public Builder CohereContentType(CohereContentType type) {
             this.type = type;
@@ -54,6 +58,11 @@ public class CohereMessageContent {
 
         public Builder text(String text) {
             this.text = text;
+            return this;
+        }
+
+        public Builder thinking(String thinking) {
+            this.thinking = thinking;
             return this;
         }
 

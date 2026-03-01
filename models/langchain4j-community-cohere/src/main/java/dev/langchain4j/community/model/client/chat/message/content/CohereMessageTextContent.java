@@ -1,4 +1,4 @@
-package dev.langchain4j.community.model.client.chat.message;
+package dev.langchain4j.community.model.client.chat.message.content;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.community.model.client.chat.message.CohereContentType.TEXT;
+import static dev.langchain4j.community.model.client.chat.message.content.CohereContentType.TEXT;
 
 @JsonInclude(NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
