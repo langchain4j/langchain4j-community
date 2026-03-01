@@ -1,12 +1,17 @@
 package dev.langchain4j.community.model.util;
 
 import dev.langchain4j.Internal;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.community.model.client.chat.message.content.CohereContentType;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageTextContent;
+import dev.langchain4j.community.model.client.chat.tool.CohereFunction;
+import dev.langchain4j.community.model.client.chat.tool.CohereTool;
+import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
@@ -18,10 +23,14 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.util.List;
+import java.util.Optional;
 
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.ASSISTANT;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.SYSTEM;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.USER;
+import static dev.langchain4j.community.model.client.chat.message.content.CohereContentType.TEXT;
+import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 
 @Internal
 public class CohereMapper {
@@ -32,6 +41,10 @@ public class CohereMapper {
         return CohereChatRequest.builder()
                 .model(chatRequest.modelName())
                 .messages(toCohereChatMessages(chatRequest.messages()))
+                .tools(chatRequest.toolSpecifications()
+                        .stream()
+                        .map(CohereMapper::toCohereTool)
+                        .toList())
                 .temperature(chatRequest.temperature())
                 .p(chatRequest.topP())
                 .k(chatRequest.topK())
@@ -71,15 +84,46 @@ public class CohereMapper {
                 .toList();
     }
 
+    private static CohereTool toCohereTool(ToolSpecification toolSpecification) {
+        return CohereTool.builder()
+                .type(FUNCTION)
+                .function(CohereFunction.builder()
+                        .name(toolSpecification.name())
+                        .parameters(toMap(toolSpecification.parameters()))
+                        .description(toolSpecification.description())
+                        .build())
+                .build();
+    }
+
     public static ChatResponse fromCohereChatResponse(CohereChatResponse cohereChatResponse) {
-        String text = cohereChatResponse.message.getContent().stream()
-                .filter(c -> c.type == CohereContentType.TEXT)
-                .findFirst()
-                .map(c -> c.text)
-                .orElseThrow(() -> new LangChain4jException("No text content found!"));
+        Optional<List<CohereMessageContent>> content = Optional.ofNullable(cohereChatResponse.message.getContent());
+
+        String text = null;
+
+        if (content.isPresent()) {
+            text = content.get().stream()
+                    .filter(c -> c.type == TEXT)
+                    .findFirst()
+                    .map(c -> c.text)
+                    .orElse(null);
+        }
 
         return ChatResponse.builder()
-                .aiMessage(AiMessage.from(text))
+                .aiMessage(AiMessage.builder()
+                        .text(text)
+                        .toolExecutionRequests(cohereChatResponse.message.getToolCalls()
+                                .stream()
+                                .map(CohereMapper::toToolExecutionRequest)
+                                .toList())
+                        .build())
+                .build();
+    }
+
+    private static ToolExecutionRequest toToolExecutionRequest(CohereToolCall toolCall) {
+        return ToolExecutionRequest.builder()
+                .id(toolCall.getId())
+                .name(toolCall.getFunction().getName())
+                .arguments(toolCall.getFunction().getArguments())
                 .build();
     }
 }

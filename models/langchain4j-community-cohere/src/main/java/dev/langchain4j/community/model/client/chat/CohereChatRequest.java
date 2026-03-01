@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
+import dev.langchain4j.community.model.client.chat.tool.CohereTool;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class CohereChatRequest {
 
     private String model;
     private List<CohereMessage> messages;
+    private List<CohereTool> tools;
     private Double temperature;
     private Double p;
     private Integer k;
@@ -28,6 +30,7 @@ public class CohereChatRequest {
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
         this.messages = builder.messages;
+        this.tools = builder.tools;
         this.temperature = builder.temperature;
         this.p = builder.p;
         this.k = builder.k;
@@ -48,6 +51,10 @@ public class CohereChatRequest {
     public List<CohereMessage> getMessages() {
         return messages;
     }
+
+    public List<CohereTool> getTools() { return tools; }
+
+    public void setTools(List<CohereTool> tools) { this.tools = tools; }
 
     public void setMessages(List<CohereMessage> messages) { this.messages = messages; }
 
@@ -95,6 +102,7 @@ public class CohereChatRequest {
 
         private String model;
         private List<CohereMessage> messages;
+        private List<CohereTool> tools;
         private Double temperature;
         private Double p;
         private Integer k;
@@ -110,6 +118,11 @@ public class CohereChatRequest {
 
         public Builder messages(List<CohereMessage> message) {
             this.messages = message;
+            return this;
+        }
+
+        public Builder tools(List<CohereTool> tools) {
+            this.tools = tools;
             return this;
         }
 

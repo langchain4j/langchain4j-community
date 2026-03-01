@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.message.CohereRole;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
+import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 
 import java.util.List;
 

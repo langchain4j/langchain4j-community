@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model;
 
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereClient;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.model.chat.ChatModel;
@@ -42,6 +43,7 @@ public class CohereChatModel implements ChatModel {
                 .presencePenalty(getOrDefault(builder.presencePenalty, commonParameters.presencePenalty()))
                 .maxOutputTokens(getOrDefault(builder.maxOutputTokens, commonParameters.maxOutputTokens()))
                 .stopSequences(getOrDefault(copy(builder.stopSequences), commonParameters.stopSequences()))
+                .toolSpecifications(getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
                 .build();
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
@@ -77,6 +79,7 @@ public class CohereChatModel implements ChatModel {
         private Double presencePenalty;
         private Integer maxOutputTokens;
         private List<String> stopSequences;
+        private List<ToolSpecification> toolSpecifications;
 
         private ChatRequestParameters defaultRequestParameters;
 
@@ -142,6 +145,16 @@ public class CohereChatModel implements ChatModel {
 
         public Builder stopSequences(List<String> stopSequences) {
             this.stopSequences = stopSequences;
+            return this;
+        }
+
+        public Builder toolSpecification(ToolSpecification... toolSpecifications) {
+            this.toolSpecifications = asList(toolSpecifications);
+            return this;
+        }
+
+        public Builder toolSpecification(List<ToolSpecification> toolSpecifications) {
+            this.toolSpecifications = toolSpecifications;
             return this;
         }
 

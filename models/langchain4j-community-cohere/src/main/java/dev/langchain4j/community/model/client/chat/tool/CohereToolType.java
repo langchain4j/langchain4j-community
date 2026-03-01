@@ -1,4 +1,4 @@
-package dev.langchain4j.community.model.client.chat.response;
+package dev.langchain4j.community.model.client.chat.tool;
 
 
 import com.fasterxml.jackson.annotation.JsonValue;

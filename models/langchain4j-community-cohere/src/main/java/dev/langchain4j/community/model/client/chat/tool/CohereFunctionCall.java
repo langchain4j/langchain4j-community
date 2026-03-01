@@ -1,4 +1,4 @@
-package dev.langchain4j.community.model.client.chat.response;
+package dev.langchain4j.community.model.client.chat.tool;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -10,15 +10,15 @@ import java.util.List;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
-@JsonDeserialize(builder = CohereFunction.Builder.class)
+@JsonDeserialize(builder = CohereFunctionCall.Builder.class)
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class CohereFunction {
+public class CohereFunctionCall {
 
     private final String name;
-    private final List<String> arguments;
+    private final String arguments;
 
-    private CohereFunction(Builder builder) {
+    private CohereFunctionCall(Builder builder) {
         this.name = builder.name;
         this.arguments = builder.arguments;
     }
@@ -27,7 +27,7 @@ public class CohereFunction {
         return name;
     }
 
-    public List<String> getArguments() {
+    public String getArguments() {
         return arguments;
     }
 
@@ -41,20 +41,20 @@ public class CohereFunction {
     public static class Builder {
 
         private String name;
-        private List<String> arguments;
+        private String arguments;
 
         public Builder name(String name) {
             this.name = name;
             return this;
         }
 
-        public Builder arguments(List<String> arguments) {
+        public Builder arguments(String arguments) {
             this.arguments = arguments;
             return this;
         }
 
-        public CohereFunction build() {
-            return new CohereFunction(this);
+        public CohereFunctionCall build() {
+            return new CohereFunctionCall(this);
         }
     }
 }

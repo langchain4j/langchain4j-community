@@ -1,6 +1,7 @@
-package dev.langchain4j.community.model.client.chat.response;
+package dev.langchain4j.community.model.client.chat.tool;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -9,40 +10,32 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
-@JsonDeserialize(builder = CohereToolCall.Builder.class)
+@JsonDeserialize(builder = CohereTool.Builder.class)
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class CohereToolCall {
+public class CohereTool {
 
-    private final String id;
     private final CohereToolType type;
     private final CohereFunction function;
 
-    private CohereToolCall(Builder builder) {
-        this.id = builder.id;
+    public CohereTool(Builder builder) {
         this.type = builder.type;
         this.function = builder.function;
     }
 
-    public String getId() { return id; }
-
     public CohereToolType getType() { return type; }
 
-    public CohereFunction function() { return function; }
+    public CohereFunction getFunction() { return function; }
+
+    public static Builder builder() { return new Builder(); }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class Builder {
 
-        private String id;
         private CohereToolType type;
         private CohereFunction function;
-
-        public Builder id(String id) {
-            this.id = id;
-            return this;
-        }
 
         public Builder type(CohereToolType type) {
             this.type = type;
@@ -54,8 +47,6 @@ public class CohereToolCall {
             return this;
         }
 
-        public CohereToolCall build() {
-            return new CohereToolCall(this);
-        }
+        public CohereTool build() { return new CohereTool(this); }
     }
 }

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 
 import java.util.List;
 
@@ -16,7 +15,7 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 public class CohereChatResponse {
 
     public String id;
-    public CohereMessage message;
+    public CohereResponseMessage message;
     public String finishReason;
     public CohereUsage usage;
     public List<CohereLogprobs> logprobs;
