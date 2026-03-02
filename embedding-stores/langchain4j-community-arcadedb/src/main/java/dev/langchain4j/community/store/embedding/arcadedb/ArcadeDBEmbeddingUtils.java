@@ -21,12 +21,10 @@ final class ArcadeDBEmbeddingUtils {
 
     // Properties that are internal to the store/HNSW and should not appear in user metadata
     static final Set<String> RESERVED_PROPERTIES = Set.of(
-            PROPERTY_ID, PROPERTY_EMBEDDING, PROPERTY_TEXT, PROPERTY_DELETED,
-            "vectorMaxLevel"  // added by HNSW index
-    );
+            PROPERTY_ID, PROPERTY_EMBEDDING, PROPERTY_TEXT, PROPERTY_DELETED, "vectorMaxLevel" // added by HNSW index
+            );
 
-    private ArcadeDBEmbeddingUtils() {
-    }
+    private ArcadeDBEmbeddingUtils() {}
 
     static EmbeddingMatch<TextSegment> toEmbeddingMatch(Document doc, double score, String metadataPrefix) {
         String id = doc.getString(PROPERTY_ID);
@@ -41,9 +39,8 @@ final class ArcadeDBEmbeddingUtils {
         TextSegment textSegment = null;
         if (text != null) {
             Map<String, Object> metadataMap = extractMetadata(doc, metadataPrefix);
-            textSegment = metadataMap.isEmpty()
-                    ? TextSegment.from(text)
-                    : TextSegment.from(text, Metadata.from(metadataMap));
+            textSegment =
+                    metadataMap.isEmpty() ? TextSegment.from(text) : TextSegment.from(text, Metadata.from(metadataMap));
         }
 
         return new EmbeddingMatch<>(score, id, embedding, textSegment);

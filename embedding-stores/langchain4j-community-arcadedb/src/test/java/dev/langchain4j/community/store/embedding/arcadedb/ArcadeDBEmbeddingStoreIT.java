@@ -23,7 +23,8 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     protected EmbeddingStore<TextSegment> embeddingStore() {
         if (embeddingStore == null) {
             embeddingStore = ArcadeDBEmbeddingStore.builder()
-                    .databasePath(tempDir.resolve("test-db-" + counter.incrementAndGet()).toString())
+                    .databasePath(tempDir.resolve("test-db-" + counter.incrementAndGet())
+                            .toString())
                     .dimension(DIMENSION)
                     .ef(200)
                     .efConstruction(400)

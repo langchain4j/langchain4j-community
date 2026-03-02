@@ -23,7 +23,8 @@ class ArcadeDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
     @BeforeEach
     void setup() {
         embeddingStore = ArcadeDBEmbeddingStore.builder()
-                .databasePath(tempDir.resolve("test-removal-db-" + counter.incrementAndGet()).toString())
+                .databasePath(tempDir.resolve("test-removal-db-" + counter.incrementAndGet())
+                        .toString())
                 .dimension(DIMENSION)
                 .ef(200)
                 .efConstruction(400)

@@ -144,7 +144,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
         // Create HNSW vector index
         database.transaction(() -> {
-            var indexBuilder = database.getSchema().buildVectorIndex()
+            var indexBuilder = database.getSchema()
+                    .buildVectorIndex()
                     .withVertexType(typeName)
                     .withEdgeType(edgeType)
                     .withVectorProperty(PROPERTY_EMBEDDING, Type.ARRAY_OF_FLOATS)
@@ -274,12 +275,13 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return Boolean.TRUE.equals(deleted);
     }
 
-    private List<EmbeddingMatch<TextSegment>> searchWithoutFilter(float[] queryVector, int maxResults, double minScore) {
+    private List<EmbeddingMatch<TextSegment>> searchWithoutFilter(
+            float[] queryVector, int maxResults, double minScore) {
         // Overfetch from HNSW and post-filter deleted items, because the HNSW callback
         // receives cached vertex objects that don't reflect recent soft-delete updates.
         int fetchSize = Math.max(maxResults * 4, maxResults + 100);
-        List<Pair<Identifiable, ? extends Number>> neighbors = vectorIndex.findNeighborsFromVector(
-                queryVector, fetchSize);
+        List<Pair<Identifiable, ? extends Number>> neighbors =
+                vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
         for (Pair<Identifiable, ? extends Number> neighbor : neighbors) {
@@ -300,12 +302,13 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return matches;
     }
 
-    private List<EmbeddingMatch<TextSegment>> searchWithFilter(float[] queryVector, int maxResults, double minScore, Filter filter) {
+    private List<EmbeddingMatch<TextSegment>> searchWithFilter(
+            float[] queryVector, int maxResults, double minScore, Filter filter) {
         // Java-based filter evaluation avoids SQL type conversion issues
         // (UUID, Double, Float type mismatches in ArcadeDB SQL).
         int fetchSize = Math.max(maxResults * 4, maxResults + 100);
-        List<Pair<Identifiable, ? extends Number>> neighbors = vectorIndex.findNeighborsFromVector(
-                queryVector, fetchSize);
+        List<Pair<Identifiable, ? extends Number>> neighbors =
+                vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
         for (Pair<Identifiable, ? extends Number> neighbor : neighbors) {
@@ -365,7 +368,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         } else if (filter instanceof Not f) {
             return !matchesFilter(f.expression(), metadata);
         }
-        throw new UnsupportedOperationException("Unsupported filter type: " + filter.getClass().getName());
+        throw new UnsupportedOperationException(
+                "Unsupported filter type: " + filter.getClass().getName());
     }
 
     private static boolean valueEquals(Object a, Object b) {
@@ -408,8 +412,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     public void removeAll(Filter filter) {
         ensureNotNull(filter, "filter");
         database.transaction(() -> {
-            try (ResultSet rs = database.query("sql", "SELECT FROM " + quotedTypeName
-                    + " WHERE (" + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED + " != true)")) {
+            try (ResultSet rs = database.query(
+                    "sql",
+                    "SELECT FROM " + quotedTypeName + " WHERE (" + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED
+                            + " != true)")) {
                 while (rs.hasNext()) {
                     Result result = rs.next();
                     result.getVertex().ifPresent(v -> {
@@ -431,13 +437,13 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     }
 
     private void softDeleteById(String id) {
-        try (ResultSet rs = database.query("sql",
-                "SELECT FROM " + quotedTypeName + " WHERE " + PROPERTY_ID + " = ?", id)) {
+        try (ResultSet rs =
+                database.query("sql", "SELECT FROM " + quotedTypeName + " WHERE " + PROPERTY_ID + " = ?", id)) {
             while (rs.hasNext()) {
                 Result result = rs.next();
                 result.getVertex().ifPresent(v -> {
                     v.modify().set(PROPERTY_DELETED, true).save();
-                    vectorIndex.remove(new Object[]{id});
+                    vectorIndex.remove(new Object[] {id});
                 });
             }
         }
