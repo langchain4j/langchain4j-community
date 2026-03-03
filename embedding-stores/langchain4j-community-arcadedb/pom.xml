@@ -13,6 +13,8 @@
 
     <properties>
         <arcadedb.version>25.4.1</arcadedb.version>
+        <!-- ArcadeDB 25.x requires Java 21+ -->
+        <maven.compiler.release>21</maven.compiler.release>
     </properties>
 
     <dependencies>
