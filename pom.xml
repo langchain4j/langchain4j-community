@@ -55,6 +55,7 @@
         <module>embedding-stores/langchain4j-community-oceanbase</module>
         <module>embedding-stores/langchain4j-community-jvector</module>
         <module>embedding-stores/langchain4j-community-s3-vectors</module>
+        <module>embedding-stores/langchain4j-community-arcadedb</module>
 
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
