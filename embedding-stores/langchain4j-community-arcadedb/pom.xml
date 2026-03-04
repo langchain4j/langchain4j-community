@@ -93,4 +93,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.honton.chas</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <!-- ArcadeDB is Apache 2 licensed but does not declare <licenses> in its
+                         submodule POMs (only in the parent POM), so the compliance check fails. -->
+                    <skipCompliance>true</skipCompliance>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
