@@ -134,7 +134,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         for (int i = 0; i < ids.size(); i++) {
             StringBuilder sql = new StringBuilder();
             sql.append("INSERT INTO `").append(typeName).append("` SET ");
-            sql.append(ID_PROPERTY).append(" = '").append(escapeString(ids.get(i))).append("'");
+            sql.append(ID_PROPERTY)
+                    .append(" = '")
+                    .append(escapeString(ids.get(i)))
+                    .append("'");
             sql.append(", ").append(EMBEDDING_PROPERTY).append(" = ").append(embeddingToSql(embeddings.get(i)));
 
             if (embedded != null && embedded.get(i) != null) {
@@ -174,12 +177,14 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         ensureNotNull(filter, "filter");
         // Print the count of all embeddings before the deletion
-        log.info(String.format("Number of embeddings before delete: %d", findAll(1000).size()));
+        log.info(String.format(
+                "Number of embeddings before delete: %d", findAll(1000).size()));
         String whereClause = filterMapper.map(filter);
         String sql = String.format("DELETE FROM `%s` WHERE %s", typeName, whereClause);
         log.debug("Removing with filter: {}", sql);
         database.command("sql", sql);
-        log.info(String.format("Number of embeddings after delete: %d", findAll(1000).size()));
+        log.info(String.format(
+                "Number of embeddings after delete: %d", findAll(1000).size()));
         rebuildIndex();
     }
 

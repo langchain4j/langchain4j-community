@@ -66,8 +66,9 @@ class ArcadeDBMetadataFilterMapper {
 
     private String mapNotIn(IsNotIn filter) {
         // NULL-safe: property absent means "not in" is true
-        return format("(%s IS NULL OR %s NOT IN %s)", formatKey(filter.key()), formatKey(filter.key()),
-                formatValues(filter.comparisonValues()));
+        return format(
+                "(%s IS NULL OR %s NOT IN %s)",
+                formatKey(filter.key()), formatKey(filter.key()), formatValues(filter.comparisonValues()));
     }
 
     String formatKey(String key) {

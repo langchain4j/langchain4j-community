@@ -3,17 +3,9 @@ package dev.langchain4j.community.store.embedding.arcadedb;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
-import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.store.embedding.filter.Filter;
-import java.util.List;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -34,8 +26,9 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
             arcadedb = new GenericContainer<>("arcadedata/arcadedb:latest")
                     .withExposedPorts(ARCADE_HTTP_PORT)
                     .withEnv("JAVA_OPTS", "-Darcadedb.server.rootPassword=playwithdata")
-                    .waitingFor(
-                            Wait.forHttp("/api/v1/ready").forPort(ARCADE_HTTP_PORT).forStatusCode(204));
+                    .waitingFor(Wait.forHttp("/api/v1/ready")
+                            .forPort(ARCADE_HTTP_PORT)
+                            .forStatusCode(204));
             arcadedb.start();
             host = arcadedb.getHost();
             port = arcadedb.getMappedPort(ARCADE_HTTP_PORT);
