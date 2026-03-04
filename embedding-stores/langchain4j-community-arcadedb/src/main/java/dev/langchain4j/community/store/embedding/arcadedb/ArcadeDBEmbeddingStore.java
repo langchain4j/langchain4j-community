@@ -22,6 +22,17 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
+import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThanOrEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.filter.comparison.IsLessThan;
+import dev.langchain4j.store.embedding.filter.comparison.IsLessThanOrEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsNotEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
+import dev.langchain4j.store.embedding.filter.logical.And;
+import dev.langchain4j.store.embedding.filter.logical.Not;
+import dev.langchain4j.store.embedding.filter.logical.Or;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -193,21 +204,19 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         // Validate the filter eagerly so unsupported filter types (e.g. containsString)
         // throw UnsupportedOperationException even when the index is empty.
-        String filterClause = null;
         if (filter != null) {
-            filterClause = filterMapper.map(filter);
+            validateFilter(filter);
         }
 
+        // Fetch extra candidates to account for in-memory filtering reducing the result set.
         int fetchCount = filter != null ? maxResults * 5 : maxResults;
 
         String vectorSql = embeddingToSql(queryEmbedding);
         String indexName = typeName + "[" + EMBEDDING_PROPERTY + "]";
-        String query =
-                String.format("SELECT *, `vector.neighbors`('%s', %s, %d) as neighbors from %s",
-                        indexName, vectorSql, fetchCount, typeName);
-        if (filterClause != null) {
-            query += " WHERE " + filterClause;
-        }
+        // Run the neighbor search without any WHERE clause; filtering is done in-memory below.
+        String query = String.format(
+                "SELECT *, `vector.neighbors`('%s', %s, %d) AS neighbors FROM `%s`",
+                indexName, vectorSql, fetchCount, typeName);
 
         ResultSet resultSet;
         try {
@@ -216,7 +225,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             log.debug("Vector search returned error (index may be empty): {}", e.getMessage());
             return new EmbeddingSearchResult<>(List.of());
         }
+
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
+
         while (resultSet.hasNext() && matches.size() < maxResults) {
             Result doc = resultSet.next();
 
@@ -237,6 +248,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
             Map<String, Object> metadataMap = extractMetadataFromResult(doc);
 
+            // Apply filter in-memory against the document's metadata.
+            if (filter != null && !matchesFilter(filter, metadataMap)) {
+                continue;
+            }
+
             TextSegment textSegment = null;
             if (text != null) {
                 textSegment = TextSegment.from(text, Metadata.from(metadataMap));
@@ -250,6 +266,98 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         matches.sort((a, b) -> Double.compare(b.score(), a.score()));
 
         return new EmbeddingSearchResult<>(matches);
+    }
+
+    /**
+     * Validates that the filter only contains supported types, throwing
+     * {@link UnsupportedOperationException} eagerly for unsupported filter types.
+     */
+    private void validateFilter(Filter filter) {
+        if (filter instanceof And f) {
+            validateFilter(f.left());
+            validateFilter(f.right());
+        } else if (filter instanceof Or f) {
+            validateFilter(f.left());
+            validateFilter(f.right());
+        } else if (filter instanceof Not f) {
+            validateFilter(f.expression());
+        } else if (!(filter instanceof IsEqualTo
+                || filter instanceof IsNotEqualTo
+                || filter instanceof IsGreaterThan
+                || filter instanceof IsGreaterThanOrEqualTo
+                || filter instanceof IsLessThan
+                || filter instanceof IsLessThanOrEqualTo
+                || filter instanceof IsIn
+                || filter instanceof IsNotIn)) {
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
+        }
+    }
+
+    /**
+     * Evaluates a {@link Filter} in-memory against a document's metadata map.
+     * Metadata keys in the map are already stripped of their prefix.
+     */
+    private boolean matchesFilter(Filter filter, Map<String, Object> metadata) {
+        if (filter instanceof IsEqualTo f) {
+            Object value = metadata.get(f.key());
+            return value != null && compareValues(value, f.comparisonValue()) == 0;
+        } else if (filter instanceof IsNotEqualTo f) {
+            Object value = metadata.get(f.key());
+            return value == null || compareValues(value, f.comparisonValue()) != 0;
+        } else if (filter instanceof IsGreaterThan f) {
+            Object value = metadata.get(f.key());
+            return value != null && compareValues(value, f.comparisonValue()) > 0;
+        } else if (filter instanceof IsGreaterThanOrEqualTo f) {
+            Object value = metadata.get(f.key());
+            return value != null && compareValues(value, f.comparisonValue()) >= 0;
+        } else if (filter instanceof IsLessThan f) {
+            Object value = metadata.get(f.key());
+            return value != null && compareValues(value, f.comparisonValue()) < 0;
+        } else if (filter instanceof IsLessThanOrEqualTo f) {
+            Object value = metadata.get(f.key());
+            return value != null && compareValues(value, f.comparisonValue()) <= 0;
+        } else if (filter instanceof IsIn f) {
+            Object value = metadata.get(f.key());
+            if (value == null) return false;
+            for (Object candidate : f.comparisonValues()) {
+                if (compareValues(value, candidate) == 0) return true;
+            }
+            return false;
+        } else if (filter instanceof IsNotIn f) {
+            Object value = metadata.get(f.key());
+            if (value == null) return true;
+            for (Object candidate : f.comparisonValues()) {
+                if (compareValues(value, candidate) == 0) return false;
+            }
+            return true;
+        } else if (filter instanceof And f) {
+            return matchesFilter(f.left(), metadata) && matchesFilter(f.right(), metadata);
+        } else if (filter instanceof Or f) {
+            return matchesFilter(f.left(), metadata) || matchesFilter(f.right(), metadata);
+        } else if (filter instanceof Not f) {
+            return !matchesFilter(f.expression(), metadata);
+        } else {
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
+        }
+    }
+
+    /**
+     * Compares two values for ordering. Numbers are compared numerically; when the expected
+     * value is a {@link Float} the comparison is done at float precision so that a value
+     * stored as {@code 1.1f} and returned by ArcadeDB as the JSON literal {@code 1.1}
+     * (parsed by Java as {@code Double(1.1)}) still matches the original {@code Float(1.1f)}.
+     * Everything else falls back to string comparison.
+     */
+    private int compareValues(Object actual, Object expected) {
+        if (actual instanceof Number && expected instanceof Number) {
+            if (expected instanceof Float) {
+                return Float.compare(((Number) actual).floatValue(), ((Number) expected).floatValue());
+            }
+            return Double.compare(((Number) actual).doubleValue(), ((Number) expected).doubleValue());
+        }
+        return actual.toString().compareTo(expected.toString());
     }
 
     private Embedding toEmbedding(Object embObj) {
