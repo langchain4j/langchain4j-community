@@ -55,7 +55,6 @@
         <module>embedding-stores/langchain4j-community-oceanbase</module>
         <module>embedding-stores/langchain4j-community-jvector</module>
         <module>embedding-stores/langchain4j-community-s3-vectors</module>
-        <module>embedding-stores/langchain4j-community-arcadedb</module>
 
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
@@ -305,6 +304,16 @@
     </reporting>
 
     <profiles>
+        <profile>
+            <id>jdk21-modules</id>
+            <activation>
+                <jdk>[21,)</jdk>
+            </activation>
+            <modules>
+                <module>embedding-stores/langchain4j-community-arcadedb</module>
+            </modules>
+        </profile>
+
         <profile>
             <id>openrewrite</id>
             <!-- `mvn -P openrewrite org.openrewrite.maven:rewrite-maven-plugin:run` -->
