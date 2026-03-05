@@ -15,7 +15,7 @@ No Docker, no server process, no connection string. Just a local directory path.
 ```xml
 <dependency>
     <groupId>dev.langchain4j</groupId>
-    <artifactId>langchain4j-community-arcadedb</artifactId>
+    <artifactId>langchain4j-community-embedded-arcadedb</artifactId>
     <version>${langchain4j.version}</version>
 </dependency>
 ```

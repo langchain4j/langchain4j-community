@@ -63,7 +63,7 @@
             <!-- embedding stores -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-community-arcadedb</artifactId>
+                <artifactId>langchain4j-community-embedded-arcadedb</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

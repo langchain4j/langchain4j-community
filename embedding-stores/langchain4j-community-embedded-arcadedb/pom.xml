@@ -8,8 +8,8 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>langchain4j-community-arcadedb</artifactId>
-    <name>LangChain4j :: Community :: Integration :: ArcadeDB</name>
+    <artifactId>langchain4j-community-embedded-arcadedb</artifactId>
+    <name>LangChain4j :: Community :: Integration :: Embedded ArcadeDB</name>
 
     <properties>
         <arcadedb.version>25.4.1</arcadedb.version>

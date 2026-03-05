@@ -42,7 +42,6 @@
         <module>models/langchain4j-community-model-router</module>
 
         <!-- Integration of embedding store -->
-        <module>embedding-stores/langchain4j-community-arcadedb</module>
         <module>embedding-stores/langchain4j-community-clickhouse</module>
         <module>embedding-stores/langchain4j-community-duckdb</module>
         <module>embedding-stores/langchain4j-community-memfile</module>
@@ -304,6 +303,16 @@
     </reporting>
 
     <profiles>
+        <profile>
+            <id>jdk21-modules</id>
+            <activation>
+                <jdk>[21,)</jdk>
+            </activation>
+            <modules>
+                <module>embedding-stores/langchain4j-community-embedded-arcadedb</module>
+            </modules>
+        </profile>
+
         <profile>
             <id>openrewrite</id>
             <!-- `mvn -P openrewrite org.openrewrite.maven:rewrite-maven-plugin:run` -->
