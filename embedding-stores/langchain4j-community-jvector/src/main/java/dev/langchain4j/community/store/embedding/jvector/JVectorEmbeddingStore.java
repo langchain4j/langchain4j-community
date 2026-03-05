@@ -298,7 +298,8 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
                 vectorValues = new ListRandomAccessVectorValues(vectors, dimension);
             }
 
-            SearchScoreProvider scoreProvider = DefaultSearchScoreProvider.exact(query, similarityFunction, vectorValues);
+            SearchScoreProvider scoreProvider =
+                    DefaultSearchScoreProvider.exact(query, similarityFunction, vectorValues);
 
             SearchResult result = searcher.search(scoreProvider, request.maxResults(), Bits.ALL);
 
@@ -489,8 +490,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         try (OnDiskGraphIndexWriter writer = new OnDiskGraphIndexWriter.Builder(index, graphPath)
                 .with(new InlineVectors(dimension))
                 .build()) {
-            writer.write(Map.of(
-                    FeatureId.INLINE_VECTORS, ordinal -> new InlineVectors.State(vectors.get(ordinal))));
+            writer.write(Map.of(FeatureId.INLINE_VECTORS, ordinal -> new InlineVectors.State(vectors.get(ordinal))));
         }
 
         // Save the metadata
