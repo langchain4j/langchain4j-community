@@ -13,7 +13,6 @@
 
     <properties>
         <arcadedb.version>26.3.1</arcadedb.version>
-        <slf4j.version>2.0.17</slf4j.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
@@ -27,7 +26,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>com.arcadedb</groupId>
