@@ -54,8 +54,7 @@ class PromptRepetitionDecisionTest {
 
     @Test
     void should_throw_when_text_is_null_for_skipped() {
-        assertThatThrownBy(
-                        () -> PromptRepetitionDecision.skipped(PromptRepetitionReason.SKIPPED_MODE_NEVER, null))
+        assertThatThrownBy(() -> PromptRepetitionDecision.skipped(PromptRepetitionReason.SKIPPED_MODE_NEVER, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("originalText cannot be null");
     }
@@ -80,8 +79,7 @@ class PromptRepetitionDecisionTest {
         // given
         PromptRepetitionDecision a = PromptRepetitionDecision.applied("q", "q\nq");
         PromptRepetitionDecision b = PromptRepetitionDecision.applied("q", "q\nq");
-        PromptRepetitionDecision c =
-                PromptRepetitionDecision.skipped(PromptRepetitionReason.SKIPPED_MODE_NEVER, "q");
+        PromptRepetitionDecision c = PromptRepetitionDecision.skipped(PromptRepetitionReason.SKIPPED_MODE_NEVER, "q");
 
         // then
         assertThat(a).isEqualTo(a);

@@ -20,8 +20,8 @@ class PromptRepetitionPolicyRobustnessTest {
         assertThat(policy.mode()).isEqualTo(PromptRepetitionMode.AUTO);
         assertThat(policy.separator()).isEqualTo(PromptRepetitionPolicy.DEFAULT_SEPARATOR);
         assertThat(policy.maxChars()).isEqualTo(PromptRepetitionPolicy.DEFAULT_MAX_CHARS);
-        assertThat(policy.reasoningKeywords()).containsExactlyInAnyOrderElementsOf(
-                PromptRepetitionPolicy.DEFAULT_REASONING_KEYWORDS);
+        assertThat(policy.reasoningKeywords())
+                .containsExactlyInAnyOrderElementsOf(PromptRepetitionPolicy.DEFAULT_REASONING_KEYWORDS);
     }
 
     @Test
@@ -34,8 +34,8 @@ class PromptRepetitionPolicyRobustnessTest {
         assertThat(policy.mode()).isEqualTo(PromptRepetitionMode.NEVER);
         assertThat(policy.separator()).isEqualTo(PromptRepetitionPolicy.DEFAULT_SEPARATOR);
         assertThat(policy.maxChars()).isEqualTo(PromptRepetitionPolicy.DEFAULT_MAX_CHARS);
-        assertThat(policy.reasoningKeywords()).containsExactlyInAnyOrderElementsOf(
-                PromptRepetitionPolicy.DEFAULT_REASONING_KEYWORDS);
+        assertThat(policy.reasoningKeywords())
+                .containsExactlyInAnyOrderElementsOf(PromptRepetitionPolicy.DEFAULT_REASONING_KEYWORDS);
     }
 
     @Test
@@ -60,8 +60,8 @@ class PromptRepetitionPolicyRobustnessTest {
         assertThat(policy.mode()).isEqualTo(PromptRepetitionPolicy.DEFAULT_MODE);
         assertThat(policy.separator()).isEqualTo(PromptRepetitionPolicy.DEFAULT_SEPARATOR);
         assertThat(policy.maxChars()).isEqualTo(PromptRepetitionPolicy.DEFAULT_MAX_CHARS);
-        assertThat(policy.reasoningKeywords()).containsExactlyInAnyOrderElementsOf(
-                PromptRepetitionPolicy.DEFAULT_REASONING_KEYWORDS);
+        assertThat(policy.reasoningKeywords())
+                .containsExactlyInAnyOrderElementsOf(PromptRepetitionPolicy.DEFAULT_REASONING_KEYWORDS);
     }
 
     @Test
@@ -101,13 +101,13 @@ class PromptRepetitionPolicyRobustnessTest {
 
     @Test
     void should_throw_when_max_chars_is_not_positive() {
-        assertThatThrownBy(() ->
-                        new PromptRepetitionPolicy(PromptRepetitionMode.AUTO, "\n", 0, List.of("step by step")))
+        assertThatThrownBy(
+                        () -> new PromptRepetitionPolicy(PromptRepetitionMode.AUTO, "\n", 0, List.of("step by step")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("maxChars must be greater than zero, but is: 0");
 
-        assertThatThrownBy(() ->
-                        new PromptRepetitionPolicy(PromptRepetitionMode.AUTO, "\n", -1, List.of("step by step")))
+        assertThatThrownBy(
+                        () -> new PromptRepetitionPolicy(PromptRepetitionMode.AUTO, "\n", -1, List.of("step by step")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("maxChars must be greater than zero, but is: -1");
     }

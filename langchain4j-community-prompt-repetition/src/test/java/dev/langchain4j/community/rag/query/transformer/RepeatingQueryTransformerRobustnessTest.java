@@ -64,8 +64,7 @@ class RepeatingQueryTransformerRobustnessTest {
         // then
         assertThat(transformedQueries).hasSize(1);
         assertThat(transformedQueries.iterator().next().text()).isEqualTo("hello\nhello");
-        assertThatThrownBy(() -> transformedQueries.add(query))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> transformedQueries.add(query)).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
