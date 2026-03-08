@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
+import dev.langchain4j.model.chat.request.ToolChoice;
 
 import java.util.List;
 
@@ -19,24 +20,26 @@ public class CohereChatRequest {
     private String model;
     private List<CohereMessage> messages;
     private List<CohereTool> tools;
+    private ToolChoice toolChoice;
     private Double temperature;
     private Double p;
     private Integer k;
     private Double presencePenalty;
     private Double frequencyPenalty;
-    private Integer maxOutputTokens;
+    private Integer maxTokens;
     private List<String> stopSequences;
 
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
         this.messages = builder.messages;
         this.tools = builder.tools;
+        this.toolChoice = builder.toolChoice;
         this.temperature = builder.temperature;
         this.p = builder.p;
         this.k = builder.k;
         this.presencePenalty = builder.presencePenalty;
         this.frequencyPenalty = builder.frequencyPenalty;
-        this.maxOutputTokens = builder.maxOutputTokens;
+        this.maxTokens = builder.maxTokens;
         this.stopSequences = builder.stopSequences;
     }
 
@@ -55,6 +58,10 @@ public class CohereChatRequest {
     public List<CohereTool> getTools() { return tools; }
 
     public void setTools(List<CohereTool> tools) { this.tools = tools; }
+
+    public ToolChoice getToolChoice() { return toolChoice; }
+
+    public void setToolChoice(ToolChoice toolChoice) { this.toolChoice = toolChoice; }
 
     public void setMessages(List<CohereMessage> messages) { this.messages = messages; }
 
@@ -82,11 +89,9 @@ public class CohereChatRequest {
 
     public Double getFrequencyPenalty() { return this.frequencyPenalty; }
 
-    public void setMaxOutputTokens(Integer maxOutputTokens) {
-        this.maxOutputTokens = maxOutputTokens;
-    }
+    public void setMaxTokens(Integer maxTokens) { this.maxTokens = maxTokens; }
 
-    public Integer getMaxOutputTokens() { return this.maxOutputTokens; }
+    public Integer getMaxTokens() { return this.maxTokens; }
 
     public void setStopSequences(List<String> stopSequences) {
         this.stopSequences = stopSequences;
@@ -103,12 +108,13 @@ public class CohereChatRequest {
         private String model;
         private List<CohereMessage> messages;
         private List<CohereTool> tools;
+        private ToolChoice toolChoice;
         private Double temperature;
         private Double p;
         private Integer k;
         private Double presencePenalty;
         private Double frequencyPenalty;
-        private Integer maxOutputTokens;
+        private Integer maxTokens;
         private List<String> stopSequences;
 
         public Builder model(String model) {
@@ -123,6 +129,11 @@ public class CohereChatRequest {
 
         public Builder tools(List<CohereTool> tools) {
             this.tools = tools;
+            return this;
+        }
+
+        public Builder toolChoice(ToolChoice toolChoice) {
+            this.toolChoice = toolChoice;
             return this;
         }
 
@@ -151,8 +162,8 @@ public class CohereChatRequest {
             return this;
         }
 
-        public Builder maxOutputTokens(Integer maxOutputTokens) {
-            this.maxOutputTokens = maxOutputTokens;
+        public Builder maxTokens(Integer maxTokens) {
+            this.maxTokens = maxTokens;
             return this;
         }
 

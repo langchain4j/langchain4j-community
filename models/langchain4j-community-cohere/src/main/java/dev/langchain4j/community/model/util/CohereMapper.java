@@ -21,6 +21,8 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.exception.LangChain4jException;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.output.FinishReason;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +33,10 @@ import static dev.langchain4j.community.model.client.chat.message.CohereRole.USE
 import static dev.langchain4j.community.model.client.chat.message.content.CohereContentType.TEXT;
 import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
+import static dev.langchain4j.model.output.FinishReason.OTHER;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 @Internal
 public class CohereMapper {
@@ -45,12 +51,13 @@ public class CohereMapper {
                         .stream()
                         .map(CohereMapper::toCohereTool)
                         .toList())
+                .toolChoice(chatRequest.toolChoice())
                 .temperature(chatRequest.temperature())
                 .p(chatRequest.topP())
                 .k(chatRequest.topK())
                 .presencePenalty(chatRequest.presencePenalty())
                 .frequencyPenalty(chatRequest.frequencyPenalty())
-                .maxOutputTokens(chatRequest.maxOutputTokens())
+                .maxTokens(chatRequest.maxOutputTokens())
                 .stopSequences(chatRequest.stopSequences())
                 .build();
     }
@@ -108,6 +115,10 @@ public class CohereMapper {
                     .orElse(null);
         }
 
+        ChatResponseMetadata metadata = ChatResponseMetadata.builder()
+                .finishReason(mapFinishReason(cohereChatResponse.finishReason))
+                .build();
+
         return ChatResponse.builder()
                 .aiMessage(AiMessage.builder()
                         .text(text)
@@ -116,7 +127,17 @@ public class CohereMapper {
                                 .map(CohereMapper::toToolExecutionRequest)
                                 .toList())
                         .build())
+                .metadata(metadata)
                 .build();
+    }
+
+    private static FinishReason mapFinishReason(String finishReason) {
+        if (finishReason.equals("COMPLETE")) return STOP;
+        if (finishReason.equals("STOP_SEQUENCE")) return STOP;
+        if (finishReason.equals("MAX_TOKENS")) return LENGTH;
+        if (finishReason.equals("TOOL_CALL")) return TOOL_EXECUTION;
+
+        return OTHER;
     }
 
     private static ToolExecutionRequest toToolExecutionRequest(CohereToolCall toolCall) {

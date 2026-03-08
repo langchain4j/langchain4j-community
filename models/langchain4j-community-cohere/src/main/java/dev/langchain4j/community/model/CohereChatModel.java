@@ -6,6 +6,7 @@ import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
 import java.time.Duration;
@@ -44,6 +45,7 @@ public class CohereChatModel implements ChatModel {
                 .maxOutputTokens(getOrDefault(builder.maxOutputTokens, commonParameters.maxOutputTokens()))
                 .stopSequences(getOrDefault(copy(builder.stopSequences), commonParameters.stopSequences()))
                 .toolSpecifications(getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
+                .toolChoice(builder.toolChoice)
                 .build();
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
@@ -80,6 +82,7 @@ public class CohereChatModel implements ChatModel {
         private Integer maxOutputTokens;
         private List<String> stopSequences;
         private List<ToolSpecification> toolSpecifications;
+        private ToolChoice toolChoice;
 
         private ChatRequestParameters defaultRequestParameters;
 
@@ -155,6 +158,11 @@ public class CohereChatModel implements ChatModel {
 
         public Builder toolSpecification(List<ToolSpecification> toolSpecifications) {
             this.toolSpecifications = toolSpecifications;
+            return this;
+        }
+
+        public Builder toolChoice(ToolChoice toolChoice) {
+            this.toolChoice = toolChoice;
             return this;
         }
 
