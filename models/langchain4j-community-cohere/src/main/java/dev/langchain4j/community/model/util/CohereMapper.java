@@ -4,6 +4,7 @@ import dev.langchain4j.Internal;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
+import dev.langchain4j.community.model.client.chat.CohereResponseFormat;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageTextContent;
@@ -21,6 +22,8 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.exception.LangChain4jException;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
@@ -30,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static dev.langchain4j.community.model.client.CohereResponseFormatType.JSON_OBJECT;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.ASSISTANT;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.SYSTEM;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.TOOL;
@@ -53,6 +57,7 @@ public class CohereMapper {
         return CohereChatRequest.builder()
                 .model(chatRequest.modelName())
                 .messages(toCohereChatMessages(chatRequest.messages()))
+                .responseFormat(toCohereResponseFormat(chatRequest.responseFormat()))
                 .tools(chatRequest.toolSpecifications()
                         .stream()
                         .map(CohereMapper::toCohereTool)
@@ -188,6 +193,20 @@ public class CohereMapper {
                 .id(toolCall.getId())
                 .name(toolCall.getFunction().getName())
                 .arguments(toolCall.getFunction().getArguments())
+                .build();
+    }
+
+    private static CohereResponseFormat toCohereResponseFormat(ResponseFormat responseFormat) {
+        if (responseFormat == null || responseFormat.type() == ResponseFormatType.TEXT) {
+            return null;
+        }
+
+        // TODO: DISGUSTANG, clean this up xD
+        return CohereResponseFormat.builder()
+                .type(JSON_OBJECT)
+                .jsonSchema(responseFormat.jsonSchema() != null
+                    ? toMap(responseFormat.jsonSchema().rootElement(), true)
+                    : null)
                 .build();
     }
 }

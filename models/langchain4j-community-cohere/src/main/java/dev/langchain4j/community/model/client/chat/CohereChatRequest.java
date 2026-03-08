@@ -19,6 +19,7 @@ public class CohereChatRequest {
 
     private String model;
     private List<CohereMessage> messages;
+    private CohereResponseFormat responseFormat;
     private List<CohereTool> tools;
     private ToolChoice toolChoice;
     private Double temperature;
@@ -32,6 +33,7 @@ public class CohereChatRequest {
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
         this.messages = builder.messages;
+        this.responseFormat = builder.responseFormat;
         this.tools = builder.tools;
         this.toolChoice = builder.toolChoice;
         this.temperature = builder.temperature;
@@ -51,9 +53,15 @@ public class CohereChatRequest {
         this.model = model;
     }
 
-    public List<CohereMessage> getMessages() {
-        return messages;
+    public List<CohereMessage> getMessages() { return messages; }
+
+    public void setMessages(List<CohereMessage> messages) { this.messages = messages; }
+
+    public void setResponseFormat(CohereResponseFormat responseFormat) {
+        this.responseFormat = responseFormat;
     }
+
+    public CohereResponseFormat getResponseFormat() { return responseFormat; }
 
     public List<CohereTool> getTools() { return tools; }
 
@@ -62,8 +70,6 @@ public class CohereChatRequest {
     public ToolChoice getToolChoice() { return toolChoice; }
 
     public void setToolChoice(ToolChoice toolChoice) { this.toolChoice = toolChoice; }
-
-    public void setMessages(List<CohereMessage> messages) { this.messages = messages; }
 
     public void setTemperature(Double temperature) { this.temperature = temperature; }
 
@@ -107,6 +113,7 @@ public class CohereChatRequest {
 
         private String model;
         private List<CohereMessage> messages;
+        private CohereResponseFormat responseFormat;
         private List<CohereTool> tools;
         private ToolChoice toolChoice;
         private Double temperature;
@@ -124,6 +131,11 @@ public class CohereChatRequest {
 
         public Builder messages(List<CohereMessage> message) {
             this.messages = message;
+            return this;
+        }
+
+        public Builder responseFormat(CohereResponseFormat responseFormat) {
+            this.responseFormat = responseFormat;
             return this;
         }
 

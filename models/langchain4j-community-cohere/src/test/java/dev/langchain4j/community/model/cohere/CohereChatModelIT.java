@@ -9,14 +9,14 @@ import java.util.List;
 
 public class CohereChatModelIT extends AbstractChatModelIT {
 
+    private static final ChatModel COHERE_CHAT_MODEL = CohereChatModel.builder()
+            .modelName("command-r7b-12-2024")
+            .authToken(System.getenv("CO_API_KEY"))
+            .build();
+
     @Override
     protected List<ChatModel> models() {
-        return List.of(
-                CohereChatModel.builder()
-                        .modelName("command-r7b-12-2024")
-                        .authToken(System.getenv("CO_API_KEY"))
-                        .build()
-        );
+        return List.of(COHERE_CHAT_MODEL);
     }
 
     @Override
@@ -41,6 +41,11 @@ public class CohereChatModelIT extends AbstractChatModelIT {
         return ChatRequestParameters.builder()
                 .maxOutputTokens(maxOutputTokens)
                 .build();
+    }
+
+    @Override
+    public List<ChatModel> modelsSupportingStructuredOutputs() {
+        return List.of(COHERE_CHAT_MODEL);
     }
 
     // TODO: Support token usage in the future
