@@ -4,11 +4,10 @@ import dev.langchain4j.Internal;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
-import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
-import dev.langchain4j.community.model.client.chat.message.content.CohereContentType;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageTextContent;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunction;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunctionCall;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
@@ -22,11 +21,13 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.exception.LangChain4jException;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.ASSISTANT;
@@ -43,6 +44,8 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 @Internal
 public class CohereMapper {
+
+    private static final Map<String, Object> EMPTY_SCHEMA = toMap(JsonObjectSchema.builder().build());
 
     private CohereMapper() {}
 
@@ -127,17 +130,20 @@ public class CohereMapper {
     }
 
     private static CohereTool toCohereTool(ToolSpecification toolSpecification) {
+        Map<String, Object> parameters = toolSpecification.parameters() == null
+                ? EMPTY_SCHEMA
+                : toMap(toolSpecification.parameters());
+
         return CohereTool.builder()
                 .type(FUNCTION)
                 .function(CohereFunction.builder()
                         .name(toolSpecification.name())
-                        .parameters(toMap(toolSpecification.parameters()))
-                        .description(toolSpecification.description())
+                        .parameters(parameters)
                         .build())
                 .build();
     }
 
-    public static ChatResponse fromCohereChatResponse(CohereChatResponse cohereChatResponse) {
+    public static ChatResponse fromCohereChatResponse(CohereChatResponse cohereChatResponse, String modelName) {
         Optional<List<CohereMessageContent>> content = Optional.ofNullable(cohereChatResponse.message.getContent());
 
         String text = null;
@@ -151,6 +157,8 @@ public class CohereMapper {
         }
 
         ChatResponseMetadata metadata = ChatResponseMetadata.builder()
+                .modelName(modelName)
+                .id(cohereChatResponse.id)
                 .finishReason(mapFinishReason(cohereChatResponse.finishReason))
                 .build();
 

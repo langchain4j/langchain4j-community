@@ -2,10 +2,12 @@ package dev.langchain4j.community.model;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereClient;
+import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.ChatResponse;
 
@@ -58,9 +60,14 @@ public class CohereChatModel implements ChatModel {
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
+        CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.toBuilder()
+                .parameters(defaultRequestParameters.overrideWith(chatRequest.parameters()))
+                .build());
+
        CohereChatResponse cohereResponse =
-               withRetryMappingExceptions(() -> client.createMessage(toCohereChatRequest(chatRequest)), maxRetries);
-       return fromCohereChatResponse(cohereResponse);
+               withRetryMappingExceptions(() -> client.createMessage(cohereChatRequest), maxRetries);
+
+       return fromCohereChatResponse(cohereResponse, cohereChatRequest.getModel());
     }
 
     public static Builder builder() {

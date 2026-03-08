@@ -33,6 +33,16 @@ public class CohereChatModelIT extends AbstractChatModelIT {
         return cohereChatModelBuilder.build();
     }
 
+    @Override
+    protected String customModelName() { return "command-r-plus-08-2024"; }
+
+    @Override
+    protected ChatRequestParameters createIntegrationSpecificParameters(int maxOutputTokens) {
+        return ChatRequestParameters.builder()
+                .maxOutputTokens(maxOutputTokens)
+                .build();
+    }
+
     // TODO: Support token usage in the future
     @Override
     protected boolean assertTokenUsage() { return false; }
