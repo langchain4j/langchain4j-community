@@ -30,6 +30,8 @@ public class CohereToolCall {
 
     public CohereFunctionCall getFunction() { return function; }
 
+    public static Builder builder() { return new Builder(); }
+
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)

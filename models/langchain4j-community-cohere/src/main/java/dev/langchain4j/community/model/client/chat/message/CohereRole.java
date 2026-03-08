@@ -8,7 +8,8 @@ public enum CohereRole {
 
     USER,
     ASSISTANT,
-    SYSTEM;
+    SYSTEM,
+    TOOL;
 
     @JsonValue
     public String serialize() { return name().toLowerCase(Locale.ROOT); }

@@ -31,7 +31,7 @@ public class CohereFunctionCall {
         return arguments;
     }
 
-    public Builder builder() {
+    public static Builder builder() {
         return new Builder();
     }
 

@@ -14,16 +14,15 @@ public class CohereChatModelIT extends AbstractChatModelIT {
         return List.of(
                 CohereChatModel.builder()
                         .modelName("command-r7b-12-2024")
-                        .authToken("6dWN6j6kD4ntSLZb9WlINBax4OFFxzFufdkRr6A7")
+                        .authToken(System.getenv("CO_API_KEY"))
                         .build()
         );
     }
 
-
     @Override
     protected ChatModel createModelWith(ChatRequestParameters parameters) {
         CohereChatModel.Builder cohereChatModelBuilder = CohereChatModel.builder()
-                .authToken("6dWN6j6kD4ntSLZb9WlINBax4OFFxzFufdkRr6A7")
+                .authToken(System.getenv("CO_API_KEY"))
                 .defaultRequestParameters(parameters);
                 //.logRequests(true)
                 //.logResponses(true);

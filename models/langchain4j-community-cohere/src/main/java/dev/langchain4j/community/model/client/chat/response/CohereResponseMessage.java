@@ -45,6 +45,7 @@ public class CohereResponseMessage {
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class Builder {
 

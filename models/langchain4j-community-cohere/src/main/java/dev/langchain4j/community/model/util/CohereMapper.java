@@ -10,6 +10,7 @@ import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageTextContent;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunction;
+import dev.langchain4j.community.model.client.chat.tool.CohereFunctionCall;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 import dev.langchain4j.data.message.AiMessage;
@@ -17,6 +18,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.exception.LangChain4jException;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -29,6 +31,7 @@ import java.util.Optional;
 
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.ASSISTANT;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.SYSTEM;
+import static dev.langchain4j.community.model.client.chat.message.CohereRole.TOOL;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.USER;
 import static dev.langchain4j.community.model.client.chat.message.content.CohereContentType.TEXT;
 import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
@@ -70,15 +73,47 @@ public class CohereMapper {
 
     private static CohereMessage toCohereChatMessage(ChatMessage chatMessage) {
         if (chatMessage instanceof UserMessage userMessage) {
-            return new CohereMessage(USER, toCohereTextContent(userMessage.contents()));
+            return CohereMessage.builder()
+                    .role(USER)
+                    .content(toCohereTextContent(userMessage.contents()))
+                    .build();
         }
 
         if (chatMessage instanceof AiMessage aiMessage) {
-            return new CohereMessage(ASSISTANT, List.of(new CohereMessageTextContent(aiMessage.text())));
+            CohereMessage.Builder builder = CohereMessage.builder()
+                    .role(ASSISTANT)
+                    .content(List.of(new CohereMessageTextContent(aiMessage.text())));
+
+            if (aiMessage.hasToolExecutionRequests()) {
+                List<CohereToolCall> toolCalls = aiMessage.toolExecutionRequests().stream()
+                        .map(tc -> CohereToolCall.builder()
+                                .type(FUNCTION)
+                                .id(tc.id())
+                                .function(CohereFunctionCall.builder()
+                                        .name(tc.name())
+                                        .arguments(tc.arguments())
+                                        .build())
+                                .build())
+                        .toList();
+                builder.toolCalls(toolCalls);
+            }
+
+            return builder.build();
         }
 
         if (chatMessage instanceof SystemMessage systemMessage) {
-            return new CohereMessage(SYSTEM, List.of(new CohereMessageTextContent(systemMessage.text())));
+            return CohereMessage.builder()
+                    .role(SYSTEM)
+                    .content(List.of(new CohereMessageTextContent(systemMessage.text())))
+                    .build();
+        }
+
+        if (chatMessage instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
+            return CohereMessage.builder()
+                    .role(TOOL)
+                    .toolCallId(toolExecutionResultMessage.id())
+                    .content(List.of(new CohereMessageTextContent(toolExecutionResultMessage.text())))
+                    .build();
         }
 
         throw new LangChain4jException("Unexpected message type: " + chatMessage.getClass());
