@@ -2,6 +2,7 @@ package dev.langchain4j.community.model.dashscope;
 
 import static dev.langchain4j.community.model.dashscope.QwenHelper.chatResponseFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.supportIncrementalOutput;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
@@ -134,7 +135,8 @@ public class QwenChatModel implements ChatModel {
     }
 
     private ChatResponse generateByNonMultimodalModel(ChatRequest chatRequest) {
-        GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, false);
+        boolean incrementalOutput = supportIncrementalOutput(chatRequest);
+        GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, incrementalOutput);
         try {
             GenerationResult result = generation.call(param);
             return chatResponseFrom(param.getModel(), result);
@@ -144,8 +146,9 @@ public class QwenChatModel implements ChatModel {
     }
 
     private ChatResponse generateByMultimodalModel(ChatRequest chatRequest) {
+        boolean incrementalOutput = supportIncrementalOutput(chatRequest);
         MultiModalConversationParam param =
-                toMultiModalConversationParam(apiKey, chatRequest, multimodalConversationParamCustomizer, false);
+                toMultiModalConversationParam(apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
         try {
             MultiModalConversationResult result = conv.call(param);
             return chatResponseFrom(param.getModel(), result);
