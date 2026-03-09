@@ -54,10 +54,15 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.message.VideoContent;
 import dev.langchain4j.data.video.Video;
 import dev.langchain4j.exception.UnsupportedFeatureException;
+import dev.langchain4j.internal.JsonSchemaElementUtils;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonRawSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
@@ -729,10 +734,6 @@ class QwenHelper {
                     "'vlHighResolutionImages' parameter is not supported by " + parameters.modelName());
         }
 
-        if (parameters.responseFormat() != null && parameters.responseFormat().jsonSchema() != null) {
-            throw new UnsupportedFeatureException("JSON response format is not supported by " + parameters.modelName());
-        }
-
         if (parameters.n() != null) {
             throw new UnsupportedFeatureException("n is not supported by " + parameters.modelName());
         }
@@ -811,7 +812,7 @@ class QwenHelper {
                 .repetitionPenalty(frequencyPenaltyToRepetitionPenalty(parameters.frequencyPenalty()))
                 .maxTokens(parameters.maxOutputTokens())
                 .messages(toQwenMessages(chatRequest.messages(), parameters.enableSanitizeMessages()))
-                .responseFormat(toQwenResponseFormat(parameters.responseFormat()))
+                .responseFormat(toQwenResponseFormat(parameters.responseFormat(), parameters.strictJsonSchema()))
                 .resultFormat(MESSAGE)
                 .incrementalOutput(incrementalOutput)
                 .enableThinking(parameters.enableThinking())
@@ -898,18 +899,39 @@ class QwenHelper {
         return builder.build();
     }
 
-    static com.alibaba.dashscope.common.ResponseFormat toQwenResponseFormat(ResponseFormat responseFormat) {
+    static com.alibaba.dashscope.common.ResponseFormat toQwenResponseFormat(
+            ResponseFormat responseFormat, Boolean jsonSchemaStrict) {
         if (responseFormat == null) {
             return null;
         }
 
-        return switch (responseFormat.type()) {
-            case JSON ->
-                com.alibaba.dashscope.common.ResponseFormat.from(
-                        com.alibaba.dashscope.common.ResponseFormat.JSON_OBJECT);
-            case TEXT ->
-                com.alibaba.dashscope.common.ResponseFormat.from(com.alibaba.dashscope.common.ResponseFormat.TEXT);
-        };
+        if (ResponseFormat.TEXT.equals(responseFormat)) {
+            return com.alibaba.dashscope.common.ResponseFormat.from(com.alibaba.dashscope.common.ResponseFormat.TEXT);
+        } else if (ResponseFormat.JSON.equals(responseFormat)
+                && (responseFormat.jsonSchema() == null
+                        || responseFormat.jsonSchema().rootElement() == null)) {
+            return com.alibaba.dashscope.common.ResponseFormat.from(
+                    com.alibaba.dashscope.common.ResponseFormat.JSON_OBJECT);
+        }
+
+        JsonSchema jsonSchema = responseFormat.jsonSchema();
+        JsonSchemaElement rootElement = jsonSchema.rootElement();
+        boolean strict = jsonSchemaStrict != null && jsonSchemaStrict;
+
+        if (!(rootElement instanceof JsonObjectSchema || rootElement instanceof JsonRawSchema)) {
+            throw new IllegalArgumentException(
+                    "For DashScope, the root element of the JSON Schema must be either a JsonObjectSchema or a JsonRawSchema, but it was: "
+                            + rootElement.getClass());
+        }
+
+        QwenJsonSchema qwenJsonSchema = QwenJsonSchema.builder()
+                .name(jsonSchema.name())
+                .description(rootElement.description())
+                .strict(jsonSchemaStrict)
+                .schema(JsonSchemaElementUtils.toMap(jsonSchema.rootElement(), strict))
+                .build();
+
+        return QwenJsonSchemaResponseFormat.builder().jsonSchema(qwenJsonSchema).build();
     }
 
     static com.alibaba.dashscope.aigc.generation.SearchOptions toQwenSearchOptions(

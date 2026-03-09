@@ -135,6 +135,7 @@ public class QwenStreamingChatModel implements StreamingChatModel {
                 .negativePrompt(qwenParameters.negativePrompt())
                 .parallelToolCalls(qwenParameters.parallelToolCalls())
                 .enableCodeInterpreter(qwenParameters.enableCodeInterpreter())
+                .strictJsonSchema(qwenParameters.strictJsonSchema())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 

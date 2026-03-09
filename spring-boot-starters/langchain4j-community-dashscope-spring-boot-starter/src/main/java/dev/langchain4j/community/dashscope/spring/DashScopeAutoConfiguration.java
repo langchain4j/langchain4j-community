@@ -129,6 +129,7 @@ public class DashScopeAutoConfiguration {
                 .negativePrompt(parameters.getNegativePrompt())
                 .parallelToolCalls(parameters.getParallelToolCalls())
                 .enableCodeInterpreter(parameters.getEnableCodeInterpreter())
+                .strictJsonSchema(parameters.getStrictJsonSchema())
                 .build();
     }
 
