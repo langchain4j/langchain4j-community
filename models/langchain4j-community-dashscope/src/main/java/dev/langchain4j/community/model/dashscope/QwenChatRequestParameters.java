@@ -101,6 +101,12 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      */
     private final Boolean enableCodeInterpreter;
     /**
+     * Controls whether the model must strictly adhere to all constraints of the json schema.
+     * Defaults to false.
+     * See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-structured-output#29f804ad39r5g">Structured Output</a> for more information.
+     */
+    private final Boolean strictJsonSchema;
+    /**
      * User-defined parameters. They may have special effects on some special models.
      */
     private final Map<String, Object> custom;
@@ -123,6 +129,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.negativePrompt = builder.negativePrompt;
         this.parallelToolCalls = builder.parallelToolCalls;
         this.enableCodeInterpreter = builder.enableCodeInterpreter;
+        this.strictJsonSchema = builder.strictJsonSchema;
         this.custom = builder.custom;
     }
 
@@ -190,6 +197,10 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         return enableCodeInterpreter;
     }
 
+    public Boolean strictJsonSchema() {
+        return strictJsonSchema;
+    }
+
     public Map<String, Object> custom() {
         return custom;
     }
@@ -227,6 +238,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 && Objects.equals(negativePrompt, that.negativePrompt)
                 && Objects.equals(parallelToolCalls, that.parallelToolCalls)
                 && Objects.equals(enableCodeInterpreter, that.enableCodeInterpreter)
+                && Objects.equals(strictJsonSchema, that.strictJsonSchema)
                 && Objects.equals(custom, that.custom);
     }
 
@@ -250,6 +262,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 negativePrompt,
                 parallelToolCalls,
                 enableCodeInterpreter,
+                strictJsonSchema,
                 custom);
     }
 
@@ -282,7 +295,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 + promptExtend + ", negativePrompt="
                 + quoted(negativePrompt) + ", parallelToolCalls="
                 + parallelToolCalls + ", enableCodeInterpreter="
-                + enableCodeInterpreter + ", custom="
+                + enableCodeInterpreter + ", strictJsonSchema="
+                + strictJsonSchema + ", custom="
                 + custom + '}';
     }
 
@@ -303,6 +317,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private String negativePrompt;
         private Boolean parallelToolCalls;
         private Boolean enableCodeInterpreter;
+        private Boolean strictJsonSchema;
         private Map<String, Object> custom;
 
         @Override
@@ -323,6 +338,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 negativePrompt(getOrDefault(qwenParameters.negativePrompt(), negativePrompt));
                 parallelToolCalls(getOrDefault(qwenParameters.parallelToolCalls(), parallelToolCalls));
                 enableCodeInterpreter(getOrDefault(qwenParameters.enableCodeInterpreter(), enableCodeInterpreter));
+                strictJsonSchema(getOrDefault(qwenParameters.strictJsonSchema(), strictJsonSchema));
                 custom(getOrDefault(qwenParameters.custom(), custom));
                 isMultimodalModel(getOrDefault(qwenParameters.isMultimodalModel(), isMultimodalModel));
                 supportIncrementalOutput(
@@ -408,6 +424,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder enableCodeInterpreter(Boolean enableCodeInterpreter) {
             this.enableCodeInterpreter = enableCodeInterpreter;
+            return this;
+        }
+
+        public Builder strictJsonSchema(Boolean strictJsonSchema) {
+            this.strictJsonSchema = strictJsonSchema;
             return this;
         }
 

@@ -151,6 +151,7 @@ public class DashScopeChatModelProperties {
         private String negativePrompt;
         private Boolean parallelToolCalls;
         private Boolean enableCodeInterpreter;
+        private Boolean strictJsonSchema;
 
         public String getModelName() {
             return modelName;
@@ -358,6 +359,14 @@ public class DashScopeChatModelProperties {
 
         public void setEnableCodeInterpreter(Boolean enableCodeInterpreter) {
             this.enableCodeInterpreter = enableCodeInterpreter;
+        }
+
+        public Boolean getStrictJsonSchema() {
+            return strictJsonSchema;
+        }
+
+        public void setStrictJsonSchema(Boolean strictJsonSchema) {
+            this.strictJsonSchema = strictJsonSchema;
         }
     }
 

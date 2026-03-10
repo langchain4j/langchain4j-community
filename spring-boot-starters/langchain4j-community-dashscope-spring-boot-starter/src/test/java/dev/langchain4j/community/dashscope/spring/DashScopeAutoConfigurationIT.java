@@ -196,6 +196,7 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.chat-model.parameters.promptExtend=true",
                         "langchain4j.community.dashscope.chat-model.parameters.negativePrompt=disfigured",
                         "langchain4j.community.dashscope.chat-model.parameters.parallel_tool_calls=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.strict-json-schema=true",
                         "langchain4j.community.dashscope.chat-model.parameters.enable-chat-history=true")
                 .run(context -> {
                     ChatModel chatModel = context.getBean(ChatModel.class);
@@ -263,7 +264,7 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.promptExtend()).isTrue();
                     assertThat(defaultParameters.negativePrompt()).isEqualTo("disfigured");
                     assertThat(defaultParameters.parallelToolCalls()).isTrue();
-                    assertThat(defaultParameters.enableCodeInterpreter()).isTrue();
+                    assertThat(defaultParameters.strictJsonSchema()).isTrue();
 
                     assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatModel);
                 });
@@ -307,6 +308,8 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.promptExtend=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.negativePrompt=disfigured",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.parallel_tool_calls=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.enable-code-interpreter=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.strict-json-schema=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.enable-chat-history=true")
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
@@ -376,6 +379,7 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.negativePrompt()).isEqualTo("disfigured");
                     assertThat(defaultParameters.parallelToolCalls()).isTrue();
                     assertThat(defaultParameters.enableCodeInterpreter()).isTrue();
+                    assertThat(defaultParameters.strictJsonSchema()).isTrue();
 
                     assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatModel);
                 });
