@@ -117,6 +117,8 @@ public class QwenChatModel implements ChatModel {
                 .size(qwenParameters.size())
                 .promptExtend(qwenParameters.promptExtend())
                 .negativePrompt(qwenParameters.negativePrompt())
+                .parallelToolCalls(qwenParameters.parallelToolCalls())
+                .strictJsonSchema(qwenParameters.strictJsonSchema())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 

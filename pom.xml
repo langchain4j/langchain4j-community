@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.12.0-beta20-SNAPSHOT</version>
+        <version>1.13.0-beta22-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -39,6 +39,7 @@
         <module>models/langchain4j-community-qianfan</module>
         <module>models/langchain4j-community-xinference</module>
         <module>models/langchain4j-community-zhipu-ai</module>
+        <module>models/langchain4j-community-model-router</module>
 
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
@@ -77,12 +78,16 @@
         <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
         <module>code-execution-engines/langchain4j-community-code-execution-engine-docker</module>
 
+        <!-- Integration of browser execution engines -->
+        <module>browser-execution-engines/langchain4j-community-browser-execution-engine-playwright</module>
+
         <!-- MCP -->
         <module>mcp/langchain4j-community-mcp-server</module>
 
         <!-- Tool integrations -->
         <module>tools/langchain4j-community-tool-jira</module>
         <module>tools/langchain4j-community-tool-web-scraper</module>
+        <module>tools/langchain4j-community-tool-browser-use</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
@@ -97,11 +102,11 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.12.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.12.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.12.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.12.0-SNAPSHOT</langchain4j.open-ai.version>
-        <project.build.outputTimestamp>2026-02-19T20:25:00Z</project.build.outputTimestamp>
+        <langchain4j.core.version>1.13.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.13.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.13.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.13.0-SNAPSHOT</langchain4j.open-ai.version>
+        <project.build.outputTimestamp>2026-03-10T10:40:00Z</project.build.outputTimestamp>
     </properties>
 
     <repositories>
@@ -127,6 +132,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.12.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -299,6 +305,16 @@
     </reporting>
 
     <profiles>
+        <profile>
+            <id>jdk21-modules</id>
+            <activation>
+                <jdk>[21,)</jdk>
+            </activation>
+            <modules>
+                <module>embedding-stores/langchain4j-community-arcadedb</module>
+            </modules>
+        </profile>
+
         <profile>
             <id>openrewrite</id>
             <!-- `mvn -P openrewrite org.openrewrite.maven:rewrite-maven-plugin:run` -->
