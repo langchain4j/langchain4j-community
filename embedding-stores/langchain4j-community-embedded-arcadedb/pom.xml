@@ -13,8 +13,8 @@
 
     <properties>
         <arcadedb.version>25.4.1</arcadedb.version>
-        <!-- ArcadeDB 25.x requires Java 21+ -->
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -67,6 +67,12 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
             <scope>test</scope>
         </dependency>
 
