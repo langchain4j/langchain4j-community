@@ -131,6 +131,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.12.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -303,6 +304,16 @@
     </reporting>
 
     <profiles>
+        <profile>
+            <id>jdk21-modules</id>
+            <activation>
+                <jdk>[21,)</jdk>
+            </activation>
+            <modules>
+                <module>embedding-stores/langchain4j-community-arcadedb</module>
+            </modules>
+        </profile>
+
         <profile>
             <id>openrewrite</id>
             <!-- `mvn -P openrewrite org.openrewrite.maven:rewrite-maven-plugin:run` -->
