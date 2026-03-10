@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Integration :: Embedded ArcadeDB</name>
 
     <properties>
-        <arcadedb.version>25.4.1</arcadedb.version>
+        <arcadedb.version>26.3.1</arcadedb.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
