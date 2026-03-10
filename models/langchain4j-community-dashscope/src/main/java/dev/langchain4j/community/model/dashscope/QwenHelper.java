@@ -154,6 +154,9 @@ class QwenHelper {
         return MultiModalMessage.builder()
                 .role(roleFrom(message))
                 .content(toMultiModalContents(message))
+                .name(nameFrom(message))
+                .toolCallId(toolCallIdFrom(message))
+                .toolCalls(toolCallsFrom(message))
                 .build();
     }
 
@@ -284,6 +287,18 @@ class QwenHelper {
                 .anyMatch(content -> content.containsKey("text"));
     }
 
+    static boolean hasReasoningContent(MultiModalConversationResult result) {
+        return Optional.of(result)
+                .map(MultiModalConversationResult::getOutput)
+                .map(MultiModalConversationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(MultiModalConversationOutput.Choice::getMessage)
+                .map(MultiModalMessage::getReasoningContent)
+                .filter(Utils::isNotNullOrEmpty)
+                .isPresent();
+    }
+
     static String answerFrom(MultiModalConversationResult result) {
         return Optional.of(result)
                 .map(MultiModalConversationResult::getOutput)
@@ -350,19 +365,20 @@ class QwenHelper {
     }
 
     static FinishReason finishReasonFrom(MultiModalConversationResult result) {
-        String finishReason = Optional.of(result)
-                .map(MultiModalConversationResult::getOutput)
-                .map(MultiModalConversationOutput::getChoices)
-                .filter(choices -> !choices.isEmpty())
-                .map(choices -> choices.get(0))
-                .map(MultiModalConversationOutput.Choice::getFinishReason)
-                .orElse("");
+        MultiModalConversationOutput.Choice choice =
+                result.getOutput().getChoices().get(0);
+        // Upon observation, when tool_calls occur, the returned finish_reason may be null or "stop", not "tool_calls".
+        String finishReason =
+                isNullOrEmpty(choice.getMessage().getToolCalls()) ? choice.getFinishReason() : "tool_calls";
 
-        return switch (finishReason) {
-            case "stop" -> STOP;
-            case "length" -> LENGTH;
-            default -> null;
-        };
+        return finishReason == null
+                ? null
+                : switch (finishReason) {
+                    case "stop" -> STOP;
+                    case "length" -> LENGTH;
+                    case "tool_calls" -> TOOL_EXECUTION;
+                    default -> null;
+                };
     }
 
     static String reasoningContentFrom(GenerationResult result) {
@@ -392,12 +408,17 @@ class QwenHelper {
         return modelName.contains("-vl-")
                 || modelName.contains("-audio-")
                 || modelName.contains("-omni-")
-                || modelName.contains("-image-");
+                || modelName.contains("-image-")
+                || modelName.startsWith("qwen3.5-");
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
         // rough judgment
         return true;
+    }
+
+    static boolean streamingOnlyModelName(String modelName) {
+        return modelName.startsWith("qwq-") || modelName.startsWith("qvq-") || modelName.startsWith("qwen3.5-");
     }
 
     static boolean isMultimodalModel(ChatRequest chatRequest) {
@@ -563,8 +584,77 @@ class QwenHelper {
                 .text(text)
                 .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
                 .attributes(isNullOrEmpty(images) ? Map.of() : Map.of(GENERATED_IMAGES_KEY, images));
+        if (isFunctionToolCalls(result)) {
+            aiMessageBuilder = aiMessageBuilder.toolExecutionRequests(toolExecutionRequestsFrom(result));
+            if (text.isBlank()) {
+                aiMessageBuilder.text(null);
+            }
+        }
 
         return aiMessageBuilder.build();
+    }
+
+    private static List<ToolExecutionRequest> toolExecutionRequestsFrom(MultiModalConversationResult result) {
+        return toolCallsFrom(result).stream()
+                .filter(ToolCallFunction.class::isInstance)
+                .map(ToolCallFunction.class::cast)
+                .map(toolCall -> ToolExecutionRequest.builder()
+                        .id(getOrDefault(toolCall.getId(), () -> toolCallIdFromMessage(result)))
+                        .name(toolCall.getFunction().getName())
+                        .arguments(toolCall.getFunction().getArguments())
+                        .build())
+                .collect(toList());
+    }
+
+    static List<ToolCallFunction> toolCallFunctionsFrom(MultiModalConversationResult result) {
+        List<ToolCallBase> toolCalls = Optional.of(result)
+                .map(MultiModalConversationResult::getOutput)
+                .map(MultiModalConversationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(MultiModalConversationOutput.Choice::getMessage)
+                .map(MultiModalMessage::getToolCalls)
+                .orElse(new ArrayList<>());
+
+        return toolCalls.stream()
+                .filter(ToolCallFunction.class::isInstance)
+                .map(ToolCallFunction.class::cast)
+                .collect(toList());
+    }
+
+    static List<ToolCallBase> toolCallsFrom(MultiModalConversationResult result) {
+        return Optional.of(result)
+                .map(MultiModalConversationResult::getOutput)
+                .map(MultiModalConversationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(MultiModalConversationOutput.Choice::getMessage)
+                .map(MultiModalMessage::getToolCalls)
+                .orElseThrow(IllegalStateException::new);
+    }
+
+    static String toolCallIdFromMessage(MultiModalConversationResult result) {
+        // Not sure about the difference between Message::getToolCallId() and ToolCallFunction::getId().
+        // Encapsulate a method to get the ID using Message::getToolCallId() when ToolCallFunction::getId() is null.
+        return Optional.of(result)
+                .map(MultiModalConversationResult::getOutput)
+                .map(MultiModalConversationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(MultiModalConversationOutput.Choice::getMessage)
+                .map(MultiModalMessage::getToolCallId)
+                .orElse(null);
+    }
+
+    static boolean isFunctionToolCalls(MultiModalConversationResult result) {
+        Optional<List<ToolCallBase>> toolCallBases = Optional.of(result)
+                .map(MultiModalConversationResult::getOutput)
+                .map(MultiModalConversationOutput::getChoices)
+                .filter(choices -> !choices.isEmpty())
+                .map(choices -> choices.get(0))
+                .map(MultiModalConversationOutput.Choice::getMessage)
+                .map(MultiModalMessage::getToolCalls);
+        return toolCallBases.isPresent() && !isNullOrEmpty(toolCallBases.get());
     }
 
     private static List<ToolCallBase> toToolCalls(Collection<ToolExecutionRequest> toolExecutionRequests) {
@@ -752,44 +842,9 @@ class QwenHelper {
     }
 
     static void validateMultimodalConversationParameters(QwenChatRequestParameters parameters) {
-        if (parameters.searchOptions() != null) {
-            throw new UnsupportedFeatureException(
-                    "'searchOptions' parameter is not supported by " + parameters.modelName());
-        }
-
-        if (parameters.frequencyPenalty() != null) {
-            throw new UnsupportedFeatureException(
-                    "'frequencyPenalty' parameter is not supported by " + parameters.modelName());
-        }
-
-        if (parameters.toolChoice() != null) {
-            throw new UnsupportedFeatureException(
-                    "'toolChoice' parameter is not supported by " + parameters.modelName());
-        }
-
-        if (!isNullOrEmpty(parameters.toolSpecifications())) {
-            throw new UnsupportedFeatureException(
-                    "'toolSpecifications' parameter is not supported by " + parameters.modelName());
-        }
-
         if (parameters.translationOptions() != null) {
             throw new UnsupportedFeatureException(
                     "'translationOptions' parameter is not supported by " + parameters.modelName());
-        }
-
-        if (parameters.responseFormat() != null) {
-            throw new UnsupportedFeatureException(
-                    "'responseFormat' parameter is not supported by " + parameters.modelName());
-        }
-
-        if (parameters.parallelToolCalls() != null) {
-            throw new UnsupportedFeatureException(
-                    "'parallelToolCalls' parameter is not supported by " + parameters.modelName());
-        }
-
-        if (parameters.enableCodeInterpreter() != null) {
-            throw new UnsupportedFeatureException(
-                    "'enableCodeInterpreter' parameter is not supported by " + parameters.modelName());
         }
     }
 
@@ -877,7 +932,10 @@ class QwenHelper {
                         .n(parameters.n())
                         .size(parameters.size())
                         .promptExtend(parameters.promptExtend())
-                        .negativePrompt(parameters.negativePrompt());
+                        .negativePrompt(parameters.negativePrompt())
+                        .enableThinking(parameters.enableThinking())
+                        .responseFormat(
+                                toQwenResponseFormat(parameters.responseFormat(), parameters.strictJsonSchema()));
 
         if (parameters.temperature() != null) {
             builder.temperature(parameters.temperature().floatValue());
@@ -885,6 +943,20 @@ class QwenHelper {
 
         if (!isNullOrEmpty(parameters.stopSequences())) {
             builder.parameter("stop", parameters.stopSequences());
+        }
+
+        if (!isNullOrEmpty(parameters.toolSpecifications())) {
+            builder.tools(toToolFunctions(parameters.toolSpecifications()));
+            if (parameters.toolChoice() != null && parameters.toolChoice() == REQUIRED) {
+                builder.toolChoice(
+                        toToolFunction((parameters.toolSpecifications().get(0))));
+            }
+            builder.parallelToolCalls(parameters.parallelToolCalls());
+        }
+
+        if (parameters.enableCodeInterpreter() != null) {
+            // no java field is provided yet
+            builder.parameter("enable_code_interpreter", parameters.enableCodeInterpreter());
         }
 
         if (parameters.custom() != null) {
@@ -916,7 +988,7 @@ class QwenHelper {
 
         JsonSchema jsonSchema = responseFormat.jsonSchema();
         JsonSchemaElement rootElement = jsonSchema.rootElement();
-        boolean strict = jsonSchemaStrict != null && jsonSchemaStrict;
+        boolean strict = Boolean.TRUE.equals(jsonSchemaStrict);
 
         if (!(rootElement instanceof JsonObjectSchema || rootElement instanceof JsonRawSchema)) {
             throw new IllegalArgumentException(
