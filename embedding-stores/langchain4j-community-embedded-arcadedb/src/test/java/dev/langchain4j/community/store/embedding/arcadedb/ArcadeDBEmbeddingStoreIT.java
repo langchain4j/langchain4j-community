@@ -2,7 +2,6 @@ package dev.langchain4j.community.store.embedding.arcadedb;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 import java.nio.file.Path;
@@ -17,18 +16,17 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     private ArcadeDBEmbeddingStore embeddingStore;
     private static final int DIMENSION = 384;
-    private static final EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
+    private static final EmbeddingModel embeddingModel = new TestEmbeddingModel(DIMENSION);
     private static final AtomicInteger counter = new AtomicInteger();
 
     @Override
     protected EmbeddingStore<TextSegment> embeddingStore() {
         if (embeddingStore == null) {
             embeddingStore = ArcadeDBEmbeddingStore.builder()
-                    .databasePath(tempDir.resolve("test-db-" + counter.incrementAndGet())
-                            .toString())
+                    .databasePath(tempDir.resolve("test-db-" + counter.incrementAndGet()).toString())
                     .dimension(DIMENSION)
-                    .ef(200)
-                    .efConstruction(400)
+                    .maxConnections(16)
+                    .beamWidth(200)
                     .build();
         }
         return embeddingStore;

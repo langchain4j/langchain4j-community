@@ -14,17 +14,18 @@ import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 
 import com.arcadedb.database.Database;
 import com.arcadedb.database.DatabaseFactory;
-import com.arcadedb.database.Identifiable;
+import com.arcadedb.database.RID;
 import com.arcadedb.graph.MutableVertex;
 import com.arcadedb.graph.Vertex;
-import com.arcadedb.index.vector.HnswVectorIndex;
+import com.arcadedb.index.IndexInternal;
+import com.arcadedb.index.TypeIndex;
+import com.arcadedb.index.vector.LSMVectorIndex;
 import com.arcadedb.query.sql.executor.Result;
 import com.arcadedb.query.sql.executor.ResultSet;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.Type;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.Pair;
-import com.github.jelmerk.knn.DistanceFunctions;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -34,7 +35,6 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
-import dev.langchain4j.store.embedding.filter.comparison.ContainsString;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThanOrEqualTo;
@@ -42,6 +42,7 @@ import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.embedding.filter.comparison.IsLessThan;
 import dev.langchain4j.store.embedding.filter.comparison.IsLessThanOrEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsNotEqualTo;
+import dev.langchain4j.store.embedding.filter.comparison.ContainsString;
 import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
@@ -49,7 +50,6 @@ import dev.langchain4j.store.embedding.filter.logical.Or;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -58,7 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ArcadeDB implementation of {@link EmbeddingStore} using embedded database with native HNSW vector indexing.
+ * ArcadeDB implementation of {@link EmbeddingStore} using embedded database with native LSM vector indexing.
  *
  * <p>Unlike most LangChain4j embedding stores that connect to external servers, ArcadeDB runs
  * <strong>embedded in the same JVM</strong> — zero network overhead, zero serialization cost,
@@ -75,20 +75,17 @@ import org.slf4j.LoggerFactory;
 public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ArcadeDBEmbeddingStore.class);
-    private static final String DEFAULT_EDGE_TYPE = "HnswEdge";
 
     private final Database database;
     private final String typeName;
     private final String quotedTypeName;
-    private final String edgeType;
     private final String metadataPrefix;
     private final int dimension;
-    private HnswVectorIndex<Object, float[], Float> vectorIndex;
+    private LSMVectorIndex vectorIndex;
 
     private ArcadeDBEmbeddingStore(Builder builder) {
         this.typeName = builder.typeName;
         this.quotedTypeName = "`" + builder.typeName + "`";
-        this.edgeType = builder.edgeType;
         this.metadataPrefix = builder.metadataPrefix;
         this.dimension = builder.dimension;
         if (builder.database != null) {
@@ -102,7 +99,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         initSchema(builder);
     }
 
-    @SuppressWarnings("unchecked")
     private void initSchema(Builder builder) {
         database.transaction(() -> {
             Schema schema = database.getSchema();
@@ -132,36 +128,44 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         });
 
         // Check if vector index already exists
-        try {
-            String indexName = typeName + "[" + PROPERTY_ID + "," + PROPERTY_EMBEDDING + "]";
-            var existingIndex = database.getSchema().getIndexByName(indexName);
-            if (existingIndex instanceof HnswVectorIndex) {
-                vectorIndex = (HnswVectorIndex<Object, float[], Float>) existingIndex;
-                return;
-            }
-        } catch (Exception e) {
-            // Index doesn't exist yet, create it
+        vectorIndex = findVectorIndex();
+        if (vectorIndex != null) {
+            return;
         }
 
-        // Create HNSW vector index
+        // Create LSM vector index
         database.transaction(() -> {
-            var indexBuilder = database.getSchema()
-                    .buildVectorIndex()
-                    .withVertexType(typeName)
-                    .withEdgeType(edgeType)
-                    .withVectorProperty(PROPERTY_EMBEDDING, Type.ARRAY_OF_FLOATS)
-                    .withIdProperty(PROPERTY_ID)
-                    .withDeletedProperty(PROPERTY_DELETED)
+            database.getSchema()
+                    .buildTypeIndex(typeName, new String[]{PROPERTY_EMBEDDING})
+                    .withLSMVectorType()
                     .withDimensions(dimension)
-                    .withDistanceFunction(DistanceFunctions.FLOAT_COSINE_DISTANCE)
-                    .withDistanceComparator((Comparator<Float>) Float::compareTo)
-                    .withM(builder.m)
-                    .withEf(builder.ef)
-                    .withEfConstruction(builder.efConstruction);
-            // Set the index type required by the IndexFactory
-            indexBuilder.withType(Schema.INDEX_TYPE.HNSW);
-            vectorIndex = (HnswVectorIndex<Object, float[], Float>) indexBuilder.create();
+                    .withSimilarity("COSINE")
+                    .withMaxConnections(builder.maxConnections)
+                    .withBeamWidth(builder.beamWidth)
+                    .withIdProperty(PROPERTY_ID)
+                    .create();
         });
+
+        vectorIndex = findVectorIndex();
+    }
+
+    private LSMVectorIndex findVectorIndex() {
+        try {
+            String indexName = typeName + "[" + PROPERTY_EMBEDDING + "]";
+            var index = database.getSchema().getIndexByName(indexName);
+            if (index instanceof TypeIndex typeIndex) {
+                for (IndexInternal subIndex : typeIndex.getSubIndexes()) {
+                    if (subIndex instanceof LSMVectorIndex lsmIndex) {
+                        return lsmIndex;
+                    }
+                }
+            } else if (index instanceof LSMVectorIndex lsmIndex) {
+                return lsmIndex;
+            }
+        } catch (Exception e) {
+            // Index doesn't exist
+        }
+        return null;
     }
 
     @Override
@@ -203,10 +207,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             ensureTrue(ids.size() == segments.size(), "ids, embeddings, and segments must have the same size");
         }
 
-        // Save vertices first, then add to HNSW index in separate steps
-        // HNSW needs committed vertices to build graph connections
-        List<Vertex> savedVertices = new ArrayList<>();
-
         for (int i = 0; i < ids.size(); i++) {
             final int idx = i;
             final String id = ids.get(i);
@@ -237,15 +237,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     }
                 }
 
+                // Saving the vertex automatically indexes the embedding via the LSM vector index
                 vertex.save();
-                savedVertices.add(vertex.asVertex());
-            });
-        }
-
-        // Add to HNSW index after vertices are committed
-        for (Vertex savedVertex : savedVertices) {
-            database.transaction(() -> {
-                vectorIndex.add(savedVertex);
             });
         }
     }
@@ -276,23 +269,20 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return Boolean.TRUE.equals(deleted);
     }
 
-    private List<EmbeddingMatch<TextSegment>> searchWithoutFilter(
-            float[] queryVector, int maxResults, double minScore) {
-        // Overfetch from HNSW and post-filter deleted items, because the HNSW callback
-        // receives cached vertex objects that don't reflect recent soft-delete updates.
+    private List<EmbeddingMatch<TextSegment>> searchWithoutFilter(float[] queryVector, int maxResults, double minScore) {
+        // Overfetch and post-filter deleted items
         int fetchSize = Math.max(maxResults * 4, maxResults + 100);
-        List<Pair<Identifiable, ? extends Number>> neighbors =
-                vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
+        List<Pair<RID, Float>> neighbors = vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        for (Pair<Identifiable, ? extends Number> neighbor : neighbors) {
+        for (Pair<RID, Float> neighbor : neighbors) {
             if (matches.size() >= maxResults) break;
             double distance = neighbor.getSecond().doubleValue();
             double cosineSimilarity = 1.0 - Math.max(0.0, distance);
             double score = RelevanceScore.fromCosineSimilarity(cosineSimilarity);
             if (score >= minScore) {
                 try {
-                    Vertex vertex = neighbor.getFirst().getRecord().asVertex();
+                    Vertex vertex = neighbor.getFirst().getRecord(true).asVertex();
                     if (isDeleted(vertex)) continue;
                     matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
                 } catch (Exception e) {
@@ -303,23 +293,20 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return matches;
     }
 
-    private List<EmbeddingMatch<TextSegment>> searchWithFilter(
-            float[] queryVector, int maxResults, double minScore, Filter filter) {
+    private List<EmbeddingMatch<TextSegment>> searchWithFilter(float[] queryVector, int maxResults, double minScore, Filter filter) {
         // Java-based filter evaluation avoids SQL type conversion issues
-        // (UUID, Double, Float type mismatches in ArcadeDB SQL).
         int fetchSize = Math.max(maxResults * 4, maxResults + 100);
-        List<Pair<Identifiable, ? extends Number>> neighbors =
-                vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
+        List<Pair<RID, Float>> neighbors = vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        for (Pair<Identifiable, ? extends Number> neighbor : neighbors) {
+        for (Pair<RID, Float> neighbor : neighbors) {
             if (matches.size() >= maxResults) break;
             double distance = neighbor.getSecond().doubleValue();
             double cosineSimilarity = 1.0 - Math.max(0.0, distance);
             double score = RelevanceScore.fromCosineSimilarity(cosineSimilarity);
             if (score >= minScore) {
                 try {
-                    Vertex vertex = neighbor.getFirst().getRecord().asVertex();
+                    Vertex vertex = neighbor.getFirst().getRecord(true).asVertex();
                     if (isDeleted(vertex)) continue;
                     Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
                     if (!matchesFilter(filter, metadata)) continue;
@@ -369,8 +356,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         } else if (filter instanceof Not f) {
             return !matchesFilter(f.expression(), metadata);
         }
-        throw new UnsupportedOperationException(
-                "Unsupported filter type: " + filter.getClass().getName());
+        throw new UnsupportedOperationException("Unsupported filter type: " + filter.getClass().getName());
     }
 
     private static boolean valueEquals(Object a, Object b) {
@@ -413,16 +399,15 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     public void removeAll(Filter filter) {
         ensureNotNull(filter, "filter");
         database.transaction(() -> {
-            try (ResultSet rs = database.query(
-                    "sql",
-                    "SELECT FROM " + quotedTypeName + " WHERE (" + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED
-                            + " != true)")) {
+            try (ResultSet rs = database.query("sql", "SELECT FROM " + quotedTypeName
+                    + " WHERE (" + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED + " != true)")) {
                 while (rs.hasNext()) {
                     Result result = rs.next();
                     result.getVertex().ifPresent(v -> {
                         Map<String, Object> metadata = extractMetadata(v, metadataPrefix);
                         if (matchesFilter(filter, metadata)) {
                             v.modify().set(PROPERTY_DELETED, true).save();
+                            vectorIndex.remove(new Object[]{null}, v);
                         }
                     });
                 }
@@ -438,13 +423,14 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     }
 
     private void softDeleteById(String id) {
-        try (ResultSet rs =
-                database.query("sql", "SELECT FROM " + quotedTypeName + " WHERE " + PROPERTY_ID + " = ?", id)) {
+        try (ResultSet rs = database.query("sql",
+                "SELECT FROM " + quotedTypeName + " WHERE " + PROPERTY_ID + " = ?", id)) {
             while (rs.hasNext()) {
                 Result result = rs.next();
                 result.getVertex().ifPresent(v -> {
                     v.modify().set(PROPERTY_DELETED, true).save();
-                    vectorIndex.remove(new Object[] {id});
+                    // Also mark as deleted in the vector index so it's excluded from search
+                    vectorIndex.remove(new Object[]{null}, v);
                 });
             }
         }
@@ -466,12 +452,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private String databasePath;
         private Database database;
         private String typeName = "Document";
-        private String edgeType = DEFAULT_EDGE_TYPE;
         private String metadataPrefix = "";
         private int dimension = 384;
-        private int m = 16;
-        private int ef = 10;
-        private int efConstruction = 200;
+        private int maxConnections = 16;
+        private int beamWidth = 100;
 
         /**
          * Path for the embedded ArcadeDB database directory.
@@ -498,14 +482,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
-         * The edge type name for HNSW graph connections. Default: "HnswEdge".
-         */
-        public Builder edgeType(String edgeType) {
-            this.edgeType = edgeType;
-            return this;
-        }
-
-        /**
          * Prefix for metadata properties on the vertex. Default: "" (no prefix).
          */
         public Builder metadataPrefix(String metadataPrefix) {
@@ -522,26 +498,18 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
-         * HNSW M parameter (max connections per node). Default: 16.
+         * Maximum connections per node in the HNSW graph. Default: 16.
          */
-        public Builder m(int m) {
-            this.m = m;
+        public Builder maxConnections(int maxConnections) {
+            this.maxConnections = maxConnections;
             return this;
         }
 
         /**
-         * HNSW ef parameter (search beam width). Default: 10.
+         * Search beam width. Higher values improve recall but increase search time. Default: 100.
          */
-        public Builder ef(int ef) {
-            this.ef = ef;
-            return this;
-        }
-
-        /**
-         * HNSW efConstruction parameter (construction beam width). Default: 200.
-         */
-        public Builder efConstruction(int efConstruction) {
-            this.efConstruction = efConstruction;
+        public Builder beamWidth(int beamWidth) {
+            this.beamWidth = beamWidth;
             return this;
         }
 
