@@ -21,12 +21,15 @@ public class CohereMessageContent {
 
     public String thinking;
 
+    public CohereImageUrl imageUrl;
+
     public CohereMessageContent() {}
 
     private CohereMessageContent(Builder builder) {
         this.type = type;
         this.text = text;
         this.thinking = thinking;
+        this.imageUrl = builder.imageUrl;
     }
 
     public Builder builder() {
@@ -50,6 +53,7 @@ public class CohereMessageContent {
         private CohereContentType type;
         private String text;
         private String thinking;
+        private CohereImageUrl imageUrl;
 
         public Builder CohereContentType(CohereContentType type) {
             this.type = type;
@@ -63,6 +67,11 @@ public class CohereMessageContent {
 
         public Builder thinking(String thinking) {
             this.thinking = thinking;
+            return this;
+        }
+
+        public Builder imageUrl(CohereImageUrl imageUrl) {
+            this.imageUrl = imageUrl;
             return this;
         }
 

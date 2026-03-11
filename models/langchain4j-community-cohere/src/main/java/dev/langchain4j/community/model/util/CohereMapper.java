@@ -6,6 +6,8 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.CohereResponseFormat;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
+import dev.langchain4j.community.model.client.chat.message.content.CohereImageContent;
+import dev.langchain4j.community.model.client.chat.message.content.CohereImageUrl;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageTextContent;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
@@ -16,6 +18,7 @@ import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
@@ -83,7 +86,10 @@ public class CohereMapper {
         if (chatMessage instanceof UserMessage userMessage) {
             return CohereMessage.builder()
                     .role(USER)
-                    .content(toCohereTextContent(userMessage.contents()))
+                    .content(userMessage.contents().stream()
+                            .filter(c -> c instanceof TextContent || c instanceof ImageContent)
+                            .map(CohereMapper::toCohereContent)
+                            .toList())
                     .build();
         }
 
@@ -127,11 +133,28 @@ public class CohereMapper {
         throw new LangChain4jException("Unexpected message type: " + chatMessage.getClass());
     }
 
-    private static List<CohereMessageContent> toCohereTextContent(List<Content> contents) {
-        return contents.stream()
-                .filter(TextContent.class::isInstance)
-                .map(c -> (CohereMessageContent) new CohereMessageTextContent(((TextContent ) c).text()))
-                .toList();
+    private static CohereMessageContent toCohereContent(Content content) {
+        // TODO: This is very brittle
+        if (content instanceof TextContent textContent) {
+            return new CohereMessageTextContent(textContent.text());
+        }
+
+        if (content instanceof ImageContent imageContent) {
+
+            // TODO: See how to handle this better, seems very brittle as well.
+            String url = imageContent.image().url() != null
+                    ? imageContent.image().url().toString()
+                    : "data:image/jpeg;base64," + imageContent.image().base64Data();
+
+            CohereImageUrl imageUrl = CohereImageUrl.builder()
+                    .url(url)
+                    .detail(imageContent.detailLevel())
+                    .build();
+
+            return new CohereImageContent(imageUrl);
+        }
+
+        throw new LangChain4jException("Unsupported message content: " + content);
     }
 
     private static CohereTool toCohereTool(ToolSpecification toolSpecification) {

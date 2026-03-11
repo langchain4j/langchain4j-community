@@ -4,7 +4,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum CohereContentType {
 
-    TEXT;
+    TEXT,
+    IMAGE_URL;
 
     @JsonValue
     public String serialize() { return name().toLowerCase(java.util.Locale.ROOT); }

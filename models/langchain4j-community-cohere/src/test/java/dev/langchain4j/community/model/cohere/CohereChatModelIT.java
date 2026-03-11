@@ -14,6 +14,11 @@ public class CohereChatModelIT extends AbstractChatModelIT {
             .authToken(System.getenv("CO_API_KEY"))
             .build();
 
+    private static final ChatModel COHERE_VISION_MODEL = CohereChatModel.builder()
+            .modelName("command-a-vision-07-2025")
+            .authToken(System.getenv("CO_API_KEY"))
+            .build();
+
     @Override
     protected List<ChatModel> models() {
         return List.of(COHERE_CHAT_MODEL);
@@ -47,6 +52,9 @@ public class CohereChatModelIT extends AbstractChatModelIT {
     public List<ChatModel> modelsSupportingStructuredOutputs() {
         return List.of(COHERE_CHAT_MODEL);
     }
+
+    @Override
+    public List<ChatModel> modelsSupportingImageInputs() { return List.of(COHERE_VISION_MODEL); }
 
     // TODO: Support token usage in the future
     @Override
