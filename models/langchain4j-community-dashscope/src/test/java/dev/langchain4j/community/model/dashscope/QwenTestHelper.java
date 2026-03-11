@@ -31,20 +31,24 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX), Arguments.of(QwenModelName.QWEN3_5_PLUS));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX), Arguments.of(QwenModelName.QWEN3_5_PLUS));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX), Arguments.of(QwenModelName.QWEN3_5_PLUS));
+    }
+
+    public static Stream<Arguments> searchingChatModelNameProvider() {
         return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
     }
 
-    public static Stream<Arguments> vlChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_VL_FLASH));
+    public static Stream<Arguments> multimodalChatModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_VL_FLASH), Arguments.of(QwenModelName.QWEN3_5_PLUS));
     }
 
     public static Stream<Arguments> mtChatModelNameProvider() {

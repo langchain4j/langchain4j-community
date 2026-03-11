@@ -9,10 +9,10 @@ import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimoda
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatModelNameProvider;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultimodalChatModelNameProvider;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessages;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessagesWithImageUrl;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
 import static dev.langchain4j.internal.Json.toJson;
@@ -75,6 +75,8 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
         model.setGenerationParamCustomizer(
                 generationParamBuilder -> generationParamBuilder.stopStrings(List.of("Rainy", "rainy")));
+        model.setMultimodalConversationParamCustomizer(multimodalConversationParamBuilder ->
+                multimodalConversationParamBuilder.parameter("stop", List.of("Rainy", "rainy")));
 
         ChatResponse response = model.chat(QwenTestHelper.chatMessages());
 
@@ -273,7 +275,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#multimodalChatModelNameProvider")
     void should_send_multimodal_image_url_and_receive_response(String modelName) {
         ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
@@ -284,7 +286,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#multimodalChatModelNameProvider")
     void should_send_multimodal_image_data_and_receive_response(String modelName) {
         ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
@@ -319,7 +321,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#multimodalChatModelNameProvider")
     void should_send_multimodal_video_url_and_receive_response(String modelName) {
         ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
@@ -330,7 +332,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#multimodalChatModelNameProvider")
     void should_send_multimodal_video_data_and_receive_response(String modelName) {
         ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
@@ -441,7 +443,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#searchingChatModelNameProvider")
     void should_send_messages_and_receive_response_by_searching(String modelName) {
         // given
         ChatModel model =
@@ -592,7 +594,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
     @Override
     protected List<ChatModel> modelsSupportingImageInputs() {
-        return vlChatModelNameProvider()
+        return multimodalChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenChatModel.builder()
