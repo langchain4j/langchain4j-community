@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
+import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
 import dev.langchain4j.model.chat.request.ToolChoice;
 
@@ -29,6 +30,7 @@ public class CohereChatRequest {
     private Double frequencyPenalty;
     private Integer maxTokens;
     private List<String> stopSequences;
+    private CohereThinking thinking;
 
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
@@ -43,6 +45,7 @@ public class CohereChatRequest {
         this.frequencyPenalty = builder.frequencyPenalty;
         this.maxTokens = builder.maxTokens;
         this.stopSequences = builder.stopSequences;
+        this.thinking = builder.thinking;
     }
 
     public String getModel() {
@@ -105,6 +108,10 @@ public class CohereChatRequest {
 
     public List<String> getStopSequences() { return this.stopSequences; }
 
+    public void setThinking(CohereThinking thinking) { this.thinking = thinking; }
+
+    public CohereThinking getThinking() { return thinking; }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -123,6 +130,7 @@ public class CohereChatRequest {
         private Double frequencyPenalty;
         private Integer maxTokens;
         private List<String> stopSequences;
+        private CohereThinking thinking;
 
         public Builder model(String model) {
             this.model = model;
@@ -181,6 +189,11 @@ public class CohereChatRequest {
 
         public Builder stopSequences(List<String> stopSequences) {
             this.stopSequences = stopSequences;
+            return this;
+        }
+
+        public Builder thinking(CohereThinking thinking) {
+            this.thinking = thinking;
             return this;
         }
 

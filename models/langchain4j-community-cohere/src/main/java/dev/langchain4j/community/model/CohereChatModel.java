@@ -27,6 +27,8 @@ public class CohereChatModel implements ChatModel {
     private final CohereClient client;
     private final ChatRequestParameters defaultRequestParameters;
     private final int maxRetries;
+    private final Boolean enableThinking;
+    private final Integer thinkingTokenBudget;
 
     public CohereChatModel(Builder builder) {
         this.client = CohereClient.builder()
@@ -51,6 +53,9 @@ public class CohereChatModel implements ChatModel {
                 .responseFormat(getOrDefault(builder.responseFormat, commonParameters.responseFormat()))
                 .build();
 
+        this.enableThinking = builder.enableThinking;
+        this.thinkingTokenBudget = builder.thinkingTokenBudget;
+
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
     }
 
@@ -63,7 +68,7 @@ public class CohereChatModel implements ChatModel {
     public ChatResponse doChat(ChatRequest chatRequest) {
         CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.toBuilder()
                 .parameters(defaultRequestParameters.overrideWith(chatRequest.parameters()))
-                .build());
+                .build(), enableThinking, thinkingTokenBudget);
 
        CohereChatResponse cohereResponse =
                withRetryMappingExceptions(() -> client.createMessage(cohereChatRequest), maxRetries);
@@ -92,6 +97,8 @@ public class CohereChatModel implements ChatModel {
         private List<ToolSpecification> toolSpecifications;
         private ToolChoice toolChoice;
         private ResponseFormat responseFormat;
+        private Boolean enableThinking;
+        private Integer thinkingTokenBudget;
 
         private ChatRequestParameters defaultRequestParameters;
 
@@ -177,6 +184,16 @@ public class CohereChatModel implements ChatModel {
 
         public Builder responseFormat(ResponseFormat responseFormat) {
             this.responseFormat = responseFormat;
+            return this;
+        }
+
+        public Builder enableThinking(Boolean value) {
+            this.enableThinking = value;
+            return this;
+        }
+
+        public Builder thinkingTokenBudget(Integer thinkingTokenBudget) {
+            this.thinkingTokenBudget = thinkingTokenBudget;
             return this;
         }
 

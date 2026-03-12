@@ -11,6 +11,8 @@ import dev.langchain4j.community.model.client.chat.message.content.CohereImageUr
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageTextContent;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
+import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
+import dev.langchain4j.community.model.client.chat.thinking.CohereThinkingType;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunction;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunctionCall;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
@@ -42,12 +44,15 @@ import static dev.langchain4j.community.model.client.chat.message.CohereRole.SYS
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.TOOL;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.USER;
 import static dev.langchain4j.community.model.client.chat.message.content.CohereContentType.TEXT;
+import static dev.langchain4j.community.model.client.chat.thinking.CohereThinkingType.DISABLED;
+import static dev.langchain4j.community.model.client.chat.thinking.CohereThinkingType.ENABLED;
 import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.OTHER;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.lang.Boolean.TRUE;
 
 @Internal
 public class CohereMapper {
@@ -56,8 +61,9 @@ public class CohereMapper {
 
     private CohereMapper() {}
 
-    public static CohereChatRequest toCohereChatRequest(ChatRequest chatRequest) {
-        return CohereChatRequest.builder()
+    public static CohereChatRequest toCohereChatRequest(ChatRequest chatRequest, Boolean enableThinking, Integer thinkingTokenBudget) {
+
+        CohereChatRequest.Builder builder = CohereChatRequest.builder()
                 .model(chatRequest.modelName())
                 .messages(toCohereChatMessages(chatRequest.messages()))
                 .responseFormat(toCohereResponseFormat(chatRequest.responseFormat()))
@@ -72,8 +78,16 @@ public class CohereMapper {
                 .presencePenalty(chatRequest.presencePenalty())
                 .frequencyPenalty(chatRequest.frequencyPenalty())
                 .maxTokens(chatRequest.maxOutputTokens())
-                .stopSequences(chatRequest.stopSequences())
-                .build();
+                .stopSequences(chatRequest.stopSequences());
+
+        if (enableThinking != null || thinkingTokenBudget != null) {
+            builder.thinking(CohereThinking.builder()
+                            .type(TRUE.equals(enableThinking) ? ENABLED : DISABLED)
+                            .tokenBudget(thinkingTokenBudget)
+                            .build());
+        }
+
+        return builder.build();
     }
 
     private static List<CohereMessage> toCohereChatMessages(List<ChatMessage> chatMessages) {
