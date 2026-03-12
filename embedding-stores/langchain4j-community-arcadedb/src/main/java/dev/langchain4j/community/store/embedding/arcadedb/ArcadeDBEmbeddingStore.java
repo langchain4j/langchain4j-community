@@ -54,10 +54,13 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,6 +122,17 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private final Database embeddedDatabase;
     private LSMVectorIndex vectorIndex;
 
+    // Embedded mode index parameters (needed to recreate the index after removeAll)
+    private final int embeddedDimension;
+    private final int embeddedMaxConnections;
+    private final int embeddedBeamWidth;
+
+    // Tracks the number of non-deleted vertices to detect HNSW connectivity gaps.
+    // HNSW may not traverse all nodes when vectors are identical; if HNSW returns fewer
+    // results than this count indicates, a supplementary scan recovers the missed vertices.
+    // null in remote mode.
+    private final AtomicLong activeVertexCount;
+
     // ===== Remote mode constructor =====
 
     private ArcadeDBEmbeddingStore(
@@ -135,6 +149,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.typeName = ensureNotBlank(typeName, "typeName");
         this.metadataPrefix = metadataPrefix;
         this.filterMapper = new ArcadeDBMetadataFilterMapper(metadataPrefix);
+        this.embeddedDimension = 0;
+        this.embeddedMaxConnections = 0;
+        this.embeddedBeamWidth = 0;
+        this.activeVertexCount = null;
         initRemoteSchema(dimension, similarityFunction, maxConnections, beamWidth);
     }
 
@@ -146,6 +164,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.filterMapper = null;
         this.typeName = builder.typeName;
         this.metadataPrefix = builder.metadataPrefix;
+        this.embeddedDimension = builder.dimension;
+        this.embeddedMaxConnections = builder.maxConnections;
+        this.embeddedBeamWidth = builder.beamWidth;
         if (builder.database != null) {
             this.embeddedDatabase = builder.database;
         } else {
@@ -154,6 +175,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             this.embeddedDatabase = factory.exists() ? factory.open() : factory.create();
         }
         initEmbeddedSchema(builder);
+        this.activeVertexCount = new AtomicLong(queryActiveVertexCount());
     }
 
     /**
@@ -258,13 +280,26 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     public void removeAll() {
         if (embeddedMode) {
             String quotedTypeName = "`" + typeName + "`";
+            // Delete all records and drop+recreate the vector index to guarantee a clean HNSW graph.
+            // REBUILD INDEX alone does not reset the entry point, so subsequent insertions of
+            // identical vectors can result in a disconnected graph that findNeighborsFromVector
+            // cannot fully traverse. Dropping and recreating the index ensures a fresh graph state.
             embeddedDatabase.transaction(() -> embeddedDatabase.command(
                     "sql", "DELETE FROM " + quotedTypeName));
-            // Rebuild the index to produce a clean HNSW graph with no tombstones.
-            // Without this, stale edges left by deleted nodes corrupt connectivity
-            // for subsequent insertions.
-            embeddedDatabase.command("sql", "REBUILD INDEX `" + typeName + "[" + EMBEDDED_EMBEDDING + "]`");
+            String indexName = typeName + "[" + EMBEDDED_EMBEDDING + "]";
+            embeddedDatabase.transaction(() -> embeddedDatabase.getSchema().dropIndex(indexName));
+            embeddedDatabase.transaction(() -> embeddedDatabase
+                    .getSchema()
+                    .buildTypeIndex(typeName, new String[] {EMBEDDED_EMBEDDING})
+                    .withLSMVectorType()
+                    .withDimensions(embeddedDimension)
+                    .withSimilarity("COSINE")
+                    .withMaxConnections(embeddedMaxConnections)
+                    .withBeamWidth(embeddedBeamWidth)
+                    .withIdProperty(EMBEDDED_ID)
+                    .create());
             vectorIndex = findVectorIndex();
+            activeVertexCount.set(0);
         } else {
             remoteDatabase.command("sql", String.format("DELETE FROM `%s`", typeName));
             rebuildRemoteIndex();
@@ -464,43 +499,95 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
                 // Saving the vertex automatically indexes the embedding via the LSM vector index
                 vertex.save();
+                activeVertexCount.incrementAndGet();
             });
         }
     }
 
-    private EmbeddingSearchResult<TextSegment> searchEmbedded(EmbeddingSearchRequest request) {
+    public EmbeddingSearchResult<TextSegment> searchEmbedded(EmbeddingSearchRequest request) {
+        ensureNotNull(request, "request");
         ensureNotNull(request.queryEmbedding(), "queryEmbedding");
 
-        float[] queryVector = embeddingToFloatArray(request.queryEmbedding());
+        Embedding queryEmbedding = request.queryEmbedding();
+        float[] queryVector = embeddingToFloatArray(queryEmbedding);
         int maxResults = request.maxResults();
         double minScore = request.minScore();
         Filter filter = request.filter();
 
-        // Over-fetch to account for soft-deleted documents and in-memory filter reduction.
         int fetchSize = Math.max(maxResults * 4, maxResults + 100);
         List<Pair<RID, Float>> neighbors = vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
 
+        // Collect all RIDs the HNSW graph traversal reached, regardless of whether they pass
+        // the score/filter/deleted checks. This is needed to detect unreachable vertices later.
+        Set<RID> hnswRids = new HashSet<>();
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
         for (Pair<RID, Float> neighbor : neighbors) {
-            if (matches.size() >= maxResults) break;
-            // ArcadeDB returns (1 - cosine_similarity) / 2, so relevance score = 1 - rawDistance
+            RID rid = neighbor.getFirst();
+            hnswRids.add(rid);
+            if (matches.size() >= maxResults) continue;
             double rawDistance = neighbor.getSecond().doubleValue();
             double score = 1.0 - rawDistance;
-            if (score >= minScore) {
-                try {
-                    Vertex vertex = neighbor.getFirst().getRecord(true).asVertex();
-                    if (Boolean.TRUE.equals(vertex.get(PROPERTY_DELETED))) continue;
-                    if (filter != null) {
-                        Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
-                        if (!matchesFilter(filter, metadata)) continue;
-                    }
-                    matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
-                } catch (Exception e) {
-                    log.warn("Failed to load vertex {}: {}", neighbor.getFirst(), e.getMessage());
+            if (score < minScore) continue;
+            try {
+                Vertex vertex = rid.getRecord(true).asVertex();
+                if (Boolean.TRUE.equals(vertex.get(PROPERTY_DELETED))) continue;
+                if (filter != null) {
+                    Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
+                    if (!matchesFilter(filter, metadata)) continue;
                 }
+                matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
+            } catch (Exception e) {
+                log.warn("Failed to load vertex {}: {}", rid, e.getMessage());
             }
         }
+
+        // HNSW may not traverse all nodes when vectors are identical or nearly identical —
+        // a known limitation when graph edges degenerate under zero-distance insertions.
+        // If HNSW returned fewer results than the fetch limit and the active vertex count
+        // indicates vertices were missed, supplement with a targeted scan for those vertices.
+        if (neighbors.size() < fetchSize && matches.size() < maxResults) {
+            long active = activeVertexCount.get();
+            if (matches.size() < Math.min(maxResults, active)) {
+                supplementFromMissedVertices(queryEmbedding, hnswRids, minScore, filter, matches, maxResults);
+            }
+        }
+
         return new EmbeddingSearchResult<>(matches);
+    }
+
+    private void supplementFromMissedVertices(
+            Embedding queryEmbedding,
+            Set<RID> hnswRids,
+            double minScore,
+            Filter filter,
+            List<EmbeddingMatch<TextSegment>> matches,
+            int maxResults) {
+        String quotedTypeName = "`" + typeName + "`";
+        String sql = "SELECT FROM " + quotedTypeName + " WHERE ("
+                + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED + " != true)";
+        try (ResultSet rs = embeddedDatabase.query("sql", sql)) {
+            while (rs.hasNext()) {
+                if (matches.size() >= maxResults) break;
+                Result result = rs.next();
+                result.getVertex().ifPresent(vertex -> {
+                    if (hnswRids.contains(vertex.getIdentity())) return;
+                    if (filter != null) {
+                        Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
+                        if (!matchesFilter(filter, metadata)) return;
+                    }
+                    Object rawVector = vertex.get(EMBEDDED_EMBEDDING);
+                    if (!(rawVector instanceof float[] vec)) return;
+                    double score = RelevanceScore.fromCosineSimilarity(
+                            CosineSimilarity.between(queryEmbedding, Embedding.from(vec)));
+                    if (score >= minScore) {
+                        matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
+                    }
+                });
+            }
+        }
+        if (matches.size() > 1) {
+            matches.sort((a, b) -> Double.compare(b.score(), a.score()));
+        }
     }
 
     private void removeAllByFilterEmbedded(Filter filter) {
@@ -517,6 +604,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                         if (matchesFilter(filter, metadata)) {
                             v.modify().set(PROPERTY_DELETED, true).save();
                             vectorIndex.remove(new Object[] {null}, v);
+                            activeVertexCount.decrementAndGet();
                         }
                     });
                 }
@@ -575,6 +663,20 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         vectorIndex = findVectorIndex();
     }
 
+    private long queryActiveVertexCount() {
+        String sql = "SELECT count(*) as total FROM `" + typeName + "` WHERE ("
+                + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED + " != true)";
+        try (ResultSet rs = embeddedDatabase.query("sql", sql)) {
+            if (rs.hasNext()) {
+                Object val = rs.next().getProperty("total");
+                if (val instanceof Number n) return n.longValue();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to count active vertices: {}", e.getMessage());
+        }
+        return 0;
+    }
+
     private LSMVectorIndex findVectorIndex() {
         try {
             String indexName = typeName + "[" + EMBEDDED_EMBEDDING + "]";
@@ -604,6 +706,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     v.modify().set(PROPERTY_DELETED, true).save();
                     // Also remove from the vector index so it's excluded from future searches
                     vectorIndex.remove(new Object[] {null}, v);
+                    activeVertexCount.decrementAndGet();
                 });
             }
         }
