@@ -85,4 +85,9 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         // above the boundary where subnormal floating-point arithmetic can cause a false failure.
         return 200;
     }
+
+    @Override
+    protected boolean supportsContains() {
+        return true;
+    }
 }

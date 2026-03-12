@@ -1,5 +1,9 @@
 package dev.langchain4j.community.store.embedding.arcadedb;
 
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.PROPERTY_DELETED;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.embeddingToFloatArray;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.extractMetadata;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.toEmbeddingMatch;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
@@ -8,10 +12,22 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 
+import com.arcadedb.database.Database;
+import com.arcadedb.database.DatabaseFactory;
+import com.arcadedb.database.RID;
+import com.arcadedb.graph.MutableVertex;
+import com.arcadedb.graph.Vertex;
+import com.arcadedb.index.IndexInternal;
+import com.arcadedb.index.TypeIndex;
+import com.arcadedb.index.vector.LSMVectorIndex;
 import com.arcadedb.query.sql.executor.Result;
 import com.arcadedb.query.sql.executor.ResultSet;
 import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.remote.RemoteServer;
+import com.arcadedb.schema.Schema;
+import com.arcadedb.schema.Type;
+import com.arcadedb.schema.VertexType;
+import com.arcadedb.utility.Pair;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -22,6 +38,7 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
+import dev.langchain4j.store.embedding.filter.comparison.ContainsString;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThanOrEqualTo;
@@ -33,11 +50,14 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,48 +65,112 @@ import org.slf4j.LoggerFactory;
 /**
  * Implementation of {@link EmbeddingStore} using <a href="https://arcadedb.com/">ArcadeDB</a>
  * with LSM_VECTOR (JVector-based HNSW) vector indexing.
- * <p>
- * Connects to a remote ArcadeDB server and stores embeddings as vertex documents
- * with an LSM_VECTOR index for efficient similarity search.
+ *
+ * <p>Two modes of operation are supported:
+ * <ul>
+ *   <li><b>Remote mode</b>: Connects to a remote ArcadeDB server via HTTP.
+ *       Use {@link #builder()} to configure. Supports all filter types except
+ *       {@code ContainsString}.</li>
+ *   <li><b>Embedded mode</b>: ArcadeDB runs embedded within the same JVM, offering zero network
+ *       overhead and zero serialization cost, with persistence and native HNSW indexing.
+ *       Use {@link #embeddedBuilder()} to configure. Supports all filter types including
+ *       {@code ContainsString}. Uses soft-delete to preserve HNSW graph connectivity.</li>
+ * </ul>
  */
-public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
+public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(ArcadeDBEmbeddingStore.class);
 
-    private static final String DEFAULT_TYPE_NAME = "EmbeddingDocument";
-    private static final String DEFAULT_SIMILARITY = "COSINE";
-    private static final String DEFAULT_METADATA_PREFIX = "meta_";
-    private static final int DEFAULT_PORT = 2480;
-    private static final int DEFAULT_MAX_CONNECTIONS = 16;
-    private static final int DEFAULT_BEAM_WIDTH = 100;
-
+    // Remote mode property names
     static final String ID_PROPERTY = "doc_id";
     static final String EMBEDDING_PROPERTY = "embedding";
     static final String TEXT_PROPERTY = "text";
 
-    private final RemoteDatabase database;
+    // Embedded mode property names (from ArcadeDBEmbeddingUtils)
+    private static final String EMBEDDED_ID = ArcadeDBEmbeddingUtils.PROPERTY_ID;
+    private static final String EMBEDDED_EMBEDDING = ArcadeDBEmbeddingUtils.PROPERTY_EMBEDDING;
+    private static final String EMBEDDED_TEXT = ArcadeDBEmbeddingUtils.PROPERTY_TEXT;
+
+    // Shared defaults
+    private static final String DEFAULT_TYPE_NAME = "EmbeddingDocument";
+    private static final String DEFAULT_SIMILARITY = "COSINE";
+    private static final int DEFAULT_MAX_CONNECTIONS = 16;
+    private static final int DEFAULT_BEAM_WIDTH = 100;
+
+    // Remote-specific defaults
+    private static final int DEFAULT_PORT = 2480;
+    private static final String REMOTE_DEFAULT_METADATA_PREFIX = "meta_";
+
+    // Embedded-specific defaults
+    private static final String EMBEDDED_DEFAULT_METADATA_PREFIX = "";
+
+    // Mode flag
+    private final boolean embeddedMode;
+
+    // Shared fields
     private final String typeName;
     private final String metadataPrefix;
+
+    // Remote mode fields (null in embedded mode)
+    private final RemoteDatabase remoteDatabase;
     private final ArcadeDBMetadataFilterMapper filterMapper;
 
+    // Embedded mode fields (null in remote mode)
+    private final Database embeddedDatabase;
+    private LSMVectorIndex vectorIndex;
+
+    // ===== Remote mode constructor =====
+
     private ArcadeDBEmbeddingStore(
-            RemoteDatabase database,
+            RemoteDatabase remoteDatabase,
             String typeName,
             int dimension,
             String similarityFunction,
             int maxConnections,
             int beamWidth,
             String metadataPrefix) {
-        this.database = ensureNotNull(database, "database");
+        this.embeddedMode = false;
+        this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
+        this.embeddedDatabase = null;
         this.typeName = ensureNotBlank(typeName, "typeName");
         this.metadataPrefix = metadataPrefix;
         this.filterMapper = new ArcadeDBMetadataFilterMapper(metadataPrefix);
-        initSchema(dimension, similarityFunction, maxConnections, beamWidth);
+        initRemoteSchema(dimension, similarityFunction, maxConnections, beamWidth);
     }
 
+    // ===== Embedded mode constructor =====
+
+    private ArcadeDBEmbeddingStore(EmbeddedBuilder builder) {
+        this.embeddedMode = true;
+        this.remoteDatabase = null;
+        this.filterMapper = null;
+        this.typeName = builder.typeName;
+        this.metadataPrefix = builder.metadataPrefix;
+        if (builder.database != null) {
+            this.embeddedDatabase = builder.database;
+        } else {
+            ensureNotBlank(builder.databasePath, "databasePath");
+            DatabaseFactory factory = new DatabaseFactory(builder.databasePath);
+            this.embeddedDatabase = factory.exists() ? factory.open() : factory.create();
+        }
+        initEmbeddedSchema(builder);
+    }
+
+    /**
+     * Returns a builder for remote mode (connects to an ArcadeDB server via HTTP).
+     */
     public static Builder builder() {
         return new Builder();
     }
+
+    /**
+     * Returns a builder for embedded mode (ArcadeDB runs within the same JVM).
+     */
+    public static EmbeddedBuilder embeddedBuilder() {
+        return new EmbeddedBuilder();
+    }
+
+    // ===== EmbeddingStore interface =====
 
     @Override
     public String add(Embedding embedding) {
@@ -129,15 +213,88 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         ensureTrue(
                 embedded == null || embeddings.size() == embedded.size(),
                 "embeddings size is not equal to embedded size");
+        if (embeddedMode) {
+            addAllEmbedded(ids, embeddings, embedded);
+        } else {
+            addAllRemote(ids, embeddings, embedded);
+        }
+    }
 
-        log.debug("Inserting {} embeddings into ArcadeDB", ids.size());
+    @Override
+    public void removeAll(Collection<String> ids) {
+        ensureNotEmpty(ids, "ids");
+        if (embeddedMode) {
+            embeddedDatabase.transaction(() -> {
+                for (String id : ids) {
+                    softDeleteById(id);
+                }
+            });
+        } else {
+            String idList =
+                    ids.stream().map(id -> "'" + escapeString(id) + "'").collect(Collectors.joining(", "));
+            remoteDatabase.command(
+                    "sql", String.format("DELETE FROM `%s` WHERE %s IN [%s]", typeName, ID_PROPERTY, idList));
+            rebuildRemoteIndex();
+        }
+    }
+
+    @Override
+    public void removeAll(Filter filter) {
+        ensureNotNull(filter, "filter");
+        if (embeddedMode) {
+            removeAllByFilterEmbedded(filter);
+        } else {
+            log.info("Number of embeddings before delete: {}", findAllRemote(1000).size());
+            String whereClause = filterMapper.map(filter);
+            String sql = String.format("DELETE FROM `%s` WHERE %s", typeName, whereClause);
+            log.debug("Removing with filter: {}", sql);
+            remoteDatabase.command("sql", sql);
+            log.info("Number of embeddings after delete: {}", findAllRemote(1000).size());
+            rebuildRemoteIndex();
+        }
+    }
+
+    @Override
+    public void removeAll() {
+        if (embeddedMode) {
+            String quotedTypeName = "`" + typeName + "`";
+            embeddedDatabase.transaction(() -> embeddedDatabase.command(
+                    "sql", "DELETE FROM " + quotedTypeName));
+            // Rebuild the index to produce a clean HNSW graph with no tombstones.
+            // Without this, stale edges left by deleted nodes corrupt connectivity
+            // for subsequent insertions.
+            embeddedDatabase.command("sql", "REBUILD INDEX `" + typeName + "[" + EMBEDDED_EMBEDDING + "]`");
+            vectorIndex = findVectorIndex();
+        } else {
+            remoteDatabase.command("sql", String.format("DELETE FROM `%s`", typeName));
+            rebuildRemoteIndex();
+        }
+    }
+
+    @Override
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+        if (embeddedMode) {
+            return searchEmbedded(request);
+        } else {
+            return searchRemote(request);
+        }
+    }
+
+    @Override
+    public void close() {
+        if (embeddedMode && embeddedDatabase != null && embeddedDatabase.isOpen()) {
+            embeddedDatabase.close();
+        }
+    }
+
+    // ===== Remote mode implementation =====
+
+    private void addAllRemote(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
+        log.debug("Inserting {} embeddings into ArcadeDB (remote mode)", ids.size());
         for (int i = 0; i < ids.size(); i++) {
             StringBuilder sql = new StringBuilder();
             sql.append("INSERT INTO `").append(typeName).append("` SET ");
-            sql.append(ID_PROPERTY)
-                    .append(" = '")
-                    .append(escapeString(ids.get(i)))
-                    .append("'");
+            sql.append(ID_PROPERTY).append(" = '").append(escapeString(ids.get(i))).append("'");
             sql.append(", ").append(EMBEDDING_PROPERTY).append(" = ").append(embeddingToSql(embeddings.get(i)));
 
             if (embedded != null && embedded.get(i) != null) {
@@ -149,8 +306,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                             .append(escapeString(segment.text()))
                             .append("'");
                 }
-                Map<String, Object> metadataMap = segment.metadata().toMap();
-                for (Map.Entry<String, Object> entry : metadataMap.entrySet()) {
+                for (Map.Entry<String, Object> entry : segment.metadata().toMap().entrySet()) {
                     sql.append(", ")
                             .append(metadataPrefix)
                             .append(entry.getKey())
@@ -159,56 +315,17 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                 }
             }
 
-            database.command("sql", sql.toString());
+            remoteDatabase.command("sql", sql.toString());
         }
     }
 
-    @Override
-    public void removeAll(Collection<String> ids) {
-        ensureNotEmpty(ids, "ids");
-        String idList = ids.stream().map(id -> "'" + escapeString(id) + "'").collect(Collectors.joining(", "));
-        String sql = String.format("DELETE FROM `%s` WHERE %s IN [%s]", typeName, ID_PROPERTY, idList);
-        database.command("sql", sql);
-        rebuildIndex();
-    }
-
-    @Override
-    public void removeAll(Filter filter) {
-
-        ensureNotNull(filter, "filter");
-        // Print the count of all embeddings before the deletion
-        log.info(String.format(
-                "Number of embeddings before delete: %d", findAll(1000).size()));
-        String whereClause = filterMapper.map(filter);
-        String sql = String.format("DELETE FROM `%s` WHERE %s", typeName, whereClause);
-        log.debug("Removing with filter: {}", sql);
-        database.command("sql", sql);
-        log.info(String.format(
-                "Number of embeddings after delete: %d", findAll(1000).size()));
-        rebuildIndex();
-    }
-
-    @Override
-    public void removeAll() {
-        database.command("sql", String.format("DELETE FROM `%s`", typeName));
-        rebuildIndex();
-    }
-
-    private void rebuildIndex() {
-        // ArcadeDB's LSM_VECTOR index requires a rebuild after deletions to ensure
-        // that subsequent inserts are properly indexed for vector search.
-        database.command("sql", "REBUILD INDEX *");
-    }
-
-    @Override
-    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+    private EmbeddingSearchResult<TextSegment> searchRemote(EmbeddingSearchRequest request) {
         Embedding queryEmbedding = request.queryEmbedding();
         int maxResults = request.maxResults();
         double minScore = request.minScore();
         Filter filter = request.filter();
 
-        // Validate the filter eagerly so unsupported filter types (e.g. containsString)
-        // throw UnsupportedOperationException even when the index is empty.
+        // Validate the filter eagerly so unsupported types throw even when the index is empty.
         if (filter != null) {
             validateFilter(filter);
         }
@@ -218,176 +335,66 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         String vectorSql = embeddingToSql(queryEmbedding);
         String indexName = typeName + "[" + EMBEDDING_PROPERTY + "]";
-        // Run the neighbor search without any WHERE clause; filtering is done in-memory below.
         String query = String.format(
                 "SELECT *, `vector.neighbors`('%s', %s, %d) AS neighbors FROM `%s`",
                 indexName, vectorSql, fetchCount, typeName);
 
         ResultSet resultSet;
         try {
-            resultSet = database.query("sql", query);
+            resultSet = remoteDatabase.query("sql", query);
         } catch (Exception e) {
             log.debug("Vector search returned error (index may be empty): {}", e.getMessage());
             return new EmbeddingSearchResult<>(List.of());
         }
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-
         while (resultSet.hasNext() && matches.size() < maxResults) {
             Result doc = resultSet.next();
-
             String docId = doc.getProperty(ID_PROPERTY);
-            if (docId == null) {
-                continue;
-            }
-            Embedding embedding = toEmbedding(doc.getProperty(EMBEDDING_PROPERTY));
-            if (embedding == null) {
-                continue;
-            }
-
-            double score = RelevanceScore.fromCosineSimilarity(CosineSimilarity.between(queryEmbedding, embedding));
-            if (score < minScore) {
-                continue;
-            }
-
+            if (docId == null) continue;
+            Embedding embedding = resultToEmbedding(doc.getProperty(EMBEDDING_PROPERTY));
+            if (embedding == null) continue;
+            double score =
+                    RelevanceScore.fromCosineSimilarity(CosineSimilarity.between(queryEmbedding, embedding));
+            if (score < minScore) continue;
             String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
             Map<String, Object> metadataMap = extractMetadataFromResult(doc);
-
-            // Apply filter in-memory against the document's metadata.
-            if (filter != null && !matchesFilter(filter, metadataMap)) {
-                continue;
-            }
-
-            TextSegment textSegment = null;
-            if (text != null) {
-                textSegment = TextSegment.from(text, Metadata.from(metadataMap));
-            } else if (!metadataMap.isEmpty()) {
-                textSegment = TextSegment.from("", Metadata.from(metadataMap));
-            }
-
-            matches.add(new EmbeddingMatch<>(score, docId, embedding, textSegment));
+            if (filter != null && !matchesFilter(filter, metadataMap)) continue;
+            matches.add(new EmbeddingMatch<>(score, docId, embedding, buildTextSegment(text, metadataMap)));
         }
 
         matches.sort((a, b) -> Double.compare(b.score(), a.score()));
-
         return new EmbeddingSearchResult<>(matches);
     }
 
-    /**
-     * Validates that the filter only contains supported types, throwing
-     * {@link UnsupportedOperationException} eagerly for unsupported filter types.
-     */
-    private void validateFilter(Filter filter) {
-        if (filter instanceof And f) {
-            validateFilter(f.left());
-            validateFilter(f.right());
-        } else if (filter instanceof Or f) {
-            validateFilter(f.left());
-            validateFilter(f.right());
-        } else if (filter instanceof Not f) {
-            validateFilter(f.expression());
-        } else if (!(filter instanceof IsEqualTo
-                || filter instanceof IsNotEqualTo
-                || filter instanceof IsGreaterThan
-                || filter instanceof IsGreaterThanOrEqualTo
-                || filter instanceof IsLessThan
-                || filter instanceof IsLessThanOrEqualTo
-                || filter instanceof IsIn
-                || filter instanceof IsNotIn)) {
-            throw new UnsupportedOperationException(
-                    "Unsupported filter type: " + filter.getClass().getName());
-        }
+    private void rebuildRemoteIndex() {
+        remoteDatabase.command("sql", "REBUILD INDEX *");
     }
 
     /**
-     * Evaluates a {@link Filter} in-memory against a document's metadata map.
-     * Metadata keys in the map are already stripped of their prefix.
+     * Retrieves all stored embeddings using a SQL scan. Package-private for use in tests.
      */
-    private boolean matchesFilter(Filter filter, Map<String, Object> metadata) {
-        if (filter instanceof IsEqualTo f) {
-            Object value = metadata.get(f.key());
-            return value != null && compareValues(value, f.comparisonValue()) == 0;
-        } else if (filter instanceof IsNotEqualTo f) {
-            Object value = metadata.get(f.key());
-            return value == null || compareValues(value, f.comparisonValue()) != 0;
-        } else if (filter instanceof IsGreaterThan f) {
-            Object value = metadata.get(f.key());
-            return value != null && compareValues(value, f.comparisonValue()) > 0;
-        } else if (filter instanceof IsGreaterThanOrEqualTo f) {
-            Object value = metadata.get(f.key());
-            return value != null && compareValues(value, f.comparisonValue()) >= 0;
-        } else if (filter instanceof IsLessThan f) {
-            Object value = metadata.get(f.key());
-            return value != null && compareValues(value, f.comparisonValue()) < 0;
-        } else if (filter instanceof IsLessThanOrEqualTo f) {
-            Object value = metadata.get(f.key());
-            return value != null && compareValues(value, f.comparisonValue()) <= 0;
-        } else if (filter instanceof IsIn f) {
-            Object value = metadata.get(f.key());
-            if (value == null) return false;
-            for (Object candidate : f.comparisonValues()) {
-                if (compareValues(value, candidate) == 0) return true;
-            }
-            return false;
-        } else if (filter instanceof IsNotIn f) {
-            Object value = metadata.get(f.key());
-            if (value == null) return true;
-            for (Object candidate : f.comparisonValues()) {
-                if (compareValues(value, candidate) == 0) return false;
-            }
-            return true;
-        } else if (filter instanceof And f) {
-            return matchesFilter(f.left(), metadata) && matchesFilter(f.right(), metadata);
-        } else if (filter instanceof Or f) {
-            return matchesFilter(f.left(), metadata) || matchesFilter(f.right(), metadata);
-        } else if (filter instanceof Not f) {
-            return !matchesFilter(f.expression(), metadata);
-        } else {
-            throw new UnsupportedOperationException(
-                    "Unsupported filter type: " + filter.getClass().getName());
+    List<EmbeddingMatch<TextSegment>> findAllRemote(int maxResults) {
+        String sql = String.format("SELECT * FROM `%s` LIMIT %d", typeName, maxResults);
+        ResultSet resultSet = remoteDatabase.query("sql", sql);
+
+        List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
+        while (resultSet.hasNext()) {
+            Result doc = resultSet.next();
+            String docId = doc.getProperty(ID_PROPERTY);
+            if (docId == null) continue;
+            Embedding embedding = resultToEmbedding(doc.getProperty(EMBEDDING_PROPERTY));
+            if (embedding == null) continue;
+            String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
+            Map<String, Object> metadataMap = extractMetadataFromResult(doc);
+            matches.add(new EmbeddingMatch<>(1.0, docId, embedding, buildTextSegment(text, metadataMap)));
         }
+        log.info("findAll: SQL returned {} matches", matches.size());
+        return matches;
     }
 
-    /**
-     * Compares two values for ordering. Numbers are compared numerically; when the expected
-     * value is a {@link Float} the comparison is done at float precision so that a value
-     * stored as {@code 1.1f} and returned by ArcadeDB as the JSON literal {@code 1.1}
-     * (parsed by Java as {@code Double(1.1)}) still matches the original {@code Float(1.1f)}.
-     * Everything else falls back to string comparison.
-     */
-    private int compareValues(Object actual, Object expected) {
-        if (actual instanceof Number && expected instanceof Number) {
-            if (expected instanceof Float) {
-                return Float.compare(((Number) actual).floatValue(), ((Number) expected).floatValue());
-            }
-            return Double.compare(((Number) actual).doubleValue(), ((Number) expected).doubleValue());
-        }
-        return actual.toString().compareTo(expected.toString());
-    }
-
-    private Embedding toEmbedding(Object embObj) {
-        if (embObj instanceof List<?> embList) {
-            float[] vector = new float[embList.size()];
-            for (int j = 0; j < embList.size(); j++) {
-                vector[j] = ((Number) embList.get(j)).floatValue();
-            }
-            return new Embedding(vector);
-        }
-        return null;
-    }
-
-    private Map<String, Object> extractMetadataFromResult(Result doc) {
-        Map<String, Object> metadata = new HashMap<>();
-        for (String prop : doc.getPropertyNames()) {
-            if (prop.startsWith(metadataPrefix)) {
-                String key = prop.substring(metadataPrefix.length());
-                metadata.put(key, doc.getProperty(prop));
-            }
-        }
-        return metadata;
-    }
-
-    private void initSchema(int dimension, String similarityFunction, int maxConnections, int beamWidth) {
+    private void initRemoteSchema(
+            int dimension, String similarityFunction, int maxConnections, int beamWidth) {
         String script = String.format(
                 """
                 CREATE VERTEX TYPE `%s` IF NOT EXISTS;
@@ -403,30 +410,332 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                   };
                 """,
                 typeName,
-                typeName,
-                ID_PROPERTY,
-                typeName,
-                EMBEDDING_PROPERTY,
-                typeName,
-                TEXT_PROPERTY,
-                typeName,
-                EMBEDDING_PROPERTY,
-                dimension,
-                similarityFunction,
-                maxConnections,
-                beamWidth);
-
-        log.debug("Initializing ArcadeDB schema for embedding store");
-        database.command("sqlscript", script);
+                typeName, ID_PROPERTY,
+                typeName, EMBEDDING_PROPERTY,
+                typeName, TEXT_PROPERTY,
+                typeName, EMBEDDING_PROPERTY,
+                dimension, similarityFunction, maxConnections, beamWidth);
+        log.debug("Initializing ArcadeDB schema (remote mode)");
+        remoteDatabase.command("sqlscript", script);
     }
+
+    private Map<String, Object> extractMetadataFromResult(Result doc) {
+        Map<String, Object> metadata = new HashMap<>();
+        for (String prop : doc.getPropertyNames()) {
+            if (prop.startsWith(metadataPrefix)) {
+                metadata.put(prop.substring(metadataPrefix.length()), doc.getProperty(prop));
+            }
+        }
+        return metadata;
+    }
+
+    // ===== Embedded mode implementation =====
+
+    private void addAllEmbedded(List<String> ids, List<Embedding> embeddings, List<TextSegment> segments) {
+        log.debug("Inserting {} embeddings into ArcadeDB (embedded mode)", ids.size());
+        for (int i = 0; i < ids.size(); i++) {
+            final int idx = i;
+            final String id = ids.get(i);
+            embeddedDatabase.transaction(() -> {
+                // Soft-delete existing vertex with same id (upsert semantics)
+                softDeleteById(id);
+
+                MutableVertex vertex = embeddedDatabase.newVertex(typeName);
+                vertex.set(EMBEDDED_ID, id);
+                vertex.set(EMBEDDED_EMBEDDING, embeddingToFloatArray(embeddings.get(idx)));
+
+                if (segments != null && segments.get(idx) != null) {
+                    TextSegment segment = segments.get(idx);
+                    vertex.set(EMBEDDED_TEXT, segment.text());
+
+                    Metadata metadata = segment.metadata();
+                    if (metadata != null) {
+                        for (Map.Entry<String, Object> entry : metadata.toMap().entrySet()) {
+                            String propName = metadataPrefix + entry.getKey();
+                            Object value = entry.getValue();
+                            // Convert UUID to String to avoid type mismatch in comparisons
+                            if (value instanceof UUID) {
+                                value = value.toString();
+                            }
+                            vertex.set(propName, value);
+                        }
+                    }
+                }
+
+                // Saving the vertex automatically indexes the embedding via the LSM vector index
+                vertex.save();
+            });
+        }
+    }
+
+    private EmbeddingSearchResult<TextSegment> searchEmbedded(EmbeddingSearchRequest request) {
+        ensureNotNull(request.queryEmbedding(), "queryEmbedding");
+
+        float[] queryVector = embeddingToFloatArray(request.queryEmbedding());
+        int maxResults = request.maxResults();
+        double minScore = request.minScore();
+        Filter filter = request.filter();
+
+        // Over-fetch to account for soft-deleted documents and in-memory filter reduction.
+        int fetchSize = Math.max(maxResults * 4, maxResults + 100);
+        List<Pair<RID, Float>> neighbors = vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
+
+        List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
+        for (Pair<RID, Float> neighbor : neighbors) {
+            if (matches.size() >= maxResults) break;
+            // ArcadeDB returns (1 - cosine_similarity) / 2, so relevance score = 1 - rawDistance
+            double rawDistance = neighbor.getSecond().doubleValue();
+            double score = 1.0 - rawDistance;
+            if (score >= minScore) {
+                try {
+                    Vertex vertex = neighbor.getFirst().getRecord(true).asVertex();
+                    if (Boolean.TRUE.equals(vertex.get(PROPERTY_DELETED))) continue;
+                    if (filter != null) {
+                        Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
+                        if (!matchesFilter(filter, metadata)) continue;
+                    }
+                    matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
+                } catch (Exception e) {
+                    log.warn("Failed to load vertex {}: {}", neighbor.getFirst(), e.getMessage());
+                }
+            }
+        }
+        return new EmbeddingSearchResult<>(matches);
+    }
+
+    private void removeAllByFilterEmbedded(Filter filter) {
+        String quotedTypeName = "`" + typeName + "`";
+        embeddedDatabase.transaction(() -> {
+            try (ResultSet rs = embeddedDatabase.query(
+                    "sql",
+                    "SELECT FROM " + quotedTypeName + " WHERE (" + PROPERTY_DELETED + " IS NULL OR "
+                            + PROPERTY_DELETED + " != true)")) {
+                while (rs.hasNext()) {
+                    Result result = rs.next();
+                    result.getVertex().ifPresent(v -> {
+                        Map<String, Object> metadata = extractMetadata(v, metadataPrefix);
+                        if (matchesFilter(filter, metadata)) {
+                            v.modify().set(PROPERTY_DELETED, true).save();
+                            vectorIndex.remove(new Object[] {null}, v);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    private void initEmbeddedSchema(EmbeddedBuilder builder) {
+        embeddedDatabase.transaction(() -> {
+            Schema schema = embeddedDatabase.getSchema();
+
+            // Create or get the vertex type
+            VertexType vertexType = schema.existsType(typeName)
+                    ? (VertexType) schema.getType(typeName)
+                    : schema.createVertexType(typeName, 1);
+
+            if (!vertexType.existsProperty(EMBEDDED_ID)) {
+                vertexType.createProperty(EMBEDDED_ID, Type.STRING);
+            }
+            if (!vertexType.existsProperty(EMBEDDED_EMBEDDING)) {
+                vertexType.createProperty(EMBEDDED_EMBEDDING, Type.ARRAY_OF_FLOATS);
+            }
+            if (!vertexType.existsProperty(EMBEDDED_TEXT)) {
+                vertexType.createProperty(EMBEDDED_TEXT, Type.STRING);
+            }
+            if (!vertexType.existsProperty(PROPERTY_DELETED)) {
+                vertexType.createProperty(PROPERTY_DELETED, Type.BOOLEAN);
+            }
+
+            // Create unique index on id
+            if (vertexType.getPolymorphicIndexByProperties(EMBEDDED_ID) == null) {
+                schema.createTypeIndex(Schema.INDEX_TYPE.LSM_TREE, true, typeName, EMBEDDED_ID);
+            }
+        });
+
+        // Check if vector index already exists
+        vectorIndex = findVectorIndex();
+        if (vectorIndex != null) {
+            return;
+        }
+
+        // Create LSM vector index
+        embeddedDatabase.transaction(() -> {
+            embeddedDatabase
+                    .getSchema()
+                    .buildTypeIndex(typeName, new String[] {EMBEDDED_EMBEDDING})
+                    .withLSMVectorType()
+                    .withDimensions(builder.dimension)
+                    .withSimilarity("COSINE")
+                    .withMaxConnections(builder.maxConnections)
+                    .withBeamWidth(builder.beamWidth)
+                    .withIdProperty(EMBEDDED_ID)
+                    .create();
+        });
+
+        vectorIndex = findVectorIndex();
+    }
+
+    private LSMVectorIndex findVectorIndex() {
+        try {
+            String indexName = typeName + "[" + EMBEDDED_EMBEDDING + "]";
+            var index = embeddedDatabase.getSchema().getIndexByName(indexName);
+            if (index instanceof TypeIndex typeIndex) {
+                for (IndexInternal subIndex : typeIndex.getSubIndexes()) {
+                    if (subIndex instanceof LSMVectorIndex lsmIndex) {
+                        return lsmIndex;
+                    }
+                }
+            } else if (index instanceof LSMVectorIndex lsmIndex) {
+                return lsmIndex;
+            }
+        } catch (Exception e) {
+            // Index doesn't exist yet
+        }
+        return null;
+    }
+
+    private void softDeleteById(String id) {
+        String quotedTypeName = "`" + typeName + "`";
+        try (ResultSet rs =
+                embeddedDatabase.query("sql", "SELECT FROM " + quotedTypeName + " WHERE " + EMBEDDED_ID + " = ?", id)) {
+            while (rs.hasNext()) {
+                Result result = rs.next();
+                result.getVertex().ifPresent(v -> {
+                    v.modify().set(PROPERTY_DELETED, true).save();
+                    // Also remove from the vector index so it's excluded from future searches
+                    vectorIndex.remove(new Object[] {null}, v);
+                });
+            }
+        }
+    }
+
+    // ===== Shared helpers =====
+
+    private static Embedding resultToEmbedding(Object embObj) {
+        if (embObj instanceof List<?> embList) {
+            float[] vector = new float[embList.size()];
+            for (int j = 0; j < embList.size(); j++) {
+                vector[j] = ((Number) embList.get(j)).floatValue();
+            }
+            return new Embedding(vector);
+        }
+        return null;
+    }
+
+    private static TextSegment buildTextSegment(String text, Map<String, Object> metadataMap) {
+        if (text != null) {
+            return TextSegment.from(text, Metadata.from(metadataMap));
+        } else if (!metadataMap.isEmpty()) {
+            return TextSegment.from("", Metadata.from(metadataMap));
+        }
+        return null;
+    }
+
+    // ===== Filter evaluation =====
+
+    /**
+     * Validates that the filter only contains types supported by the remote mode, throwing
+     * {@link UnsupportedOperationException} eagerly for unsupported filter types.
+     * Not used in embedded mode, which supports all filter types including {@code ContainsString}.
+     */
+    private static void validateFilter(Filter filter) {
+        if (filter instanceof And f) {
+            validateFilter(f.left());
+            validateFilter(f.right());
+        } else if (filter instanceof Or f) {
+            validateFilter(f.left());
+            validateFilter(f.right());
+        } else if (filter instanceof Not f) {
+            validateFilter(f.expression());
+        } else if (!(filter instanceof IsEqualTo
+                || filter instanceof IsNotEqualTo
+                || filter instanceof IsGreaterThan
+                || filter instanceof IsGreaterThanOrEqualTo
+                || filter instanceof IsLessThan
+                || filter instanceof IsLessThanOrEqualTo
+                || filter instanceof IsIn
+                || filter instanceof IsNotIn
+                || filter instanceof ContainsString)) {
+            throw new UnsupportedOperationException(
+                    "Unsupported filter type: " + filter.getClass().getName());
+        }
+    }
+
+    /**
+     * Evaluates a {@link Filter} in-memory against a document's metadata map.
+     * Supports all filter types including {@code ContainsString}.
+     */
+    private static boolean matchesFilter(Filter filter, Map<String, Object> metadata) {
+        if (filter instanceof IsEqualTo f) {
+            Object actual = metadata.get(f.key());
+            return actual != null && valueEquals(actual, f.comparisonValue());
+        } else if (filter instanceof IsNotEqualTo f) {
+            Object actual = metadata.get(f.key());
+            return actual == null || !valueEquals(actual, f.comparisonValue());
+        } else if (filter instanceof IsGreaterThan f) {
+            Object actual = metadata.get(f.key());
+            return actual != null && compareValues(actual, f.comparisonValue()) > 0;
+        } else if (filter instanceof IsGreaterThanOrEqualTo f) {
+            Object actual = metadata.get(f.key());
+            return actual != null && compareValues(actual, f.comparisonValue()) >= 0;
+        } else if (filter instanceof IsLessThan f) {
+            Object actual = metadata.get(f.key());
+            return actual != null && compareValues(actual, f.comparisonValue()) < 0;
+        } else if (filter instanceof IsLessThanOrEqualTo f) {
+            Object actual = metadata.get(f.key());
+            return actual != null && compareValues(actual, f.comparisonValue()) <= 0;
+        } else if (filter instanceof IsIn f) {
+            Object actual = metadata.get(f.key());
+            return actual != null && f.comparisonValues().stream().anyMatch(v -> valueEquals(actual, v));
+        } else if (filter instanceof IsNotIn f) {
+            Object actual = metadata.get(f.key());
+            return actual == null || f.comparisonValues().stream().noneMatch(v -> valueEquals(actual, v));
+        } else if (filter instanceof ContainsString f) {
+            Object actual = metadata.get(f.key());
+            return actual instanceof String s && s.contains(f.comparisonValue());
+        } else if (filter instanceof And f) {
+            return matchesFilter(f.left(), metadata) && matchesFilter(f.right(), metadata);
+        } else if (filter instanceof Or f) {
+            return matchesFilter(f.left(), metadata) || matchesFilter(f.right(), metadata);
+        } else if (filter instanceof Not f) {
+            return !matchesFilter(f.expression(), metadata);
+        }
+        throw new UnsupportedOperationException(
+                "Unsupported filter type: " + filter.getClass().getName());
+    }
+
+    /**
+     * Compares two values. Numbers are compared at Float precision when the expected value
+     * is a {@link Float}, to match values stored as {@code 1.1f} with JSON {@code 1.1}.
+     * Everything else falls back to string comparison.
+     */
+    private static boolean valueEquals(Object a, Object b) {
+        if (a instanceof Number && b instanceof Number) {
+            if (b instanceof Float) {
+                return Float.compare(((Number) a).floatValue(), ((Number) b).floatValue()) == 0;
+            }
+            return Double.compare(((Number) a).doubleValue(), ((Number) b).doubleValue()) == 0;
+        }
+        return Objects.equals(a == null ? "" : a.toString(), b == null ? "" : b.toString());
+    }
+
+    private static int compareValues(Object a, Object b) {
+        if (a instanceof Number && b instanceof Number) {
+            if (b instanceof Float) {
+                return Float.compare(((Number) a).floatValue(), ((Number) b).floatValue());
+            }
+            return Double.compare(((Number) a).doubleValue(), ((Number) b).doubleValue());
+        }
+        return a.toString().compareTo(b.toString());
+    }
+
+    // ===== SQL helpers =====
 
     private static String embeddingToSql(Embedding embedding) {
         float[] vector = embedding.vector();
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < vector.length; i++) {
-            if (i > 0) {
-                sb.append(", ");
-            }
+            if (i > 0) sb.append(", ");
             sb.append(vector[i]);
         }
         sb.append("]");
@@ -434,11 +743,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private static String valueToSql(Object value) {
-        if (value instanceof String || value instanceof java.util.UUID) {
+        if (value instanceof String || value instanceof UUID) {
             return "'" + escapeString(value.toString()) + "'";
         } else if (value instanceof Long l) {
             // ArcadeDB's SQL parser can't handle Long.MIN_VALUE directly because
-            // -(9223372036854775808) overflows. Express it as (MIN+1)-1 workaround.
+            // -(9223372036854775808) overflows. Express it as (MIN+1)-1 as a workaround.
             if (l == Long.MIN_VALUE) {
                 return "(-9223372036854775807 - 1)";
             }
@@ -453,47 +762,28 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
     }
 
-    /**
-     * Retrieves all stored embeddings using a SQL scan (no vector index).
-     * This is useful when an exhaustive listing is needed, since the HNSW
-     * approximate index may not return every document for large result sets
-     * with many identical vectors.
-     */
-    List<EmbeddingMatch<TextSegment>> findAll(int maxResults) {
-        String sql = String.format("SELECT * FROM `%s` LIMIT %d", typeName, maxResults);
-        ResultSet resultSet = database.query("sql", sql);
-
-        List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        while (resultSet.hasNext()) {
-            Result doc = resultSet.next();
-            String docId = doc.getProperty(ID_PROPERTY);
-            if (docId == null) {
-                continue;
-            }
-            Embedding embedding = toEmbedding(doc.getProperty(EMBEDDING_PROPERTY));
-            if (embedding == null) {
-                continue;
-            }
-            String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
-            Map<String, Object> metadataMap = extractMetadataFromResult(doc);
-
-            TextSegment textSegment = null;
-            if (text != null) {
-                textSegment = TextSegment.from(text, Metadata.from(metadataMap));
-            } else if (!metadataMap.isEmpty()) {
-                textSegment = TextSegment.from("", Metadata.from(metadataMap));
-            }
-
-            matches.add(new EmbeddingMatch<>(1.0, docId, embedding, textSegment));
-        }
-        log.info("findAll: SQL returned {} matches", matches.size());
-        return matches;
-    }
-
     private static String escapeString(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'");
     }
 
+    // ===== Builders =====
+
+    /**
+     * Builder for remote mode. Connects to an ArcadeDB server via HTTP.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.builder()
+     *     .host("localhost")
+     *     .port(2480)
+     *     .databaseName("mydb")
+     *     .username("root")
+     *     .password("password")
+     *     .dimension(384)
+     *     .createDatabase(true)
+     *     .build();
+     * }</pre>
+     */
     public static class Builder {
         private String host;
         private int port = DEFAULT_PORT;
@@ -506,11 +796,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
         private int maxConnections = DEFAULT_MAX_CONNECTIONS;
         private int beamWidth = DEFAULT_BEAM_WIDTH;
         private boolean createDatabase = false;
-        private String metadataPrefix = DEFAULT_METADATA_PREFIX;
+        private String metadataPrefix = REMOTE_DEFAULT_METADATA_PREFIX;
 
         /**
          * @param host ArcadeDB server hostname. Required.
-         * @return builder
          */
         public Builder host(String host) {
             this.host = host;
@@ -519,7 +808,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param port ArcadeDB server HTTP port. Default: 2480.
-         * @return builder
          */
         public Builder port(int port) {
             this.port = port;
@@ -528,7 +816,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param databaseName Name of the ArcadeDB database. Required.
-         * @return builder
          */
         public Builder databaseName(String databaseName) {
             this.databaseName = databaseName;
@@ -537,7 +824,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param username ArcadeDB server username. Required.
-         * @return builder
          */
         public Builder username(String username) {
             this.username = username;
@@ -546,7 +832,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param password ArcadeDB server password. Required.
-         * @return builder
          */
         public Builder password(String password) {
             this.password = password;
@@ -555,7 +840,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param typeName The vertex type name for storing embeddings. Default: "EmbeddingDocument".
-         * @return builder
          */
         public Builder typeName(String typeName) {
             this.typeName = typeName;
@@ -564,7 +848,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param dimension The dimensionality of the embedding vectors. Required.
-         * @return builder
          */
         public Builder dimension(int dimension) {
             this.dimension = dimension;
@@ -573,8 +856,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param similarityFunction The similarity function for vector comparison. Default: "COSINE".
-         *                           Options: "COSINE", "EUCLIDEAN", "SQUARED_EUCLIDEAN".
-         * @return builder
+         *     Options: "COSINE", "EUCLIDEAN", "SQUARED_EUCLIDEAN".
          */
         public Builder similarityFunction(String similarityFunction) {
             this.similarityFunction = similarityFunction;
@@ -583,7 +865,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param maxConnections Maximum number of connections per node in the HNSW graph. Default: 16.
-         * @return builder
          */
         public Builder maxConnections(int maxConnections) {
             this.maxConnections = maxConnections;
@@ -592,7 +873,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param beamWidth Beam width for HNSW index search. Default: 100.
-         * @return builder
          */
         public Builder beamWidth(int beamWidth) {
             this.beamWidth = beamWidth;
@@ -601,7 +881,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param createDatabase Whether to create the database if it does not exist. Default: false.
-         * @return builder
          */
         public Builder createDatabase(boolean createDatabase) {
             this.createDatabase = createDatabase;
@@ -610,7 +889,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         /**
          * @param metadataPrefix Prefix for metadata properties stored on the vertex. Default: "meta_".
-         * @return builder
          */
         public Builder metadataPrefix(String metadataPrefix) {
             this.metadataPrefix = metadataPrefix;
@@ -632,7 +910,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
 
             RemoteDatabase database = new RemoteDatabase(host, port, databaseName, username, password);
-
             return new ArcadeDBEmbeddingStore(
                     database,
                     getOrDefault(typeName, DEFAULT_TYPE_NAME),
@@ -640,7 +917,96 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment> {
                     getOrDefault(similarityFunction, DEFAULT_SIMILARITY),
                     maxConnections,
                     beamWidth,
-                    getOrDefault(metadataPrefix, DEFAULT_METADATA_PREFIX));
+                    getOrDefault(metadataPrefix, REMOTE_DEFAULT_METADATA_PREFIX));
+        }
+    }
+
+    /**
+     * Builder for embedded mode. ArcadeDB runs within the same JVM.
+     *
+     * <p>Supports all filter types including {@code ContainsString}. Uses soft-delete to preserve
+     * HNSW graph connectivity.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+     *     .databasePath("/tmp/mydb")
+     *     .dimension(384)
+     *     .build();
+     * }</pre>
+     *
+     * <p>Remember to call {@link ArcadeDBEmbeddingStore#close()} when done to release resources.
+     */
+    public static class EmbeddedBuilder {
+        private String databasePath;
+        private Database database;
+        private String typeName = DEFAULT_TYPE_NAME;
+        private String metadataPrefix = EMBEDDED_DEFAULT_METADATA_PREFIX;
+        int dimension = 384;
+        int maxConnections = DEFAULT_MAX_CONNECTIONS;
+        int beamWidth = DEFAULT_BEAM_WIDTH;
+
+        /**
+         * @param databasePath Path to the embedded ArcadeDB database directory. Required unless
+         *     {@link #database(Database)} is provided.
+         */
+        public EmbeddedBuilder databasePath(String databasePath) {
+            this.databasePath = databasePath;
+            return this;
+        }
+
+        /**
+         * @param database An existing {@link Database} instance to use instead of creating one.
+         */
+        public EmbeddedBuilder database(Database database) {
+            this.database = database;
+            return this;
+        }
+
+        /**
+         * @param typeName The vertex type name for storing embeddings. Default: "EmbeddingDocument".
+         */
+        public EmbeddedBuilder typeName(String typeName) {
+            this.typeName = typeName;
+            return this;
+        }
+
+        /**
+         * @param metadataPrefix Prefix for metadata properties stored on the vertex. Default: ""
+         *     (no prefix).
+         */
+        public EmbeddedBuilder metadataPrefix(String metadataPrefix) {
+            this.metadataPrefix = metadataPrefix;
+            return this;
+        }
+
+        /**
+         * @param dimension The dimensionality of the embedding vectors. Default: 384.
+         */
+        public EmbeddedBuilder dimension(int dimension) {
+            this.dimension = dimension;
+            return this;
+        }
+
+        /**
+         * @param maxConnections Maximum connections per node in the HNSW graph. Default: 16.
+         */
+        public EmbeddedBuilder maxConnections(int maxConnections) {
+            this.maxConnections = maxConnections;
+            return this;
+        }
+
+        /**
+         * @param beamWidth Search beam width. Higher values improve recall. Default: 100.
+         */
+        public EmbeddedBuilder beamWidth(int beamWidth) {
+            this.beamWidth = beamWidth;
+            return this;
+        }
+
+        public ArcadeDBEmbeddingStore build() {
+            ensureTrue(dimension > 0, "dimension must be positive");
+            return new ArcadeDBEmbeddingStore(this);
         }
     }
 }
