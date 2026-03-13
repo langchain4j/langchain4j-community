@@ -2,6 +2,7 @@ package dev.langchain4j.community.store.embedding.arcadedb;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 import java.nio.file.Path;
@@ -18,7 +19,7 @@ class ArcadeDBEmbeddingStoreRemovalEmbeddedIT extends EmbeddingStoreWithRemovalI
     private ArcadeDBEmbeddingStore embeddingStore;
 
     private static final int DIMENSION = 384;
-    private static final EmbeddingModel EMBEDDING_MODEL = new TestEmbeddingModel(DIMENSION);
+    private static final EmbeddingModel EMBEDDING_MODEL = new AllMiniLmL6V2QuantizedEmbeddingModel();
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     @BeforeEach
