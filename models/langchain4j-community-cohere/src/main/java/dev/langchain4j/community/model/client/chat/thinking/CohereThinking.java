@@ -7,18 +7,17 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.community.model.client.chat.thinking.CohereThinkingType.ENABLED;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereThinking {
 
-    private final CohereThinkingType type;
+    private final String type;
     private final Integer tokenBudget;
 
     private CohereThinking(Builder builder) {
-        this.type = getOrDefault(builder.type, ENABLED);
+        this.type = getOrDefault(builder.type, builder.type);
         this.tokenBudget = builder.tokenBudget;
     }
 
@@ -46,10 +45,10 @@ public class CohereThinking {
 
     public static class Builder {
 
-        private CohereThinkingType type;
+        private String type;
         private Integer tokenBudget;
 
-        public Builder type(CohereThinkingType type) {
+        public Builder type(String type) {
             this.type = type;
             return this;
         }

@@ -27,7 +27,7 @@ public class CohereChatModel implements ChatModel {
     private final CohereClient client;
     private final ChatRequestParameters defaultRequestParameters;
     private final int maxRetries;
-    private final Boolean enableThinking;
+    private final String thinkingType;
     private final Integer thinkingTokenBudget;
 
     public CohereChatModel(Builder builder) {
@@ -53,7 +53,7 @@ public class CohereChatModel implements ChatModel {
                 .responseFormat(getOrDefault(builder.responseFormat, commonParameters.responseFormat()))
                 .build();
 
-        this.enableThinking = builder.enableThinking;
+        this.thinkingType = builder.thinkingType;
         this.thinkingTokenBudget = builder.thinkingTokenBudget;
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
@@ -68,7 +68,7 @@ public class CohereChatModel implements ChatModel {
     public ChatResponse doChat(ChatRequest chatRequest) {
         CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.toBuilder()
                 .parameters(defaultRequestParameters.overrideWith(chatRequest.parameters()))
-                .build(), enableThinking, thinkingTokenBudget);
+                .build(), thinkingType, thinkingTokenBudget);
 
        CohereChatResponse cohereResponse =
                withRetryMappingExceptions(() -> client.createMessage(cohereChatRequest), maxRetries);
@@ -97,7 +97,7 @@ public class CohereChatModel implements ChatModel {
         private List<ToolSpecification> toolSpecifications;
         private ToolChoice toolChoice;
         private ResponseFormat responseFormat;
-        private Boolean enableThinking;
+        private String thinkingType;
         private Integer thinkingTokenBudget;
 
         private ChatRequestParameters defaultRequestParameters;
@@ -187,8 +187,8 @@ public class CohereChatModel implements ChatModel {
             return this;
         }
 
-        public Builder enableThinking(Boolean value) {
-            this.enableThinking = value;
+        public Builder thinkingType(String thinkingType) {
+            this.thinkingType = thinkingType;
             return this;
         }
 
