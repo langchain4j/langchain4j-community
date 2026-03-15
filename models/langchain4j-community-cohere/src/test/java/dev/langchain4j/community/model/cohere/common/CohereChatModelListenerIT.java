@@ -1,4 +1,4 @@
-package dev.langchain4j.community.model.cohere;
+package dev.langchain4j.community.model.cohere.common;
 
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.model.chat.ChatModel;
@@ -7,7 +7,7 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 
 import static java.util.Collections.singletonList;
 
-class CohereModelListenerIT extends AbstractChatModelListenerIT {
+class CohereChatModelListenerIT extends AbstractChatModelListenerIT {
 
     @Override
     protected ChatModel createModel(ChatModelListener listener) {

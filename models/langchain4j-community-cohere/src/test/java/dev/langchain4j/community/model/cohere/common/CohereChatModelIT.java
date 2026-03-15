@@ -1,4 +1,4 @@
-package dev.langchain4j.community.model.cohere;
+package dev.langchain4j.community.model.cohere.common;
 
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.model.chat.ChatModel;
@@ -7,7 +7,7 @@ import dev.langchain4j.model.chat.request.ChatRequestParameters;
 
 import java.util.List;
 
-public class CohereChatModelIT extends AbstractChatModelIT {
+class CohereChatModelIT extends AbstractChatModelIT {
 
     private static final ChatModel COHERE_CHAT_MODEL = CohereChatModel.builder()
             .modelName("command-r7b-12-2024")

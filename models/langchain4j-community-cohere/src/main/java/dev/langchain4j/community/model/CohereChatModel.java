@@ -4,6 +4,7 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereClient;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
+import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -14,7 +15,10 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import org.slf4j.Logger;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static dev.langchain4j.community.model.util.CohereMapper.fromCohereChatResponse;
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatRequest;
@@ -23,6 +27,7 @@ import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.model.chat.request.DefaultChatRequestParameters.EMPTY;
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toSet;
 
 public class CohereChatModel implements ChatModel {
 
@@ -32,6 +37,7 @@ public class CohereChatModel implements ChatModel {
     private final int maxRetries;
     private final String thinkingType;
     private final Integer thinkingTokenBudget;
+    private final Set<Capability> supportedCapabilities;
 
     public CohereChatModel(Builder builder) {
         this.client = CohereClient.builder()
@@ -64,6 +70,7 @@ public class CohereChatModel implements ChatModel {
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
         this.listeners = copy(builder.listeners);
+        this.supportedCapabilities = copy(builder.supportedCapabilities);
     }
 
     @Override
@@ -112,6 +119,7 @@ public class CohereChatModel implements ChatModel {
         private Boolean logRequests;
         private Boolean logResponses;
         private Logger logger;
+        private Set<Capability> supportedCapabilities;
 
         public Builder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
@@ -237,6 +245,16 @@ public class CohereChatModel implements ChatModel {
             return this;
         }
 
+        public Builder supportedCapabilities(Capability... supportedCapabilities) {
+            this.supportedCapabilities = Arrays.stream(supportedCapabilities).collect(toSet());
+            return this;
+        }
+
+        public Builder supportedCapabilities(Set<Capability> supportedCapabilities) {
+            this.supportedCapabilities = supportedCapabilities;
+            return this;
+        }
+
         public CohereChatModel build() {
             return new CohereChatModel(this);
         }
@@ -244,4 +262,7 @@ public class CohereChatModel implements ChatModel {
 
     @Override
     public List<ChatModelListener> listeners() { return listeners; }
+
+    @Override
+    public Set<Capability> supportedCapabilities() { return supportedCapabilities; }
 }

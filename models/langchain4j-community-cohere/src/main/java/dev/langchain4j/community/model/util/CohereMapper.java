@@ -28,12 +28,17 @@ import dev.langchain4j.exception.LangChain4jException;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
+import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,7 +56,6 @@ import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.OTHER;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.stream.Collectors.joining;
 
 @Internal
 public class CohereMapper {
@@ -255,8 +259,58 @@ public class CohereMapper {
         return CohereResponseFormat.builder()
                 .type(JSON_OBJECT)
                 .jsonSchema(responseFormat.jsonSchema() != null
-                    ? toMap(responseFormat.jsonSchema().rootElement(), true)
+                    ? toCohereSchema(responseFormat.jsonSchema().rootElement())
                     : null)
                 .build();
+    }
+
+    private static Map<String, Object> toCohereSchema(JsonSchemaElement jsonSchemaElement) {
+
+        if (jsonSchemaElement instanceof JsonObjectSchema objectSchema) {
+            Map<String, Object> map = new HashMap<>();
+
+            map.put("type", "object");
+
+            if (objectSchema.description() != null) {
+                map.put("description", objectSchema.description());
+            }
+
+            Map<String, Object> properties = new HashMap<>();
+            objectSchema.properties().forEach((property, value) -> properties.put(property, toCohereSchema(value)));
+
+            map.put("properties", properties);
+
+            // Set all properties as required if not specified
+            // (an object schema may not have zero required properties, as specified in the Cohere API docs).
+            map.put("required", objectSchema.required().isEmpty()
+                    ? objectSchema.properties().keySet()
+                    : objectSchema.required());
+
+             if (objectSchema.additionalProperties() != null) {
+                 map.put("additionalProperties", objectSchema.additionalProperties());
+            }
+
+            return map;
+        }
+
+        if (jsonSchemaElement instanceof JsonArraySchema arraySchema) {
+            Map<String, Object> map = new LinkedHashMap<>();
+
+            map.put("type", "array");
+
+            if (arraySchema.description() != null) {
+                map.put("description", arraySchema.description());
+            }
+
+            if (arraySchema.items() != null) {
+                map.put("items", toCohereSchema(arraySchema.items()));
+            } else {
+                map.put("items", Collections.emptyMap());
+            }
+
+            return map;
+        }
+
+        return toMap(jsonSchemaElement);
     }
 }
