@@ -10,6 +10,7 @@ import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import org.slf4j.Logger;
 
 import java.time.Duration;
 import java.util.List;
@@ -33,6 +34,9 @@ public class CohereChatModel implements ChatModel {
     public CohereChatModel(Builder builder) {
         this.client = CohereClient.builder()
                 .baseUrl(getOrDefault(builder.baseUrl, "https://api.cohere.com/v2/"))
+                .logRequests(builder.logRequests)
+                .logResponses(builder.logResponses)
+                .logger(builder.logger)
                 .timeout(builder.timeout)
                 .authToken(builder.apiKey)
                 .build();
@@ -101,6 +105,9 @@ public class CohereChatModel implements ChatModel {
         private Integer thinkingTokenBudget;
 
         private ChatRequestParameters defaultRequestParameters;
+        private Boolean logRequests;
+        private Boolean logResponses;
+        private Logger logger;
 
         public Builder baseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
@@ -199,6 +206,21 @@ public class CohereChatModel implements ChatModel {
 
         public Builder defaultRequestParameters(ChatRequestParameters defaultRequestParameters) {
             this.defaultRequestParameters = defaultRequestParameters;
+            return this;
+        }
+
+        public Builder logRequests(Boolean logRequests) {
+            this.logRequests = logRequests;
+            return this;
+        }
+
+        public Builder logResponses(Boolean logResponses) {
+            this.logResponses = logResponses;
+            return this;
+        }
+
+        public Builder logger(Logger logger) {
+            this.logger = logger;
             return this;
         }
 

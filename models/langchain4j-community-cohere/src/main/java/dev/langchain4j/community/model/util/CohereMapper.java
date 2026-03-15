@@ -32,6 +32,7 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
+import dev.langchain4j.model.output.TokenUsage;
 
 import java.util.List;
 import java.util.Map;
@@ -209,6 +210,9 @@ public class CohereMapper {
         ChatResponseMetadata metadata = ChatResponseMetadata.builder()
                 .modelName(modelName)
                 .id(cohereChatResponse.id)
+                .tokenUsage(new TokenUsage(
+                        cohereChatResponse.usage.tokens.inputTokens.intValue(),
+                        cohereChatResponse.usage.tokens.outputTokens.intValue()))
                 .finishReason(mapFinishReason(cohereChatResponse.finishReason))
                 .build();
 

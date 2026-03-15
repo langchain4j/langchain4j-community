@@ -55,8 +55,4 @@ public class CohereChatModelIT extends AbstractChatModelIT {
 
     @Override
     public List<ChatModel> modelsSupportingImageInputs() { return List.of(COHERE_VISION_MODEL); }
-
-    // TODO: Support token usage in the future
-    @Override
-    protected boolean assertTokenUsage() { return false; }
 }

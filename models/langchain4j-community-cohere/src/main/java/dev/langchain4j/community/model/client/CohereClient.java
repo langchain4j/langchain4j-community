@@ -8,6 +8,8 @@ import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
+import dev.langchain4j.http.client.log.LoggingHttpClient;
+import org.slf4j.Logger;
 
 import java.time.Duration;
 
@@ -26,10 +28,17 @@ public class CohereClient {
     public CohereClient(Builder builder) {
         HttpClientBuilder httpClientBuilder = getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
 
-        this.httpClient = httpClientBuilder
+        HttpClient httpClient = httpClientBuilder
                 .connectTimeout(getOrDefault(builder.timeout, Duration.ofSeconds(30)))
                 .readTimeout(getOrDefault(builder.timeout, Duration.ofSeconds(30)))
                 .build();
+
+        if (builder.logRequests != null && builder.logRequests
+                || builder.logResponses != null && builder.logResponses)  {
+            this.httpClient = new LoggingHttpClient(httpClient, builder.logRequests, builder.logResponses, builder.logger);
+        } else {
+            this.httpClient = httpClient;
+        }
 
         this.baseUrl = builder.baseUrl;
         this.apiKey = builder.authToken;
@@ -58,6 +67,9 @@ public class CohereClient {
         private String baseUrl;
         private String authToken;
         private Duration timeout;
+        private Boolean logRequests;
+        private Boolean logResponses;
+        private Logger logger;
 
         public Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
             this.httpClientBuilder = httpClientBuilder;
@@ -76,6 +88,21 @@ public class CohereClient {
 
         public Builder timeout(Duration timeout) {
             this.timeout = timeout;
+            return this;
+        }
+
+        public Builder logRequests(Boolean logRequests) {
+            this.logRequests = logRequests;
+            return this;
+        }
+
+        public Builder logResponses(Boolean logResponses) {
+            this.logResponses =  logResponses;
+            return this;
+        }
+
+        public Builder logger(Logger logger) {
+            this.logger = logger;
             return this;
         }
 
