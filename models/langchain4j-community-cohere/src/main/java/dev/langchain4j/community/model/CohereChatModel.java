@@ -5,6 +5,7 @@ import dev.langchain4j.community.model.client.CohereClient;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
@@ -27,6 +28,7 @@ public class CohereChatModel implements ChatModel {
 
     private final CohereClient client;
     private final ChatRequestParameters defaultRequestParameters;
+    private final List<ChatModelListener> listeners;
     private final int maxRetries;
     private final String thinkingType;
     private final Integer thinkingTokenBudget;
@@ -61,6 +63,7 @@ public class CohereChatModel implements ChatModel {
         this.thinkingTokenBudget = builder.thinkingTokenBudget;
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
+        this.listeners = copy(builder.listeners);
     }
 
     @Override
@@ -90,6 +93,7 @@ public class CohereChatModel implements ChatModel {
         private String apiKey;
         private Duration timeout;
         private Integer maxRetries;
+        private List<ChatModelListener> listeners;
         private String modelName;
         private Double temperature;
         private Double topP;
@@ -126,6 +130,15 @@ public class CohereChatModel implements ChatModel {
 
         public Builder maxRetries(Integer maxRetries) {
             this.maxRetries = maxRetries;
+            return this;
+        }
+
+        public Builder listeners(ChatModelListener... listeners) {
+            return listeners(asList(listeners));
+        }
+
+        public Builder listeners(List<ChatModelListener> listeners) {
+            this.listeners = listeners;
             return this;
         }
 
@@ -228,4 +241,7 @@ public class CohereChatModel implements ChatModel {
             return new CohereChatModel(this);
         }
     }
+
+    @Override
+    public List<ChatModelListener> listeners() { return listeners; }
 }

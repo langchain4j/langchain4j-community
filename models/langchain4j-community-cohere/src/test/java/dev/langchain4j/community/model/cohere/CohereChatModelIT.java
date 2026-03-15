@@ -12,11 +12,15 @@ public class CohereChatModelIT extends AbstractChatModelIT {
     private static final ChatModel COHERE_CHAT_MODEL = CohereChatModel.builder()
             .modelName("command-r7b-12-2024")
             .authToken(System.getenv("CO_API_KEY"))
+            .logRequests(true)
+            .logResponses(true)
             .build();
 
     private static final ChatModel COHERE_VISION_MODEL = CohereChatModel.builder()
             .modelName("command-a-vision-07-2025")
             .authToken(System.getenv("CO_API_KEY"))
+            .logRequests(true)
+            .logResponses(true)
             .build();
 
     @Override
@@ -28,9 +32,9 @@ public class CohereChatModelIT extends AbstractChatModelIT {
     protected ChatModel createModelWith(ChatRequestParameters parameters) {
         CohereChatModel.Builder cohereChatModelBuilder = CohereChatModel.builder()
                 .authToken(System.getenv("CO_API_KEY"))
-                .defaultRequestParameters(parameters);
-                //.logRequests(true)
-                //.logResponses(true);
+                .defaultRequestParameters(parameters)
+                .logRequests(true)
+                .logResponses(true);
 
         if (parameters.modelName() == null) {
             cohereChatModelBuilder.modelName("command-r7b-12-2024");
