@@ -36,7 +36,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     /**
      * Whether to increase the default token limit for input images. The default token
      * limit for input images is 1280. When configured to true, the token limit for input
-     * images is 16384. Default value is false.
+     * images is 16384. Defaults to false.
      */
     private final Boolean vlHighResolutionImages;
     /**
@@ -54,7 +54,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     private final Boolean supportIncrementalOutput;
     /**
      * Specifies whether to use the reasoning mode. Applicable for Qwen3 models.
-     * Default value is false.
+     * Defaults to false.
      */
     private final Boolean enableThinking;
     /**
@@ -64,7 +64,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     private final Integer thinkingBudget;
     /**
      * Specifies whether to sanitize messages before sending to llm provider.
-     * Default value is true.
+     * Defaults to true.
      */
     private final Boolean enableSanitizeMessages;
     /**
@@ -90,6 +90,23 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      */
     private final String negativePrompt;
     /**
+     * Specifies whether to enable parallel tool calling.
+     * Defaults to false.
+     */
+    private final Boolean parallelToolCalls;
+    /**
+     * Specifies whether to enable the code interpreter feature.
+     * Defaults to false.
+     * See <a href="https://www.alibabacloud.com/help/en/model-studio/code-interpreter">Code Interpreter</a> for more information.
+     */
+    private final Boolean enableCodeInterpreter;
+    /**
+     * Controls whether the model must strictly adhere to all constraints of the json schema.
+     * Defaults to false.
+     * See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-structured-output#29f804ad39r5g">Structured Output</a> for more information.
+     */
+    private final Boolean strictJsonSchema;
+    /**
      * User-defined parameters. They may have special effects on some special models.
      */
     private final Map<String, Object> custom;
@@ -110,6 +127,9 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.size = builder.size;
         this.promptExtend = builder.promptExtend;
         this.negativePrompt = builder.negativePrompt;
+        this.parallelToolCalls = builder.parallelToolCalls;
+        this.enableCodeInterpreter = builder.enableCodeInterpreter;
+        this.strictJsonSchema = builder.strictJsonSchema;
         this.custom = builder.custom;
     }
 
@@ -169,6 +189,18 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         return negativePrompt;
     }
 
+    public Boolean parallelToolCalls() {
+        return parallelToolCalls;
+    }
+
+    public Boolean enableCodeInterpreter() {
+        return enableCodeInterpreter;
+    }
+
+    public Boolean strictJsonSchema() {
+        return strictJsonSchema;
+    }
+
     public Map<String, Object> custom() {
         return custom;
     }
@@ -204,6 +236,9 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 && Objects.equals(size, that.size)
                 && Objects.equals(promptExtend, that.promptExtend)
                 && Objects.equals(negativePrompt, that.negativePrompt)
+                && Objects.equals(parallelToolCalls, that.parallelToolCalls)
+                && Objects.equals(enableCodeInterpreter, that.enableCodeInterpreter)
+                && Objects.equals(strictJsonSchema, that.strictJsonSchema)
                 && Objects.equals(custom, that.custom);
     }
 
@@ -225,6 +260,9 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 size,
                 promptExtend,
                 negativePrompt,
+                parallelToolCalls,
+                enableCodeInterpreter,
+                strictJsonSchema,
                 custom);
     }
 
@@ -255,7 +293,10 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 + n + ", size="
                 + quoted(size) + ", promptExtend="
                 + promptExtend + ", negativePrompt="
-                + quoted(negativePrompt) + ", custom="
+                + quoted(negativePrompt) + ", parallelToolCalls="
+                + parallelToolCalls + ", enableCodeInterpreter="
+                + enableCodeInterpreter + ", strictJsonSchema="
+                + strictJsonSchema + ", custom="
                 + custom + '}';
     }
 
@@ -274,6 +315,9 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private String size;
         private Boolean promptExtend;
         private String negativePrompt;
+        private Boolean parallelToolCalls;
+        private Boolean enableCodeInterpreter;
+        private Boolean strictJsonSchema;
         private Map<String, Object> custom;
 
         @Override
@@ -292,6 +336,9 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 size(getOrDefault(qwenParameters.size(), size));
                 promptExtend(getOrDefault(qwenParameters.promptExtend(), promptExtend));
                 negativePrompt(getOrDefault(qwenParameters.negativePrompt(), negativePrompt));
+                parallelToolCalls(getOrDefault(qwenParameters.parallelToolCalls(), parallelToolCalls));
+                enableCodeInterpreter(getOrDefault(qwenParameters.enableCodeInterpreter(), enableCodeInterpreter));
+                strictJsonSchema(getOrDefault(qwenParameters.strictJsonSchema(), strictJsonSchema));
                 custom(getOrDefault(qwenParameters.custom(), custom));
                 isMultimodalModel(getOrDefault(qwenParameters.isMultimodalModel(), isMultimodalModel));
                 supportIncrementalOutput(
@@ -367,6 +414,21 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder negativePrompt(String negativePrompt) {
             this.negativePrompt = negativePrompt;
+            return this;
+        }
+
+        public Builder parallelToolCalls(Boolean parallelToolCalls) {
+            this.parallelToolCalls = parallelToolCalls;
+            return this;
+        }
+
+        public Builder enableCodeInterpreter(Boolean enableCodeInterpreter) {
+            this.enableCodeInterpreter = enableCodeInterpreter;
+            return this;
+        }
+
+        public Builder strictJsonSchema(Boolean strictJsonSchema) {
+            this.strictJsonSchema = strictJsonSchema;
             return this;
         }
 

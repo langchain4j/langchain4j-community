@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.12.0-beta20-SNAPSHOT</version>
+        <version>1.13.0-beta23-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-bom</artifactId>
@@ -196,7 +196,19 @@
             <!-- tools -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-tool-browser-use</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-tool-jira</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-tool-web-scraper</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -249,6 +261,7 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- Code Execution Engines -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-code-execution-engine-local</artifactId>
@@ -258,6 +271,13 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-code-execution-engine-docker</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Browser Execution Engines -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-browser-execution-engine-playwright</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

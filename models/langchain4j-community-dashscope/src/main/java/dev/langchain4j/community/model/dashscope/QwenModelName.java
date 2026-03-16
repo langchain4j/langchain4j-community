@@ -58,6 +58,8 @@ public class QwenModelName {
     public static final String QWEN3_235B_A22B =
             "qwen3-235b-a22b"; // Qwen open sourced 235-billion-parameters and 22-billion-activation-parameters (v3)
     public static final String QWEN3_MAX = "qwen3-max"; // Qwen max model, stable version (v3)
+    public static final String QWEN3_5_PLUS = "qwen3.5-plus"; // Qwen plus model, stable version (v3.5)
+    public static final String QWEN3_5_FLASH = "qwen3.5-flash"; // Qwen flash model, stable version (v3.5)
     public static final String QWEN_VL_PLUS =
             "qwen-vl-plus"; // Qwen multi-modal model, supports image and text information, stable version
     public static final String QWEN_VL_PLUS_LATEST =

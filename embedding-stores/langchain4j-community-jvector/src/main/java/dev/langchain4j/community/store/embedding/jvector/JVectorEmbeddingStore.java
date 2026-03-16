@@ -11,14 +11,18 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import io.github.jbellis.jvector.disk.SimpleMappedReader;
-import io.github.jbellis.jvector.graph.GraphIndex;
 import io.github.jbellis.jvector.graph.GraphIndexBuilder;
 import io.github.jbellis.jvector.graph.GraphSearcher;
+import io.github.jbellis.jvector.graph.ImmutableGraphIndex;
 import io.github.jbellis.jvector.graph.ListRandomAccessVectorValues;
 import io.github.jbellis.jvector.graph.RandomAccessVectorValues;
 import io.github.jbellis.jvector.graph.SearchResult;
 import io.github.jbellis.jvector.graph.disk.OnDiskGraphIndex;
+import io.github.jbellis.jvector.graph.disk.OnDiskGraphIndexWriter;
+import io.github.jbellis.jvector.graph.disk.feature.FeatureId;
+import io.github.jbellis.jvector.graph.disk.feature.InlineVectors;
 import io.github.jbellis.jvector.graph.similarity.BuildScoreProvider;
+import io.github.jbellis.jvector.graph.similarity.DefaultSearchScoreProvider;
 import io.github.jbellis.jvector.graph.similarity.SearchScoreProvider;
 import io.github.jbellis.jvector.util.Bits;
 import io.github.jbellis.jvector.vector.VectorSimilarityFunction;
@@ -102,7 +106,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
     private volatile int additionsSinceLastBuild;
 
     // Index that needs rebuild on modifications (null for on-disk index)
-    private volatile GraphIndex index;
+    private volatile ImmutableGraphIndex index;
 
     // On-disk index reference (only used when persistencePath is set)
     private volatile OnDiskGraphIndex diskIndex;
@@ -281,7 +285,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         // Perform search
         indexLock.readLock().lock();
         try {
-            GraphIndex searchIndex = (diskIndex != null) ? diskIndex : index;
+            ImmutableGraphIndex searchIndex = (diskIndex != null) ? diskIndex : index;
             GraphSearcher searcher = new GraphSearcher(searchIndex);
 
             // Get vector provider for scoring
@@ -294,7 +298,8 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
                 vectorValues = new ListRandomAccessVectorValues(vectors, dimension);
             }
 
-            SearchScoreProvider scoreProvider = SearchScoreProvider.exact(query, similarityFunction, vectorValues);
+            SearchScoreProvider scoreProvider =
+                    DefaultSearchScoreProvider.exact(query, similarityFunction, vectorValues);
 
             SearchResult result = searcher.search(scoreProvider, request.maxResults(), Bits.ALL);
 
@@ -404,7 +409,7 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
                 BuildScoreProvider.randomAccessScoreProvider(vectorValues, similarityFunction);
 
         try (GraphIndexBuilder builder = new GraphIndexBuilder(
-                scoreProvider, vectorValues.dimension(), maxDegree, beamWidth, neighborOverflow, alpha)) {
+                scoreProvider, vectorValues.dimension(), maxDegree, beamWidth, neighborOverflow, alpha, false)) {
 
             index = builder.build(vectorValues);
 
@@ -482,8 +487,11 @@ public class JVectorEmbeddingStore implements EmbeddingStore<TextSegment> {
         Path graphPath = Path.of(persistencePath + ".graph");
         Files.createDirectories(graphPath.getParent());
 
-        RandomAccessVectorValues vectorValues = new ListRandomAccessVectorValues(vectors, dimension);
-        OnDiskGraphIndex.write(index, vectorValues, graphPath);
+        try (OnDiskGraphIndexWriter writer = new OnDiskGraphIndexWriter.Builder(index, graphPath)
+                .with(new InlineVectors(dimension))
+                .build()) {
+            writer.write(Map.of(FeatureId.INLINE_VECTORS, ordinal -> new InlineVectors.State(vectors.get(ordinal))));
+        }
 
         // Save the metadata
         saveMetadata();
