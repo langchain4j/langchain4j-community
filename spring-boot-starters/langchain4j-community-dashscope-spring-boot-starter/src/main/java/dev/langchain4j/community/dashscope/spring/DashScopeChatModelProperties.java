@@ -138,6 +138,7 @@ public class DashScopeChatModelProperties {
         private Integer seed;
         private Boolean enableSearch;
         private SearchOptions searchOptions;
+        private AsrOptions asrOptions;
         private TranslationOptions translationOptions;
         private Boolean vlHighResolutionImages;
         private Boolean isMultimodalModel;
@@ -255,6 +256,14 @@ public class DashScopeChatModelProperties {
 
         public void setSearchOptions(SearchOptions searchOptions) {
             this.searchOptions = searchOptions;
+        }
+
+        public AsrOptions getAsrOptions() {
+            return asrOptions;
+        }
+
+        public void setAsrOptions(AsrOptions asrOptions) {
+            this.asrOptions = asrOptions;
         }
 
         public TranslationOptions getTranslationOptions() {
@@ -415,6 +424,27 @@ public class DashScopeChatModelProperties {
 
         public void setSearchStrategy(String searchStrategy) {
             this.searchStrategy = searchStrategy;
+        }
+    }
+
+    public static class AsrOptions {
+        private String language;
+        private Boolean enableItn;
+
+        public String getLanguage() {
+            return language;
+        }
+
+        public void setLanguage(String language) {
+            this.language = language;
+        }
+
+        public Boolean getEnableItn() {
+            return enableItn;
+        }
+
+        public void setEnableItn(Boolean enableItn) {
+            this.enableItn = enableItn;
         }
     }
 

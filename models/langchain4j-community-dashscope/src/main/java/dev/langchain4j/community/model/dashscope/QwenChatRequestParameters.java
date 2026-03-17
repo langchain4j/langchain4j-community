@@ -29,6 +29,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      */
     private final SearchOptions searchOptions;
     /**
+     * Parameters for automatic speech recognition (ASR).
+     * See <a href="https://modelstudio.console.alibabacloud.com/ap-southeast-1/?tab=api#/api/?type=model&url=2986952">Qwen-ASR API reference</a> for more details.
+     */
+    private final AsrOptions asrOptions;
+    /**
      * The translation parameters you need to configure when you use the translation
      * models.
      */
@@ -116,6 +121,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.seed = builder.seed;
         this.enableSearch = builder.enableSearch;
         this.searchOptions = builder.searchOptions;
+        this.asrOptions = builder.asrOptions;
         this.translationOptions = builder.translationOptions;
         this.vlHighResolutionImages = builder.vlHighResolutionImages;
         this.isMultimodalModel = builder.isMultimodalModel;
@@ -143,6 +149,10 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
     public SearchOptions searchOptions() {
         return searchOptions;
+    }
+
+    public AsrOptions asrOptions() {
+        return asrOptions;
     }
 
     public TranslationOptions translationOptions() {
@@ -225,6 +235,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         return Objects.equals(seed, that.seed)
                 && Objects.equals(enableSearch, that.enableSearch)
                 && Objects.equals(searchOptions, that.searchOptions)
+                && Objects.equals(asrOptions, that.asrOptions)
                 && Objects.equals(translationOptions, that.translationOptions)
                 && Objects.equals(vlHighResolutionImages, that.vlHighResolutionImages)
                 && Objects.equals(isMultimodalModel, that.isMultimodalModel)
@@ -249,6 +260,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 seed,
                 enableSearch,
                 searchOptions,
+                asrOptions,
                 translationOptions,
                 vlHighResolutionImages,
                 isMultimodalModel,
@@ -282,7 +294,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 + responseFormat() + ", seed="
                 + seed + ", enableSearch="
                 + enableSearch + ", searchOptions="
-                + searchOptions + ", translationOptions="
+                + searchOptions + ", asrOptions="
+                + asrOptions + ", translationOptions="
                 + translationOptions + ", vlHighResolutionImages="
                 + vlHighResolutionImages + ", isMultimodalModel="
                 + isMultimodalModel + ", supportIncrementalOutput="
@@ -304,6 +317,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private Integer seed;
         private Boolean enableSearch;
         private SearchOptions searchOptions;
+        private AsrOptions asrOptions;
         private TranslationOptions translationOptions;
         private Boolean vlHighResolutionImages;
         private Boolean isMultimodalModel;
@@ -327,6 +341,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 seed(getOrDefault(qwenParameters.seed(), seed));
                 enableSearch(getOrDefault(qwenParameters.enableSearch(), enableSearch));
                 searchOptions(getOrDefault(qwenParameters.searchOptions(), searchOptions));
+                asrOptions(getOrDefault(qwenParameters.asrOptions(), asrOptions));
                 translationOptions(getOrDefault(qwenParameters.translationOptions(), translationOptions));
                 vlHighResolutionImages(getOrDefault(qwenParameters.vlHighResolutionImages(), vlHighResolutionImages));
                 enableThinking(getOrDefault(qwenParameters.enableThinking(), enableThinking));
@@ -359,6 +374,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder searchOptions(SearchOptions searchOptions) {
             this.searchOptions = searchOptions;
+            return this;
+        }
+
+        public Builder asrOptions(AsrOptions asrOptions) {
+            this.asrOptions = asrOptions;
             return this;
         }
 
@@ -600,6 +620,39 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
             public TranslationOptionTerm build() {
                 return new TranslationOptionTerm(source, target);
+            }
+        }
+    }
+
+    /**
+     * Automatic speech recognition (ASR) parameters.
+     *
+     * @param language  Audio language hint.
+     *                  See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-asr-api-reference?h2-5234e940#h2-5234e940">Supported languages</a> for more details.
+     * @param enableItn Enable Inverse Text Normalization (ITN). Chinese and English only.
+     *                  Defaults to false.
+     */
+    public record AsrOptions(String language, Boolean enableItn) {
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static class Builder {
+            private String language;
+            private Boolean enableItn;
+
+            public Builder language(String language) {
+                this.language = language;
+                return this;
+            }
+
+            public Builder enableItn(Boolean enableItn) {
+                this.enableItn = enableItn;
+                return this;
+            }
+
+            public AsrOptions build() {
+                return new AsrOptions(language, enableItn);
             }
         }
     }

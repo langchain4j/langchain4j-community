@@ -180,6 +180,8 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.citation-format=[<number>]",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.forced-search=false",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.search-strategy=standard",
+                        "langchain4j.community.dashscope.chat-model.parameters.asr-options.language=Chinese",
+                        "langchain4j.community.dashscope.chat-model.parameters.asr-options.enable-itn=true",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.source-lang=English",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.target-lang=Chinese",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.domains=The sentence is from Ali Cloud IT domain.",
@@ -225,6 +227,8 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.searchOptions().forcedSearch()).isFalse();
                     assertThat(defaultParameters.searchOptions().searchStrategy())
                             .isEqualTo("standard");
+                    assertThat(defaultParameters.asrOptions().language()).isEqualTo("Chinese");
+                    assertThat(defaultParameters.asrOptions().enableItn()).isTrue();
                     assertThat(defaultParameters.translationOptions().sourceLang())
                             .isEqualTo("English");
                     assertThat(defaultParameters.translationOptions().targetLang())
@@ -292,6 +296,8 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.citation-format=[<number>]",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.forced-search=false",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.search-strategy=standard",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.asr-options.language=Chinese",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.asr-options.enable-itn=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.source-lang=English",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.target-lang=Chinese",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.domains=The sentence is from Ali Cloud IT domain.",
@@ -339,6 +345,8 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.searchOptions().forcedSearch()).isFalse();
                     assertThat(defaultParameters.searchOptions().searchStrategy())
                             .isEqualTo("standard");
+                    assertThat(defaultParameters.asrOptions().language()).isEqualTo("Chinese");
+                    assertThat(defaultParameters.asrOptions().enableItn()).isTrue();
                     assertThat(defaultParameters.translationOptions().sourceLang())
                             .isEqualTo("English");
                     assertThat(defaultParameters.translationOptions().targetLang())
