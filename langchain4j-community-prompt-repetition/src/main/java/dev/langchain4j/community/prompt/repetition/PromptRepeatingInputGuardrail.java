@@ -2,6 +2,7 @@ package dev.langchain4j.community.prompt.repetition;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import dev.langchain4j.Experimental;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.guardrail.InputGuardrail;
@@ -15,6 +16,7 @@ import dev.langchain4j.guardrail.InputGuardrailResult;
  * - It skips non-single-text messages (multimodal or multi-part text)
  * - It skips inputs that are already augmented via RAG by default
  */
+@Experimental
 public class PromptRepeatingInputGuardrail implements InputGuardrail {
 
     public static final boolean DEFAULT_ALLOW_RAG_INPUT = false;

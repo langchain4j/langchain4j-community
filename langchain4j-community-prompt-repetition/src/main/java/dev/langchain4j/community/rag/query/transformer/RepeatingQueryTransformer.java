@@ -3,6 +3,7 @@ package dev.langchain4j.community.rag.query.transformer;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static java.util.Collections.singletonList;
 
+import dev.langchain4j.Experimental;
 import dev.langchain4j.community.prompt.repetition.PromptRepetitionDecision;
 import dev.langchain4j.community.prompt.repetition.PromptRepetitionPolicy;
 import dev.langchain4j.rag.query.Query;
@@ -14,6 +15,7 @@ import java.util.Collection;
  * <p>
  * It returns a single transformed query and preserves metadata.
  */
+@Experimental
 public class RepeatingQueryTransformer implements QueryTransformer {
 
     private final PromptRepetitionPolicy policy;

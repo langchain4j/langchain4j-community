@@ -3,6 +3,7 @@ package dev.langchain4j.community.prompt.repetition;
 import static dev.langchain4j.internal.ValidationUtils.ensureGreaterThanZero;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import dev.langchain4j.Experimental;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -15,6 +16,7 @@ import java.util.Set;
  * In {@link PromptRepetitionMode#AUTO}, repetition is skipped for very long inputs and prompts
  * that appear to request explicit reasoning steps.
  */
+@Experimental
 public class PromptRepetitionPolicy {
 
     public static final PromptRepetitionMode DEFAULT_MODE = PromptRepetitionMode.AUTO;

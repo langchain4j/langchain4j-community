@@ -1,8 +1,11 @@
 package dev.langchain4j.community.prompt.repetition;
 
+import dev.langchain4j.Experimental;
+
 /**
  * Controls when prompt repetition should be applied.
  */
+@Experimental
 public enum PromptRepetitionMode {
 
     /**

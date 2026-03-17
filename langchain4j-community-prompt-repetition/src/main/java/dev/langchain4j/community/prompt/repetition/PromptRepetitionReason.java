@@ -1,8 +1,11 @@
 package dev.langchain4j.community.prompt.repetition;
 
+import dev.langchain4j.Experimental;
+
 /**
  * Explains why repetition was applied or skipped.
  */
+@Experimental
 public enum PromptRepetitionReason {
 
     /**

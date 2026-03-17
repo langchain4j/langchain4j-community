@@ -2,11 +2,13 @@ package dev.langchain4j.community.prompt.repetition;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
+import dev.langchain4j.Experimental;
 import java.util.Objects;
 
 /**
  * The result of a prompt repetition decision.
  */
+@Experimental
 public final class PromptRepetitionDecision {
 
     private final boolean applied;
