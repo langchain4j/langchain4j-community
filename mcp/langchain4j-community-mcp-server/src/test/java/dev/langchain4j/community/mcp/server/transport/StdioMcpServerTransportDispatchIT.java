@@ -16,6 +16,7 @@ import java.io.PipedOutputStream;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class StdioMcpServerTransportDispatchIT {
@@ -45,6 +46,35 @@ class StdioMcpServerTransportDispatchIT {
             String threadName = client.executeTool(request).resultText();
 
             assertThat(threadName).isEqualTo("mcp-stdio-server-dispatcher").isNotEqualTo("mcp-stdio-server");
+        }
+    }
+
+    @Test
+    void should_return_from_await_close_when_input_reaches_eof() throws Exception {
+        try (PipedInputStream serverInputStream = new PipedInputStream(PIPE_BUFFER_SIZE);
+                PipedOutputStream clientOutputStream = new PipedOutputStream(serverInputStream);
+                PipedInputStream clientInputStream = new PipedInputStream(PIPE_BUFFER_SIZE);
+                PipedOutputStream serverOutputStream = new PipedOutputStream(clientInputStream);
+                StdioMcpServerTransport transport =
+                        new StdioMcpServerTransport(serverInputStream, serverOutputStream, new McpServer(List.of()))) {
+            AtomicReference<Throwable> failure = new AtomicReference<>();
+            Thread waiter = new Thread(
+                    () -> {
+                        try {
+                            transport.awaitClose();
+                        } catch (Throwable t) {
+                            failure.set(t);
+                        }
+                    },
+                    "await-close-test");
+            waiter.setDaemon(true);
+            waiter.start();
+
+            clientOutputStream.close();
+            waiter.join(5_000);
+
+            assertThat(waiter.isAlive()).isFalse();
+            assertThat(failure.get()).isNull();
         }
     }
 
