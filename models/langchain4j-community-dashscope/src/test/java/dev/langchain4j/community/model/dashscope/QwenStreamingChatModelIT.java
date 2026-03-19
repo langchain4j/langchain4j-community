@@ -5,6 +5,8 @@ import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.chatMessages;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.getBase64DataFromResource;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalAudioData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageData;
@@ -31,7 +33,9 @@ import static org.mockito.Mockito.atLeastOnce;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.AudioContent;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
@@ -52,6 +56,7 @@ import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -363,14 +368,14 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
-    @Disabled("only served in China")
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
     void should_send_multimodal_audio_url_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
+
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(
                 ChatRequest.builder()
@@ -382,14 +387,14 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
-    @Disabled("only served in China")
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
     void should_send_multimodal_audio_data_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
+
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(
                 ChatRequest.builder()
@@ -399,6 +404,83 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         ChatResponse response = handler.get();
 
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
+    void should_respect_language_parameter_and_receive_response(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        // Use only the language hint; omit the system prompt.
+        Audio audio = Audio.builder()
+                .base64Data(multimodalAudioData())
+                .mimeType("audio/mp3")
+                .build();
+        AudioContent audioContent = AudioContent.from(audio);
+        List<ChatMessage> messages = Collections.singletonList(UserMessage.from(audioContent));
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("zh")
+                        .build())
+                .build();
+        ChatRequest chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
+    }
+
+    @Disabled("The `enable_itn` parameter is not working in streaming mode for now.")
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
+    void should_respect_enable_itn_parameter_and_receive_response(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .temperature(0F)
+                .build();
+
+        Audio audio = Audio.builder()
+                .base64Data(getBase64DataFromResource("/5dollars.mp3"))
+                .mimeType("audio/mp3")
+                .build();
+        AudioContent audioContent = AudioContent.from(audio);
+        List<ChatMessage> messages = Collections.singletonList(UserMessage.from(audioContent));
+
+        // ITN is not enabled
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("en")
+                        .enableItn(false)
+                        .build())
+                .build();
+        ChatRequest chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().text()).containsAnyOf("5 dollars", "five dollars");
+
+        // ITN is enabled
+        parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("en")
+                        .enableItn(true)
+                        .build())
+                .build();
+        chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        response = handler.get();
+
+        assertThat(response.aiMessage().text()).contains("$5");
     }
 
     @ParameterizedTest

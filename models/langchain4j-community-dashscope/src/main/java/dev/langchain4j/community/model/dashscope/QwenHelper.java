@@ -71,6 +71,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -409,7 +410,8 @@ class QwenHelper {
                 || modelName.contains("-audio-")
                 || modelName.contains("-omni-")
                 || modelName.contains("-image-")
-                || modelName.startsWith("qwen3.5-");
+                || modelName.startsWith("qwen3.5-")
+                || modelName.contains("-asr-");
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
@@ -839,6 +841,10 @@ class QwenHelper {
         if (parameters.negativePrompt() != null) {
             throw new UnsupportedFeatureException("negativePrompt is not supported by " + parameters.modelName());
         }
+
+        if (parameters.asrOptions() != null) {
+            throw new UnsupportedFeatureException("asrOptions is not supported by " + parameters.modelName());
+        }
     }
 
     static void validateMultimodalConversationParameters(QwenChatRequestParameters parameters) {
@@ -957,6 +963,18 @@ class QwenHelper {
         if (parameters.enableCodeInterpreter() != null) {
             // no java field is provided yet
             builder.parameter("enable_code_interpreter", parameters.enableCodeInterpreter());
+        }
+
+        if (parameters.asrOptions() != null) {
+            // no java field is provided yet
+            Map<String, Object> asrOptions = new HashMap<>(2);
+            if (parameters.asrOptions().language() != null) {
+                asrOptions.put("language", parameters.asrOptions().language());
+            }
+            if (parameters.asrOptions().enableItn() != null) {
+                asrOptions.put("enable_itn", parameters.asrOptions().enableItn());
+            }
+            builder.parameter("asr_options", asrOptions);
         }
 
         if (parameters.custom() != null) {

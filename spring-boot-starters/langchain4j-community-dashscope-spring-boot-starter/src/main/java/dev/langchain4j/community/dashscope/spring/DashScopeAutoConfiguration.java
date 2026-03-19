@@ -87,6 +87,19 @@ public class DashScopeAutoConfiguration {
                 .build();
     }
 
+    private static QwenChatRequestParameters.AsrOptions getAsrOptions(
+            DashScopeChatModelProperties.Parameters parameters) {
+        DashScopeChatModelProperties.AsrOptions asrOptions = parameters.getAsrOptions();
+        if (asrOptions == null) {
+            return null;
+        }
+
+        return QwenChatRequestParameters.AsrOptions.builder()
+                .language(asrOptions.getLanguage())
+                .enableItn(asrOptions.getEnableItn())
+                .build();
+    }
+
     private static ResponseFormat getResponseFormat(DashScopeChatModelProperties.Parameters parameters) {
         ResponseFormatType responseFormatType = parameters.getResponseFormat();
         if (responseFormatType == null) {
@@ -116,6 +129,7 @@ public class DashScopeAutoConfiguration {
                 .seed(parameters.getSeed())
                 .enableSearch(parameters.getEnableSearch())
                 .searchOptions(getSearchOption(parameters))
+                .asrOptions(getAsrOptions(parameters))
                 .translationOptions(getTranslationOptions(parameters))
                 .vlHighResolutionImages(parameters.getVlHighResolutionImages())
                 .isMultimodalModel(parameters.getIsMultimodalModel())
