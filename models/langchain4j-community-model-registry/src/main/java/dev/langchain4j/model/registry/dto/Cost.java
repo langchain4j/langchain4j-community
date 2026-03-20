@@ -30,42 +30,95 @@ public class Cost {
         this.output = output;
     }
 
+    /**
+     * Gets the input cost per million tokens.
+     *
+     * @return the input cost, or {@code null} if not set
+     */
     public Double getInput() {
         return input;
     }
 
+    /**
+     * Sets the input cost per million tokens.
+     *
+     * @param input the input cost to set
+     */
     public void setInput(Double input) {
         this.input = input;
     }
 
+    /**
+     * Gets the output cost per million tokens.
+     *
+     * @return the output cost, or {@code null} if not set
+     */
     public Double getOutput() {
         return output;
     }
 
+    /**
+     * Sets the output cost per million tokens.
+     *
+     * @param output the output cost to set
+     */
     public void setOutput(Double output) {
         this.output = output;
     }
 
+    /**
+     * Gets the audio output cost per million tokens.
+     * This is specifically for models that generate audio output.
+     *
+     * @return the audio output cost, or {@code null} if not applicable
+     */
     public Double getOutputAudio() {
         return outputAudio;
     }
 
+    /**
+     * Sets the audio output cost per million tokens.
+     *
+     * @param outputAudio the audio output cost to set
+     */
     public void setOutputAudio(Double outputAudio) {
         this.outputAudio = outputAudio;
     }
 
+    /**
+     * Gets the cost per million tokens for reading from cache.
+     * Cache reads are typically less expensive than regular input tokens.
+     *
+     * @return the cache read cost, or {@code null} if caching is not supported
+     */
     public Double getCacheRead() {
         return cacheRead;
     }
 
+    /**
+     * Sets the cost per million tokens for reading from cache.
+     *
+     * @param cacheRead the cache read cost to set
+     */
     public void setCacheRead(Double cacheRead) {
         this.cacheRead = cacheRead;
     }
 
+    /**
+     * Gets the cost per million tokens for writing to cache.
+     * Cache writes incur a cost when the model stores tokens for future reuse.
+     *
+     * @return the cache write cost, or {@code null} if caching is not supported
+     */
     public Double getCacheWrite() {
         return cacheWrite;
     }
 
+    /**
+     * Sets the cost per million tokens for writing to cache.
+     *
+     * @param cacheWrite the cache write cost to set
+     */
     public void setCacheWrite(Double cacheWrite) {
         this.cacheWrite = cacheWrite;
     }
@@ -111,14 +164,30 @@ public class Cost {
         return totalCost;
     }
 
+    /**
+     * Determines if this model is free to use (no input or output costs).
+     *
+     * @return {@code true} if both input and output costs are zero or null, {@code false} otherwise
+     */
     public boolean isFree() {
         return (input == null || input == 0.0) && (output == null || output == 0.0);
     }
 
+    /**
+     * Gets the audio input cost per million tokens.
+     * This is specifically for models that accept audio input.
+     *
+     * @return the audio input cost, or {@code null} if not applicable
+     */
     public Double getInputAudio() {
         return inputAudio;
     }
 
+    /**
+     * Sets the audio input cost per million tokens.
+     *
+     * @param inputAudio the audio input cost to set
+     */
     public void setInputAudio(Double inputAudio) {
         this.inputAudio = inputAudio;
     }

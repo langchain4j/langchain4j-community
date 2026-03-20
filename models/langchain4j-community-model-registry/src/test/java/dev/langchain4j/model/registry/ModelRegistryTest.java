@@ -146,7 +146,7 @@ class ModelRegistryTest implements WithAssertions {
     @Test
     void load_and_validate_real_payload() throws IOException {
 
-        ModelRegistry registry = ModelRegistry.fromJson(JSON);
+        ModelRegistry registry = ModelRegistry.loadProvidersFromJson(JSON);
 
         verifyRegistry(registry);
     }
@@ -162,7 +162,7 @@ class ModelRegistryTest implements WithAssertions {
 
             String url = server.url("/api.json").toString();
 
-            ModelRegistry registry = ModelRegistry.fromApi(url);
+            ModelRegistry registry = ModelRegistry.loadProvidersFromApi(url);
 
             verifyRegistry(registry);
         }

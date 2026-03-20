@@ -14,10 +14,20 @@ public class Interleaved {
         this.field = field;
     }
 
+    /**
+     * Gets the field name for interleaved reasoning configuration.
+     *
+     * @return the field name
+     */
     public String getField() {
         return field;
     }
 
+    /**
+     * Sets the field name for interleaved reasoning configuration.
+     *
+     * @param field the field name to set
+     */
     public void setField(String field) {
         this.field = field;
     }
