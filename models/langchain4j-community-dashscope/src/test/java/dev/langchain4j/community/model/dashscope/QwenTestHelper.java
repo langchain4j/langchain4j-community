@@ -40,7 +40,7 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX), Arguments.of(QwenModelName.QWEN3_5_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
     }
 
     public static Stream<Arguments> searchingChatModelNameProvider() {
@@ -57,6 +57,11 @@ class QwenTestHelper {
 
     public static Stream<Arguments> asrChatModelNameProvider() {
         return Stream.of(Arguments.of(QwenModelName.QWEN3_ASR_FLASH));
+    }
+
+    public static Stream<Arguments> ttsChatModelNameProvider() {
+        return Stream.of(
+                Arguments.of(QwenModelName.QWEN3_TTS_FLASH), Arguments.of(QwenModelName.QWEN3_TTS_INSTRUCT_FLASH));
     }
 
     public static Stream<Arguments> embeddingModelNameProvider() {

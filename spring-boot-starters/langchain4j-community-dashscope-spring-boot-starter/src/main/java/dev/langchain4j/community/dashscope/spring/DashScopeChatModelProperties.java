@@ -139,6 +139,7 @@ public class DashScopeChatModelProperties {
         private Boolean enableSearch;
         private SearchOptions searchOptions;
         private AsrOptions asrOptions;
+        private TtsOptions ttsOptions;
         private TranslationOptions translationOptions;
         private Boolean vlHighResolutionImages;
         private Boolean isMultimodalModel;
@@ -264,6 +265,14 @@ public class DashScopeChatModelProperties {
 
         public void setAsrOptions(AsrOptions asrOptions) {
             this.asrOptions = asrOptions;
+        }
+
+        public TtsOptions getTtsOptions() {
+            return ttsOptions;
+        }
+
+        public void setTtsOptions(TtsOptions ttsOptions) {
+            this.ttsOptions = ttsOptions;
         }
 
         public TranslationOptions getTranslationOptions() {
@@ -445,6 +454,45 @@ public class DashScopeChatModelProperties {
 
         public void setEnableItn(Boolean enableItn) {
             this.enableItn = enableItn;
+        }
+    }
+
+    public static class TtsOptions {
+        private String voice;
+        private String languageType;
+        private String instructions;
+        private Boolean optimizeInstructions;
+
+        public String getVoice() {
+            return voice;
+        }
+
+        public void setVoice(String voice) {
+            this.voice = voice;
+        }
+
+        public String getLanguageType() {
+            return languageType;
+        }
+
+        public void setLanguageType(String languageType) {
+            this.languageType = languageType;
+        }
+
+        public String getInstructions() {
+            return instructions;
+        }
+
+        public void setInstructions(String instructions) {
+            this.instructions = instructions;
+        }
+
+        public Boolean getOptimizeInstructions() {
+            return optimizeInstructions;
+        }
+
+        public void setOptimizeInstructions(Boolean optimizeInstructions) {
+            this.optimizeInstructions = optimizeInstructions;
         }
     }
 

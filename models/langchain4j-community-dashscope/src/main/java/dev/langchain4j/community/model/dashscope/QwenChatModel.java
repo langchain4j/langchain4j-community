@@ -108,6 +108,7 @@ public class QwenChatModel implements ChatModel {
                 .enableSearch(getOrDefault(enableSearch, qwenParameters.enableSearch()))
                 .searchOptions(qwenParameters.searchOptions())
                 .asrOptions(qwenParameters.asrOptions())
+                .ttsOptions(qwenParameters.ttsOptions())
                 .translationOptions(qwenParameters.translationOptions())
                 .vlHighResolutionImages(qwenParameters.vlHighResolutionImages())
                 .isMultimodalModel(getOrDefault(isMultimodalModel, qwenParameters.isMultimodalModel()))

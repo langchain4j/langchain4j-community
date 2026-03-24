@@ -79,6 +79,9 @@ public class QwenModelName {
             "qwen-audio-turbo-latest"; // Qwen audio understanding model, latest version
 
     public static final String QWEN3_ASR_FLASH = "qwen3-asr-flash"; // Qwen3 ASR model (flash)
+    public static final String QWEN3_TTS_FLASH = "qwen3-tts-flash"; // Qwen3 TTS model (flash)
+    public static final String QWEN3_TTS_INSTRUCT_FLASH =
+            "qwen3-tts-instruct-flash"; // Qwen3 TTS instruction model (flash)
     public static final String QWEN_MT_TURBO = "qwen-mt-turbo"; // Qwen turbo model for translation (deprecated)
     public static final String QWEN_MT_PLUS = "qwen-mt-plus"; // Qwen plus model for translation
     public static final String QWEN_MT_FLASH = "qwen-mt-flash"; // Qwen flash model (2b) for translation
