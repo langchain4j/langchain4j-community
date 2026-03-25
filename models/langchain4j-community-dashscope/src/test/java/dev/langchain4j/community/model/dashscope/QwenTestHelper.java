@@ -40,7 +40,7 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX), Arguments.of(QwenModelName.QWEN3_5_PLUS));
     }
 
     public static Stream<Arguments> searchingChatModelNameProvider() {

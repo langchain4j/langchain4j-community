@@ -172,7 +172,10 @@ class QwenHelper {
                         .contents().stream()
                                 .map(QwenHelper::toMultiModalContent)
                                 .collect(toList());
-            case AI -> Collections.singletonList(Collections.singletonMap("text", ((AiMessage) message).text()));
+            case AI ->
+                isNullOrBlank(((AiMessage) message).text())
+                        ? Collections.emptyList()
+                        : Collections.singletonList(Collections.singletonMap("text", ((AiMessage) message).text()));
             case SYSTEM ->
                 Collections.singletonList(Collections.singletonMap("text", ((SystemMessage) message).text()));
             case TOOL_EXECUTION_RESULT ->
