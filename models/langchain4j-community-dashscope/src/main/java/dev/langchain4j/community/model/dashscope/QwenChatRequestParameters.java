@@ -34,6 +34,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      */
     private final AsrOptions asrOptions;
     /**
+     * Parameters for text-to-speech (TTS).
+     * See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-tts">Speech synthesis - Qwen</a> for more details.
+     */
+    private final TtsOptions ttsOptions;
+    /**
      * The translation parameters you need to configure when you use the translation
      * models.
      */
@@ -122,6 +127,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.enableSearch = builder.enableSearch;
         this.searchOptions = builder.searchOptions;
         this.asrOptions = builder.asrOptions;
+        this.ttsOptions = builder.ttsOptions;
         this.translationOptions = builder.translationOptions;
         this.vlHighResolutionImages = builder.vlHighResolutionImages;
         this.isMultimodalModel = builder.isMultimodalModel;
@@ -153,6 +159,10 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
     public AsrOptions asrOptions() {
         return asrOptions;
+    }
+
+    public TtsOptions ttsOptions() {
+        return ttsOptions;
     }
 
     public TranslationOptions translationOptions() {
@@ -236,6 +246,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 && Objects.equals(enableSearch, that.enableSearch)
                 && Objects.equals(searchOptions, that.searchOptions)
                 && Objects.equals(asrOptions, that.asrOptions)
+                && Objects.equals(ttsOptions, that.ttsOptions)
                 && Objects.equals(translationOptions, that.translationOptions)
                 && Objects.equals(vlHighResolutionImages, that.vlHighResolutionImages)
                 && Objects.equals(isMultimodalModel, that.isMultimodalModel)
@@ -261,6 +272,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 enableSearch,
                 searchOptions,
                 asrOptions,
+                ttsOptions,
                 translationOptions,
                 vlHighResolutionImages,
                 isMultimodalModel,
@@ -295,7 +307,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 + seed + ", enableSearch="
                 + enableSearch + ", searchOptions="
                 + searchOptions + ", asrOptions="
-                + asrOptions + ", translationOptions="
+                + asrOptions + ", ttsOptions="
+                + ttsOptions + ", translationOptions="
                 + translationOptions + ", vlHighResolutionImages="
                 + vlHighResolutionImages + ", isMultimodalModel="
                 + isMultimodalModel + ", supportIncrementalOutput="
@@ -318,6 +331,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private Boolean enableSearch;
         private SearchOptions searchOptions;
         private AsrOptions asrOptions;
+        private TtsOptions ttsOptions;
         private TranslationOptions translationOptions;
         private Boolean vlHighResolutionImages;
         private Boolean isMultimodalModel;
@@ -342,6 +356,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 enableSearch(getOrDefault(qwenParameters.enableSearch(), enableSearch));
                 searchOptions(getOrDefault(qwenParameters.searchOptions(), searchOptions));
                 asrOptions(getOrDefault(qwenParameters.asrOptions(), asrOptions));
+                ttsOptions(getOrDefault(qwenParameters.ttsOptions(), ttsOptions));
                 translationOptions(getOrDefault(qwenParameters.translationOptions(), translationOptions));
                 vlHighResolutionImages(getOrDefault(qwenParameters.vlHighResolutionImages(), vlHighResolutionImages));
                 enableThinking(getOrDefault(qwenParameters.enableThinking(), enableThinking));
@@ -379,6 +394,11 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder asrOptions(AsrOptions asrOptions) {
             this.asrOptions = asrOptions;
+            return this;
+        }
+
+        public Builder ttsOptions(TtsOptions ttsOptions) {
+            this.ttsOptions = ttsOptions;
             return this;
         }
 
@@ -653,6 +673,57 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
             public AsrOptions build() {
                 return new AsrOptions(language, enableItn);
+            }
+        }
+    }
+
+    /**
+     * Text-to-speech (TTS) parameters.
+     *
+     * @param voice                (Required) The voice to use.
+     *                             See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-tts#bac280ddf5a1u">Supported system voices</a> for details.
+     * @param languageType         Specify the language of the synthesized audio. The default value is Auto.
+     *                             Auto: Use when text language is uncertain or contains multiple languages. The model automatically matches pronunciation for different language segments, but accuracy is not guaranteed.
+     *                             Specify language: Use when the text is in a single language. Specifying the exact language significantly improves synthesis quality and usually outperforms Auto. Supported values include the following (for now): Chinese, English, German, Italian, Portuguese, Spanish, Japanese, Korean, French, Russian
+     * @param instructions         Provide instructions to guide speech synthesis. Only supported by instruction models.
+     * @param optimizeInstructions Optimize instructions to improve speech naturalness and expressiveness. Defaults to false.
+     *                             Behavior: When true, the system semantically enhances and rewrites instructions to generate internal instructions better suited for speech synthesis.
+     *                             Scenarios: Enable for high-quality, fine-grained speech expression.
+     *                             Dependency: Requires instructions parameter. Has no effect if the instructions parameter is empty.
+     */
+    public record TtsOptions(String voice, String languageType, String instructions, Boolean optimizeInstructions) {
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static class Builder {
+            private String voice;
+            private String languageType;
+            private String instructions;
+            private Boolean optimizeInstructions;
+
+            public Builder voice(String voice) {
+                this.voice = voice;
+                return this;
+            }
+
+            public Builder languageType(String languageType) {
+                this.languageType = languageType;
+                return this;
+            }
+
+            public Builder instructions(String instructions) {
+                this.instructions = instructions;
+                return this;
+            }
+
+            public Builder optimizeInstructions(Boolean optimizeInstructions) {
+                this.optimizeInstructions = optimizeInstructions;
+                return this;
+            }
+
+            public TtsOptions build() {
+                return new TtsOptions(voice, languageType, instructions, optimizeInstructions);
             }
         }
     }

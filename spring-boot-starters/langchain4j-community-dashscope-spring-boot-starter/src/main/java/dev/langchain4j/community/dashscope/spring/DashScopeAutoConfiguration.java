@@ -100,6 +100,21 @@ public class DashScopeAutoConfiguration {
                 .build();
     }
 
+    private static QwenChatRequestParameters.TtsOptions getTtsOptions(
+            DashScopeChatModelProperties.Parameters parameters) {
+        DashScopeChatModelProperties.TtsOptions ttsOptions = parameters.getTtsOptions();
+        if (ttsOptions == null) {
+            return null;
+        }
+
+        return QwenChatRequestParameters.TtsOptions.builder()
+                .voice(ttsOptions.getVoice())
+                .languageType(ttsOptions.getLanguageType())
+                .instructions(ttsOptions.getInstructions())
+                .optimizeInstructions(ttsOptions.getOptimizeInstructions())
+                .build();
+    }
+
     private static ResponseFormat getResponseFormat(DashScopeChatModelProperties.Parameters parameters) {
         ResponseFormatType responseFormatType = parameters.getResponseFormat();
         if (responseFormatType == null) {
@@ -130,6 +145,7 @@ public class DashScopeAutoConfiguration {
                 .enableSearch(parameters.getEnableSearch())
                 .searchOptions(getSearchOption(parameters))
                 .asrOptions(getAsrOptions(parameters))
+                .ttsOptions(getTtsOptions(parameters))
                 .translationOptions(getTranslationOptions(parameters))
                 .vlHighResolutionImages(parameters.getVlHighResolutionImages())
                 .isMultimodalModel(parameters.getIsMultimodalModel())

@@ -59,6 +59,11 @@ class QwenTestHelper {
         return Stream.of(Arguments.of(QwenModelName.QWEN3_ASR_FLASH));
     }
 
+    public static Stream<Arguments> ttsChatModelNameProvider() {
+        return Stream.of(
+                Arguments.of(QwenModelName.QWEN3_TTS_FLASH), Arguments.of(QwenModelName.QWEN3_TTS_INSTRUCT_FLASH));
+    }
+
     public static Stream<Arguments> embeddingModelNameProvider() {
         return Stream.of(Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
     }

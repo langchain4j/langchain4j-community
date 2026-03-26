@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.GENERATED_AUDIOS_KEY;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
@@ -53,6 +54,8 @@ import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.chat.response.PartialResponse;
+import dev.langchain4j.model.chat.response.PartialResponseContext;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
@@ -481,6 +484,43 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         response = handler.get();
 
         assertThat(response.aiMessage().text()).contains("$5");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#ttsChatModelNameProvider")
+    void should_send_text_and_receive_audio(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .ttsOptions(QwenChatRequestParameters.TtsOptions.builder()
+                        .voice("Cherry")
+                        .languageType("English")
+                        .instructions(
+                                "Speak quickly with a clear rising intonation, suitable for promoting fashion items.")
+                        .optimizeInstructions(true)
+                        .build())
+                .build();
+
+        ChatRequest request = ChatRequest.builder()
+                .messages(UserMessage.from("Today is a wonderful day to build something people love!"))
+                .parameters(parameters)
+                .build();
+
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler() {
+            @Override
+            public void onPartialResponse(PartialResponse partialResponse, PartialResponseContext context) {
+                assertThat(partialResponse.text()).isNotEmpty();
+                // We don't need to append the base64-encoded audio data to the final text reply.
+            }
+        };
+        model.chat(request, handler);
+        ChatResponse response = handler.get();
+
+        assertThat((List<Audio>) response.aiMessage().attributes().get(GENERATED_AUDIOS_KEY))
+                .hasSize(1);
     }
 
     @ParameterizedTest

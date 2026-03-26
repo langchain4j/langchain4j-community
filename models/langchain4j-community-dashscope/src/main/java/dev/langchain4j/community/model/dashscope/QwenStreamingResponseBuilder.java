@@ -138,6 +138,10 @@ public class QwenStreamingResponseBuilder {
                 String generatedContent = answerFrom(accumulatedMultiModalConversationResult);
                 partialContent = partialContent.substring(generatedContent.length());
             }
+        } else if (partialResponse.getOutput().getAudio() != null
+                && partialResponse.getOutput().getAudio().getData() != null) {
+            // The tts models will incrementally return base64-encoded PCM data.
+            partialContent = partialResponse.getOutput().getAudio().getData();
         }
         if (hasReasoningContent(partialResponse)) {
             partialReasoningContent = reasoningContentFrom(partialResponse);
@@ -657,13 +661,6 @@ public class QwenStreamingResponseBuilder {
     }
 
     private static Long merge(Long previous, Long current) {
-        if (previous == null) {
-            return current;
-        }
-        if (current == null) {
-            return previous;
-        }
-        String resultStr = merge(String.valueOf(previous), String.valueOf(current));
-        return Long.parseLong(resultStr);
+        return current == null ? previous : current;
     }
 }

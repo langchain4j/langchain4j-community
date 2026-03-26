@@ -8,6 +8,7 @@ import static dev.langchain4j.data.message.ChatMessageType.TOOL_EXECUTION_RESULT
 import static dev.langchain4j.data.message.ChatMessageType.USER;
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
@@ -24,6 +25,7 @@ import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.generation.SearchInfo;
 import com.alibaba.dashscope.aigc.generation.TranslationOptions;
+import com.alibaba.dashscope.aigc.multimodalconversation.AudioParameters;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
@@ -85,6 +87,8 @@ import org.slf4j.LoggerFactory;
 class QwenHelper {
 
     private static final Logger log = LoggerFactory.getLogger(QwenHelper.class);
+    public static final String GENERATED_AUDIOS_KEY =
+            "generated_audios"; // key for storing generated audios in AiMessage attributes
 
     static List<Message> toQwenMessages(List<ChatMessage> messages, Boolean enableSanitizeMessages) {
         List<ChatMessage> inputMessages =
@@ -168,7 +172,10 @@ class QwenHelper {
                         .contents().stream()
                                 .map(QwenHelper::toMultiModalContent)
                                 .collect(toList());
-            case AI -> Collections.singletonList(Collections.singletonMap("text", ((AiMessage) message).text()));
+            case AI ->
+                isNullOrBlank(((AiMessage) message).text())
+                        ? Collections.emptyList()
+                        : Collections.singletonList(Collections.singletonMap("text", ((AiMessage) message).text()));
             case SYSTEM ->
                 Collections.singletonList(Collections.singletonMap("text", ((SystemMessage) message).text()));
             case TOOL_EXECUTION_RESULT ->
@@ -335,6 +342,24 @@ class QwenHelper {
                 .collect(toList());
     }
 
+    static List<Audio> audiosFrom(MultiModalConversationResult result) {
+        if (result.getOutput().getAudio() != null) {
+            if (result.getOutput().getAudio().getUrl() != null) {
+                return Collections.singletonList(Audio.builder()
+                        .url(result.getOutput().getAudio().getUrl())
+                        .mimeType("audio/wav")
+                        .build());
+            } else if (result.getOutput().getAudio().getData() != null) {
+                // The base64-encoded audio would be returned in the streaming mode.
+                return Collections.singletonList(Audio.builder()
+                        .base64Data(result.getOutput().getAudio().getData())
+                        .mimeType("audio/pcm")
+                        .build());
+            }
+        }
+        return Collections.emptyList();
+    }
+
     static TokenUsage tokenUsageFrom(GenerationResult result) {
         return Optional.of(result)
                 .map(GenerationResult::getUsage)
@@ -366,11 +391,16 @@ class QwenHelper {
     }
 
     static FinishReason finishReasonFrom(MultiModalConversationResult result) {
-        MultiModalConversationOutput.Choice choice =
-                result.getOutput().getChoices().get(0);
-        // Upon observation, when tool_calls occur, the returned finish_reason may be null or "stop", not "tool_calls".
-        String finishReason =
-                isNullOrEmpty(choice.getMessage().getToolCalls()) ? choice.getFinishReason() : "tool_calls";
+        String finishReason;
+        if (isNullOrEmpty(result.getOutput().getChoices())) {
+            finishReason = result.getOutput().getFinishReason();
+        } else {
+            MultiModalConversationOutput.Choice choice =
+                    result.getOutput().getChoices().get(0);
+            // Upon observation, when tool_calls occur, the returned finish_reason may be null or "stop", not
+            // "tool_calls".
+            finishReason = isNullOrEmpty(choice.getMessage().getToolCalls()) ? choice.getFinishReason() : "tool_calls";
+        }
 
         return finishReason == null
                 ? null
@@ -411,7 +441,8 @@ class QwenHelper {
                 || modelName.contains("-omni-")
                 || modelName.contains("-image-")
                 || modelName.startsWith("qwen3.5-")
-                || modelName.contains("-asr-");
+                || modelName.contains("-asr-")
+                || modelName.contains("-tts-");
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
@@ -582,10 +613,18 @@ class QwenHelper {
         String text = answerFrom(result);
         String reasoningContentFrom = reasoningContentFrom(result);
         List<Image> images = imagesFrom(result);
+        List<Audio> audios = audiosFrom(result);
+        Map<String, Object> attributes = new HashMap<>(2);
+        if (isNotNullOrEmpty(images)) {
+            attributes.put(GENERATED_IMAGES_KEY, images);
+        }
+        if (isNotNullOrEmpty(audios)) {
+            attributes.put(GENERATED_AUDIOS_KEY, audios);
+        }
         AiMessage.Builder aiMessageBuilder = AiMessage.builder()
                 .text(text)
                 .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
-                .attributes(isNullOrEmpty(images) ? Map.of() : Map.of(GENERATED_IMAGES_KEY, images));
+                .attributes(attributes);
         if (isFunctionToolCalls(result)) {
             aiMessageBuilder = aiMessageBuilder.toolExecutionRequests(toolExecutionRequestsFrom(result));
             if (text.isBlank()) {
@@ -845,6 +884,10 @@ class QwenHelper {
         if (parameters.asrOptions() != null) {
             throw new UnsupportedFeatureException("asrOptions is not supported by " + parameters.modelName());
         }
+
+        if (parameters.ttsOptions() != null) {
+            throw new UnsupportedFeatureException("ttsOptions is not supported by " + parameters.modelName());
+        }
     }
 
     static void validateMultimodalConversationParameters(QwenChatRequestParameters parameters) {
@@ -977,6 +1020,24 @@ class QwenHelper {
             builder.parameter("asr_options", asrOptions);
         }
 
+        if (parameters.ttsOptions() != null) {
+            builder.text(toQwenTtsText(chatRequest.messages()));
+            builder.voice(toQwenTtsVoice(parameters.ttsOptions().voice()));
+            if (parameters.ttsOptions().languageType() != null) {
+                builder.languageType(parameters.ttsOptions().languageType());
+            }
+            if (parameters.ttsOptions().instructions() != null) {
+                // no java field is provided yet
+                builder.parameter("instructions", parameters.ttsOptions().instructions());
+            }
+            if (parameters.ttsOptions().optimizeInstructions() != null) {
+                // no java field is provided yet
+                builder.parameter(
+                        "optimize_instructions", parameters.ttsOptions().optimizeInstructions());
+            }
+            builder.parameter("enable_omni_output_audio_url", true);
+        }
+
         if (parameters.custom() != null) {
             // no java field is provided yet
             builder.parameter("custom", parameters.custom());
@@ -987,6 +1048,23 @@ class QwenHelper {
         }
 
         return builder.build();
+    }
+
+    static String toQwenTtsText(List<ChatMessage> messages) {
+        try {
+            return ((UserMessage) messages.get(messages.size() - 1)).singleText();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("No valid text found", e);
+        }
+    }
+
+    static AudioParameters.Voice toQwenTtsVoice(String voice) {
+        for (AudioParameters.Voice qwenVoice : AudioParameters.Voice.values()) {
+            if (qwenVoice.getValue().equalsIgnoreCase(voice)) {
+                return qwenVoice;
+            }
+        }
+        throw new IllegalArgumentException("Invalid voice: " + voice);
     }
 
     static com.alibaba.dashscope.common.ResponseFormat toQwenResponseFormat(

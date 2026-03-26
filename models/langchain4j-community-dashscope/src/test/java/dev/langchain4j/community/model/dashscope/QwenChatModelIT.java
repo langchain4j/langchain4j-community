@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.GENERATED_AUDIOS_KEY;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
@@ -385,6 +386,33 @@ class QwenChatModelIT extends AbstractChatModelIT {
         response = model.chat(chatRequest);
 
         assertThat(response.aiMessage().text()).contains("$5");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#ttsChatModelNameProvider")
+    void should_send_text_and_receive_audio(String modelName) {
+        ChatModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .ttsOptions(QwenChatRequestParameters.TtsOptions.builder()
+                        .voice("Cherry")
+                        .languageType("English")
+                        .instructions(
+                                "Speak quickly with a clear rising intonation, suitable for promoting fashion items.")
+                        .optimizeInstructions(true)
+                        .build())
+                .build();
+
+        ChatRequest request = ChatRequest.builder()
+                .messages(UserMessage.from("Today is a wonderful day to build something people love!"))
+                .parameters(parameters)
+                .build();
+
+        ChatResponse response = model.chat(request);
+
+        assertThat((List<Audio>) response.aiMessage().attributes().get(GENERATED_AUDIOS_KEY))
+                .hasSize(1);
     }
 
     @ParameterizedTest
