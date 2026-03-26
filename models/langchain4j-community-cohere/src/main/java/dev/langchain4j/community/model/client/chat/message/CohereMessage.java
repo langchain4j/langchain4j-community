@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 
@@ -15,8 +16,6 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static dev.langchain4j.internal.Utils.copy;
 
 @JsonDeserialize(builder = CohereMessage.Builder.class)
-@JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereMessage {
 
@@ -62,6 +61,9 @@ public class CohereMessage {
                 + "}";
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
+    @JsonInclude(NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Builder {
 
         private CohereRole role;

@@ -64,7 +64,10 @@ public class CohereMapper {
 
     private CohereMapper() {}
 
-    public static CohereChatRequest toCohereChatRequest(ChatRequest chatRequest, String thinkingType, Integer thinkingTokenBudget) {
+    public static CohereChatRequest toCohereChatRequest(ChatRequest chatRequest,
+                                                        String thinkingType,
+                                                        Integer thinkingTokenBudget,
+                                                        Boolean stream) {
 
         CohereChatRequest.Builder builder = CohereChatRequest.builder()
                 .model(chatRequest.modelName())
@@ -81,7 +84,8 @@ public class CohereMapper {
                 .presencePenalty(chatRequest.presencePenalty())
                 .frequencyPenalty(chatRequest.frequencyPenalty())
                 .maxTokens(chatRequest.maxOutputTokens())
-                .stopSequences(chatRequest.stopSequences());
+                .stopSequences(chatRequest.stopSequences())
+                .stream(stream);
 
         if (thinkingType != null || thinkingTokenBudget != null) {
             builder.thinking(CohereThinking.builder()
@@ -233,7 +237,7 @@ public class CohereMapper {
                 .build();
     }
 
-    private static FinishReason mapFinishReason(String finishReason) {
+    public static FinishReason mapFinishReason(String finishReason) {
         if (finishReason.equals("COMPLETE")) return STOP;
         if (finishReason.equals("STOP_SEQUENCE")) return STOP;
         if (finishReason.equals("MAX_TOKENS")) return LENGTH;

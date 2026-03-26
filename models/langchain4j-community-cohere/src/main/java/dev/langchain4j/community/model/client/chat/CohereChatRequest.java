@@ -31,6 +31,7 @@ public class CohereChatRequest {
     private Integer maxTokens;
     private List<String> stopSequences;
     private CohereThinking thinking;
+    private Boolean stream;
 
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
@@ -46,6 +47,7 @@ public class CohereChatRequest {
         this.maxTokens = builder.maxTokens;
         this.stopSequences = builder.stopSequences;
         this.thinking = builder.thinking;
+        this.stream = builder.stream;
     }
 
     public String getModel() {
@@ -112,6 +114,10 @@ public class CohereChatRequest {
 
     public CohereThinking getThinking() { return thinking; }
 
+    public Boolean setStream(Boolean stream) { return this.stream = stream; }
+
+    public Boolean getStream() { return stream; }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -131,6 +137,7 @@ public class CohereChatRequest {
         private Integer maxTokens;
         private List<String> stopSequences;
         private CohereThinking thinking;
+        private Boolean stream;
 
         public Builder model(String model) {
             this.model = model;
@@ -194,6 +201,11 @@ public class CohereChatRequest {
 
         public Builder thinking(CohereThinking thinking) {
             this.thinking = thinking;
+            return this;
+        }
+
+        public Builder stream(Boolean stream) {
+            this.stream = stream;
             return this;
         }
 

@@ -30,6 +30,7 @@ class CohereAiServiceWithJsonSchemaIT extends AbstractAiServiceWithJsonSchemaIT 
         // The Map<String, Object> results in an empty object schema, which is illegal in the API.
     }
 
+    // TODO: Review this
     @Disabled("Cohere models are not good with float numbers")
     @Override
     protected void should_extract_float_boxed(ChatModel chatModel) {
