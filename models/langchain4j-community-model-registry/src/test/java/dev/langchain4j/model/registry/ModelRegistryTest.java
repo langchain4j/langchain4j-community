@@ -12,8 +12,7 @@ import org.junit.jupiter.api.Test;
 
 class ModelRegistryTest implements WithAssertions {
 
-    private static final String JSON =
-            """
+    private static final String JSON = """
 			{
 			  "evroc": {
 			    "id": "evroc",
