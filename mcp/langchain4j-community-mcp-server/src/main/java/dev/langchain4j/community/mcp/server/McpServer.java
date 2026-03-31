@@ -11,6 +11,7 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
+import dev.langchain4j.mcp.protocol.McpCallToolParams;
 import dev.langchain4j.mcp.protocol.McpCallToolRequest;
 import dev.langchain4j.mcp.protocol.McpCallToolResult;
 import dev.langchain4j.mcp.protocol.McpErrorResponse;
@@ -129,8 +130,10 @@ public class McpServer {
 
     private McpInitializeResult handleInitialize(McpInitializeRequest request) {
         String protocolVersion = DEFAULT_PROTOCOL_VERSION;
-        if (request.getParams() != null && request.getParams().getProtocolVersion() != null) {
-            protocolVersion = request.getParams().getProtocolVersion();
+        if (request.getParams() != null
+                && (request.getParams() instanceof McpInitializeParams mcpInitializeParams)
+                && mcpInitializeParams.getProtocolVersion() != null) {
+            protocolVersion = mcpInitializeParams.getProtocolVersion();
         }
         McpInitializeResult.Capabilities capabilities =
                 new McpInitializeResult.Capabilities(new McpInitializeResult.Capabilities.Tools(null));
@@ -144,20 +147,19 @@ public class McpServer {
     }
 
     private McpJsonRpcMessage handleCallTool(McpCallToolRequest request) {
-        Map<String, Object> params = request.getParams();
-        if (params == null || !params.containsKey("name") || params.get("name") == null) {
+        McpCallToolParams params = (McpCallToolParams) request.getParams();
+        if (params == null || params.getName() == null) {
             return new McpErrorResponse(
                     request.getId(), new McpErrorResponse.Error(ERROR_CODE_INVALID_PARAMS, "Missing tool name", null));
         }
 
-        String toolName = String.valueOf(params.get("name"));
-        ToolExecutor toolExecutor = toolExecutors.get(toolName);
+        ToolExecutor toolExecutor = toolExecutors.get(params.getName());
         if (toolExecutor == null) {
-            return toCallToolError(request.getId(), "Unknown tool: " + toolName);
+            return toCallToolError(request.getId(), "Unknown tool: " + params.getName());
         }
 
         String arguments = null;
-        Object args = params.get(ARGUMENTS_FIELD);
+        ObjectNode args = params.getArguments();
         if (args != null) {
             try {
                 arguments = OBJECT_MAPPER.writeValueAsString(args);
@@ -168,7 +170,7 @@ public class McpServer {
 
         ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
                 .id(String.valueOf(request.getId()))
-                .name(toolName)
+                .name(params.getName())
                 .arguments(arguments)
                 .build();
 
