@@ -69,8 +69,18 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                         DedicatedServingMode.builder().endpointId(modelName).build();
                 };
 
-        try (var isr = new InputStreamReader(
-                        super.ociChat(bmcChatRequest, servingMode).getEventStream());
+        super.ociChatAsync(
+                bmcChatRequest,
+                servingMode,
+                response -> handleStream(response, modelName, handler),
+                error -> notifyError(handler, error));
+    }
+
+    private void handleStream(
+            com.oracle.bmc.generativeaiinference.responses.ChatResponse response,
+            String modelName,
+            StreamingChatResponseHandler handler) {
+        try (var isr = new InputStreamReader(response.getEventStream());
                 var reader = new BufferedReader(isr)) {
             String line;
             com.oracle.bmc.generativeaiinference.model.CohereChatResponse lastCohereChatResponse = null;
@@ -148,11 +158,15 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                         .build());
             }
         } catch (Exception e) {
-            try {
-                handler.onError(e);
-            } catch (Exception userException) {
-                LOGGER.error("Error in user error handler", userException);
-            }
+            notifyError(handler, e);
+        }
+    }
+
+    private void notifyError(StreamingChatResponseHandler handler, Throwable error) {
+        try {
+            handler.onError(error);
+        } catch (Exception userException) {
+            LOGGER.error("Error in user error handler", userException);
         }
     }
 

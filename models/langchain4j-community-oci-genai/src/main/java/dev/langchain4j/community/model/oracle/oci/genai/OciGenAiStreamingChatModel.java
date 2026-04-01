@@ -57,10 +57,19 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
                         DedicatedServingMode.builder().endpointId(modelName).build();
                 };
 
-        try (var isr = new InputStreamReader(
-                        super.ociChat(bmcChatRequest, servingMode).getEventStream());
-                var reader = new BufferedReader(isr)) {
+        super.ociChatAsync(
+                bmcChatRequest,
+                servingMode,
+                response -> handleStream(response, modelName, handler),
+                error -> notifyError(handler, error));
+    }
 
+    private void handleStream(
+            com.oracle.bmc.generativeaiinference.responses.ChatResponse response,
+            String modelName,
+            StreamingChatResponseHandler handler) {
+        try (var isr = new InputStreamReader(response.getEventStream());
+                var reader = new BufferedReader(isr)) {
             String line;
             var streamingResponseBuilder = new GenericStreamingResponseBuilder(modelName, handler);
             while ((line = reader.readLine()) != null) {
@@ -73,11 +82,15 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
 
             streamingResponseBuilder.build();
         } catch (Exception e) {
-            try {
-                handler.onError(e);
-            } catch (Exception userException) {
-                LOGGER.debug("Error in user error handler", userException);
-            }
+            notifyError(handler, e);
+        }
+    }
+
+    private void notifyError(StreamingChatResponseHandler handler, Throwable error) {
+        try {
+            handler.onError(error);
+        } catch (Exception userException) {
+            LOGGER.debug("Error in user error handler", userException);
         }
     }
 

@@ -2,11 +2,13 @@ package dev.langchain4j.community.model.oracle.oci.genai;
 
 import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.BasicAuthenticationDetailsProvider;
+import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceClient;
 import com.oracle.bmc.generativeaiinference.model.BaseChatRequest;
 import com.oracle.bmc.generativeaiinference.model.ChatDetails;
 import com.oracle.bmc.generativeaiinference.model.ServingMode;
 import com.oracle.bmc.http.client.Serializer;
+import com.oracle.bmc.responses.AsyncHandler;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -14,6 +16,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -22,18 +25,30 @@ import org.slf4j.LoggerFactory;
 abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseChatModel.class);
+    private static final String CLIENT_REQUIRED_MESSAGE =
+            "GenAi client, async GenAi client, or authentication provider needs to be provided.";
 
-    private final GenerativeAiInferenceClient client;
+    private final Builder<?, ?> builder;
     private final String compartmentId;
+    private GenerativeAiInferenceClient client;
+    private GenerativeAiInferenceAsyncClient asyncClient;
 
     BaseChatModel(Builder<?, ?> builder) {
+        if (!builder.hasGenAiClient() && !builder.hasGenAiAsyncClient()) {
+            throw new IllegalArgumentException(CLIENT_REQUIRED_MESSAGE);
+        }
+        this.builder = builder;
         this.compartmentId = builder.compartmentId();
-        this.client = builder.genAiClient();
     }
 
     @Override
     public void close() {
-        client.close();
+        if (client != null) {
+            client.close();
+        }
+        if (asyncClient != null) {
+            asyncClient.close();
+        }
     }
 
     /**
@@ -62,20 +77,80 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     protected com.oracle.bmc.generativeaiinference.responses.ChatResponse ociChat(
             BaseChatRequest chatRequest, ServingMode servingMode) {
         LOGGER.debug("Chat Request: {}", chatRequest);
+        var request = ociChatRequest(chatRequest, servingMode);
+        var chatResponse = syncClient().chat(request);
+        LOGGER.debug("Chat Response: {}", chatResponse);
+        return chatResponse;
+    }
 
+    protected void ociChatAsync(
+            BaseChatRequest chatRequest,
+            ServingMode servingMode,
+            Consumer<com.oracle.bmc.generativeaiinference.responses.ChatResponse> onSuccess,
+            Consumer<Throwable> onError) {
+        var asyncClient = asyncClient();
+        if (asyncClient != null) {
+            var request = ociChatRequest(chatRequest, servingMode);
+            asyncClient.chat(
+                    request,
+                    new AsyncHandler<>() {
+                        @Override
+                        public void onSuccess(
+                                com.oracle.bmc.generativeaiinference.requests.ChatRequest request,
+                                com.oracle.bmc.generativeaiinference.responses.ChatResponse response) {
+                            try {
+                                onSuccess.accept(response);
+                            } catch (Throwable t) {
+                                onError.accept(t);
+                            }
+                        }
+
+                        @Override
+                        public void onError(
+                                com.oracle.bmc.generativeaiinference.requests.ChatRequest request, Throwable error) {
+                            onError.accept(error);
+                        }
+                    });
+            return;
+        }
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                onSuccess.accept(ociChat(chatRequest, servingMode));
+            } catch (Throwable t) {
+                onError.accept(t);
+            }
+        });
+    }
+
+    private com.oracle.bmc.generativeaiinference.requests.ChatRequest ociChatRequest(
+            BaseChatRequest chatRequest, ServingMode servingMode) {
         var details = ChatDetails.builder()
                 .servingMode(servingMode)
                 .compartmentId(compartmentId)
                 .chatRequest(chatRequest)
                 .build();
 
-        var request = com.oracle.bmc.generativeaiinference.requests.ChatRequest.builder()
+        return com.oracle.bmc.generativeaiinference.requests.ChatRequest.builder()
                 .chatDetails(details)
                 .build();
+    }
 
-        var chatResponse = client.chat(request);
-        LOGGER.debug("Chat Response: {}", chatResponse);
-        return chatResponse;
+    private GenerativeAiInferenceClient syncClient() {
+        if (client == null && builder.hasGenAiClient()) {
+            client = builder.genAiClient();
+        }
+        if (client == null) {
+            throw new IllegalStateException("Synchronous OCI GenAI client is not configured.");
+        }
+        return client;
+    }
+
+    private GenerativeAiInferenceAsyncClient asyncClient() {
+        if (asyncClient == null && builder.hasGenAiAsyncClient()) {
+            asyncClient = builder.genAiAsyncClient();
+        }
+        return asyncClient;
     }
 
     static <P> void setIfNotNull(P value, Consumer<P> consumer) {
@@ -124,6 +199,7 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         private Integer seed;
         private List<String> stop;
         private GenerativeAiInferenceClient genAiClient;
+        private GenerativeAiInferenceAsyncClient genAiAsyncClient;
         private List<ChatModelListener> listeners = List.of();
         private ServingMode.ServingType servingType = ServingMode.ServingType.OnDemand;
         private ChatRequestParameters defaultRequestParameters =
@@ -180,9 +256,13 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
             return self();
         }
 
+        boolean hasGenAiClient() {
+            return this.genAiClient != null || this.authProvider != null;
+        }
+
         GenerativeAiInferenceClient genAiClient() {
             if (this.genAiClient == null && this.authProvider == null) {
-                throw new IllegalArgumentException("GenAi client or authentication provider needs to be provided.");
+                throw new IllegalArgumentException(CLIENT_REQUIRED_MESSAGE);
             }
 
             if (this.genAiClient == null) {
@@ -194,6 +274,40 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
             }
 
             return this.genAiClient;
+        }
+
+        /**
+         * Manually configured async OCI SDK GenAi client.
+         * When set, values provided with {@link Builder#region(Region)}
+         * and {@link Builder#authProvider(BasicAuthenticationDetailsProvider)}
+         * are ignored for async client creation.
+         *
+         * @param genAiAsyncClient manually configured async OCI SDK GenAi client
+         * @return builder
+         */
+        public B genAiAsyncClient(GenerativeAiInferenceAsyncClient genAiAsyncClient) {
+            this.genAiAsyncClient = genAiAsyncClient;
+            return self();
+        }
+
+        boolean hasGenAiAsyncClient() {
+            return this.genAiAsyncClient != null || this.authProvider != null;
+        }
+
+        GenerativeAiInferenceAsyncClient genAiAsyncClient() {
+            if (this.genAiAsyncClient == null && this.authProvider == null) {
+                throw new IllegalArgumentException(CLIENT_REQUIRED_MESSAGE);
+            }
+
+            if (this.genAiAsyncClient == null) {
+                var clientBuilder = GenerativeAiInferenceAsyncClient.builder();
+                if (this.region() != null) {
+                    clientBuilder.region(this.region());
+                }
+                this.genAiAsyncClient = clientBuilder.build(this.authProvider());
+            }
+
+            return this.genAiAsyncClient;
         }
 
         /**
