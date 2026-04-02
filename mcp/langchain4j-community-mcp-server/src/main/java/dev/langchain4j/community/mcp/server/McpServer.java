@@ -228,12 +228,12 @@ public class McpServer {
     }
 
     private McpListToolsRequest parseListToolsRequest(Long id, JsonNode message) {
-        McpListToolsRequest request = new McpListToolsRequest(id);
+        String cursor = null;
         JsonNode paramsNode = message.get(PARAMS_FIELD);
         if (paramsNode != null && paramsNode.isObject() && paramsNode.has("cursor")) {
-            request.setCursor(paramsNode.get("cursor").asText());
+            cursor = paramsNode.get("cursor").asText();
         }
-        return request;
+        return new McpListToolsRequest(id, cursor);
     }
 
     private McpCallToolRequest parseCallToolRequest(Long id, JsonNode message) {
