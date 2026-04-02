@@ -252,8 +252,7 @@ public class ModelInfo {
 	    Cost            : %s
 	    Limit           : %s
 	    ----------------------------------------
-	    """
-                .formatted(
+	    """.formatted(
                         id,
                         name,
                         family,
