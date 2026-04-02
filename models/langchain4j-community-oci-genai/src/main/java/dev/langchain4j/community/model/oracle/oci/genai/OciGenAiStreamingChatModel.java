@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
+import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
 import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
 import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
 import dev.langchain4j.model.ModelProvider;
@@ -57,11 +58,12 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
                         DedicatedServingMode.builder().endpointId(modelName).build();
                 };
 
-        super.ociChatAsync(
-                bmcChatRequest,
-                servingMode,
-                response -> handleStream(response, modelName, handler),
-                error -> notifyError(handler, error));
+        super.ociChatAsync(bmcChatRequest, servingMode)
+                .thenAcceptAsync(response -> handleStream(response, modelName, handler))
+                .exceptionally(error -> {
+                    notifyError(handler, unwrapCompletionFailure(error));
+                    return null;
+                });
     }
 
     private void handleStream(
@@ -113,6 +115,10 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
         @Override
         Builder self() {
             return this;
+        }
+
+        public Builder genAiAsyncClient(GenerativeAiInferenceAsyncClient genAiAsyncClient) {
+            return super.genAiAsyncClient(genAiAsyncClient);
         }
 
         public OciGenAiStreamingChatModel build() {

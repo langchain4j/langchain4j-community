@@ -13,6 +13,7 @@ import com.oracle.bmc.generativeaiinference.model.CohereResponseJsonFormat;
 import com.oracle.bmc.generativeaiinference.model.CohereResponseTextFormat;
 import com.oracle.bmc.generativeaiinference.model.CohereTool;
 import com.oracle.bmc.generativeaiinference.model.CohereToolCall;
+import com.oracle.bmc.generativeaiinference.model.CohereToolMessage;
 import com.oracle.bmc.generativeaiinference.model.CohereToolResult;
 import com.oracle.bmc.generativeaiinference.model.CohereUserMessage;
 import com.oracle.bmc.generativeaiinference.model.Usage;
@@ -33,7 +34,9 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -141,35 +144,41 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
 
         var builder = CohereChatRequest.builder();
 
-        var toolResults = new ArrayList<CohereToolResult>();
+        var pendingToolResults = new ArrayList<CohereToolResult>();
         var chatHistory = new ArrayList<CohereMessage>();
-        CohereUserMessage firstUserMessage = null;
+        var pendingToolExecutionRequestsById = new HashMap<String, ToolExecutionRequest>();
+        var pendingToolExecutionRequestsByName = new HashMap<String, Deque<ToolExecutionRequest>>();
+        CohereUserMessage pendingUserMessage = null;
 
         for (ChatMessage chatMessage : chatRequest.messages()) {
             switch (chatMessage.type()) {
                 case USER -> {
+                    flushPendingToolResults(chatHistory, pendingToolResults);
                     var userMessage = (dev.langchain4j.data.message.UserMessage) chatMessage;
                     for (Content content : userMessage.contents()) {
                         var cohereUserMessage = map(content);
-                        if (firstUserMessage == null) {
-                            firstUserMessage = cohereUserMessage;
-                        } else {
-                            chatHistory.add(cohereUserMessage);
+                        if (pendingUserMessage != null) {
+                            chatHistory.add(pendingUserMessage);
                         }
+                        pendingUserMessage = cohereUserMessage;
                     }
                 }
                 case TOOL_EXECUTION_RESULT -> {
+                    if (pendingUserMessage != null) {
+                        chatHistory.add(pendingUserMessage);
+                        pendingUserMessage = null;
+                    }
                     var toolResultMessage = (dev.langchain4j.data.message.ToolExecutionResultMessage) chatMessage;
-                    toolResults.add(CohereToolResult.builder()
-                            .call(CohereToolCall.builder()
-                                    .name(toolResultMessage.toolName())
-                                    .build())
-                            // https://docs.cohere.com/v1/reference/chat
-                            // [{<key>: <value>}]
-                            .outputs(List.of(Map.of("result", toolResultMessage.text())))
-                            .build());
+                    var toolExecutionRequest = findPendingToolExecutionRequest(
+                            toolResultMessage, pendingToolExecutionRequestsById, pendingToolExecutionRequestsByName);
+                    pendingToolResults.add(map(toolResultMessage, toolExecutionRequest));
                 }
                 case SYSTEM -> {
+                    if (pendingUserMessage != null) {
+                        chatHistory.add(pendingUserMessage);
+                        pendingUserMessage = null;
+                    }
+                    flushPendingToolResults(chatHistory, pendingToolResults);
                     var systemMessage = (dev.langchain4j.data.message.SystemMessage) chatMessage;
                     // https://docs.cohere.com/v1/reference/chat
                     // The chat_history parameter should not be used for SYSTEM messages in most cases.
@@ -178,13 +187,27 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
                     builder.preambleOverride(systemMessage.text());
                 }
                 case AI -> {
+                    if (pendingUserMessage != null) {
+                        chatHistory.add(pendingUserMessage);
+                        pendingUserMessage = null;
+                    }
+                    flushPendingToolResults(chatHistory, pendingToolResults);
                     var aiMessage = (dev.langchain4j.data.message.AiMessage) chatMessage;
 
                     var assistantMessageBuilder = CohereChatBotMessage.builder();
+                    if (aiMessage.text() != null) {
+                        assistantMessageBuilder.message(aiMessage.text());
+                    }
 
                     if (aiMessage.hasToolExecutionRequests()) {
+                        if (aiMessage.text() == null) {
+                            // Cohere tool-call turns carry an empty text response alongside tool calls.
+                            assistantMessageBuilder.message("");
+                        }
                         var toolCalls = new ArrayList<CohereToolCall>();
                         for (ToolExecutionRequest toolExecReq : aiMessage.toolExecutionRequests()) {
+                            rememberToolExecutionRequest(
+                                    pendingToolExecutionRequestsById, pendingToolExecutionRequestsByName, toolExecReq);
                             toolCalls.add(map(toolExecReq));
                         }
                         assistantMessageBuilder.toolCalls(toolCalls);
@@ -193,7 +216,10 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
                     // "Chat calls with tool_results should not be included in the Chat history
                     // to avoid duplication of the message text."
                     // BUT - sequential tool calls wouldn't work!
-                    chatHistory.add(assistantMessageBuilder.build());
+                    var assistantMessage = assistantMessageBuilder.build();
+                    if (assistantMessage.getMessage() != null || assistantMessage.getToolCalls() != null) {
+                        chatHistory.add(assistantMessage);
+                    }
                 }
                 default -> throw new UnsupportedOperationException("Unsupported message type: " + chatMessage.type());
             }
@@ -210,13 +236,13 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
             builder.tools(bmcTools);
         }
 
-        if (!toolResults.isEmpty()) {
-            builder.toolResults(toolResults);
-            builder.isForceSingleStep(true);
-        }
-
-        if (firstUserMessage != null) {
-            builder.message(firstUserMessage.getMessage());
+        if (!pendingToolResults.isEmpty()) {
+            builder.toolResults(pendingToolResults);
+            // Allow the model to continue chaining tools after it receives prior tool results.
+            builder.isForceSingleStep(false);
+            builder.message("");
+        } else if (pendingUserMessage != null) {
+            builder.message(pendingUserMessage.getMessage());
         }
 
         if (chatRequest.responseFormat() != null) {
@@ -225,10 +251,104 @@ abstract class BaseCohereChatModel<T extends BaseCohereChatModel<T>> extends Bas
         return builder;
     }
 
+    private static void flushPendingToolResults(
+            List<CohereMessage> chatHistory, List<CohereToolResult> pendingToolResults) {
+        if (pendingToolResults.isEmpty()) {
+            return;
+        }
+        chatHistory.add(CohereToolMessage.builder()
+                .toolResults(new ArrayList<>(pendingToolResults))
+                .build());
+        pendingToolResults.clear();
+    }
+
+    private static void rememberToolExecutionRequest(
+            Map<String, ToolExecutionRequest> pendingToolExecutionRequestsById,
+            Map<String, Deque<ToolExecutionRequest>> pendingToolExecutionRequestsByName,
+            ToolExecutionRequest toolExecutionRequest) {
+        if (toolExecutionRequest.id() != null) {
+            pendingToolExecutionRequestsById.put(toolExecutionRequest.id(), toolExecutionRequest);
+        }
+        if (toolExecutionRequest.name() != null) {
+            pendingToolExecutionRequestsByName
+                    .computeIfAbsent(toolExecutionRequest.name(), ignored -> new ArrayDeque<>())
+                    .addLast(toolExecutionRequest);
+        }
+    }
+
+    private static ToolExecutionRequest findPendingToolExecutionRequest(
+            dev.langchain4j.data.message.ToolExecutionResultMessage toolResultMessage,
+            Map<String, ToolExecutionRequest> pendingToolExecutionRequestsById,
+            Map<String, Deque<ToolExecutionRequest>> pendingToolExecutionRequestsByName) {
+        if (toolResultMessage.id() != null) {
+            var toolExecutionRequest = pendingToolExecutionRequestsById.remove(toolResultMessage.id());
+            if (toolExecutionRequest != null) {
+                removePendingToolExecutionRequestByName(
+                        pendingToolExecutionRequestsByName, toolExecutionRequest.name(), toolExecutionRequest);
+            }
+            return toolExecutionRequest;
+        }
+
+        if (toolResultMessage.toolName() == null) {
+            return null;
+        }
+
+        var requestsWithSameName = pendingToolExecutionRequestsByName.get(toolResultMessage.toolName());
+        if (requestsWithSameName == null || requestsWithSameName.isEmpty()) {
+            return null;
+        }
+
+        var toolExecutionRequest = requestsWithSameName.removeFirst();
+        if (requestsWithSameName.isEmpty()) {
+            pendingToolExecutionRequestsByName.remove(toolResultMessage.toolName());
+        }
+        if (toolExecutionRequest.id() != null) {
+            pendingToolExecutionRequestsById.remove(toolExecutionRequest.id());
+        }
+        return toolExecutionRequest;
+    }
+
+    private static void removePendingToolExecutionRequestByName(
+            Map<String, Deque<ToolExecutionRequest>> pendingToolExecutionRequestsByName,
+            String toolName,
+            ToolExecutionRequest toolExecutionRequest) {
+        if (toolName == null) {
+            return;
+        }
+        var requestsWithSameName = pendingToolExecutionRequestsByName.get(toolName);
+        if (requestsWithSameName == null) {
+            return;
+        }
+        requestsWithSameName.remove(toolExecutionRequest);
+        if (requestsWithSameName.isEmpty()) {
+            pendingToolExecutionRequestsByName.remove(toolName);
+        }
+    }
+
     CohereToolCall map(ToolExecutionRequest toolExecReq) {
         return CohereToolCall.builder()
                 .name(toolExecReq.name())
                 .parameters(fromJson(toolExecReq.arguments(), Map.class))
+                .build();
+    }
+
+    private CohereToolResult map(
+            dev.langchain4j.data.message.ToolExecutionResultMessage toolResultMessage,
+            ToolExecutionRequest toolExecutionRequest) {
+        var toolCallBuilder = CohereToolCall.builder();
+        var toolName = toolResultMessage.toolName();
+        if (toolName == null && toolExecutionRequest != null) {
+            toolName = toolExecutionRequest.name();
+        }
+        setIfNotNull(toolName, toolCallBuilder::name);
+        if (toolExecutionRequest != null && toolExecutionRequest.arguments() != null) {
+            toolCallBuilder.parameters(fromJson(toolExecutionRequest.arguments(), Map.class));
+        }
+        return CohereToolResult.builder()
+                .call(toolCallBuilder.build())
+                // https://docs.cohere.com/v1/reference/chat
+                // [{<key>: <value>}]
+                .outputs(List.of(Map.of("result", toolResultMessage.text())))
                 .build();
     }
 

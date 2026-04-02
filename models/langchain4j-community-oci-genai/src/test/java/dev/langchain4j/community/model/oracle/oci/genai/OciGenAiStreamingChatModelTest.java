@@ -3,7 +3,9 @@ package dev.langchain4j.community.model.oracle.oci.genai;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -18,7 +20,12 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.TokenStream;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -26,11 +33,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 class OciGenAiStreamingChatModelTest {
 
-    private static final String STREAMED_DATA =
-            """
+    private static final String STREAMED_DATA = """
             data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"HELLO"}]}}
             data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" WORLD"}]}}
             data: {"finishReason":"stop"}
@@ -44,8 +52,8 @@ class OciGenAiStreamingChatModelTest {
         var releaseResponse = new CountDownLatch(1);
 
         doAnswer(invocation -> {
-                    var request = invocation.getArgument(
-                            0, com.oracle.bmc.generativeaiinference.requests.ChatRequest.class);
+                    var request =
+                            invocation.getArgument(0, com.oracle.bmc.generativeaiinference.requests.ChatRequest.class);
                     @SuppressWarnings("unchecked")
                     AsyncHandler<
                                     com.oracle.bmc.generativeaiinference.requests.ChatRequest,
@@ -132,6 +140,137 @@ class OciGenAiStreamingChatModelTest {
         }
     }
 
+    @Test
+    void doChatRoutesAsyncStartupFailuresToHandler() throws Exception {
+        var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
+        var failure = new IllegalStateException("boom");
+
+        doAnswer(invocation -> {
+                    throw failure;
+                })
+                .when(asyncClient)
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), any());
+
+        var handler = new TestStreamingChatResponseHandler();
+        try (var model = OciGenAiStreamingChatModel.builder()
+                .modelName("test-model")
+                .compartmentId("test-compartment")
+                .genAiAsyncClient(asyncClient)
+                .build()) {
+
+            model.doChat(chatRequest(), handler);
+
+            assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+            assertSame(failure, handler.error.get());
+        }
+    }
+
+    @Test
+    void directHandlerReproducerStreamsBeforeCompletion() throws Exception {
+        var streamScript = new BlockingEventStream();
+
+        try (var model = modelWithAsyncResponse(streamScript.response())) {
+            var handler = new TestStreamingChatResponseHandler();
+
+            CompletableFuture<Void> invokeFuture = CompletableFuture.runAsync(() -> model.chat(chatRequest(), handler));
+            invokeFuture.get(2, TimeUnit.SECONDS);
+
+            assertTrue(handler.firstPartial.await(2, TimeUnit.SECONDS));
+            assertThat(handler.partialResponses, contains("HELLO"));
+            assertFalse(handler.completed.await(200, TimeUnit.MILLISECONDS));
+
+            streamScript.allowCompletion();
+
+            assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+            streamScript.assertCompleted();
+            assertNull(handler.error.get());
+            assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
+        }
+    }
+
+    @Test
+    void tokenStreamReproducerStreamsIntoSinkBeforeCompletion() throws Exception {
+        var streamScript = new BlockingEventStream();
+
+        try (var model = modelWithAsyncResponse(streamScript.response())) {
+            TokenStreamAssistant assistant = AiServices.builder(TokenStreamAssistant.class)
+                    .streamingChatModel(model)
+                    .build();
+
+            Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
+            List<String> partialResponses = new CopyOnWriteArrayList<>();
+            CountDownLatch firstPartial = new CountDownLatch(1);
+            CountDownLatch completed = new CountDownLatch(1);
+            AtomicReference<Throwable> error = new AtomicReference<>();
+
+            sink.asFlux()
+                    .doOnNext(token -> {
+                        partialResponses.add(token);
+                        firstPartial.countDown();
+                    })
+                    .doOnComplete(completed::countDown)
+                    .doOnError(error::set)
+                    .subscribe();
+
+            CompletableFuture<Void> startFuture = CompletableFuture.runAsync(() -> assistant
+                    .chat("Hello")
+                    .onPartialResponse(sink::tryEmitNext)
+                    .onCompleteResponse(ignored -> sink.tryEmitComplete())
+                    .onError(sink::tryEmitError)
+                    .start());
+
+            startFuture.get(2, TimeUnit.SECONDS);
+            assertTrue(firstPartial.await(2, TimeUnit.SECONDS));
+            assertThat(partialResponses, contains("HELLO"));
+            assertFalse(completed.await(200, TimeUnit.MILLISECONDS));
+
+            streamScript.allowCompletion();
+
+            assertTrue(completed.await(2, TimeUnit.SECONDS));
+            streamScript.assertCompleted();
+            assertNull(error.get());
+            assertThat(partialResponses, contains("HELLO", " WORLD"));
+        }
+    }
+
+    @Test
+    void fluxReproducerReturnsImmediatelyAndStreamsBeforeCompletion() throws Exception {
+        var streamScript = new BlockingEventStream();
+
+        try (var model = modelWithAsyncResponse(streamScript.response())) {
+            FluxAssistant assistant = AiServices.builder(FluxAssistant.class)
+                    .streamingChatModel(model)
+                    .build();
+
+            CompletableFuture<Flux<String>> fluxFuture = CompletableFuture.supplyAsync(() -> assistant.chat("Hello"));
+            Flux<String> flux = fluxFuture.get(2, TimeUnit.SECONDS);
+
+            List<String> partialResponses = new CopyOnWriteArrayList<>();
+            CountDownLatch firstPartial = new CountDownLatch(1);
+            CountDownLatch completed = new CountDownLatch(1);
+            AtomicReference<Throwable> error = new AtomicReference<>();
+
+            flux.doOnNext(token -> {
+                        partialResponses.add(token);
+                        firstPartial.countDown();
+                    })
+                    .doOnComplete(completed::countDown)
+                    .doOnError(error::set)
+                    .subscribe();
+
+            assertTrue(firstPartial.await(2, TimeUnit.SECONDS));
+            assertThat(partialResponses, contains("HELLO"));
+            assertFalse(completed.await(200, TimeUnit.MILLISECONDS));
+
+            streamScript.allowCompletion();
+
+            assertTrue(completed.await(2, TimeUnit.SECONDS));
+            streamScript.assertCompleted();
+            assertNull(error.get());
+            assertThat(partialResponses, contains("HELLO", " WORLD"));
+        }
+    }
+
     private static ChatRequest chatRequest() {
         return ChatRequest.builder().messages(UserMessage.from("Hello")).build();
     }
@@ -142,15 +281,123 @@ class OciGenAiStreamingChatModelTest {
                 .build();
     }
 
+    private static OciGenAiStreamingChatModel modelWithAsyncResponse(
+            com.oracle.bmc.generativeaiinference.responses.ChatResponse response) {
+        var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
+
+        doAnswer(invocation -> {
+                    var request =
+                            invocation.getArgument(0, com.oracle.bmc.generativeaiinference.requests.ChatRequest.class);
+                    @SuppressWarnings("unchecked")
+                    AsyncHandler<
+                                    com.oracle.bmc.generativeaiinference.requests.ChatRequest,
+                                    com.oracle.bmc.generativeaiinference.responses.ChatResponse>
+                            asyncHandler = invocation.getArgument(1, AsyncHandler.class);
+
+                    var future = new CompletableFuture<com.oracle.bmc.generativeaiinference.responses.ChatResponse>();
+                    var worker = new Thread(() -> {
+                        try {
+                            asyncHandler.onSuccess(request, response);
+                            future.complete(response);
+                        } catch (Throwable t) {
+                            asyncHandler.onError(request, t);
+                            future.completeExceptionally(t);
+                        }
+                    });
+                    worker.setDaemon(true);
+                    worker.start();
+                    return future;
+                })
+                .when(asyncClient)
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), any());
+
+        return OciGenAiStreamingChatModel.builder()
+                .modelName("test-model")
+                .compartmentId("test-compartment")
+                .genAiAsyncClient(asyncClient)
+                .build();
+    }
+
+    private interface TokenStreamAssistant {
+        TokenStream chat(String text);
+    }
+
+    private interface FluxAssistant {
+        Flux<String> chat(String text);
+    }
+
+    private static class BlockingEventStream {
+
+        private final CountDownLatch completionAllowed = new CountDownLatch(1);
+        private final CountDownLatch writerDone = new CountDownLatch(1);
+        private final AtomicReference<Throwable> writerError = new AtomicReference<>();
+        private final com.oracle.bmc.generativeaiinference.responses.ChatResponse response =
+                com.oracle.bmc.generativeaiinference.responses.ChatResponse.builder()
+                        .eventStream(createEventStream())
+                        .build();
+
+        com.oracle.bmc.generativeaiinference.responses.ChatResponse response() {
+            return response;
+        }
+
+        void allowCompletion() {
+            completionAllowed.countDown();
+        }
+
+        void assertCompleted() throws InterruptedException {
+            assertTrue(writerDone.await(2, TimeUnit.SECONDS));
+            assertNull(writerError.get());
+        }
+
+        private PipedInputStream createEventStream() {
+            try {
+                var input = new PipedInputStream();
+                var output = new PipedOutputStream(input);
+                var worker = new Thread(() -> writeStream(output));
+                worker.setDaemon(true);
+                worker.start();
+                return input;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        private void writeStream(PipedOutputStream output) {
+            try (output) {
+                writeLine(
+                        output,
+                        "data: {\"index\":0,\"message\":{\"role\":\"ASSISTANT\",\"content\":[{\"type\":\"TEXT\",\"text\":\"HELLO\"}]}}");
+                if (!completionAllowed.await(2, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("Timed out waiting to complete stream");
+                }
+                writeLine(
+                        output,
+                        "data: {\"index\":0,\"message\":{\"role\":\"ASSISTANT\",\"content\":[{\"type\":\"TEXT\",\"text\":\" WORLD\"}]}}");
+                writeLine(output, "data: {\"finishReason\":\"stop\"}");
+            } catch (Throwable t) {
+                writerError.set(t);
+            } finally {
+                writerDone.countDown();
+            }
+        }
+
+        private void writeLine(PipedOutputStream output, String line) throws IOException {
+            output.write((line + "\n").getBytes(UTF_8));
+            output.flush();
+        }
+    }
+
     private static class TestStreamingChatResponseHandler implements StreamingChatResponseHandler {
 
         private final List<String> partialResponses = new CopyOnWriteArrayList<>();
+        private final CountDownLatch firstPartial = new CountDownLatch(1);
         private final CountDownLatch completed = new CountDownLatch(1);
         private final AtomicReference<Throwable> error = new AtomicReference<>();
 
         @Override
         public void onPartialResponse(String partialResponse) {
             partialResponses.add(partialResponse);
+            firstPartial.countDown();
         }
 
         @Override
