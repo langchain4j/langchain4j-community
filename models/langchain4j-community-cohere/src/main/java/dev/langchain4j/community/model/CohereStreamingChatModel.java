@@ -33,6 +33,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
     private final List<ChatModelListener> listeners;
     private final String thinkingType;
     private final Integer thinkingTokenBudget;
+    private final String safetyMode;
     private final Set<Capability> supportedCapabilities;
 
     private CohereStreamingChatModel(CohereStreamingChatModelBuilder builder) {
@@ -64,6 +65,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         this.listeners = copy(builder.listeners);
         this.thinkingType = builder.thinkingType;
         this.thinkingTokenBudget = builder.thinkingTokenBudget;
+        this.safetyMode = builder.safetyMode;
         this.supportedCapabilities = copy(builder.supportedCapabilities);
     }
 
@@ -102,6 +104,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         private ResponseFormat responseFormat;
         private String thinkingType;
         private Integer thinkingTokenBudget;
+        private String safetyMode;
 
         private ChatRequestParameters defaultRequestParameters;
         private List<ChatModelListener> listeners;
@@ -186,6 +189,15 @@ public class CohereStreamingChatModel implements StreamingChatModel {
 
         public CohereStreamingChatModelBuilder thinkingTokenBudget(Integer thinkingTokenBudget) {
             this.thinkingTokenBudget = thinkingTokenBudget;
+            return this;
+        }
+
+        /**
+         * Selects the <a href="https://docs.cohere.com/reference/chat-stream#request.body.safety_mode">safety instruction</a>
+         * inserted into the prompt of the model.
+         */
+        public CohereStreamingChatModelBuilder safetyMode(String safetyMode) {
+            this.safetyMode = safetyMode;
             return this;
         }
 

@@ -42,7 +42,8 @@ public class CohereInternalHelper {
                 .frequencyPenalty(parameters.frequencyPenalty())
                 .maxTokens(parameters.maxOutputTokens())
                 .stopSequences(parameters.stopSequences().isEmpty() ? null : parameters.stopSequences())
-                .stream(parameters.stream());
+                .stream(parameters.stream())
+                .safetyMode(parameters.safetyMode());
 
         if (parameters.thinkingType() != null
                 || parameters.thinkingTokenBudget() != null) {

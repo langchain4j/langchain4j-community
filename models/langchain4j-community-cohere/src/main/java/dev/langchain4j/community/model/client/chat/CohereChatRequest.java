@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 import static java.util.Arrays.asList;
 
 @JsonInclude(NON_NULL)
@@ -34,6 +35,7 @@ public class CohereChatRequest {
     private List<String> stopSequences;
     private CohereThinking thinking;
     private Boolean stream;
+    private String safetyMode;
 
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
@@ -50,6 +52,7 @@ public class CohereChatRequest {
         this.stopSequences = builder.stopSequences;
         this.thinking = builder.thinking;
         this.stream = builder.stream;
+        this.safetyMode = builder.safetyMode;
     }
 
     public String getModel() {
@@ -114,13 +117,18 @@ public class CohereChatRequest {
 
     public CohereThinking getThinking() { return thinking; }
 
-    public Boolean setStream(Boolean stream) { return this.stream = stream; }
+    public void setStream(Boolean stream) { this.stream = stream; }
 
     public Boolean getStream() { return stream; }
 
+    public void setSafetyMode(String safetyMode) { this.safetyMode = safetyMode; }
+
+    public String getSafetyMode() { return safetyMode; }
+
     @Override
     public String toString() {
-        return "CohereChatRequest{" + "model='" + model + '\''
+        return "CohereChatRequest{"
+                + "model='" + quoted(model)
                 + ", messages=" + messages
                 + ", responseFormat=" + responseFormat
                 + ", tools=" + tools
@@ -134,13 +142,14 @@ public class CohereChatRequest {
                 + ", stopSequences=" + stopSequences
                 + ", thinking=" + thinking
                 + ", stream=" + stream
+                + ", safetyMode='" + quoted(safetyMode)
                 + '}';
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(model, messages, responseFormat, tools, toolChoice, temperature, p, k,
-                presencePenalty, frequencyPenalty, maxTokens, stopSequences, thinking, stream);
+                presencePenalty, frequencyPenalty, maxTokens, stopSequences, thinking, stream, safetyMode);
     }
 
     @Override
@@ -162,7 +171,8 @@ public class CohereChatRequest {
                 && Objects.equals(maxTokens, that.maxTokens)
                 && Objects.equals(stopSequences, that.stopSequences)
                 && Objects.equals(thinking, that.thinking)
-                && Objects.equals(stream, that.stream);
+                && Objects.equals(stream, that.stream)
+                && Objects.equals(safetyMode, that.safetyMode);
     }
 
     public static Builder builder() { return new Builder(); }
@@ -183,6 +193,7 @@ public class CohereChatRequest {
         private List<String> stopSequences;
         private CohereThinking thinking;
         private Boolean stream;
+        private String safetyMode;
 
         public Builder model(String model) {
             this.model = model;
@@ -255,6 +266,11 @@ public class CohereChatRequest {
 
         public Builder stream(Boolean stream) {
             this.stream = stream;
+            return this;
+        }
+
+        public Builder safetyMode(String safetyMode) {
+            this.safetyMode = safetyMode;
             return this;
         }
 

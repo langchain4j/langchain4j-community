@@ -116,6 +116,20 @@ class CohereInternalHelperTest {
                                 .messages(CohereUserMessage.from("User message"))
                                 .thinking(CohereThinking.builder().tokenBudget(128).build())
                                 .build()
+                ),
+
+                // With safety mode
+                Arguments.of(
+                        singletonList(UserMessage.from("User message")),
+                        CohereChatRequestParameters.builder()
+                                .modelName(MODEL_NAME)
+                                .safetyMode("CONTEXTUAL")
+                                .build(),
+                        CohereChatRequest.builder()
+                                .model(MODEL_NAME)
+                                .messages(CohereUserMessage.from("User message"))
+                                .safetyMode("CONTEXTUAL")
+                                .build()
                 )
         );
     }

@@ -13,6 +13,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
     private final String thinkingType;
     private final Integer thinkingTokenBudget;
     private final Boolean stream;
+    private final String safetyMode;
 
     private CohereChatRequestParameters(Builder builder) {
         super(builder);
@@ -20,6 +21,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
         this.thinkingType = builder.thinkingType;
         this.thinkingTokenBudget = builder.thinkingTokenBudget;
         this.stream = builder.stream;
+        this.safetyMode = builder.safetyMode;
     }
 
     public String thinkingType() { return thinkingType; }
@@ -27,6 +29,8 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
     public Integer thinkingTokenBudget() { return thinkingTokenBudget; }
 
     public Boolean stream() { return stream; }
+
+    public String safetyMode() { return safetyMode; }
 
     @Override
     public CohereChatRequestParameters overrideWith(ChatRequestParameters that) {
@@ -48,37 +52,45 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
     @Override
     public String toString() {
-        return "CohereChatRequestParameters{" + "modelName="
-                + quoted(modelName()) + ", temperature="
-                + temperature() + ", topP="
-                + topP() + ", topK="
-                + topK() + ", frequencyPenalty="
-                + frequencyPenalty() + ", presencePenalty="
-                + presencePenalty() + ", maxOutputTokens="
-                + maxOutputTokens() + ", stopSequences="
-                + stopSequences() + ", toolSpecifications="
-                + toolSpecifications() + ", toolChoice="
-                + toolChoice() + ", responseFormat="
-                + responseFormat() + ", thinkingType="
-                + quoted(thinkingType()) + ", thinkingTokenBudget="
-                + thinkingTokenBudget() + ", stream="
-                + stream() + '}';
+        return "CohereChatRequestParameters{"
+                + "modelName=" + quoted(modelName())
+                + ", temperature=" + temperature()
+                + ", topP=" + topP()
+                + ", topK=" + topK()
+                + ", frequencyPenalty=" + frequencyPenalty()
+                + ", presencePenalty=" + presencePenalty()
+                + ", maxOutputTokens=" + maxOutputTokens()
+                + ", stopSequences=" + stopSequences()
+                + ", toolSpecifications=" + toolSpecifications()
+                + ", toolChoice=" + toolChoice()
+                + ", responseFormat=" + responseFormat()
+                + ", thinkingType=" + quoted(thinkingType())
+                + ", thinkingTokenBudget=" + thinkingTokenBudget()
+                + ", stream=" + stream()
+                + ", safetyMode" + quoted(safetyMode())
+                + '}';
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thinkingType, thinkingTokenBudget, stream);
+        return Objects.hash(
+                super.hashCode(),
+                thinkingType,
+                thinkingTokenBudget,
+                stream,
+                safetyMode);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof CohereChatRequestParameters)) return false;
-        if (!super.equals(o)) return false;
-        CohereChatRequestParameters that = (CohereChatRequestParameters) o;
+        return o instanceof CohereChatRequestParameters that && equalsTo(that);
+    }
+
+    private boolean equalsTo(CohereChatRequestParameters that) {
         return Objects.equals(thinkingType, that.thinkingType)
                 && Objects.equals(thinkingTokenBudget, that.thinkingTokenBudget)
-                && Objects.equals(stream, that.stream);
+                && Objects.equals(stream, that.stream)
+                && Objects.equals(safetyMode, that.safetyMode);
     }
 
     public static class Builder extends DefaultChatRequestParameters.Builder<Builder> {
@@ -86,6 +98,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
         private String thinkingType;
         private Integer thinkingTokenBudget;
         private Boolean stream;
+        private String safetyMode;
 
         @Override
         public Builder overrideWith(ChatRequestParameters parameters) {
@@ -95,6 +108,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 this.thinkingType = getOrDefault(cohereParameters.thinkingType, thinkingType);
                 this.thinkingTokenBudget = getOrDefault(cohereParameters.thinkingTokenBudget, thinkingTokenBudget);
                 this.stream = getOrDefault(cohereParameters.stream, stream);
+                this.safetyMode = getOrDefault(cohereParameters.safetyMode, safetyMode);
             }
 
             return this;
@@ -112,6 +126,11 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder stream(Boolean stream) {
             this.stream = stream;
+            return this;
+        }
+
+        public Builder safetyMode(String safetyMode) {
+            this.safetyMode = safetyMode;
             return this;
         }
 

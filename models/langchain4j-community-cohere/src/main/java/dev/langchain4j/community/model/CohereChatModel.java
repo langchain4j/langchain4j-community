@@ -37,6 +37,7 @@ public class CohereChatModel implements ChatModel {
     private final int maxRetries;
     private final String thinkingType;
     private final Integer thinkingTokenBudget;
+    private final String safetyMode;
     private final Set<Capability> supportedCapabilities;
 
     public CohereChatModel(Builder builder) {
@@ -67,6 +68,7 @@ public class CohereChatModel implements ChatModel {
 
         this.thinkingType = builder.thinkingType;
         this.thinkingTokenBudget = builder.thinkingTokenBudget;
+        this.safetyMode = builder.safetyMode;
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
         this.listeners = copy(builder.listeners);
@@ -83,6 +85,7 @@ public class CohereChatModel implements ChatModel {
         CohereChatRequestParameters parameters = CohereChatRequestParameters.builder()
                 .thinkingType(thinkingType)
                 .thinkingTokenBudget(thinkingTokenBudget)
+                .safetyMode(safetyMode)
                 .build()
                 .defaultedBy(chatRequest.parameters());
 
@@ -118,6 +121,7 @@ public class CohereChatModel implements ChatModel {
         private ResponseFormat responseFormat;
         private String thinkingType;
         private Integer thinkingTokenBudget;
+        private String safetyMode;
 
         private ChatRequestParameters defaultRequestParameters;
         private Boolean logRequests;
@@ -226,6 +230,15 @@ public class CohereChatModel implements ChatModel {
 
         public Builder thinkingTokenBudget(Integer thinkingTokenBudget) {
             this.thinkingTokenBudget = thinkingTokenBudget;
+            return this;
+        }
+
+        /**
+         * Selects the <a href="https://docs.cohere.com/reference/chat-stream#request.body.safety_mode">safety instruction</a>
+         * inserted into the prompt of the model.
+         */
+        public Builder safetyMode(String safetyMode) {
+            this.safetyMode = safetyMode;
             return this;
         }
 
