@@ -58,29 +58,29 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
             this.streamingHandle = toStreamingHandle(context.parsingHandle());
         }
 
-        if (event.event() == null) {
+        if ("[DONE]".equals(event.data())) {
             return;
         }
 
         if (event.event().equals("message-start")) {
             CohereStreamingStartData data = fromJson(event.data(), CohereStreamingStartData.class);
             handleMessageStart(data);
-        } else if (event.event().equals("content-start")) {
-            CohereStreamingData data = fromJson(event.data(), CohereStreamingData.class);
+            return;
+        }
+
+        CohereStreamingData data = fromJson(event.data(), CohereStreamingData.class);
+
+        if (event.event().equals("content-start")) {
             handleContentStart(data);
         } else if (event.event().equals("content-delta")) {
-            CohereStreamingData data = fromJson(event.data(), CohereStreamingData.class);
             handleContentDelta(data);
         } else if (event.event().equals("tool-call-start")) {
-            CohereStreamingData data = fromJson(event.data(), CohereStreamingData.class);
             handleStartToolCall(data);
         } else if (event.event().equals("tool-call-delta")) {
-            CohereStreamingData data = fromJson(event.data(), CohereStreamingData.class);
             handlePartialToolCall(data);
         } else if (event.event().equals("tool-call-end")){
             handleCompleteToolCall();
         } else if (event.event().equals("message-end")) {
-            CohereStreamingData data = fromJson(event.data(), CohereStreamingData.class);
             handleMessageEnd(data);
         }
     }
