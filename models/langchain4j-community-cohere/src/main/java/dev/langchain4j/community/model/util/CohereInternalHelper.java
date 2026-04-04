@@ -43,7 +43,9 @@ public class CohereInternalHelper {
                 .maxTokens(parameters.maxOutputTokens())
                 .stopSequences(parameters.stopSequences().isEmpty() ? null : parameters.stopSequences())
                 .stream(parameters.stream())
-                .safetyMode(parameters.safetyMode());
+                .safetyMode(parameters.safetyMode())
+                .priority(parameters.priority())
+                .seed(parameters.seed());
 
         if (parameters.thinkingType() != null
                 || parameters.thinkingTokenBudget() != null) {

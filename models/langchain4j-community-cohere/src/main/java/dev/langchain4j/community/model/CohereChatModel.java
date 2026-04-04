@@ -38,6 +38,8 @@ public class CohereChatModel implements ChatModel {
     private final String thinkingType;
     private final Integer thinkingTokenBudget;
     private final String safetyMode;
+    private final Integer priority;
+    private final Integer seed;
     private final Set<Capability> supportedCapabilities;
 
     public CohereChatModel(Builder builder) {
@@ -69,6 +71,8 @@ public class CohereChatModel implements ChatModel {
         this.thinkingType = builder.thinkingType;
         this.thinkingTokenBudget = builder.thinkingTokenBudget;
         this.safetyMode = builder.safetyMode;
+        this.priority = builder.priority;
+        this.seed = builder.seed;
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
         this.listeners = copy(builder.listeners);
@@ -86,6 +90,8 @@ public class CohereChatModel implements ChatModel {
                 .thinkingType(thinkingType)
                 .thinkingTokenBudget(thinkingTokenBudget)
                 .safetyMode(safetyMode)
+                .priority(priority)
+                .seed(seed)
                 .build()
                 .defaultedBy(chatRequest.parameters());
 
@@ -122,6 +128,8 @@ public class CohereChatModel implements ChatModel {
         private String thinkingType;
         private Integer thinkingTokenBudget;
         private String safetyMode;
+        private Integer priority;
+        private Integer seed;
 
         private ChatRequestParameters defaultRequestParameters;
         private Boolean logRequests;
@@ -239,6 +247,25 @@ public class CohereChatModel implements ChatModel {
          */
         public Builder safetyMode(String safetyMode) {
             this.safetyMode = safetyMode;
+            return this;
+        }
+
+        /**
+         * Controls how early the request is handled. When the system is under load,
+         * the higher this parameter the more likely the request will be processed first,
+         * as specified <a href="https://docs.cohere.com/reference/chat#request.body.priority">here</a>.
+         */
+        public Builder priority(Integer priority) {
+            this.priority = priority;
+            return this;
+        }
+
+        /**
+         * If specified, the backend will make the best effort to sample tokens deterministically,
+         * as specified <a href="https://docs.cohere.com/reference/chat#request.body.seed">here</a>.
+         */
+        public Builder seed(Integer seed) {
+            this.seed = seed;
             return this;
         }
 

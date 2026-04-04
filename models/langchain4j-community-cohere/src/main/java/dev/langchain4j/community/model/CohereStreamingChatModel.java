@@ -34,6 +34,8 @@ public class CohereStreamingChatModel implements StreamingChatModel {
     private final String thinkingType;
     private final Integer thinkingTokenBudget;
     private final String safetyMode;
+    private final Integer priority;
+    private final Integer seed;
     private final Set<Capability> supportedCapabilities;
 
     private CohereStreamingChatModel(CohereStreamingChatModelBuilder builder) {
@@ -66,6 +68,8 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         this.thinkingType = builder.thinkingType;
         this.thinkingTokenBudget = builder.thinkingTokenBudget;
         this.safetyMode = builder.safetyMode;
+        this.priority = builder.priority;
+        this.seed = builder.seed;
         this.supportedCapabilities = copy(builder.supportedCapabilities);
     }
 
@@ -74,6 +78,9 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         CohereChatRequestParameters parameters = CohereChatRequestParameters.builder()
                 .thinkingType(thinkingType)
                 .thinkingTokenBudget(thinkingTokenBudget)
+                .safetyMode(safetyMode)
+                .priority(priority)
+                .seed(seed)
                 .stream(true)
                 .build()
                 .defaultedBy(chatRequest.parameters());
@@ -105,6 +112,8 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         private String thinkingType;
         private Integer thinkingTokenBudget;
         private String safetyMode;
+        private Integer priority;
+        private Integer seed;
 
         private ChatRequestParameters defaultRequestParameters;
         private List<ChatModelListener> listeners;
@@ -198,6 +207,26 @@ public class CohereStreamingChatModel implements StreamingChatModel {
          */
         public CohereStreamingChatModelBuilder safetyMode(String safetyMode) {
             this.safetyMode = safetyMode;
+            return this;
+        }
+
+
+        /**
+         * Controls how early the request is handled. When the system is under load,
+         * the higher this parameter the more likely the request will be processed first,
+         * as specified <a href="https://docs.cohere.com/reference/chat#request.body.priority">here</a>.
+         */
+        public CohereStreamingChatModelBuilder priority(Integer priority) {
+            this.priority = priority;
+            return this;
+        }
+
+        /**
+         * If specified, the backend will make the best effort to sample tokens deterministically,
+         * as specified <a href="https://docs.cohere.com/reference/chat#request.body.seed">here</a>.
+         */
+        public CohereStreamingChatModelBuilder seed(Integer seed) {
+            this.seed = seed;
             return this;
         }
 

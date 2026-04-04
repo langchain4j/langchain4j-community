@@ -36,6 +36,8 @@ public class CohereChatRequest {
     private CohereThinking thinking;
     private Boolean stream;
     private String safetyMode;
+    private Integer priority;
+    private Integer seed;
 
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
@@ -53,6 +55,8 @@ public class CohereChatRequest {
         this.thinking = builder.thinking;
         this.stream = builder.stream;
         this.safetyMode = builder.safetyMode;
+        this.priority = builder.priority;
+        this.seed = builder.seed;
     }
 
     public String getModel() {
@@ -125,6 +129,14 @@ public class CohereChatRequest {
 
     public String getSafetyMode() { return safetyMode; }
 
+    public void setPriority(Integer priority) { this.priority = priority; }
+
+    public Integer getPriority() { return priority; }
+
+    public void setSeed(Integer seed) { this.seed = seed; }
+
+    public Integer getSeed() { return seed; }
+
     @Override
     public String toString() {
         return "CohereChatRequest{"
@@ -142,14 +154,18 @@ public class CohereChatRequest {
                 + ", stopSequences=" + stopSequences
                 + ", thinking=" + thinking
                 + ", stream=" + stream
-                + ", safetyMode='" + quoted(safetyMode)
+                + ", safetyMode=" + quoted(safetyMode)
+                + ", priority=" + priority
+                + ", seed=" + seed
                 + '}';
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(model, messages, responseFormat, tools, toolChoice, temperature, p, k,
-                presencePenalty, frequencyPenalty, maxTokens, stopSequences, thinking, stream, safetyMode);
+        return Objects.hash(
+                model, messages, responseFormat, tools, toolChoice, temperature, p, k,
+                presencePenalty, frequencyPenalty, maxTokens, stopSequences, thinking, stream,
+                safetyMode, priority, seed);
     }
 
     @Override
@@ -172,7 +188,9 @@ public class CohereChatRequest {
                 && Objects.equals(stopSequences, that.stopSequences)
                 && Objects.equals(thinking, that.thinking)
                 && Objects.equals(stream, that.stream)
-                && Objects.equals(safetyMode, that.safetyMode);
+                && Objects.equals(safetyMode, that.safetyMode)
+                && Objects.equals(priority, that.priority)
+                && Objects.equals(seed, that.seed);
     }
 
     public static Builder builder() { return new Builder(); }
@@ -194,6 +212,8 @@ public class CohereChatRequest {
         private CohereThinking thinking;
         private Boolean stream;
         private String safetyMode;
+        private Integer priority;
+        private Integer seed;
 
         public Builder model(String model) {
             this.model = model;
@@ -271,6 +291,16 @@ public class CohereChatRequest {
 
         public Builder safetyMode(String safetyMode) {
             this.safetyMode = safetyMode;
+            return this;
+        }
+
+        public Builder priority(Integer priority) {
+            this.priority = priority;
+            return this;
+        }
+
+        public Builder seed(Integer seed) {
+            this.seed = seed;
             return this;
         }
 

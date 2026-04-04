@@ -130,6 +130,34 @@ class CohereInternalHelperTest {
                                 .messages(CohereUserMessage.from("User message"))
                                 .safetyMode("CONTEXTUAL")
                                 .build()
+                ),
+
+                // With priority
+                Arguments.of(
+                        singletonList(UserMessage.from("User message")),
+                        CohereChatRequestParameters.builder()
+                                .modelName(MODEL_NAME)
+                                .priority(999)
+                                .build(),
+                        CohereChatRequest.builder()
+                                .model(MODEL_NAME)
+                                .messages(CohereUserMessage.from("User message"))
+                                .priority(999)
+                                .build()
+                ),
+
+                // With seed
+                Arguments.of(
+                        singletonList(UserMessage.from("User message")),
+                        CohereChatRequestParameters.builder()
+                                .modelName(MODEL_NAME)
+                                .seed(99)
+                                .build(),
+                        CohereChatRequest.builder()
+                                .model(MODEL_NAME)
+                                .messages(CohereUserMessage.from("User message"))
+                                .seed(99)
+                                .build()
                 )
         );
     }
