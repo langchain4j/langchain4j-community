@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
+import java.util.Objects;
+
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonDeserialize(builder = CohereTool.Builder.class)
@@ -28,6 +30,24 @@ public class CohereTool {
     public CohereFunction getFunction() { return function; }
 
     public static Builder builder() { return new Builder(); }
+
+    @Override
+    public String toString() {
+        return "CohereTool{ "
+                + "type = " + type
+                + ", function = " + function
+                + " }";
+    }
+
+    @Override
+    public int hashCode() { return Objects.hash(type, function); }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof CohereTool that
+                && Objects.equals(type, that.type)
+                && Objects.equals(function, that.function);
+    }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)

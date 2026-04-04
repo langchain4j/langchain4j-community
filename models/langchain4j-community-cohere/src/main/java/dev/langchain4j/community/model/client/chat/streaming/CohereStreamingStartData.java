@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
+import java.util.Objects;
+
 @JsonDeserialize(builder = CohereStreamingStartData.Builder.class)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereStreamingStartData {
@@ -17,6 +19,30 @@ public class CohereStreamingStartData {
     }
 
     public String getId() { return id; }
+
+    @Override
+    public String toString() {
+        return "CohereStreamingStartData{" +
+                "id=" + id +
+                "}";
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CohereStreamingStartData that = (CohereStreamingStartData) o;
+        return Objects.equals(id, that.id);
+    }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonIgnoreProperties(ignoreUnknown = true)

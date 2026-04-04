@@ -6,9 +6,11 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+@EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereChatModelThinkingIT {
 
     private static final Integer MAX_THINKING_TOKENS = 1024;

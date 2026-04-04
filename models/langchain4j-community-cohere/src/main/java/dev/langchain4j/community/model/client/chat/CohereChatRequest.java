@@ -10,8 +10,10 @@ import dev.langchain4j.community.model.client.chat.tool.CohereTool;
 import dev.langchain4j.model.chat.request.ToolChoice;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static java.util.Arrays.asList;
 
 @JsonInclude(NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -104,9 +106,7 @@ public class CohereChatRequest {
 
     public Integer getMaxTokens() { return this.maxTokens; }
 
-    public void setStopSequences(List<String> stopSequences) {
-        this.stopSequences = stopSequences;
-    }
+    public void setStopSequences(List<String> stopSequences) { this.stopSequences = stopSequences; }
 
     public List<String> getStopSequences() { return this.stopSequences; }
 
@@ -118,9 +118,54 @@ public class CohereChatRequest {
 
     public Boolean getStream() { return stream; }
 
-    public static Builder builder() {
-        return new Builder();
+    @Override
+    public String toString() {
+        return "CohereChatRequest{" + "model='" + model + '\''
+                + ", messages=" + messages
+                + ", responseFormat=" + responseFormat
+                + ", tools=" + tools
+                + ", toolChoice=" + toolChoice
+                + ", temperature=" + temperature
+                + ", p=" + p
+                + ", k=" + k
+                + ", presencePenalty=" + presencePenalty
+                + ", frequencyPenalty=" + frequencyPenalty
+                + ", maxTokens=" + maxTokens
+                + ", stopSequences=" + stopSequences
+                + ", thinking=" + thinking
+                + ", stream=" + stream
+                + '}';
     }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(model, messages, responseFormat, tools, toolChoice, temperature, p, k,
+                presencePenalty, frequencyPenalty, maxTokens, stopSequences, thinking, stream);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof CohereChatRequest that && equalsTo(that);
+    }
+
+    private boolean equalsTo(CohereChatRequest that) {
+        return Objects.equals(model, that.model)
+                && Objects.equals(messages, that.messages)
+                && Objects.equals(responseFormat, that.responseFormat)
+                && Objects.equals(tools, that.tools)
+                && Objects.equals(toolChoice, that.toolChoice)
+                && Objects.equals(temperature, that.temperature)
+                && Objects.equals(p, that.p)
+                && Objects.equals(k, that.k)
+                && Objects.equals(presencePenalty, that.presencePenalty)
+                && Objects.equals(frequencyPenalty, that.frequencyPenalty)
+                && Objects.equals(maxTokens, that.maxTokens)
+                && Objects.equals(stopSequences, that.stopSequences)
+                && Objects.equals(thinking, that.thinking)
+                && Objects.equals(stream, that.stream);
+    }
+
+    public static Builder builder() { return new Builder(); }
 
     public static class Builder {
 
@@ -142,6 +187,10 @@ public class CohereChatRequest {
         public Builder model(String model) {
             this.model = model;
             return this;
+        }
+
+        public Builder messages(CohereMessage... messages) {
+            return messages(asList(messages));
         }
 
         public Builder messages(List<CohereMessage> message) {

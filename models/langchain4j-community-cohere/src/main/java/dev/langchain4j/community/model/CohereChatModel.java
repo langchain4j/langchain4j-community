@@ -4,6 +4,7 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereClient;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
+import dev.langchain4j.community.model.util.CohereChatRequestParameters;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -19,8 +20,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import static dev.langchain4j.community.model.util.CohereMapper.fromCohereChatResponse;
-import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatRequest;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
 import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptions;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
@@ -79,9 +80,13 @@ public class CohereChatModel implements ChatModel {
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
-        CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.toBuilder()
-                .parameters(defaultRequestParameters.overrideWith(chatRequest.parameters()))
-                .build(), thinkingType, thinkingTokenBudget, false);
+        CohereChatRequestParameters parameters = CohereChatRequestParameters.builder()
+                .thinkingType(thinkingType)
+                .thinkingTokenBudget(thinkingTokenBudget)
+                .build()
+                .defaultedBy(chatRequest.parameters());
+
+        CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.messages(), parameters);
 
        CohereChatResponse cohereResponse =
                withRetryMappingExceptions(() -> client.createMessage(cohereChatRequest), maxRetries);

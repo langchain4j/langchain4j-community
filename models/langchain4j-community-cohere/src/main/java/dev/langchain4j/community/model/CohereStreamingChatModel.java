@@ -3,6 +3,7 @@ package dev.langchain4j.community.model;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereClient;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
+import dev.langchain4j.community.model.util.CohereChatRequestParameters;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -19,7 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatRequest;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.model.chat.request.DefaultChatRequestParameters.EMPTY;
@@ -67,13 +68,15 @@ public class CohereStreamingChatModel implements StreamingChatModel {
     }
 
     @Override
-    public void doChat(ChatRequest request, StreamingChatResponseHandler handler) {
+    public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
+        CohereChatRequestParameters parameters = CohereChatRequestParameters.builder()
+                .thinkingType(thinkingType)
+                .thinkingTokenBudget(thinkingTokenBudget)
+                .stream(true)
+                .build()
+                .defaultedBy(chatRequest.parameters());
 
-        // TODO: This should be refactored, this function might grow in the future
-        // Consider using a subclass of parameters.
-        CohereChatRequest cohereChatRequest = toCohereChatRequest(
-                request.toBuilder().parameters(defaultRequestParameters.overrideWith(request.parameters())).build(),
-                thinkingType, thinkingTokenBudget, true);
+        CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.messages(), parameters);
 
         client.createStreamingMessage(cohereChatRequest, handler);
     }

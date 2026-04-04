@@ -7,6 +7,7 @@ import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.mockito.InOrder;
 
 import java.util.List;
@@ -15,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 
+@EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     private static final StreamingChatModel COHERE_STREAMING_CHAT_MODEL = CohereStreamingChatModel.builder()

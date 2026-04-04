@@ -4,9 +4,11 @@ import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelListenerIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import static java.util.Collections.singletonList;
 
+@EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereChatModelListenerIT extends AbstractChatModelListenerIT {
 
     @Override

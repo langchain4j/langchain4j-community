@@ -4,9 +4,11 @@ import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelIT;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.List;
 
+@EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereChatModelIT extends AbstractChatModelIT {
 
     private static final ChatModel COHERE_CHAT_MODEL = CohereChatModel.builder()

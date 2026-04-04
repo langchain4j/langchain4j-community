@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 import java.util.Map;
+import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static dev.langchain4j.internal.Utils.copy;
@@ -33,6 +34,29 @@ public class CohereFunction {
     public String getDescription() { return description; }
 
     public static Builder builder() { return new Builder(); }
+
+    @Override
+    public String toString() {
+        return "CohereFunction{ "
+                + "name = " + name
+                + ", parameters = " + parameters
+                + ", description = " + description
+                + " }";
+    }
+
+    @Override
+    public int hashCode() { return Objects.hash(name, parameters, description); }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof CohereFunction that && equalsTo(that);
+    }
+
+    private boolean equalsTo(CohereFunction that) {
+        return Objects.equals(name, that.name)
+                && Objects.equals(parameters, that.parameters)
+                && Objects.equals(description, that.description);
+    }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)

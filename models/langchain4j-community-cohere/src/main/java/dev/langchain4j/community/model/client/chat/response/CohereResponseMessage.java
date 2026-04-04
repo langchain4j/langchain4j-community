@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.message.CohereRole;
-import dev.langchain4j.community.model.client.chat.message.content.CohereMessageContent;
+import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 
 import java.util.List;
@@ -23,13 +23,11 @@ public class CohereResponseMessage {
 
     private final CohereRole role;
     private final List<CohereToolCall> toolCalls;
-    private final String toolPlan;
-    private final List<CohereMessageContent> content;
+    private final List<CohereContent> content;
 
     private CohereResponseMessage(Builder builder) {
         this.role = builder.role;
         this.toolCalls = builder.toolCalls;
-        this.toolPlan = builder.toolPlan;
         this.content = builder.content;
     }
 
@@ -37,11 +35,9 @@ public class CohereResponseMessage {
 
     public List<CohereToolCall> getToolCalls() { return copy(toolCalls); }
 
-    public String getToolPlan() { return toolPlan; }
+    public List<CohereContent> getContent() { return content; }
 
-    public List<CohereMessageContent> getContent() { return content; }
-
-    public Builder builder() { return new Builder(); }
+    public static Builder builder() { return new Builder(); }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)
@@ -51,8 +47,7 @@ public class CohereResponseMessage {
 
         private CohereRole role;
         private List<CohereToolCall> toolCalls;
-        private String toolPlan;
-        private List<CohereMessageContent> content;
+        private List<CohereContent> content;
 
         public Builder role(CohereRole role) {
             this.role = role;
@@ -64,12 +59,7 @@ public class CohereResponseMessage {
             return this;
         }
 
-        public Builder toolPlan(String toolPlan) {
-            this.toolPlan = toolPlan;
-            return this;
-        }
-
-        public Builder content(List<CohereMessageContent> content) {
+        public Builder content(List<CohereContent> content) {
             this.content = content;
             return this;
         }
