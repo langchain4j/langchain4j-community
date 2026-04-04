@@ -1,53 +1,24 @@
 package dev.langchain4j.community.model.client;
 
 import dev.langchain4j.Internal;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.community.model.client.chat.streaming.CohereServerSentEventListener;
-import dev.langchain4j.community.model.client.chat.streaming.CohereStreamingContent;
-import dev.langchain4j.community.model.client.chat.streaming.CohereStreamingData;
-import dev.langchain4j.community.model.client.chat.streaming.CohereStreamingStartData;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import dev.langchain4j.http.client.log.LoggingHttpClient;
-import dev.langchain4j.http.client.sse.ServerSentEvent;
-import dev.langchain4j.http.client.sse.ServerSentEventContext;
-import dev.langchain4j.http.client.sse.ServerSentEventListener;
-import dev.langchain4j.internal.ExceptionMapper;
-import dev.langchain4j.internal.ToolCallBuilder;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import dev.langchain4j.model.chat.response.CompleteToolCall;
-import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import dev.langchain4j.model.chat.response.StreamingHandle;
-import dev.langchain4j.model.output.TokenUsage;
 import org.slf4j.Logger;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
-import static dev.langchain4j.community.model.util.CohereMapper.fromFinishReason;
 import static dev.langchain4j.http.client.HttpMethod.POST;
-import static dev.langchain4j.http.client.sse.ServerSentEventParsingHandleUtils.toStreamingHandle;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteResponse;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteToolCall;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialResponse;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialThinking;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialToolCall;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions;
 import static dev.langchain4j.internal.Json.fromJson;
 import static dev.langchain4j.internal.Json.toJson;
 import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 @Internal
 public class CohereClient {
