@@ -1,9 +1,11 @@
 package dev.langchain4j.community.model.cohere.common;
 
 import dev.langchain4j.community.model.CohereChatModel;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelIT;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.List;
@@ -61,4 +63,9 @@ class CohereChatModelIT extends AbstractChatModelIT {
 
     @Override
     public List<ChatModel> modelsSupportingImageInputs() { return List.of(COHERE_VISION_MODEL); }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(ChatModel model) {
+        return CohereChatResponseMetadata.class;
+    }
 }

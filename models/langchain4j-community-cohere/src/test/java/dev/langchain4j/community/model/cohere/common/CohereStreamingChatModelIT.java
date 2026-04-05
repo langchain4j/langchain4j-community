@@ -2,10 +2,12 @@ package dev.langchain4j.community.model.cohere.common;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.CohereStreamingChatModel;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.mockito.InOrder;
@@ -114,5 +116,10 @@ class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
                     && request.name().equals("getTime")
                     && request.arguments().equals("{\"country\": \"France\"}");
         }));
+    }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(StreamingChatModel model) {
+        return CohereChatResponseMetadata.class;
     }
 }
