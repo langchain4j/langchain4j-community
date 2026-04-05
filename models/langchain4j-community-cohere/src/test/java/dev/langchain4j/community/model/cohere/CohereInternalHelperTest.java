@@ -1,22 +1,22 @@
 package dev.langchain4j.community.model.cohere;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.message.CohereUserMessage;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
 import dev.langchain4j.community.model.client.chat.response.CohereResponseMessage;
 import dev.langchain4j.community.model.client.chat.response.CohereTokens;
 import dev.langchain4j.community.model.client.chat.response.CohereUsage;
 import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunctionCall;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
-import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.TokenUsage;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,11 +28,11 @@ import java.util.stream.Stream;
 
 import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
 import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
@@ -209,7 +209,7 @@ class CohereInternalHelperTest {
                                 .aiMessage(AiMessage.builder()
                                         .text("Text response")
                                         .build())
-                                .metadata(ChatResponseMetadata.builder()
+                                .metadata(CohereChatResponseMetadata.builder()
                                         .modelName(MODEL_NAME)
                                         .id("12345")
                                         .tokenUsage(new TokenUsage(1, 1))
@@ -240,7 +240,7 @@ class CohereInternalHelperTest {
                                         .text("Text response 1\nText response 2")
                                         .thinking("Thinking response 1\nThinking response 2")
                                         .build())
-                                .metadata(ChatResponseMetadata.builder()
+                                .metadata(CohereChatResponseMetadata.builder()
                                         .modelName(MODEL_NAME)
                                         .id("12345")
                                         .tokenUsage(new TokenUsage(1, 1 ))
@@ -282,7 +282,7 @@ class CohereInternalHelperTest {
                                                         .build()
                                         ))
                                         .build())
-                                .metadata(ChatResponseMetadata.builder()
+                                .metadata(CohereChatResponseMetadata.builder()
                                         .modelName(MODEL_NAME)
                                         .id("12345")
                                         .tokenUsage(new TokenUsage(1, 1))
