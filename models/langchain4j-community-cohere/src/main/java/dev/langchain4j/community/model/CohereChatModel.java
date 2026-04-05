@@ -4,12 +4,13 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereClient;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
-import dev.langchain4j.community.model.util.CohereChatRequestParameters;
+import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -25,7 +26,6 @@ import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohere
 import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptions;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.model.chat.request.DefaultChatRequestParameters.EMPTY;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toSet;
 
@@ -35,12 +35,6 @@ public class CohereChatModel implements ChatModel {
     private final ChatRequestParameters defaultRequestParameters;
     private final List<ChatModelListener> listeners;
     private final int maxRetries;
-    private final String thinkingType;
-    private final Integer thinkingTokenBudget;
-    private final String safetyMode;
-    private final Integer priority;
-    private final Integer seed;
-    private final Boolean logprobs;
     private final Set<Capability> supportedCapabilities;
 
     public CohereChatModel(Builder builder) {
@@ -53,9 +47,14 @@ public class CohereChatModel implements ChatModel {
                 .authToken(builder.apiKey)
                 .build();
 
-        ChatRequestParameters commonParameters = getOrDefault(builder.defaultRequestParameters, EMPTY);
+        ChatRequestParameters commonParameters = getOrDefault(builder.defaultRequestParameters, DefaultChatRequestParameters.EMPTY);
+        CohereChatRequestParameters cohereDefaultParameters =
+                builder.defaultRequestParameters instanceof CohereChatRequestParameters cohereChatRequestParameters
+                    ? cohereChatRequestParameters
+                    : CohereChatRequestParameters.EMPTY;
 
-        this.defaultRequestParameters = ChatRequestParameters.builder()
+        this.defaultRequestParameters = CohereChatRequestParameters.builder()
+                // Common parameters
                 .modelName(getOrDefault(builder.modelName, commonParameters.modelName()))
                 .temperature(getOrDefault(builder.temperature, commonParameters.temperature()))
                 .topP(getOrDefault(builder.topP, commonParameters.topP()))
@@ -67,14 +66,14 @@ public class CohereChatModel implements ChatModel {
                 .toolSpecifications(getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
                 .toolChoice(builder.toolChoice)
                 .responseFormat(getOrDefault(builder.responseFormat, commonParameters.responseFormat()))
+                // Cohere specific parameters
+                .thinkingType(getOrDefault(builder.thinkingType, cohereDefaultParameters.thinkingType()))
+                .thinkingTokenBudget(getOrDefault(builder.thinkingTokenBudget, cohereDefaultParameters.thinkingTokenBudget()))
+                .safetyMode(getOrDefault(builder.safetyMode, cohereDefaultParameters.safetyMode()))
+                .priority(getOrDefault(builder.priority, cohereDefaultParameters.priority()))
+                .seed(getOrDefault(builder.seed, cohereDefaultParameters.seed()))
+                .logprobs(getOrDefault(builder.logprobs, cohereDefaultParameters.logprobs()))
                 .build();
-
-        this.thinkingType = builder.thinkingType;
-        this.thinkingTokenBudget = builder.thinkingTokenBudget;
-        this.safetyMode = builder.safetyMode;
-        this.priority = builder.priority;
-        this.seed = builder.seed;
-        this.logprobs = builder.logprobs;
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
         this.listeners = copy(builder.listeners);
@@ -89,12 +88,6 @@ public class CohereChatModel implements ChatModel {
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
         CohereChatRequestParameters parameters = CohereChatRequestParameters.builder()
-                .thinkingType(thinkingType)
-                .thinkingTokenBudget(thinkingTokenBudget)
-                .safetyMode(safetyMode)
-                .priority(priority)
-                .seed(seed)
-                .logprobs(logprobs)
                 .build()
                 .defaultedBy(chatRequest.parameters());
 

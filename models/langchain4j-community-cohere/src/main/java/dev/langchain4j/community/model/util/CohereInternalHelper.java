@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.util;
 
+import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;

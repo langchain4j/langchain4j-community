@@ -4,7 +4,7 @@ import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.community.model.CohereStreamingChatModel;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
 import dev.langchain4j.community.model.client.chat.response.CohereLogprobs;
-import dev.langchain4j.community.model.util.CohereChatRequestParameters;
+import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;

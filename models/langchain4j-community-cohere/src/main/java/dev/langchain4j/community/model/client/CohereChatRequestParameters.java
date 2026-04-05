@@ -1,4 +1,4 @@
-package dev.langchain4j.community.model.util;
+package dev.langchain4j.community.model.client;
 
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
@@ -9,6 +9,8 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.quoted;
 
 public class CohereChatRequestParameters extends DefaultChatRequestParameters {
+
+    public static final CohereChatRequestParameters EMPTY = builder().build();
 
     private final String thinkingType;
     private final Integer thinkingTokenBudget;

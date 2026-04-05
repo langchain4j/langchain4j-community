@@ -11,7 +11,7 @@ import dev.langchain4j.community.model.client.chat.response.CohereUsage;
 import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunctionCall;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
-import dev.langchain4j.community.model.util.CohereChatRequestParameters;
+import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
