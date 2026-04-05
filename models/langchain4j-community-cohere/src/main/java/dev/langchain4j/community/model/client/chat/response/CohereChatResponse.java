@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
+import java.util.List;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
@@ -21,12 +22,14 @@ public class CohereChatResponse {
     private final CohereResponseMessage message;
     private final String finishReason;
     private final CohereUsage usage;
+    private final List<CohereLogprobs> logprobs;
 
     private CohereChatResponse(Builder builder) {
         this.id = builder.id;
         this.message = builder.message;
         this.finishReason = builder.finishReason;
         this.usage = builder.usage;
+        this.logprobs = builder.logprobs;
     }
 
     public String getId() { return id; }
@@ -37,6 +40,8 @@ public class CohereChatResponse {
 
     public CohereUsage getUsage() { return usage; }
 
+    public List<CohereLogprobs> getLogprobs() { return logprobs; }
+
     @Override
     public String toString() {
         return "CohereChatResponse{ "
@@ -44,11 +49,12 @@ public class CohereChatResponse {
                 + ", message = " + message
                 + ", finishReason = " + finishReason
                 + ", usage = " + usage
+                + ", logprobs = " + logprobs
                 + " }";
     }
 
     @Override
-    public int hashCode() { return Objects.hash(id, message, finishReason, usage); }
+    public int hashCode() { return Objects.hash(id, message, finishReason, usage, logprobs); }
 
     @Override
     public boolean equals(Object o) {
@@ -59,7 +65,8 @@ public class CohereChatResponse {
         return Objects.equals(id, that.id)
                 && Objects.equals(message, that.message)
                 && Objects.equals(finishReason, that.finishReason)
-                && Objects.equals(usage, that.usage);
+                && Objects.equals(usage, that.usage)
+                && Objects.equals(logprobs, that.logprobs);
     }
 
     public static Builder builder() { return new Builder(); }
@@ -74,6 +81,7 @@ public class CohereChatResponse {
         private CohereResponseMessage message;
         private String finishReason;
         private CohereUsage usage;
+        private List<CohereLogprobs> logprobs;
 
         public Builder id(String id) {
             this.id = id;
@@ -92,6 +100,11 @@ public class CohereChatResponse {
 
         public Builder usage(CohereUsage usage) {
             this.usage = usage;
+            return this;
+        }
+
+        public Builder logprobs(List<CohereLogprobs> logprobs) {
+            this.logprobs = logprobs;
             return this;
         }
 

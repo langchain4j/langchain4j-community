@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+import dev.langchain4j.community.model.client.chat.response.CohereLogprobs;
 
 import java.util.Objects;
 
@@ -21,12 +22,14 @@ public class CohereStreamingData {
     private final String id;
     private final CohereDelta delta;
     private final Integer index;
+    private final CohereLogprobs logprobs;
 
     private CohereStreamingData(Builder builder) {
         this.type = builder.type;
         this.id = builder.id;
         this.delta = builder.delta;
         this.index = builder.index;
+        this.logprobs = builder.logprobs;
     }
 
     public String getType() { return type; }
@@ -37,24 +40,30 @@ public class CohereStreamingData {
 
     public Integer getIndex() { return index; }
 
+    public CohereLogprobs getLogprobs() { return logprobs; }
+
     public String toString() {
         return "CohereStreamingResponse{"
                     + "type=" + type
                     + ", id=" + id
                     + ", delta=" + delta
                     + ", index=" + index
+                    + ", logprobs=" + logprobs
                 + "}";
     }
 
-    public int hashCode() { return Objects.hash(type, id, delta, index); }
+    public int hashCode() { return Objects.hash(type, id, delta, index, logprobs); }
 
     public boolean equals(Object o) {
         return o instanceof CohereStreamingData response && equalsTo(response);
     }
 
     private boolean equalsTo(CohereStreamingData that) {
-        return Objects.equals(type, that.type) && Objects.equals(id, that.id)
-                && Objects.equals(delta, that.delta) && Objects.equals(index, that.index);
+        return Objects.equals(type, that.type)
+                && Objects.equals(id, that.id)
+                && Objects.equals(delta, that.delta)
+                && Objects.equals(index, that.index)
+                && Objects.equals(logprobs, that.logprobs);
     }
 
     @JsonPOJOBuilder(withPrefix = "")
@@ -66,6 +75,7 @@ public class CohereStreamingData {
         private String id;
         private CohereDelta delta;
         private Integer index;
+        private CohereLogprobs logprobs;
 
         public Builder type(String type) {
             this.type = type;
@@ -84,6 +94,11 @@ public class CohereStreamingData {
 
         public Builder index(Integer index) {
             this.index = index;
+            return this;
+        }
+
+        public Builder logprobs(CohereLogprobs logprobs) {
+            this.logprobs = logprobs;
             return this;
         }
 

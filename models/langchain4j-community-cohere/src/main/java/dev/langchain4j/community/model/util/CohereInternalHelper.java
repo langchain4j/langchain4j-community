@@ -3,11 +3,11 @@ package dev.langchain4j.community.model.util;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
 import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.TokenUsage;
 
 import java.util.List;
@@ -19,6 +19,7 @@ import static dev.langchain4j.community.model.util.CohereMapper.fromFinishReason
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatMessages;
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereResponseFormat;
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereTools;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
@@ -45,7 +46,8 @@ public class CohereInternalHelper {
                 .stream(parameters.stream())
                 .safetyMode(parameters.safetyMode())
                 .priority(parameters.priority())
-                .seed(parameters.seed());
+                .seed(parameters.seed())
+                .logprobs(parameters.logprobs());
 
         if (parameters.thinkingType() != null
                 || parameters.thinkingTokenBudget() != null) {
@@ -73,14 +75,17 @@ public class CohereInternalHelper {
                 .map(CohereContent::getThinking)
                 .collect(collectingAndThen(joining("\n"), s -> s.isEmpty() ? null : s));
 
-        ChatResponseMetadata metadata = ChatResponseMetadata.builder()
+        CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
                 .modelName(modelName)
                 .id(response.getId())
                 .tokenUsage(new TokenUsage(
                         response.getUsage().getTokens().getInputTokens().intValue(),
                         response.getUsage().getTokens().getOutputTokens().intValue()))
-                .finishReason(fromFinishReason(response.getFinishReason()))
-                .build();
+                .finishReason(fromFinishReason(response.getFinishReason()));
+
+        if (!isNullOrEmpty(response.getLogprobs())) {
+            metadataBuilder.logprobs(response.getLogprobs());
+        }
 
         return ChatResponse.builder()
                 .aiMessage(AiMessage.builder()
@@ -91,7 +96,7 @@ public class CohereInternalHelper {
                                 .map(CohereMapper::toToolExecutionRequest)
                                 .toList())
                         .build())
-                .metadata(metadata)
+                .metadata(metadataBuilder.build())
                 .build();
     }
 }

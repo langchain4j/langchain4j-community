@@ -158,6 +158,20 @@ class CohereInternalHelperTest {
                                 .messages(CohereUserMessage.from("User message"))
                                 .seed(99)
                                 .build()
+                ),
+
+                // With logprobs
+                Arguments.of(
+                        singletonList(UserMessage.from("User message")),
+                        CohereChatRequestParameters.builder()
+                                .modelName(MODEL_NAME)
+                                .logprobs(true)
+                                .build(),
+                        CohereChatRequest.builder()
+                                .model(MODEL_NAME)
+                                .messages(CohereUserMessage.from("User message"))
+                                .logprobs(true)
+                                .build()
                 )
         );
     }

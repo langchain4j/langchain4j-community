@@ -36,6 +36,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
     private final String safetyMode;
     private final Integer priority;
     private final Integer seed;
+    private final Boolean logprobs;
     private final Set<Capability> supportedCapabilities;
 
     private CohereStreamingChatModel(CohereStreamingChatModelBuilder builder) {
@@ -70,6 +71,8 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         this.safetyMode = builder.safetyMode;
         this.priority = builder.priority;
         this.seed = builder.seed;
+        this.logprobs = builder.logprobs;
+
         this.supportedCapabilities = copy(builder.supportedCapabilities);
     }
 
@@ -81,6 +84,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
                 .safetyMode(safetyMode)
                 .priority(priority)
                 .seed(seed)
+                .logprobs(logprobs)
                 .stream(true)
                 .build()
                 .defaultedBy(chatRequest.parameters());
@@ -114,6 +118,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         private String safetyMode;
         private Integer priority;
         private Integer seed;
+        private Boolean logprobs;
 
         private ChatRequestParameters defaultRequestParameters;
         private List<ChatModelListener> listeners;
@@ -210,7 +215,6 @@ public class CohereStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
-
         /**
          * Controls how early the request is handled. When the system is under load,
          * the higher this parameter the more likely the request will be processed first,
@@ -227,6 +231,14 @@ public class CohereStreamingChatModel implements StreamingChatModel {
          */
         public CohereStreamingChatModelBuilder seed(Integer seed) {
             this.seed = seed;
+            return this;
+        }
+
+        /**
+         * If set to {@code true}, the log probabilities of the generated tokens will be included in the response.
+         */
+        public CohereStreamingChatModelBuilder logprobs(Boolean logprobs) {
+            this.logprobs = logprobs;
             return this;
         }
 

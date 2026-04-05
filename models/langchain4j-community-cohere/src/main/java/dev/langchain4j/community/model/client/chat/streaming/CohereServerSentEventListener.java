@@ -1,6 +1,8 @@
 package dev.langchain4j.community.model.client.chat.streaming;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
+import dev.langchain4j.community.model.client.chat.response.CohereLogprobs;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.http.client.sse.ServerSentEvent;
 import dev.langchain4j.http.client.sse.ServerSentEventContext;
@@ -15,6 +17,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.chat.response.StreamingHandle;
 import dev.langchain4j.model.output.TokenUsage;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -30,6 +33,7 @@ import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils
 import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions;
 import static dev.langchain4j.internal.Json.fromJson;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static java.util.Collections.synchronizedList;
 
 public class CohereServerSentEventListener implements ServerSentEventListener {
 
@@ -39,6 +43,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
     private final StringBuilder thinkingBuilder;
     private final AtomicReference<String> responseId;
     private final ToolCallBuilder toolCallBuilder;
+    private final List<CohereLogprobs> logprobs;
 
     volatile StreamingHandle streamingHandle;
 
@@ -50,6 +55,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
         this.thinkingBuilder = new StringBuilder();
         this.responseId = new AtomicReference<>();
         this.toolCallBuilder = new ToolCallBuilder(-1);
+        this.logprobs = synchronizedList(new ArrayList<>());
     }
 
     @Override
@@ -115,6 +121,10 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
             textBuilder.append(message.getThinking());
             onPartialThinking(handler, message.getThinking(), streamingHandle);
         }
+
+        if (data.getLogprobs() != null) {
+            logprobs.add(data.getLogprobs());
+        }
     }
 
     private void handleStartToolCall(CohereStreamingData data) {
@@ -166,14 +176,17 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
     }
 
     private ChatResponse build(CohereStreamingData data) {
-        ChatResponseMetadata metadata = ChatResponseMetadata.builder()
+        CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
                 .tokenUsage(new TokenUsage(
                         data.getDelta().getUsage().getTokens().getInputTokens().intValue(),
                         data.getDelta().getUsage().getTokens().getOutputTokens().intValue()))
                 .id(responseId.get())
                 .modelName(modelName)
-                .finishReason(fromFinishReason(data.getDelta().getFinishReason()))
-                .build();
+                .finishReason(fromFinishReason(data.getDelta().getFinishReason()));
+
+        if (!logprobs.isEmpty()) {
+            metadataBuilder.logprobs(logprobs);
+        }
 
         List<ToolExecutionRequest> toolExecutionRequests = List.of();
         if (toolCallBuilder.hasRequests()) {
@@ -188,7 +201,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
 
         return ChatResponse.builder()
                 .aiMessage(aiMessage)
-                .metadata(metadata)
+                .metadata(metadataBuilder.build())
                 .build();
     }
 

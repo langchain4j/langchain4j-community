@@ -40,6 +40,7 @@ public class CohereChatModel implements ChatModel {
     private final String safetyMode;
     private final Integer priority;
     private final Integer seed;
+    private final Boolean logprobs;
     private final Set<Capability> supportedCapabilities;
 
     public CohereChatModel(Builder builder) {
@@ -73,6 +74,7 @@ public class CohereChatModel implements ChatModel {
         this.safetyMode = builder.safetyMode;
         this.priority = builder.priority;
         this.seed = builder.seed;
+        this.logprobs = builder.logprobs;
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
         this.listeners = copy(builder.listeners);
@@ -92,6 +94,7 @@ public class CohereChatModel implements ChatModel {
                 .safetyMode(safetyMode)
                 .priority(priority)
                 .seed(seed)
+                .logprobs(logprobs)
                 .build()
                 .defaultedBy(chatRequest.parameters());
 
@@ -130,6 +133,7 @@ public class CohereChatModel implements ChatModel {
         private String safetyMode;
         private Integer priority;
         private Integer seed;
+        private Boolean logprobs;
 
         private ChatRequestParameters defaultRequestParameters;
         private Boolean logRequests;
@@ -266,6 +270,14 @@ public class CohereChatModel implements ChatModel {
          */
         public Builder seed(Integer seed) {
             this.seed = seed;
+            return this;
+        }
+
+        /**
+         * If set to {@code true}, the log probabilities of the generated tokens will be included in the response.
+         */
+        public Builder logprobs(Boolean logprobs) {
+            this.logprobs = logprobs;
             return this;
         }
 

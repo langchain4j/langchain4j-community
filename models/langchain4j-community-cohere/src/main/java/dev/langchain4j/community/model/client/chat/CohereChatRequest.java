@@ -38,6 +38,7 @@ public class CohereChatRequest {
     private String safetyMode;
     private Integer priority;
     private Integer seed;
+    private Boolean logprobs;
 
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
@@ -57,6 +58,7 @@ public class CohereChatRequest {
         this.safetyMode = builder.safetyMode;
         this.priority = builder.priority;
         this.seed = builder.seed;
+        this.logprobs = builder.logprobs;
     }
 
     public String getModel() {
@@ -123,7 +125,7 @@ public class CohereChatRequest {
 
     public void setStream(Boolean stream) { this.stream = stream; }
 
-    public Boolean getStream() { return stream; }
+    public Boolean isStream() { return stream; }
 
     public void setSafetyMode(String safetyMode) { this.safetyMode = safetyMode; }
 
@@ -136,6 +138,10 @@ public class CohereChatRequest {
     public void setSeed(Integer seed) { this.seed = seed; }
 
     public Integer getSeed() { return seed; }
+
+    public void setLogprobs(Boolean logprobs) { this.logprobs = logprobs; }
+
+    public Boolean hasLogprobs() { return logprobs; }
 
     @Override
     public String toString() {
@@ -157,6 +163,7 @@ public class CohereChatRequest {
                 + ", safetyMode=" + quoted(safetyMode)
                 + ", priority=" + priority
                 + ", seed=" + seed
+                + ", logprobs=" + logprobs
                 + '}';
     }
 
@@ -165,7 +172,7 @@ public class CohereChatRequest {
         return Objects.hash(
                 model, messages, responseFormat, tools, toolChoice, temperature, p, k,
                 presencePenalty, frequencyPenalty, maxTokens, stopSequences, thinking, stream,
-                safetyMode, priority, seed);
+                safetyMode, priority, seed, logprobs);
     }
 
     @Override
@@ -190,7 +197,8 @@ public class CohereChatRequest {
                 && Objects.equals(stream, that.stream)
                 && Objects.equals(safetyMode, that.safetyMode)
                 && Objects.equals(priority, that.priority)
-                && Objects.equals(seed, that.seed);
+                && Objects.equals(seed, that.seed)
+                && Objects.equals(logprobs, that.logprobs);
     }
 
     public static Builder builder() { return new Builder(); }
@@ -214,6 +222,7 @@ public class CohereChatRequest {
         private String safetyMode;
         private Integer priority;
         private Integer seed;
+        private Boolean logprobs;
 
         public Builder model(String model) {
             this.model = model;
@@ -301,6 +310,11 @@ public class CohereChatRequest {
 
         public Builder seed(Integer seed) {
             this.seed = seed;
+            return this;
+        }
+
+        public Builder logprobs(Boolean logprobs) {
+            this.logprobs = logprobs;
             return this;
         }
 
