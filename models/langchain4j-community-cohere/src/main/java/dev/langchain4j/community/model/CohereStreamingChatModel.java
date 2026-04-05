@@ -69,6 +69,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
                 .priority(getOrDefault(builder.priority, cohereDefaultParameters.priority()))
                 .seed(getOrDefault(builder.seed, cohereDefaultParameters.seed()))
                 .logprobs(getOrDefault(builder.logprobs, cohereDefaultParameters.logprobs()))
+                .strictTools(getOrDefault(builder.strictTools, cohereDefaultParameters.strictTools()))
                 .build();
 
         this.listeners = copy(builder.listeners);
@@ -112,6 +113,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         private Integer priority;
         private Integer seed;
         private Boolean logprobs;
+        private Boolean strictTools;
 
         private ChatRequestParameters defaultRequestParameters;
         private List<ChatModelListener> listeners;
@@ -232,6 +234,11 @@ public class CohereStreamingChatModel implements StreamingChatModel {
          */
         public CohereStreamingChatModelBuilder logprobs(Boolean logprobs) {
             this.logprobs = logprobs;
+            return this;
+        }
+
+        public CohereStreamingChatModelBuilder strictTools(Boolean strictTools) {
+            this.strictTools = strictTools;
             return this;
         }
 

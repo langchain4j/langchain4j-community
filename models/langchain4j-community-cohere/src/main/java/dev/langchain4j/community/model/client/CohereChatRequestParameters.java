@@ -19,6 +19,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
     private final Integer priority;
     private final Integer seed;
     private final Boolean logprobs;
+    private final Boolean strictTools;
 
     private CohereChatRequestParameters(Builder builder) {
         super(builder);
@@ -30,6 +31,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
         this.priority = builder.priority;
         this.seed = builder.seed;
         this.logprobs = builder.logprobs;
+        this.strictTools = builder.strictTools;
     }
 
     public String thinkingType() { return thinkingType; }
@@ -45,6 +47,8 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
     public Integer seed() { return seed; }
 
     public Boolean logprobs() { return logprobs; }
+
+    public Boolean strictTools() { return strictTools; }
 
     @Override
     public CohereChatRequestParameters overrideWith(ChatRequestParameters that) {
@@ -85,6 +89,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 + ", priority=" + priority()
                 + ", seed=" + seed()
                 + ", logprobs=" + logprobs()
+                + ", strictTools=" + strictTools()
                 + '}';
     }
 
@@ -98,7 +103,8 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 safetyMode,
                 priority,
                 seed,
-                logprobs);
+                logprobs,
+                strictTools);
     }
 
     @Override
@@ -112,8 +118,9 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 && Objects.equals(stream, that.stream)
                 && Objects.equals(safetyMode, that.safetyMode)
                 && Objects.equals(priority, that.priority)
-                && Objects.equals(seed, that.priority)
-                && Objects.equals(logprobs, that.logprobs);
+                && Objects.equals(seed, that.seed)
+                && Objects.equals(logprobs, that.logprobs)
+                && Objects.equals(strictTools, that.strictTools);
     }
 
     public static class Builder extends DefaultChatRequestParameters.Builder<Builder> {
@@ -125,6 +132,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
         private Integer priority;
         private Integer seed;
         private Boolean logprobs;
+        private Boolean strictTools;
 
         @Override
         public Builder overrideWith(ChatRequestParameters parameters) {
@@ -138,6 +146,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 this.priority = getOrDefault(cohereParameters.priority, priority);
                 this.seed = getOrDefault(cohereParameters.seed, seed);
                 this.logprobs = getOrDefault(cohereParameters.logprobs, logprobs);
+                this.strictTools = getOrDefault(cohereParameters.strictTools, strictTools);
             }
 
             return this;
@@ -175,6 +184,11 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder logprobs(Boolean logprobs) {
             this.logprobs = logprobs;
+            return this;
+        }
+
+        public Builder strictTools(Boolean strictTools) {
+            this.strictTools = strictTools;
             return this;
         }
 

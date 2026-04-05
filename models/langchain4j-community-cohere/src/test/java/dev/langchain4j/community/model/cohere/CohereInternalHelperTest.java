@@ -172,6 +172,20 @@ class CohereInternalHelperTest {
                                 .messages(CohereUserMessage.from("User message"))
                                 .logprobs(true)
                                 .build()
+                ),
+
+                // With strict tools
+                Arguments.of(
+                        singletonList(UserMessage.from("User message")),
+                        CohereChatRequestParameters.builder()
+                                .modelName(MODEL_NAME)
+                                .strictTools(true)
+                                .build(),
+                        CohereChatRequest.builder()
+                                .model(MODEL_NAME)
+                                .messages(CohereUserMessage.from("User message"))
+                                .strictTools(true)
+                                .build()
                 )
         );
     }

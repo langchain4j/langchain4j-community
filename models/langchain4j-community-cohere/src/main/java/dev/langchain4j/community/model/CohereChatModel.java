@@ -73,6 +73,7 @@ public class CohereChatModel implements ChatModel {
                 .priority(getOrDefault(builder.priority, cohereDefaultParameters.priority()))
                 .seed(getOrDefault(builder.seed, cohereDefaultParameters.seed()))
                 .logprobs(getOrDefault(builder.logprobs, cohereDefaultParameters.logprobs()))
+                .strictTools(getOrDefault(builder.strictTools, cohereDefaultParameters.strictTools()))
                 .build();
 
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
@@ -127,6 +128,7 @@ public class CohereChatModel implements ChatModel {
         private Integer priority;
         private Integer seed;
         private Boolean logprobs;
+        private Boolean strictTools;
 
         private ChatRequestParameters defaultRequestParameters;
         private Boolean logRequests;
@@ -271,6 +273,11 @@ public class CohereChatModel implements ChatModel {
          */
         public Builder logprobs(Boolean logprobs) {
             this.logprobs = logprobs;
+            return this;
+        }
+
+        public Builder strictTools(Boolean strictTools) {
+            this.strictTools = strictTools;
             return this;
         }
 

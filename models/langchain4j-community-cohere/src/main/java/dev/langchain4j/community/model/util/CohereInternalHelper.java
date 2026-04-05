@@ -48,7 +48,8 @@ public class CohereInternalHelper {
                 .safetyMode(parameters.safetyMode())
                 .priority(parameters.priority())
                 .seed(parameters.seed())
-                .logprobs(parameters.logprobs());
+                .logprobs(parameters.logprobs())
+                .strictTools(parameters.strictTools());
 
         if (parameters.thinkingType() != null
                 || parameters.thinkingTokenBudget() != null) {

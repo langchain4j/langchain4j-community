@@ -39,6 +39,7 @@ public class CohereChatRequest {
     private Integer priority;
     private Integer seed;
     private Boolean logprobs;
+    private Boolean strictTools;
 
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
@@ -59,6 +60,7 @@ public class CohereChatRequest {
         this.priority = builder.priority;
         this.seed = builder.seed;
         this.logprobs = builder.logprobs;
+        this.strictTools = builder.strictTools;
     }
 
     public String getModel() {
@@ -143,6 +145,10 @@ public class CohereChatRequest {
 
     public Boolean hasLogprobs() { return logprobs; }
 
+    public void setStrictTools(Boolean strictTools) { this.strictTools = strictTools; }
+
+    public Boolean hasStrictTools() { return strictTools; }
+
     @Override
     public String toString() {
         return "CohereChatRequest{"
@@ -164,6 +170,7 @@ public class CohereChatRequest {
                 + ", priority=" + priority
                 + ", seed=" + seed
                 + ", logprobs=" + logprobs
+                + ", strictTools=" + strictTools
                 + '}';
     }
 
@@ -172,7 +179,7 @@ public class CohereChatRequest {
         return Objects.hash(
                 model, messages, responseFormat, tools, toolChoice, temperature, p, k,
                 presencePenalty, frequencyPenalty, maxTokens, stopSequences, thinking, stream,
-                safetyMode, priority, seed, logprobs);
+                safetyMode, priority, seed, logprobs, strictTools);
     }
 
     @Override
@@ -198,7 +205,8 @@ public class CohereChatRequest {
                 && Objects.equals(safetyMode, that.safetyMode)
                 && Objects.equals(priority, that.priority)
                 && Objects.equals(seed, that.seed)
-                && Objects.equals(logprobs, that.logprobs);
+                && Objects.equals(logprobs, that.logprobs)
+                && Objects.equals(strictTools, that.strictTools);
     }
 
     public static Builder builder() { return new Builder(); }
@@ -223,6 +231,7 @@ public class CohereChatRequest {
         private Integer priority;
         private Integer seed;
         private Boolean logprobs;
+        private Boolean strictTools;
 
         public Builder model(String model) {
             this.model = model;
@@ -315,6 +324,11 @@ public class CohereChatRequest {
 
         public Builder logprobs(Boolean logprobs) {
             this.logprobs = logprobs;
+            return this;
+        }
+
+        public Builder strictTools(Boolean strictTools) {
+            this.strictTools = strictTools;
             return this;
         }
 
