@@ -28,6 +28,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,12 +72,16 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
 
     @Override
     public void close() {
+        closeModel(false);
+    }
+
+    final void closeModel(boolean closeCalledFromCallbackThread) {
         boolean interrupted = false;
         boolean waitForActiveOperations = true;
         lifecycleLock.lock();
         try {
             closed = true;
-            if (activeOperations > 0 && isCloseCalledFromCallbackThread()) {
+            if (activeOperations > 0 && closeCalledFromCallbackThread) {
                 waitForActiveOperations = false;
             }
             while (waitForActiveOperations && activeOperations > 0) {
@@ -194,6 +199,12 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         }
     }
 
+    /**
+     * Unwraps nested completion wrappers and returns the root cause.
+     *
+     * @param throwable completion-stage failure
+     * @return unwrapped failure cause
+     */
     protected static Throwable unwrapCompletionFailure(Throwable throwable) {
         Throwable unwrapped = throwable;
         while ((unwrapped instanceof CompletionException || unwrapped instanceof ExecutionException)
@@ -203,6 +214,9 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         return unwrapped;
     }
 
+    /**
+     * Marks one asynchronous operation as completed and triggers deferred close when needed.
+     */
     protected void completeActiveOperation() {
         boolean closeResourcesAfterCompletion = false;
         lifecycleLock.lock();
@@ -220,18 +234,29 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         }
     }
 
+    /**
+     * Releases operation accounting exactly once for the given operation flag.
+     * Any teardown exception is logged and swallowed to avoid turning a completed stream into an error callback.
+     *
+     * @param activeOperation operation state flag associated with a started call
+     */
     protected void releaseActiveOperation(AtomicBoolean activeOperation) {
         if (activeOperation.compareAndSet(true, false)) {
-            completeActiveOperation();
+            try {
+                completeActiveOperation();
+            } catch (Throwable t) {
+                LOGGER.warn("Error while releasing active OCI GenAI operation", t);
+            }
         }
     }
 
+    /**
+     * Executor used for asynchronous request startup and stream processing.
+     *
+     * @return streaming executor
+     */
     protected Executor streamingExecutor() {
         return streamingExecutor;
-    }
-
-    protected boolean isCloseCalledFromCallbackThread() {
-        return false;
     }
 
     private void closeResources() {
@@ -239,26 +264,64 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
             return;
         }
 
-        syncClientLock.lock();
-        try {
-            if (client != null) {
-                client.close();
-                client = null;
-            }
-        } finally {
-            syncClientLock.unlock();
-        }
+        Throwable closeFailure = null;
+        closeFailure = closeClient(syncClientLock, () -> client, () -> client = null, closeFailure);
+        closeFailure = closeClient(asyncClientLock, () -> asyncClient, () -> asyncClient = null, closeFailure);
+        closeFailure = captureFailure(closeFailure, streamingExecutor::shutdown);
 
-        asyncClientLock.lock();
+        throwUnchecked(closeFailure);
+    }
+
+    private static Throwable closeClient(
+            Lock lock, Supplier<? extends AutoCloseable> closeableSupplier, Runnable clearAction, Throwable closeFailure) {
+        lock.lock();
         try {
-            if (asyncClient != null) {
-                asyncClient.close();
-                asyncClient = null;
+            var closeable = closeableSupplier.get();
+            if (closeable != null) {
+                closeFailure = captureFailure(closeFailure, closeable::close);
+                clearAction.run();
             }
+            return closeFailure;
         } finally {
-            asyncClientLock.unlock();
-            streamingExecutor.shutdown();
+            lock.unlock();
         }
+    }
+
+    private static Throwable captureFailure(Throwable closeFailure, ThrowingRunnable action) {
+        try {
+            action.run();
+            return closeFailure;
+        } catch (Throwable t) {
+            return addSuppressed(closeFailure, t);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    private static Throwable addSuppressed(Throwable currentFailure, Throwable nextFailure) {
+        if (currentFailure == null) {
+            return nextFailure;
+        }
+        if (nextFailure != currentFailure) {
+            currentFailure.addSuppressed(nextFailure);
+        }
+        return currentFailure;
+    }
+
+    private static void throwUnchecked(Throwable throwable) {
+        if (throwable == null) {
+            return;
+        }
+        if (throwable instanceof RuntimeException runtimeException) {
+            throw runtimeException;
+        }
+        if (throwable instanceof Error error) {
+            throw error;
+        }
+        throw new RuntimeException(throwable);
     }
 
     private com.oracle.bmc.generativeaiinference.requests.ChatRequest ociChatRequest(

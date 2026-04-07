@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -358,6 +359,69 @@ class OciGenAiStreamingChatModelTest {
             assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             streamScript.assertCompleted();
             assertNull(streamError.get());
+        } finally {
+            model.close();
+        }
+    }
+
+    @Test
+    void closeFailureAfterCompletionShouldNotInvokeErrorCallback() throws Exception {
+        var streamScript = new BlockingEventStream();
+        var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
+        var closeFailure = new RuntimeException("close failed");
+
+        doAnswer(invocation -> {
+                    var future = new CompletableFuture<com.oracle.bmc.generativeaiinference.responses.ChatResponse>();
+                    var worker = new Thread(() -> future.complete(streamScript.response()));
+                    worker.setDaemon(true);
+                    worker.start();
+                    return future;
+                })
+                .when(asyncClient)
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
+        doThrow(closeFailure).when(asyncClient).close();
+
+        var model = OciGenAiStreamingChatModel.builder()
+                .modelName("test-model")
+                .compartmentId("test-compartment")
+                .genAiAsyncClient(asyncClient)
+                .build();
+
+        try {
+            var firstPartial = new CountDownLatch(1);
+            var completed = new CountDownLatch(1);
+            var errored = new CountDownLatch(1);
+            var closeInvoked = new AtomicBoolean();
+            var error = new AtomicReference<Throwable>();
+
+            model.doChat(chatRequest(), new StreamingChatResponseHandler() {
+                @Override
+                public void onPartialResponse(String partialResponse) {
+                    if (closeInvoked.compareAndSet(false, true)) {
+                        model.close();
+                    }
+                    firstPartial.countDown();
+                }
+
+                @Override
+                public void onCompleteResponse(ChatResponse completeResponse) {
+                    completed.countDown();
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    error.set(throwable);
+                    errored.countDown();
+                }
+            });
+
+            assertTrue(firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            streamScript.allowCompletion();
+
+            assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            streamScript.assertCompleted();
+            assertFalse(errored.await(300, TimeUnit.MILLISECONDS));
+            assertNull(error.get());
         } finally {
             model.close();
         }

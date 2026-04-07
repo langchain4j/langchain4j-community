@@ -3,9 +3,12 @@ package dev.langchain4j.community.model.oracle.oci.genai;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.oracle.bmc.auth.BasicAuthenticationDetailsProvider;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
@@ -168,6 +171,52 @@ class BaseChatModelTest {
             assertEquals("OCI GenAI model is closed.", error.get().getMessage());
             assertEquals(0, activeOperations(model));
         }
+    }
+
+    @Test
+    void closeShouldCloseAsyncClientWhenSyncCloseFails() {
+        var syncClient = mock(GenerativeAiInferenceClient.class);
+        var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
+        var syncFailure = new RuntimeException("sync close failure");
+
+        doThrow(syncFailure).when(syncClient).close();
+
+        var model = OciGenAiStreamingChatModel.builder()
+                .modelName("test-model")
+                .compartmentId("test-compartment")
+                .genAiClient(syncClient)
+                .genAiAsyncClient(asyncClient)
+                .build();
+
+        var thrown = assertThrows(RuntimeException.class, model::close);
+        assertSame(syncFailure, thrown);
+        verify(syncClient).close();
+        verify(asyncClient).close();
+    }
+
+    @Test
+    void closeShouldSuppressAsyncCloseFailureWhenSyncCloseAlsoFails() {
+        var syncClient = mock(GenerativeAiInferenceClient.class);
+        var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
+        var syncFailure = new RuntimeException("sync close failure");
+        var asyncFailure = new RuntimeException("async close failure");
+
+        doThrow(syncFailure).when(syncClient).close();
+        doThrow(asyncFailure).when(asyncClient).close();
+
+        var model = OciGenAiStreamingChatModel.builder()
+                .modelName("test-model")
+                .compartmentId("test-compartment")
+                .genAiClient(syncClient)
+                .genAiAsyncClient(asyncClient)
+                .build();
+
+        var thrown = assertThrows(RuntimeException.class, model::close);
+        assertSame(syncFailure, thrown);
+        assertEquals(1, thrown.getSuppressed().length);
+        assertSame(asyncFailure, thrown.getSuppressed()[0]);
+        verify(syncClient).close();
+        verify(asyncClient).close();
     }
 
     private static int activeOperations(BaseChatModel<?> model) {

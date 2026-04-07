@@ -1,15 +1,26 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
-import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-interface StreamingCallbackContext {
+final class StreamingCallbackContext {
 
-    Map<Thread, AtomicInteger> streamingCallbackThreads();
+    private final BaseChatModel<?> model;
+    private final ConcurrentHashMap<Thread, AtomicInteger> callbackThreads = new ConcurrentHashMap<>();
 
-    default void runInStreamingCallbackContext(Runnable callback) {
+    StreamingCallbackContext(BaseChatModel<?> model) {
+        this.model = Objects.requireNonNull(model, "model");
+    }
+
+    /**
+     * Runs a callback while marking the current thread as a streaming callback thread.
+     *
+     * @param callback callback body to execute
+     */
+    void runInStreamingCallbackContext(Runnable callback) {
         Thread callbackThread = Thread.currentThread();
-        streamingCallbackThreads().compute(callbackThread, (thread, depth) -> {
+        callbackThreads.compute(callbackThread, (thread, depth) -> {
             if (depth == null) {
                 return new AtomicInteger(1);
             }
@@ -19,12 +30,20 @@ interface StreamingCallbackContext {
         try {
             callback.run();
         } finally {
-            streamingCallbackThreads()
-                    .computeIfPresent(callbackThread, (thread, depth) -> depth.decrementAndGet() <= 0 ? null : depth);
+            callbackThreads.computeIfPresent(callbackThread, (thread, depth) -> depth.decrementAndGet() <= 0 ? null : depth);
         }
     }
 
-    default boolean isCurrentThreadInStreamingCallbackContext() {
-        return streamingCallbackThreads().containsKey(Thread.currentThread());
+    /**
+     * Checks if the current thread is currently executing in a streaming callback context.
+     *
+     * @return {@code true} when current thread is marked as callback thread
+     */
+    boolean isCurrentThreadInStreamingCallbackContext() {
+        return callbackThreads.containsKey(Thread.currentThread());
+    }
+
+    void close() {
+        model.closeModel(isCurrentThreadInStreamingCallbackContext());
     }
 }

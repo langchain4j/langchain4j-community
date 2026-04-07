@@ -19,9 +19,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,15 +34,16 @@ import org.slf4j.LoggerFactory;
  * <p>To learn more about the service, see the <a href="https://docs.oracle.com/iaas/Content/generative-ai/home.htm">Generative AI documentation</a>
  */
 public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGenAiCohereStreamingChatModel>
-        implements StreamingChatModel, StreamingCallbackContext {
+        implements StreamingChatModel {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OciGenAiCohereStreamingChatModel.class);
     private final Builder builder;
-    private final ConcurrentHashMap<Thread, AtomicInteger> streamingCallbackThreads = new ConcurrentHashMap<>();
+    private final StreamingCallbackContext streamingCallbackContext;
 
     OciGenAiCohereStreamingChatModel(Builder builder) {
         super(builder);
         this.builder = builder;
+        this.streamingCallbackContext = new StreamingCallbackContext(this);
     }
 
     @Override
@@ -58,13 +57,8 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
     }
 
     @Override
-    public ConcurrentHashMap<Thread, AtomicInteger> streamingCallbackThreads() {
-        return streamingCallbackThreads;
-    }
-
-    @Override
-    protected boolean isCloseCalledFromCallbackThread() {
-        return isCurrentThreadInStreamingCallbackContext();
+    public void close() {
+        streamingCallbackContext.close();
     }
 
     @Override
@@ -87,7 +81,7 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
         var activeOperation = new AtomicBoolean();
         super.ociChatAsync(bmcChatRequest, servingMode, activeOperation)
                 .thenAcceptAsync(
-                        response -> runInStreamingCallbackContext(() -> {
+                        response -> streamingCallbackContext.runInStreamingCallbackContext(() -> {
                             try {
                                 handleStream(response, modelName, handler);
                             } finally {
@@ -96,7 +90,7 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                         }),
                         streamingExecutor())
                 .exceptionally(error -> {
-                    runInStreamingCallbackContext(() -> {
+                    streamingCallbackContext.runInStreamingCallbackContext(() -> {
                         try {
                             notifyError(handler, unwrapCompletionFailure(error));
                         } finally {
