@@ -17,14 +17,16 @@ class CohereAiServiceWithJsonSchemaIT extends AbstractAiServiceWithJsonSchemaIT 
     protected List<ChatModel> models() {
         return List.of(CohereChatModel.builder()
                 .apiKey(System.getenv("CO_API_KEY"))
-                .modelName("command-r7b-12-2024")
+                .modelName("command-a-03-2025")
                 .supportedCapabilities(RESPONSE_FORMAT_JSON_SCHEMA)
                 .logRequests(true)
                 .logResponses(true)
                 .build());
     }
 
-    // TODO: See how you can cope with this.
+    @Override
+    public boolean supportsRecursion() { return true; }
+
     @Disabled("Cohere does not support this schema.")
     @Override
     protected void should_extract_pojo_with_missing_data(ChatModel chatModel) {
@@ -32,7 +34,6 @@ class CohereAiServiceWithJsonSchemaIT extends AbstractAiServiceWithJsonSchemaIT 
         // The Map<String, Object> results in an empty object schema, which is illegal in the API.
     }
 
-    // TODO: Review this
     @Disabled("Cohere models are not good with float numbers")
     @Override
     protected void should_extract_float_boxed(ChatModel chatModel) {

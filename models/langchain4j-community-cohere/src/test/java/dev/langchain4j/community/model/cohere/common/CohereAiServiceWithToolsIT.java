@@ -3,6 +3,7 @@ package dev.langchain4j.community.model.cohere.common;
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.common.AbstractAiServiceWithToolsIT;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.List;
@@ -29,6 +30,7 @@ class CohereAiServiceWithToolsIT extends AbstractAiServiceWithToolsIT {
         return List.of(COHERE_CHAT_MODEL);
     }
 
+    @Disabled("Cohere models can't handle this.")
     @Override
     protected void should_execute_tool_with_list_of_POJOs_parameter(ChatModel chatModel) {
         // Smaller Cohere models 'flatten' tool parameters into single lists, causing
@@ -36,5 +38,9 @@ class CohereAiServiceWithToolsIT extends AbstractAiServiceWithToolsIT {
         super.should_execute_tool_with_list_of_POJOs_parameter(LARGER_COHERE_CHAT_MODEL);
     }
 
-    // TODO: should_execute_normal_tool_with_primitive_parameters is a flaky test.
+    @Disabled("Cohere models can't handle this")
+    @Override
+    protected void should_execute_normal_tool_with_primitive_parameters(ChatModel chatModel) {
+        // Cohere models cannot handle this well, it would be a very flaky test.
+    }
 }

@@ -215,6 +215,10 @@ public class CohereMapper {
                  map.put("additionalProperties", objectSchema.additionalProperties());
             }
 
+            if (!objectSchema.definitions().isEmpty()) {
+                map.put("$defs", mapDefs(objectSchema.definitions()));
+            }
+
             return map;
         }
 
@@ -237,5 +241,12 @@ public class CohereMapper {
         }
 
         return toMap(jsonSchemaElement);
+    }
+
+    private static Map<String, Map<String, Object>> mapDefs(Map<String, JsonSchemaElement> defs) {
+        Map<String, Map<String, Object>> map = new LinkedHashMap<>();
+        defs.forEach((property, schema) -> map.put(property, toCohereSchema(schema)));
+
+        return map;
     }
 }
