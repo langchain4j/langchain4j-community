@@ -1,10 +1,12 @@
 package dev.langchain4j.community.model;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.CohereClient;
+import dev.langchain4j.community.model.client.CohereSafetyMode;
+import dev.langchain4j.community.model.client.CohereThinkingType;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
-import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -61,10 +63,10 @@ public class CohereChatModel implements ChatModel {
                 .topK(getOrDefault(builder.topK, commonParameters.topK()))
                 .frequencyPenalty(getOrDefault(builder.frequencyPenalty, commonParameters.frequencyPenalty()))
                 .presencePenalty(getOrDefault(builder.presencePenalty, commonParameters.presencePenalty()))
-                .maxOutputTokens(getOrDefault(builder.maxOutputTokens, commonParameters.maxOutputTokens()))
+                .maxOutputTokens(getOrDefault(builder.maxTokens, commonParameters.maxOutputTokens()))
                 .stopSequences(getOrDefault(copy(builder.stopSequences), commonParameters.stopSequences()))
                 .toolSpecifications(getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
-                .toolChoice(builder.toolChoice)
+                .toolChoice(getOrDefault(builder.toolChoice, commonParameters.toolChoice()))
                 .responseFormat(getOrDefault(builder.responseFormat, commonParameters.responseFormat()))
                 // Cohere specific parameters
                 .thinkingType(getOrDefault(builder.thinkingType, cohereDefaultParameters.thinkingType()))
@@ -106,8 +108,8 @@ public class CohereChatModel implements ChatModel {
 
     public static class Builder {
 
-        private String baseUrl;
         private String apiKey;
+        private String baseUrl;
         private Duration timeout;
         private Integer maxRetries;
         private List<ChatModelListener> listeners;
@@ -117,14 +119,14 @@ public class CohereChatModel implements ChatModel {
         private Integer topK;
         private Double frequencyPenalty;
         private Double presencePenalty;
-        private Integer maxOutputTokens;
+        private Integer maxTokens;
         private List<String> stopSequences;
         private List<ToolSpecification> toolSpecifications;
         private ToolChoice toolChoice;
         private ResponseFormat responseFormat;
-        private String thinkingType;
+        private CohereThinkingType thinkingType;
         private Integer thinkingTokenBudget;
-        private String safetyMode;
+        private CohereSafetyMode safetyMode;
         private Integer priority;
         private Integer seed;
         private Boolean logprobs;
@@ -136,13 +138,13 @@ public class CohereChatModel implements ChatModel {
         private Logger logger;
         private Set<Capability> supportedCapabilities;
 
-        public Builder baseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
+        public Builder apiKey(String apiKey) {
+            this.apiKey = apiKey;
             return this;
         }
 
-        public Builder authToken(String authToken) {
-            this.apiKey = authToken;
+        public Builder baseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
             return this;
         }
 
@@ -195,8 +197,8 @@ public class CohereChatModel implements ChatModel {
             return this;
         }
 
-        public Builder maxOutputTokens(Integer maxOutputTokens) {
-            this.maxOutputTokens = maxOutputTokens;
+        public Builder maxTokens(Integer maxTokens) {
+            this.maxTokens = maxTokens;
             return this;
         }
 
@@ -210,12 +212,12 @@ public class CohereChatModel implements ChatModel {
             return this;
         }
 
-        public Builder toolSpecification(ToolSpecification... toolSpecifications) {
+        public Builder toolSpecifications(ToolSpecification... toolSpecifications) {
             this.toolSpecifications = asList(toolSpecifications);
             return this;
         }
 
-        public Builder toolSpecification(List<ToolSpecification> toolSpecifications) {
+        public Builder toolSpecifications(List<ToolSpecification> toolSpecifications) {
             this.toolSpecifications = toolSpecifications;
             return this;
         }
@@ -230,7 +232,7 @@ public class CohereChatModel implements ChatModel {
             return this;
         }
 
-        public Builder thinkingType(String thinkingType) {
+        public Builder thinkingType(CohereThinkingType thinkingType) {
             this.thinkingType = thinkingType;
             return this;
         }
@@ -244,7 +246,7 @@ public class CohereChatModel implements ChatModel {
          * Selects the <a href="https://docs.cohere.com/reference/chat-stream#request.body.safety_mode">safety instruction</a>
          * inserted into the prompt of the model.
          */
-        public Builder safetyMode(String safetyMode) {
+        public Builder safetyMode(CohereSafetyMode safetyMode) {
             this.safetyMode = safetyMode;
             return this;
         }

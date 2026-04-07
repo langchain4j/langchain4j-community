@@ -7,6 +7,8 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+import static dev.langchain4j.community.model.client.CohereSafetyMode.OFF;
+import static dev.langchain4j.community.model.client.CohereSafetyMode.STRICT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
@@ -27,10 +29,10 @@ class CohereSafetyModeIT {
 
         // given
         CohereChatModel model = CohereChatModel.builder()
-                .authToken(System.getenv("CO_API_KEY"))
+                .apiKey(System.getenv("CO_API_KEY"))
                 .modelName(MODEL_NAME)
                 .temperature(0.0)
-                .maxOutputTokens(20)
+                .maxTokens(20)
                 .logRequests(true)
                 .logResponses(true)
                 .build();
@@ -47,11 +49,11 @@ class CohereSafetyModeIT {
 
         // given
         CohereChatModel model = CohereChatModel.builder()
-                .authToken(System.getenv("CO_API_KEY"))
+                .apiKey(System.getenv("CO_API_KEY"))
                 .modelName(MODEL_NAME)
                 .temperature(0.0)
-                .maxOutputTokens(20)
-                .safetyMode("STRICT")
+                .maxTokens(20)
+                .safetyMode(STRICT)
                 .logRequests(true)
                 .logResponses(true)
                 .build();
@@ -68,11 +70,11 @@ class CohereSafetyModeIT {
 
         // given
         CohereChatModel model = CohereChatModel.builder()
-                .authToken(System.getenv("CO_API_KEY"))
+                .apiKey(System.getenv("CO_API_KEY"))
                 .modelName(MODEL_NAME)
                 .temperature(0.0)
-                .maxOutputTokens(20)
-                .safetyMode("STRICT")
+                .maxTokens(20)
+                .safetyMode(STRICT)
                 .logRequests(true)
                 .logResponses(true)
                 .build();
@@ -91,11 +93,11 @@ class CohereSafetyModeIT {
 
         // Given
         CohereChatModel model = CohereChatModel.builder()
-                .authToken(System.getenv("CO_API_KEY"))
+                .apiKey(System.getenv("CO_API_KEY"))
                 .modelName(MODEL_NAME)
                 .temperature(0.0)
-                .maxOutputTokens(20)
-                .safetyMode("OFF")
+                .maxTokens(20)
+                .safetyMode(OFF)
                 .logRequests(true)
                 .logResponses(true)
                 .build();

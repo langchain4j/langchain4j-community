@@ -34,7 +34,7 @@ public class CohereStreamingMessage {
         return "CohereStreamingMessage{"
                 + "content=" + content
                 + ", toolCalls=" + toolCalls
-            + "}";
+            + '}';
     }
 
     public int hashCode() { return Objects.hash(content, toolCalls); }

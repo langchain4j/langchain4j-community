@@ -16,11 +16,11 @@ class CohereAiServiceWithJsonSchemaIT extends AbstractAiServiceWithJsonSchemaIT 
     @Override
     protected List<ChatModel> models() {
         return List.of(CohereChatModel.builder()
-                .authToken(System.getenv("CO_API_KEY"))
+                .apiKey(System.getenv("CO_API_KEY"))
                 .modelName("command-r7b-12-2024")
                 .supportedCapabilities(RESPONSE_FORMAT_JSON_SCHEMA)
-                .logRequests(false)
                 .logRequests(true)
+                .logResponses(true)
                 .build());
     }
 

@@ -16,6 +16,8 @@ class CohereStreamingAiServiceIT extends AbstractStreamingAiServiceIT {
             .apiKey(System.getenv("CO_API_KEY"))
             .modelName("command-r7b-12-2024")
             .temperature(0.0)
+            .logRequests(true)
+            .logResponses(true)
             .build();
 
     @Override

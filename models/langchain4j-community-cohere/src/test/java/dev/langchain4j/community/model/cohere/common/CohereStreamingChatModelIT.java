@@ -25,12 +25,16 @@ class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
             .apiKey(System.getenv("CO_API_KEY"))
             .modelName("command-r7b-12-2024")
             .temperature(0.0)
+            .logRequests(true)
+            .logResponses(true)
             .build();
 
     private static final StreamingChatModel COHERE_STREAMING_VISION_MODEL = CohereStreamingChatModel.builder()
             .apiKey(System.getenv("CO_API_KEY"))
             .modelName("command-a-vision-07-2025")
             .temperature(0.0)
+            .logRequests(true)
+            .logResponses(true)
             .build();
 
     @Override
@@ -39,6 +43,8 @@ class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .apiKey(System.getenv("CO_API_KEY"))
                 .modelName("command-r7b-12-2024")
                 .listeners(List.of(chatModelListener))
+                .logRequests(true)
+                .logResponses(true)
                 .build();
     }
 
@@ -48,6 +54,8 @@ class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .apiKey(System.getenv("CO_API_KEY"))
                 .modelName("command-r-plus-08-2024")
                 .defaultRequestParameters(chatRequestParameters)
+                .logRequests(true)
+                .logResponses(true)
                 .build();
     }
 

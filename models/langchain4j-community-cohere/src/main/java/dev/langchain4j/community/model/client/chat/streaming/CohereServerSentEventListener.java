@@ -104,7 +104,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
         }
 
         if (content.getType() == THINKING && !isNullOrEmpty(content.getThinking())) {
-            textBuilder.append(content.getThinking());
+            thinkingBuilder.append(content.getThinking());
             onPartialThinking(handler, content.getThinking(), streamingHandle);
         }
     }
@@ -118,7 +118,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
         }
 
         if (!isNullOrEmpty(message.getThinking())) {
-            textBuilder.append(message.getThinking());
+            thinkingBuilder.append(message.getThinking());
             onPartialThinking(handler, message.getThinking(), streamingHandle);
         }
 

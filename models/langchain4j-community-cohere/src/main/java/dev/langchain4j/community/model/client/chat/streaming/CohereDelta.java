@@ -44,7 +44,7 @@ public class CohereDelta {
                 + ", message=" + message
                 + ", finishReason=" + finishReason
                 + ", usage=" + usage
-                + "}";
+                + '}';
     }
 
     public int hashCode() { return Objects.hash(error, message, finishReason, usage); }

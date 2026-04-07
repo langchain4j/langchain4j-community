@@ -39,12 +39,12 @@ public class CohereBilledUnits {
 
     @Override
     public String toString() {
-        return "CohereBilledUnits{ "
-                + "inputTokens = " + inputTokens
-                + ", outputTokens = " + outputTokens
-                + ", searchUnits = " + searchUnits
-                + ", classifications = " + classifications
-                + " }";
+        return "CohereBilledUnits{"
+                + "inputTokens=" + inputTokens
+                + ", outputTokens=" + outputTokens
+                + ", searchUnits=" + searchUnits
+                + ", classifications=" + classifications
+                + '}';
     }
 
     @Override

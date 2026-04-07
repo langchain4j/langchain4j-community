@@ -47,11 +47,11 @@ public class CohereToolCall {
 
     @Override
     public String toString() {
-        return "CohereToolCall{ "
-                + "type = " + type
-                + ", id = " + id
-                + ", function = " + function
-                + " }";
+        return "CohereToolCall{"
+                + "type=" + type
+                + ", id=" + id
+                + ", function=" + function
+                + '}';
     }
 
     @Override

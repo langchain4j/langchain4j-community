@@ -37,11 +37,11 @@ public class CohereStreamingContent {
     public String getThinking() { return thinking; }
 
     public String toString() {
-        return "CohereStreamingMessage{"
+        return "CohereStreamingContent{"
                     + "type=" + type
                     + ", text=" + text
                     + ", thinking=" + thinking
-                + "}";
+                + '}';
     }
 
     public int hashCode() { return Objects.hash(type, text, thinking); }

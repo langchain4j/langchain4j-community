@@ -1,22 +1,15 @@
 package dev.langchain4j.community.model.client.chat;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.CohereResponseFormatType;
-import dev.langchain4j.model.chat.request.json.JsonSchema;
 
 import java.util.Map;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.community.model.client.CohereResponseFormatType.JSON_OBJECT;
-import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 
-@JsonDeserialize(builder = CohereResponseFormat.Builder.class)
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereResponseFormat {
@@ -34,13 +27,6 @@ public class CohereResponseFormat {
     public Map<String, Object> getJsonSchema() { return jsonSchema; }
 
     public static Builder builder() { return new Builder(); }
-
-    public static CohereResponseFormat fromJsonSchema(JsonSchema jsonSchema) {
-        return CohereResponseFormat.builder()
-                .type(JSON_OBJECT)
-                .jsonSchema(toMap(jsonSchema.rootElement()))
-                .build();
-    }
 
     @Override
     public String toString() {
@@ -62,9 +48,6 @@ public class CohereResponseFormat {
         return Objects.equals(type, other.type) && Objects.equals(jsonSchema, other.jsonSchema);
     }
 
-    @JsonPOJOBuilder(withPrefix = "")
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class Builder {
 
         private CohereResponseFormatType type;

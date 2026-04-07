@@ -12,14 +12,14 @@ class CohereAiServiceWithToolsIT extends AbstractAiServiceWithToolsIT {
 
     private static final ChatModel COHERE_CHAT_MODEL = CohereChatModel.builder()
             .modelName("command-r7b-12-2024")
-            .authToken(System.getenv("CO_API_KEY"))
+            .apiKey(System.getenv("CO_API_KEY"))
             .logRequests(true)
             .logResponses(true)
             .build();
 
     private static final ChatModel LARGER_COHERE_CHAT_MODEL = CohereChatModel.builder()
             .modelName("command-r-plus-08-2024")
-            .authToken(System.getenv("CO_API_KEY"))
+            .apiKey(System.getenv("CO_API_KEY"))
             .logRequests(true)
             .logResponses(true)
             .build();

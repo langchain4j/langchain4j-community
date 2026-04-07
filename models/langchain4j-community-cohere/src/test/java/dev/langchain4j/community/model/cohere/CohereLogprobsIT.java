@@ -25,8 +25,8 @@ class CohereLogprobsIT {
 
     private static final ChatModel CHAT_MODEL = CohereChatModel.builder()
             .modelName(MODEL_NAME)
-            .authToken(API_KEY)
-            .maxOutputTokens(10)
+            .apiKey(API_KEY)
+            .maxTokens(20)
             .logRequests(true)
             .logResponses(true)
             .build();
@@ -34,7 +34,7 @@ class CohereLogprobsIT {
     private static final StreamingChatModel STREAMING_CHAT_MODEL = CohereStreamingChatModel.builder()
             .modelName(MODEL_NAME)
             .apiKey(API_KEY)
-            .maxOutputTokens(20)
+            .maxTokens(20)
             .logRequests(true)
             .logResponses(true)
             .build();

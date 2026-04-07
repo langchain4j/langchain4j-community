@@ -43,13 +43,13 @@ public final class CohereChatResponseMetadata extends ChatResponseMetadata {
 
     @Override
     public String toString() {
-        return "CohereChatResponseMetadata{ "
+        return "CohereChatResponseMetadata{"
                 + "id=" + quoted(id())
                 + ", modelName=" + quoted(modelName())
                 + ", tokenUsage=" + tokenUsage()
                 + ", finishReason=" + finishReason()
                 + ", logprobs=" + logprobs
-                + " }";
+                + '}';
     }
 
     public static class Builder extends ChatResponseMetadata.Builder<Builder> {

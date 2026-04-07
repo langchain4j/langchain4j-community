@@ -60,12 +60,12 @@ public class CohereContent {
 
     @Override
     public String toString() {
-        return "CohereContent{ "
-                + "type = " + type
-                + ", text = " + text
-                + ", thinking = " + thinking
-                + ", imageUrl = " + imageUrl
-                + " }";
+        return "CohereContent{"
+                + "type=" + type
+                + ", text=" + text
+                + ", thinking=" + thinking
+                + ", imageUrl=" + imageUrl
+                + '}';
     }
 
     @Override

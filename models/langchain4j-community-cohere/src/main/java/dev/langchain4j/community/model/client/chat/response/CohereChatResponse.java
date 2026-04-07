@@ -44,13 +44,13 @@ public class CohereChatResponse {
 
     @Override
     public String toString() {
-        return "CohereChatResponse{ "
-                + "id = " + id
-                + ", message = " + message
-                + ", finishReason = " + finishReason
-                + ", usage = " + usage
-                + ", logprobs = " + logprobs
-                + " }";
+        return "CohereChatResponse{"
+                + "id=" + id
+                + ", message=" + message
+                + ", finishReason=" + finishReason
+                + ", usage=" + usage
+                + ", logprobs=" + logprobs
+                + '}';
     }
 
     @Override

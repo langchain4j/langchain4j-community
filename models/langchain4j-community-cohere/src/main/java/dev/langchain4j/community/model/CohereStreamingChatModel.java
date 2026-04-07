@@ -2,6 +2,8 @@ package dev.langchain4j.community.model;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereClient;
+import dev.langchain4j.community.model.client.CohereSafetyMode;
+import dev.langchain4j.community.model.client.CohereThinkingType;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.model.chat.Capability;
@@ -35,7 +37,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
 
     private CohereStreamingChatModel(CohereStreamingChatModelBuilder builder) {
         this.client = CohereClient.builder()
-                .baseUrl("https://api.cohere.com/v2/")
+                .baseUrl(getOrDefault(builder.baseUrl, "https://api.cohere.com/v2/"))
                 .timeout(builder.timeout)
                 .authToken(builder.apiKey)
                 .logRequests(getOrDefault(builder.logRequests, false))
@@ -57,7 +59,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
                 .topK(getOrDefault(builder.topK, commonParameters.topK()))
                 .frequencyPenalty(getOrDefault(builder.frequencyPenalty, commonParameters.frequencyPenalty()))
                 .presencePenalty(getOrDefault(builder.presencePenalty, commonParameters.presencePenalty()))
-                .maxOutputTokens(getOrDefault(builder.maxOutputTokens, commonParameters.maxOutputTokens()))
+                .maxOutputTokens(getOrDefault(builder.maxTokens, commonParameters.maxOutputTokens()))
                 .stopSequences(getOrDefault(copy(builder.stopSequences), commonParameters.stopSequences()))
                 .toolSpecifications(getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
                 .toolChoice(getOrDefault(builder.toolChoice, commonParameters.toolChoice()))
@@ -96,20 +98,21 @@ public class CohereStreamingChatModel implements StreamingChatModel {
 
         private Duration timeout;
         private String apiKey;
+        private String baseUrl;
         private String modelName;
         private Double temperature;
         private Double topP;
         private Integer topK;
         private Double presencePenalty;
         private Double frequencyPenalty;
-        private Integer maxOutputTokens;
+        private Integer maxTokens;
         private List<String> stopSequences;
         private List<ToolSpecification> toolSpecifications;
         private ToolChoice toolChoice;
         private ResponseFormat responseFormat;
-        private String thinkingType;
+        private CohereThinkingType thinkingType;
         private Integer thinkingTokenBudget;
-        private String safetyMode;
+        private CohereSafetyMode safetyMode;
         private Integer priority;
         private Integer seed;
         private Boolean logprobs;
@@ -129,6 +132,11 @@ public class CohereStreamingChatModel implements StreamingChatModel {
 
         public CohereStreamingChatModelBuilder apiKey(String apiKey) {
             this.apiKey = apiKey;
+            return this;
+        }
+
+        public CohereStreamingChatModelBuilder baseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
             return this;
         }
 
@@ -162,8 +170,8 @@ public class CohereStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
-        public CohereStreamingChatModelBuilder maxOutputTokens(Integer maxOutputTokens) {
-            this.maxOutputTokens = maxOutputTokens;
+        public CohereStreamingChatModelBuilder maxTokens(Integer maxTokens) {
+            this.maxTokens = maxTokens;
             return this;
         }
 
@@ -191,7 +199,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
-        public CohereStreamingChatModelBuilder thinkingType(String thinkingType) {
+        public CohereStreamingChatModelBuilder thinkingType(CohereThinkingType thinkingType) {
             this.thinkingType = thinkingType;
             return this;
         }
@@ -205,7 +213,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
          * Selects the <a href="https://docs.cohere.com/reference/chat-stream#request.body.safety_mode">safety instruction</a>
          * inserted into the prompt of the model.
          */
-        public CohereStreamingChatModelBuilder safetyMode(String safetyMode) {
+        public CohereStreamingChatModelBuilder safetyMode(CohereSafetyMode safetyMode) {
             this.safetyMode = safetyMode;
             return this;
         }

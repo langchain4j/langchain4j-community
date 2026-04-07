@@ -49,7 +49,7 @@ public class CohereStreamingData {
                     + ", delta=" + delta
                     + ", index=" + index
                     + ", logprobs=" + logprobs
-                + "}";
+                + '}';
     }
 
     public int hashCode() { return Objects.hash(type, id, delta, index, logprobs); }

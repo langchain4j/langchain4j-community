@@ -22,9 +22,9 @@ public class CohereStreamingStartData {
 
     @Override
     public String toString() {
-        return "CohereStreamingStartData{" +
-                "id=" + id +
-                "}";
+        return "CohereStreamingStartData{"
+                + "id=" + id
+                + '}';
     }
 
     @Override

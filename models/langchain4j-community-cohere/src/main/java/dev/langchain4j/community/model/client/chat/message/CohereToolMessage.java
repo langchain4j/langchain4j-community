@@ -37,10 +37,10 @@ public class CohereToolMessage implements CohereMessage {
 
     @Override
     public String toString() {
-        return "CohereUserMessage{ "
-                + "toolCallId = " + toolCallId
-                + ", content = " + content
-                + " }";
+        return "CohereToolMessage{"
+                + "toolCallId=" + toolCallId
+                + ", content=" + content
+                + '}';
     }
 
     @Override

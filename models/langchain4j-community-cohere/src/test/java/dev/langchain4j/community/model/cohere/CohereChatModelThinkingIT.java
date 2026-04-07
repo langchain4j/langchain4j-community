@@ -8,12 +8,14 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+import static dev.langchain4j.community.model.client.CohereThinkingType.DISABLED;
+import static dev.langchain4j.community.model.client.CohereThinkingType.ENABLED;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereChatModelThinkingIT {
 
-    private static final Integer MAX_THINKING_TOKENS = 1024;
+    private static final Integer MAX_THINKING_TOKENS = 20;
 
 
     @Test
@@ -21,10 +23,13 @@ class CohereChatModelThinkingIT {
 
         // given
         ChatModel chatModel = CohereChatModel.builder()
-                .authToken(System.getenv("CO_API_KEY"))
+                .apiKey(System.getenv("CO_API_KEY"))
                 .modelName("command-a-reasoning-08-2025")
-                .thinkingType("enabled")
+                .thinkingType(ENABLED)
                 .thinkingTokenBudget(MAX_THINKING_TOKENS)
+                .maxTokens(100)
+                .logRequests(true)
+                .logResponses(true)
                 .build();
 
         // when
@@ -42,10 +47,13 @@ class CohereChatModelThinkingIT {
 
         // given
         ChatModel chatModel = CohereChatModel.builder()
-                .authToken(System.getenv("CO_API_KEY"))
+                .apiKey(System.getenv("CO_API_KEY"))
                 .modelName("command-a-reasoning-08-2025")
-                .thinkingType("disabled")
+                .thinkingType(DISABLED)
                 .thinkingTokenBudget(MAX_THINKING_TOKENS)
+                .maxTokens(20)
+                .logRequests(true)
+                .logResponses(true)
                 .build();
 
         // when

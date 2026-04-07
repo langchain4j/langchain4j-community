@@ -11,7 +11,7 @@ import java.util.List;
 class CohereAiServiceIT extends AbstractAiServiceIT {
 
     private static final ChatModel COHERE_CHAT_MODEL = CohereChatModel.builder()
-            .authToken(System.getenv("CO_API_KEY"))
+            .apiKey(System.getenv("CO_API_KEY"))
             .modelName("command-r7b-12-2024")
             .logRequests(true)
             .logResponses(true)

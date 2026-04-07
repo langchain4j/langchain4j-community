@@ -35,11 +35,11 @@ public class CohereUsage {
 
     @Override
     public String toString() {
-        return "CohereUsage{ "
-                + "billedUnits = " + billedUnits
-                + ", tokens = " + tokens
-                + ", cachedTokens = " + cachedTokens
-                + " }";
+        return "CohereUsage{"
+                + "billedUnits=" + billedUnits
+                + ", tokens=" + tokens
+                + ", cachedTokens=" + cachedTokens
+                + '}';
     }
 
     @Override

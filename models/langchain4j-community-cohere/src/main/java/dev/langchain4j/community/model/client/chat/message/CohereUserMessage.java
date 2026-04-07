@@ -40,9 +40,9 @@ public class CohereUserMessage implements CohereMessage {
 
     @Override
     public String toString() {
-        return "CohereUserMessage{ "
-                + "content = " + content
-                + " }";
+        return "CohereUserMessage{"
+                + "content=" + content
+                + '}';
     }
 
     @Override

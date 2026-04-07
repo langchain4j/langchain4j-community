@@ -2,9 +2,7 @@ package dev.langchain4j.community.model.client.chat.message;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 
@@ -16,7 +14,6 @@ import static dev.langchain4j.community.model.client.chat.message.CohereRole.ASS
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 
-@JsonDeserialize
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereAiMessage implements CohereMessage {
@@ -56,10 +53,10 @@ public class CohereAiMessage implements CohereMessage {
 
     @Override
     public String toString() {
-        return "CohereAiMessage{ "
-                + "content = " + content
-                + ", toolCalls = " + toolCalls
-                + " }";
+        return "CohereAiMessage{"
+                + "content=" + content
+                + ", toolCalls=" + toolCalls
+                + '}';
     }
 
     @Override
@@ -76,9 +73,6 @@ public class CohereAiMessage implements CohereMessage {
     }
 
 
-    @JsonPOJOBuilder(withPrefix = "")
-    @JsonInclude(NON_NULL)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class Builder {
 
         private List<CohereContent> content;

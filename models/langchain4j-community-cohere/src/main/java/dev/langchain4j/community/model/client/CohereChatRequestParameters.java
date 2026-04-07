@@ -12,10 +12,10 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
     public static final CohereChatRequestParameters EMPTY = builder().build();
 
-    private final String thinkingType;
+    private final CohereThinkingType thinkingType;
     private final Integer thinkingTokenBudget;
     private final Boolean stream;
-    private final String safetyMode;
+    private final CohereSafetyMode safetyMode;
     private final Integer priority;
     private final Integer seed;
     private final Boolean logprobs;
@@ -34,13 +34,13 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
         this.strictTools = builder.strictTools;
     }
 
-    public String thinkingType() { return thinkingType; }
+    public CohereThinkingType thinkingType() { return thinkingType; }
 
     public Integer thinkingTokenBudget() { return thinkingTokenBudget; }
 
     public Boolean stream() { return stream; }
 
-    public String safetyMode() { return safetyMode; }
+    public CohereSafetyMode safetyMode() { return safetyMode; }
 
     public Integer priority() { return priority; }
 
@@ -77,7 +77,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 + ", topK=" + topK()
                 + ", frequencyPenalty=" + frequencyPenalty()
                 + ", presencePenalty=" + presencePenalty()
-                + ", maxOutputTokens=" + maxOutputTokens()
+                + ", maxTokens=" + maxOutputTokens()
                 + ", stopSequences=" + stopSequences()
                 + ", toolSpecifications=" + toolSpecifications()
                 + ", toolChoice=" + toolChoice()
@@ -113,7 +113,8 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
     }
 
     private boolean equalsTo(CohereChatRequestParameters that) {
-        return Objects.equals(thinkingType, that.thinkingType)
+        return super.equals(that)
+                && Objects.equals(thinkingType, that.thinkingType)
                 && Objects.equals(thinkingTokenBudget, that.thinkingTokenBudget)
                 && Objects.equals(stream, that.stream)
                 && Objects.equals(safetyMode, that.safetyMode)
@@ -125,10 +126,10 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
     public static class Builder extends DefaultChatRequestParameters.Builder<Builder> {
 
-        private String thinkingType;
+        private CohereThinkingType thinkingType;
         private Integer thinkingTokenBudget;
         private Boolean stream;
-        private String safetyMode;
+        private CohereSafetyMode safetyMode;
         private Integer priority;
         private Integer seed;
         private Boolean logprobs;
@@ -152,7 +153,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
             return this;
         }
 
-        public Builder thinkingType(String thinkingType) {
+        public Builder thinkingType(CohereThinkingType thinkingType) {
             this.thinkingType = thinkingType;
             return this;
         }
@@ -167,7 +168,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
             return this;
         }
 
-        public Builder safetyMode(String safetyMode) {
+        public Builder safetyMode(CohereSafetyMode safetyMode) {
             this.safetyMode = safetyMode;
             return this;
         }

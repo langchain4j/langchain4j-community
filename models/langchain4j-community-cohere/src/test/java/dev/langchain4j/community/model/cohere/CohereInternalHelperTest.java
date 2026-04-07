@@ -26,6 +26,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static dev.langchain4j.community.model.client.CohereSafetyMode.CONTEXTUAL;
+import static dev.langchain4j.community.model.client.CohereThinkingType.ENABLED;
 import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
 import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
 import static dev.langchain4j.model.output.FinishReason.STOP;
@@ -95,12 +97,12 @@ class CohereInternalHelperTest {
                         singletonList(UserMessage.from("User message")),
                         CohereChatRequestParameters.builder()
                                 .modelName(MODEL_NAME)
-                                .thinkingType("enabled")
+                                .thinkingType(ENABLED)
                                 .build(),
                         CohereChatRequest.builder()
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
-                                .thinking(CohereThinking.builder().type("enabled").build())
+                                .thinking(CohereThinking.builder().type(ENABLED).build())
                                 .build()
                 ),
 
@@ -123,12 +125,12 @@ class CohereInternalHelperTest {
                         singletonList(UserMessage.from("User message")),
                         CohereChatRequestParameters.builder()
                                 .modelName(MODEL_NAME)
-                                .safetyMode("CONTEXTUAL")
+                                .safetyMode(CONTEXTUAL)
                                 .build(),
                         CohereChatRequest.builder()
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
-                                .safetyMode("CONTEXTUAL")
+                                .safetyMode(CONTEXTUAL)
                                 .build()
                 ),
 
@@ -199,7 +201,7 @@ class CohereInternalHelperTest {
                                 .id("12345")
                                 .finishReason("COMPLETE")
                                 .usage(CohereUsage.builder()
-                                        .tokens(CohereTokens.of(1.0, 1.0))
+                                        .tokens(CohereTokens.of(1, 1))
                                         .build())
                                 .message(CohereResponseMessage.builder()
                                         .content(singletonList(CohereContent.text("Text response")))
@@ -224,7 +226,7 @@ class CohereInternalHelperTest {
                                 .id("12345")
                                 .finishReason("COMPLETE")
                                 .usage(CohereUsage.builder()
-                                        .tokens(CohereTokens.of(1.0, 1.0))
+                                        .tokens(CohereTokens.of(1, 1))
                                         .build())
                                 .message(CohereResponseMessage.builder()
                                         .content(asList(
@@ -255,7 +257,7 @@ class CohereInternalHelperTest {
                                 .id("12345")
                                 .finishReason("TOOL_CALL")
                                 .usage(CohereUsage.builder()
-                                        .tokens(CohereTokens.of(1.0, 1.0))
+                                        .tokens(CohereTokens.of(1, 1))
                                         .build())
                                 .message(CohereResponseMessage.builder()
                                         .content(emptyList())

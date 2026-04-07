@@ -14,10 +14,10 @@ class CohereChatModelListenerIT extends AbstractChatModelListenerIT {
     @Override
     protected ChatModel createModel(ChatModelListener listener) {
         return CohereChatModel.builder()
-                .authToken(System.getenv("CO_API_KEY"))
+                .apiKey(System.getenv("CO_API_KEY"))
                 .modelName(modelName())
                 .temperature(temperature())
-                .maxOutputTokens(maxTokens())
+                .maxTokens(maxTokens())
                 .topP(topP())
                 .logRequests(true)
                 .logResponses(true)
@@ -33,7 +33,7 @@ class CohereChatModelListenerIT extends AbstractChatModelListenerIT {
     @Override
     protected ChatModel createFailingModel(ChatModelListener listener) {
         return CohereChatModel.builder()
-                .authToken("mondongo")
+                .apiKey("mondongo")
                 .modelName(modelName())
                 .maxRetries(0)
                 .logRequests(true)

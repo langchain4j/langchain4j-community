@@ -31,9 +31,9 @@ public class CohereSystemMessage implements CohereMessage {
 
     @Override
     public String toString() {
-        return "CohereSystemMessage{ "
-                + "content = " + content
-                + " }";
+        return "CohereSystemMessage{"
+                + "content=" + content
+                + '}';
     }
 
     @Override

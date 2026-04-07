@@ -32,7 +32,6 @@ import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.output.FinishReason;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -192,7 +191,7 @@ public class CohereMapper {
 
     public static Map<String, Object> toCohereSchema(JsonSchemaElement jsonSchemaElement) {
         if (jsonSchemaElement instanceof JsonObjectSchema objectSchema) {
-            Map<String, Object> map = new HashMap<>();
+            Map<String, Object> map = new LinkedHashMap<>();
 
             map.put("type", "object");
 
@@ -200,7 +199,7 @@ public class CohereMapper {
                 map.put("description", objectSchema.description());
             }
 
-            Map<String, Object> properties = new HashMap<>();
+            Map<String, Object> properties = new LinkedHashMap<>();
             objectSchema.properties()
                     .forEach((property, value) -> properties.put(property, toCohereSchema(value)));
 

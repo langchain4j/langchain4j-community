@@ -42,11 +42,11 @@ public class CohereLogprobs {
 
     @Override
     public String toString() {
-        return "CohereLogprobs{ "
+        return "CohereLogprobs{"
                 + "tokenIds=" + tokenIds
                 + ", text=" + quoted(text)
                 + ", logprobs=" + logprobs
-                + " }";
+                + '}';
     }
 
     @Override

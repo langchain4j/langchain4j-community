@@ -41,10 +41,10 @@ public class CohereFunctionCall {
 
     @Override
     public String toString() {
-        return "CohereFunctionCall{ " +
-                    "name = " + name
-                    + "', arguments = " + arguments
-                + " }";
+        return "CohereFunctionCall{"
+                + "name=" + name
+                + ", arguments=" + arguments
+                + '}';
     }
 
     @Override

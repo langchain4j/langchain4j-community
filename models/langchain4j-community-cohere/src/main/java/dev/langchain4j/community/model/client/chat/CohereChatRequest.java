@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import dev.langchain4j.community.model.client.CohereSafetyMode;
 import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
@@ -21,25 +22,25 @@ import static java.util.Arrays.asList;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereChatRequest {
 
-    private String model;
-    private List<CohereMessage> messages;
-    private CohereResponseFormat responseFormat;
-    private List<CohereTool> tools;
-    private ToolChoice toolChoice;
-    private Double temperature;
-    private Double p;
-    private Integer k;
-    private Double presencePenalty;
-    private Double frequencyPenalty;
-    private Integer maxTokens;
-    private List<String> stopSequences;
-    private CohereThinking thinking;
-    private Boolean stream;
-    private String safetyMode;
-    private Integer priority;
-    private Integer seed;
-    private Boolean logprobs;
-    private Boolean strictTools;
+    private final String model;
+    private final List<CohereMessage> messages;
+    private final CohereResponseFormat responseFormat;
+    private final List<CohereTool> tools;
+    private final ToolChoice toolChoice;
+    private final Double temperature;
+    private final Double p;
+    private final Integer k;
+    private final Double presencePenalty;
+    private final Double frequencyPenalty;
+    private final Integer maxTokens;
+    private final List<String> stopSequences;
+    private final CohereThinking thinking;
+    private final Boolean stream;
+    private final CohereSafetyMode safetyMode;
+    private final Integer priority;
+    private final Integer seed;
+    private final Boolean logprobs;
+    private final Boolean strictTools;
 
     public CohereChatRequest(Builder builder) {
         this.model = builder.model;
@@ -67,85 +68,39 @@ public class CohereChatRequest {
         return model;
     }
 
-    public void setModel(String model) {
-        this.model = model;
-    }
-
     public List<CohereMessage> getMessages() { return messages; }
-
-    public void setMessages(List<CohereMessage> messages) { this.messages = messages; }
-
-    public void setResponseFormat(CohereResponseFormat responseFormat) {
-        this.responseFormat = responseFormat;
-    }
 
     public CohereResponseFormat getResponseFormat() { return responseFormat; }
 
     public List<CohereTool> getTools() { return tools; }
 
-    public void setTools(List<CohereTool> tools) { this.tools = tools; }
-
     public ToolChoice getToolChoice() { return toolChoice; }
-
-    public void setToolChoice(ToolChoice toolChoice) { this.toolChoice = toolChoice; }
-
-    public void setTemperature(Double temperature) { this.temperature = temperature; }
 
     public Double getTemperature() { return this.temperature; }
 
-    public void setP(Double p) { this.p = p; }
-
     public Double getP() { return this.p; }
-
-    public void setK(Integer k) { this.k = k; }
 
     public Integer getK() { return this.k; }
 
-    public void setPresencePenalty(Double presencePenalty) {
-        this.presencePenalty = presencePenalty;
-    }
-
     public Double getPresencePenalty() { return this.presencePenalty; }
-
-    public void setFrequencyPenalty(Double frequencyPenalty ) {
-        this.frequencyPenalty = frequencyPenalty;
-    }
 
     public Double getFrequencyPenalty() { return this.frequencyPenalty; }
 
-    public void setMaxTokens(Integer maxTokens) { this.maxTokens = maxTokens; }
-
     public Integer getMaxTokens() { return this.maxTokens; }
-
-    public void setStopSequences(List<String> stopSequences) { this.stopSequences = stopSequences; }
 
     public List<String> getStopSequences() { return this.stopSequences; }
 
-    public void setThinking(CohereThinking thinking) { this.thinking = thinking; }
-
     public CohereThinking getThinking() { return thinking; }
-
-    public void setStream(Boolean stream) { this.stream = stream; }
 
     public Boolean isStream() { return stream; }
 
-    public void setSafetyMode(String safetyMode) { this.safetyMode = safetyMode; }
-
-    public String getSafetyMode() { return safetyMode; }
-
-    public void setPriority(Integer priority) { this.priority = priority; }
+    public CohereSafetyMode getSafetyMode() { return safetyMode; }
 
     public Integer getPriority() { return priority; }
 
-    public void setSeed(Integer seed) { this.seed = seed; }
-
     public Integer getSeed() { return seed; }
 
-    public void setLogprobs(Boolean logprobs) { this.logprobs = logprobs; }
-
     public Boolean hasLogprobs() { return logprobs; }
-
-    public void setStrictTools(Boolean strictTools) { this.strictTools = strictTools; }
 
     public Boolean hasStrictTools() { return strictTools; }
 
@@ -227,7 +182,7 @@ public class CohereChatRequest {
         private List<String> stopSequences;
         private CohereThinking thinking;
         private Boolean stream;
-        private String safetyMode;
+        private CohereSafetyMode safetyMode;
         private Integer priority;
         private Integer seed;
         private Boolean logprobs;
@@ -307,7 +262,7 @@ public class CohereChatRequest {
             return this;
         }
 
-        public Builder safetyMode(String safetyMode) {
+        public Builder safetyMode(CohereSafetyMode safetyMode) {
             this.safetyMode = safetyMode;
             return this;
         }

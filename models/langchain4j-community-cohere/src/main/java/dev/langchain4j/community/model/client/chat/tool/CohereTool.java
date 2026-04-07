@@ -1,18 +1,14 @@
 package dev.langchain4j.community.model.client.chat.tool;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
-@JsonDeserialize(builder = CohereTool.Builder.class)
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereTool {
@@ -33,10 +29,10 @@ public class CohereTool {
 
     @Override
     public String toString() {
-        return "CohereTool{ "
-                + "type = " + type
-                + ", function = " + function
-                + " }";
+        return "CohereTool{"
+                + "type=" + type
+                + ", function=" + function
+                + '}';
     }
 
     @Override
@@ -49,9 +45,6 @@ public class CohereTool {
                 && Objects.equals(function, that.function);
     }
 
-    @JsonPOJOBuilder(withPrefix = "")
-    @JsonInclude(NON_NULL)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class Builder {
 
         private CohereToolType type;

@@ -2,9 +2,7 @@ package dev.langchain4j.community.model.client.chat.tool;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 import java.util.Map;
 import java.util.Objects;
@@ -12,7 +10,6 @@ import java.util.Objects;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static dev.langchain4j.internal.Utils.copy;
 
-@JsonDeserialize(builder = CohereFunction.Builder.class)
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereFunction {
@@ -37,11 +34,11 @@ public class CohereFunction {
 
     @Override
     public String toString() {
-        return "CohereFunction{ "
-                + "name = " + name
-                + ", parameters = " + parameters
-                + ", description = " + description
-                + " }";
+        return "CohereFunction{"
+                + "name=" + name
+                + ", parameters=" + parameters
+                + ", description=" + description
+                + '}';
     }
 
     @Override
@@ -58,9 +55,6 @@ public class CohereFunction {
                 && Objects.equals(description, that.description);
     }
 
-    @JsonPOJOBuilder(withPrefix = "")
-    @JsonInclude(NON_NULL)
-    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class Builder {
 
         private String name;
