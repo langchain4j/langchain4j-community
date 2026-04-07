@@ -19,6 +19,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +36,11 @@ import org.slf4j.LoggerFactory;
  * <p>To learn more about the service, see the <a href="https://docs.oracle.com/iaas/Content/generative-ai/home.htm">Generative AI documentation</a>
  */
 public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGenAiCohereStreamingChatModel>
-        implements StreamingChatModel {
+        implements StreamingChatModel, StreamingCallbackContext {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OciGenAiCohereStreamingChatModel.class);
     private final Builder builder;
+    private final ConcurrentHashMap<Thread, AtomicInteger> streamingCallbackThreads = new ConcurrentHashMap<>();
 
     OciGenAiCohereStreamingChatModel(Builder builder) {
         super(builder);
@@ -52,6 +55,16 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
     @Override
     public List<ChatModelListener> listeners() {
         return this.builder.listeners();
+    }
+
+    @Override
+    public ConcurrentHashMap<Thread, AtomicInteger> streamingCallbackThreads() {
+        return streamingCallbackThreads;
+    }
+
+    @Override
+    protected boolean isCloseCalledFromCallbackThread() {
+        return isCurrentThreadInStreamingCallbackContext();
     }
 
     @Override
@@ -71,23 +84,25 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                         DedicatedServingMode.builder().endpointId(modelName).build();
                 };
 
-        var activeStream = new AtomicBoolean();
-        super.ociChatAsync(bmcChatRequest, servingMode, activeStream)
+        var activeOperation = new AtomicBoolean();
+        super.ociChatAsync(bmcChatRequest, servingMode, activeOperation)
                 .thenAcceptAsync(
-                        response -> {
+                        response -> runInStreamingCallbackContext(() -> {
                             try {
                                 handleStream(response, modelName, handler);
                             } finally {
-                                releaseStreamingOperation(activeStream);
+                                releaseActiveOperation(activeOperation);
                             }
-                        },
+                        }),
                         streamingExecutor())
                 .exceptionally(error -> {
-                    try {
-                        notifyError(handler, unwrapCompletionFailure(error));
-                    } finally {
-                        releaseStreamingOperation(activeStream);
-                    }
+                    runInStreamingCallbackContext(() -> {
+                        try {
+                            notifyError(handler, unwrapCompletionFailure(error));
+                        } finally {
+                            releaseActiveOperation(activeOperation);
+                        }
+                    });
                     return null;
                 });
     }

@@ -31,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -319,6 +320,58 @@ class OciGenAiStreamingChatModelTest {
         streamScript.assertCompleted();
         assertNull(handler.error.get());
         assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
+    }
+
+    @Test
+    void closeInsideStreamingCallbackShouldNotDeadlock() throws Exception {
+        var streamScript = new BlockingEventStream();
+        var model = modelWithAsyncResponse(streamScript.response());
+
+        try {
+            var closeInvoked = new AtomicBoolean();
+            var closeReturned = new CountDownLatch(1);
+            var completed = new CountDownLatch(1);
+            var closeError = new AtomicReference<Throwable>();
+            var streamError = new AtomicReference<Throwable>();
+
+            model.doChat(chatRequest(), new StreamingChatResponseHandler() {
+                @Override
+                public void onPartialResponse(String partialResponse) {
+                    if (closeInvoked.compareAndSet(false, true)) {
+                        try {
+                            model.close();
+                        } catch (Throwable t) {
+                            closeError.set(t);
+                        } finally {
+                            closeReturned.countDown();
+                        }
+                    }
+                }
+
+                @Override
+                public void onCompleteResponse(ChatResponse completeResponse) {
+                    completed.countDown();
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    streamError.set(throwable);
+                    completed.countDown();
+                }
+            });
+
+            assertTrue(closeReturned.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            assertNull(closeError.get());
+            assertFalse(completed.await(200, TimeUnit.MILLISECONDS));
+
+            streamScript.allowCompletion();
+
+            assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            streamScript.assertCompleted();
+            assertNull(streamError.get());
+        } finally {
+            model.close();
+        }
     }
 
     private static ChatRequest chatRequest() {

@@ -47,11 +47,12 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     private final boolean hasSyncClientConfiguration;
     private final boolean hasAsyncClientConfiguration;
     private final Lock lifecycleLock = new ReentrantLock();
-    private final Condition noActiveStreamingOperations = lifecycleLock.newCondition();
+    private final Condition noActiveOperations = lifecycleLock.newCondition();
     private final Lock syncClientLock = new ReentrantLock();
     private final Lock asyncClientLock = new ReentrantLock();
     private final ExecutorService streamingExecutor = Executors.newCachedThreadPool();
-    private int activeStreamingOperations;
+    private final AtomicBoolean resourcesClosed = new AtomicBoolean();
+    private int activeOperations;
     private volatile boolean closed;
     private volatile GenerativeAiInferenceClient client;
     private volatile GenerativeAiInferenceAsyncClient asyncClient;
@@ -72,12 +73,16 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     @Override
     public void close() {
         boolean interrupted = false;
+        boolean waitForActiveOperations = true;
         lifecycleLock.lock();
         try {
             closed = true;
-            while (activeStreamingOperations > 0) {
+            if (activeOperations > 0 && isCloseCalledFromCallbackThread()) {
+                waitForActiveOperations = false;
+            }
+            while (waitForActiveOperations && activeOperations > 0) {
                 try {
-                    noActiveStreamingOperations.await();
+                    noActiveOperations.await();
                 } catch (InterruptedException e) {
                     interrupted = true;
                 }
@@ -86,28 +91,11 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
             lifecycleLock.unlock();
         }
 
-        syncClientLock.lock();
-        try {
-            if (client != null) {
-                client.close();
-                client = null;
-            }
-        } finally {
-            syncClientLock.unlock();
+        if (waitForActiveOperations) {
+            closeResources();
         }
-
-        asyncClientLock.lock();
-        try {
-            if (asyncClient != null) {
-                asyncClient.close();
-                asyncClient = null;
-            }
-        } finally {
-            asyncClientLock.unlock();
-            streamingExecutor.shutdown();
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -152,14 +140,14 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
      * @return a stage that completes once the response stream is available
      */
     protected CompletionStage<com.oracle.bmc.generativeaiinference.responses.ChatResponse> ociChatAsync(
-            BaseChatRequest chatRequest, ServingMode servingMode, AtomicBoolean activeStream) {
+            BaseChatRequest chatRequest, ServingMode servingMode, AtomicBoolean activeOperation) {
         lifecycleLock.lock();
         try {
             if (closed) {
                 return CompletableFuture.failedFuture(new IllegalStateException(MODEL_CLOSED_MESSAGE));
             }
-            activeStreamingOperations++;
-            activeStream.set(true);
+            activeOperations++;
+            activeOperation.set(true);
             LOGGER.debug("Chat Request: {}", chatRequest);
             var request = ociChatRequest(chatRequest, servingMode);
             var asyncClient = asyncClient();
@@ -199,7 +187,7 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
                     },
                     streamingExecutor);
         } catch (Throwable t) {
-            releaseStreamingOperation(activeStream);
+            releaseActiveOperation(activeOperation);
             return CompletableFuture.failedFuture(t);
         } finally {
             lifecycleLock.unlock();
@@ -215,26 +203,62 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         return unwrapped;
     }
 
-    protected void completeStreamingOperation() {
+    protected void completeActiveOperation() {
+        boolean closeResourcesAfterCompletion = false;
         lifecycleLock.lock();
         try {
-            activeStreamingOperations--;
-            if (activeStreamingOperations == 0) {
-                noActiveStreamingOperations.signalAll();
+            activeOperations--;
+            if (activeOperations == 0) {
+                noActiveOperations.signalAll();
+                closeResourcesAfterCompletion = closed;
             }
         } finally {
             lifecycleLock.unlock();
         }
+        if (closeResourcesAfterCompletion) {
+            closeResources();
+        }
     }
 
-    protected void releaseStreamingOperation(AtomicBoolean activeStream) {
-        if (activeStream.compareAndSet(true, false)) {
-            completeStreamingOperation();
+    protected void releaseActiveOperation(AtomicBoolean activeOperation) {
+        if (activeOperation.compareAndSet(true, false)) {
+            completeActiveOperation();
         }
     }
 
     protected Executor streamingExecutor() {
         return streamingExecutor;
+    }
+
+    protected boolean isCloseCalledFromCallbackThread() {
+        return false;
+    }
+
+    private void closeResources() {
+        if (!resourcesClosed.compareAndSet(false, true)) {
+            return;
+        }
+
+        syncClientLock.lock();
+        try {
+            if (client != null) {
+                client.close();
+                client = null;
+            }
+        } finally {
+            syncClientLock.unlock();
+        }
+
+        asyncClientLock.lock();
+        try {
+            if (asyncClient != null) {
+                asyncClient.close();
+                asyncClient = null;
+            }
+        } finally {
+            asyncClientLock.unlock();
+            streamingExecutor.shutdown();
+        }
     }
 
     private com.oracle.bmc.generativeaiinference.requests.ChatRequest ociChatRequest(
