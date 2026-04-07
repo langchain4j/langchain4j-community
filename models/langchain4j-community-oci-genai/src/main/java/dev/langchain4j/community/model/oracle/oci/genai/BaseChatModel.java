@@ -164,15 +164,15 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
                                 // - via AsyncHandler callback (stream consumed inside callback), or
                                 // - via Future mode (handler = null), where caller reads stream from the Future result.
                                 // We use Future mode so stream consumption can happen later in streaming handlers.
-                                var chatResponse = asyncClient.chat(request, null).get();
+                                var chatResponse =
+                                        asyncClient.chat(request, null).get();
                                 LOGGER.debug("Chat Response: {}", chatResponse);
                                 return chatResponse;
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
                                 throw new CompletionException(e);
                             } catch (ExecutionException e) {
-                                throw new CompletionException(
-                                        e.getCause() != null ? e.getCause() : e);
+                                throw new CompletionException(e.getCause() != null ? e.getCause() : e);
                             }
                         },
                         streamingExecutor);
