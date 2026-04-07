@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -15,7 +16,6 @@ import static org.mockito.Mockito.verify;
 
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceClient;
-import com.oracle.bmc.responses.AsyncHandler;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -55,24 +55,13 @@ class OciGenAiStreamingChatModelTest {
         var releaseResponse = new CountDownLatch(1);
 
         doAnswer(invocation -> {
-                    var request =
-                            invocation.getArgument(0, com.oracle.bmc.generativeaiinference.requests.ChatRequest.class);
-                    @SuppressWarnings("unchecked")
-                    AsyncHandler<
-                                    com.oracle.bmc.generativeaiinference.requests.ChatRequest,
-                                    com.oracle.bmc.generativeaiinference.responses.ChatResponse>
-                            asyncHandler = invocation.getArgument(1, AsyncHandler.class);
-
                     var future = new CompletableFuture<com.oracle.bmc.generativeaiinference.responses.ChatResponse>();
                     var worker = new Thread(() -> {
                         requestScheduled.countDown();
                         try {
                             assertTrue(releaseResponse.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-                            var response = ociResponse();
-                            asyncHandler.onSuccess(request, response);
-                            future.complete(response);
+                            future.complete(ociResponse());
                         } catch (Throwable t) {
-                            asyncHandler.onError(request, t);
                             future.completeExceptionally(t);
                         }
                     });
@@ -81,7 +70,7 @@ class OciGenAiStreamingChatModelTest {
                     return future;
                 })
                 .when(asyncClient)
-                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), any());
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
 
         var handler = new TestStreamingChatResponseHandler();
         try (var model = OciGenAiStreamingChatModel.builder()
@@ -102,7 +91,7 @@ class OciGenAiStreamingChatModelTest {
             assertNull(handler.error.get());
             assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
 
-            verify(asyncClient).chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), any());
+            verify(asyncClient).chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
             verify(syncClient, never()).chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class));
         }
     }
@@ -152,7 +141,7 @@ class OciGenAiStreamingChatModelTest {
                     throw failure;
                 })
                 .when(asyncClient)
-                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), any());
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
 
         var handler = new TestStreamingChatResponseHandler();
         try (var model = OciGenAiStreamingChatModel.builder()
@@ -389,30 +378,14 @@ class OciGenAiStreamingChatModelTest {
         var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
 
         doAnswer(invocation -> {
-                    var request =
-                            invocation.getArgument(0, com.oracle.bmc.generativeaiinference.requests.ChatRequest.class);
-                    @SuppressWarnings("unchecked")
-                    AsyncHandler<
-                                    com.oracle.bmc.generativeaiinference.requests.ChatRequest,
-                                    com.oracle.bmc.generativeaiinference.responses.ChatResponse>
-                            asyncHandler = invocation.getArgument(1, AsyncHandler.class);
-
                     var future = new CompletableFuture<com.oracle.bmc.generativeaiinference.responses.ChatResponse>();
-                    var worker = new Thread(() -> {
-                        try {
-                            asyncHandler.onSuccess(request, response);
-                            future.complete(response);
-                        } catch (Throwable t) {
-                            asyncHandler.onError(request, t);
-                            future.completeExceptionally(t);
-                        }
-                    });
+                    var worker = new Thread(() -> future.complete(response));
                     worker.setDaemon(true);
                     worker.start();
                     return future;
                 })
                 .when(asyncClient)
-                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), any());
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
 
         return OciGenAiStreamingChatModel.builder()
                 .modelName("test-model")

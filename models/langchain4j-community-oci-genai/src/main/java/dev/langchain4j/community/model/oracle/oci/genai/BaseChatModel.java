@@ -8,7 +8,6 @@ import com.oracle.bmc.generativeaiinference.model.BaseChatRequest;
 import com.oracle.bmc.generativeaiinference.model.ChatDetails;
 import com.oracle.bmc.generativeaiinference.model.ServingMode;
 import com.oracle.bmc.http.client.Serializer;
-import com.oracle.bmc.responses.AsyncHandler;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -134,9 +133,15 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     /**
      * Sends given OCI BMC request asynchronously and returns a stage that completes once the OCI SDK yields
      * the streaming {@link com.oracle.bmc.generativeaiinference.responses.ChatResponse}.
+     * <p>
+     * When an async OCI client is available, this method intentionally uses the SDK Future mode
+     * ({@code asyncClient.chat(request, null)}) instead of {@code AsyncHandler} mode. OCI streams are safe to
+     * consume outside callbacks only in Future mode, and downstream streaming handlers in this module consume the
+     * event stream after this method returns.
      *
      * @param chatRequest OCI BMC request
      * @param servingMode Serving mode with model name information
+     * @param activeOperation operation flag used for lifecycle accounting and safe close semantics
      * @return a stage that completes once the response stream is available
      */
     protected CompletionStage<com.oracle.bmc.generativeaiinference.responses.ChatResponse> ociChatAsync(
@@ -152,30 +157,25 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
             var request = ociChatRequest(chatRequest, servingMode);
             var asyncClient = asyncClient();
             if (asyncClient != null) {
-                var responseFuture =
-                        new CompletableFuture<com.oracle.bmc.generativeaiinference.responses.ChatResponse>();
-
-                try {
-                    asyncClient.chat(request, new AsyncHandler<>() {
-                        @Override
-                        public void onSuccess(
-                                com.oracle.bmc.generativeaiinference.requests.ChatRequest request,
-                                com.oracle.bmc.generativeaiinference.responses.ChatResponse response) {
-                            LOGGER.debug("Chat Response: {}", response);
-                            responseFuture.complete(response);
-                        }
-
-                        @Override
-                        public void onError(
-                                com.oracle.bmc.generativeaiinference.requests.ChatRequest request, Throwable error) {
-                            responseFuture.completeExceptionally(error);
-                        }
-                    });
-                } catch (Throwable t) {
-                    responseFuture.completeExceptionally(t);
-                }
-
-                return responseFuture;
+                return CompletableFuture.supplyAsync(
+                        () -> {
+                            try {
+                                // The OCI SDK requires stream handling in one of two exclusive modes:
+                                // - via AsyncHandler callback (stream consumed inside callback), or
+                                // - via Future mode (handler = null), where caller reads stream from the Future result.
+                                // We use Future mode so stream consumption can happen later in streaming handlers.
+                                var chatResponse = asyncClient.chat(request, null).get();
+                                LOGGER.debug("Chat Response: {}", chatResponse);
+                                return chatResponse;
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                throw new CompletionException(e);
+                            } catch (ExecutionException e) {
+                                throw new CompletionException(
+                                        e.getCause() != null ? e.getCause() : e);
+                            }
+                        },
+                        streamingExecutor);
             }
 
             var syncClient = syncClient();
