@@ -166,6 +166,17 @@ class BaseChatModelTest {
             assertTrue(done.await(2, TimeUnit.SECONDS));
             assertTrue(error.get() instanceof IllegalStateException);
             assertEquals("OCI GenAI model is closed.", error.get().getMessage());
+            assertEquals(0, activeStreamingOperations(model));
+        }
+    }
+
+    private static int activeStreamingOperations(BaseChatModel<?> model) {
+        try {
+            var field = BaseChatModel.class.getDeclaredField("activeStreamingOperations");
+            field.setAccessible(true);
+            return field.getInt(model);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
         }
     }
 

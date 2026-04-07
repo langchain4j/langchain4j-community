@@ -271,6 +271,54 @@ class OciGenAiStreamingChatModelTest {
         }
     }
 
+    @Test
+    void tryWithResourcesShouldWaitForAsyncStreamCompletion() throws Exception {
+        var streamScript = new BlockingEventStream();
+        var handler = new TestStreamingChatResponseHandler();
+
+        var invocation = CompletableFuture.runAsync(() -> {
+            try (var model = modelWithAsyncResponse(streamScript.response())) {
+                model.doChat(chatRequest(), handler);
+            }
+        });
+
+        assertTrue(handler.firstPartial.await(2, TimeUnit.SECONDS));
+        assertFalse(invocation.isDone());
+        assertFalse(handler.completed.await(200, TimeUnit.MILLISECONDS));
+
+        streamScript.allowCompletion();
+
+        invocation.get(2, TimeUnit.SECONDS);
+        assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+        streamScript.assertCompleted();
+        assertNull(handler.error.get());
+        assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
+    }
+
+    @Test
+    void tryWithResourcesShouldWaitForSyncFallbackStreamCompletion() throws Exception {
+        var streamScript = new BlockingEventStream();
+        var handler = new TestStreamingChatResponseHandler();
+
+        var invocation = CompletableFuture.runAsync(() -> {
+            try (var model = modelWithSyncResponse(streamScript.response())) {
+                model.doChat(chatRequest(), handler);
+            }
+        });
+
+        assertTrue(handler.firstPartial.await(2, TimeUnit.SECONDS));
+        assertFalse(invocation.isDone());
+        assertFalse(handler.completed.await(200, TimeUnit.MILLISECONDS));
+
+        streamScript.allowCompletion();
+
+        invocation.get(2, TimeUnit.SECONDS);
+        assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+        streamScript.assertCompleted();
+        assertNull(handler.error.get());
+        assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
+    }
+
     private static ChatRequest chatRequest() {
         return ChatRequest.builder().messages(UserMessage.from("Hello")).build();
     }
@@ -315,6 +363,21 @@ class OciGenAiStreamingChatModelTest {
                 .modelName("test-model")
                 .compartmentId("test-compartment")
                 .genAiAsyncClient(asyncClient)
+                .build();
+    }
+
+    private static OciGenAiStreamingChatModel modelWithSyncResponse(
+            com.oracle.bmc.generativeaiinference.responses.ChatResponse response) {
+        var syncClient = mock(GenerativeAiInferenceClient.class);
+
+        doAnswer(invocation -> response)
+                .when(syncClient)
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class));
+
+        return OciGenAiStreamingChatModel.builder()
+                .modelName("test-model")
+                .compartmentId("test-compartment")
+                .genAiClient(syncClient)
                 .build();
     }
 

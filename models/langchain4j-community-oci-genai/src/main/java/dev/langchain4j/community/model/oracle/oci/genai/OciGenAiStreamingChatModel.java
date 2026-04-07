@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,10 +59,23 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
                         DedicatedServingMode.builder().endpointId(modelName).build();
                 };
 
-        super.ociChatAsync(bmcChatRequest, servingMode)
-                .thenAcceptAsync(response -> handleStream(response, modelName, handler))
+        var activeStream = new AtomicBoolean();
+        super.ociChatAsync(bmcChatRequest, servingMode, activeStream)
+                .thenAcceptAsync(
+                        response -> {
+                            try {
+                                handleStream(response, modelName, handler);
+                            } finally {
+                                releaseStreamingOperation(activeStream);
+                            }
+                        },
+                        streamingExecutor())
                 .exceptionally(error -> {
-                    notifyError(handler, unwrapCompletionFailure(error));
+                    try {
+                        notifyError(handler, unwrapCompletionFailure(error));
+                    } finally {
+                        releaseStreamingOperation(activeStream);
+                    }
                     return null;
                 });
     }
