@@ -1,11 +1,11 @@
 package dev.langchain4j.community.model;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.CohereClient;
 import dev.langchain4j.community.model.client.CohereSafetyMode;
 import dev.langchain4j.community.model.client.CohereThinkingType;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
-import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereStreamingChatRequest;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static java.util.Arrays.asList;
@@ -89,11 +89,10 @@ public class CohereStreamingChatModel implements StreamingChatModel {
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
         CohereChatRequestParameters parameters = CohereChatRequestParameters.builder()
-                .stream(true)
                 .build()
                 .defaultedBy(chatRequest.parameters());
 
-        CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.messages(), parameters);
+        CohereChatRequest cohereChatRequest = toCohereStreamingChatRequest(chatRequest.messages(), parameters);
 
         client.createStreamingMessage(cohereChatRequest, handler);
     }

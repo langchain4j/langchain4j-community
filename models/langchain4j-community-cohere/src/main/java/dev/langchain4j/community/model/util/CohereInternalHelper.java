@@ -33,6 +33,17 @@ public class CohereInternalHelper {
 
     public static CohereChatRequest toCohereChatRequest(List<ChatMessage> messages,
                                                         CohereChatRequestParameters parameters) {
+        return toCohereChatRequest(messages, parameters, null);
+    }
+
+    public static CohereChatRequest toCohereStreamingChatRequest(List<ChatMessage> messages,
+                                                                 CohereChatRequestParameters parameters) {
+        return toCohereChatRequest(messages, parameters, true);
+    }
+
+    private static CohereChatRequest toCohereChatRequest(List<ChatMessage> messages,
+                                                        CohereChatRequestParameters parameters,
+                                                        Boolean stream) {
         CohereChatRequest.Builder builder = CohereChatRequest.builder()
                 .model(parameters.modelName())
                 .messages(toCohereChatMessages(messages))
@@ -46,7 +57,7 @@ public class CohereInternalHelper {
                 .frequencyPenalty(parameters.frequencyPenalty())
                 .maxTokens(parameters.maxOutputTokens())
                 .stopSequences(isNullOrEmpty(parameters.stopSequences()) ? null : parameters.stopSequences())
-                .stream(parameters.stream())
+                .stream(stream)
                 .safetyMode(parameters.safetyMode())
                 .priority(parameters.priority())
                 .seed(parameters.seed())

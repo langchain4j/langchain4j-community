@@ -18,6 +18,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -30,6 +31,7 @@ import static dev.langchain4j.community.model.client.CohereSafetyMode.CONTEXTUAL
 import static dev.langchain4j.community.model.client.CohereThinkingType.ENABLED;
 import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
 import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereStreamingChatRequest;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
@@ -49,7 +51,10 @@ class CohereInternalHelperTest {
                 Arguments.of(
                         singletonList(UserMessage.from("User message")),
                         CohereChatRequestParameters.builder().modelName(MODEL_NAME).build(),
-                        CohereChatRequest.builder().model(MODEL_NAME).messages(CohereUserMessage.from("User message")).build()
+                        CohereChatRequest.builder()
+                                .model(MODEL_NAME)
+                                .messages(CohereUserMessage.from("User message"))
+                                .build()
                 ),
 
                 // Messages with common L4J parameters
@@ -75,20 +80,6 @@ class CohereInternalHelperTest {
                                 .frequencyPenalty(0.1)
                                 .maxTokens(300)
                                 .stopSequences(asList("STOP_1", "STOP_2"))
-                                .build()
-                ),
-
-                // With Streaming (with just messages)
-                Arguments.of(
-                        singletonList(UserMessage.from("User message")),
-                        CohereChatRequestParameters.builder()
-                                .modelName(MODEL_NAME)
-                                .stream(true)
-                                .build(),
-                        CohereChatRequest.builder()
-                                .model(MODEL_NAME)
-                                .messages(CohereUserMessage.from("User message"))
-                                .stream(true)
                                 .build()
                 ),
 
@@ -303,6 +294,27 @@ class CohereInternalHelperTest {
 
         // given - when
         CohereChatRequest result = toCohereChatRequest(chatMessages, inputParameters);
+
+        // then
+        assertThat(result).isEqualTo(expectedRequest);
+    }
+
+    @Test
+    void should_convert_streaming_chat_requests_to_cohere_format() {
+
+        // given
+        List<ChatMessage> chatMessages = singletonList(UserMessage.from("User message"));
+        CohereChatRequestParameters inputParameters = CohereChatRequestParameters.builder()
+                .modelName(MODEL_NAME)
+                .build();
+        CohereChatRequest expectedRequest = CohereChatRequest.builder()
+                .model(MODEL_NAME)
+                .messages(CohereUserMessage.from("User message"))
+                .stream(true)
+                .build();
+
+        // when
+        CohereChatRequest result = toCohereStreamingChatRequest(chatMessages, inputParameters);
 
         // then
         assertThat(result).isEqualTo(expectedRequest);

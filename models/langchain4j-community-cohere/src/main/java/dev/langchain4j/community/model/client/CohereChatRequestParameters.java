@@ -14,7 +14,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
     private final CohereThinkingType thinkingType;
     private final Integer thinkingTokenBudget;
-    private final Boolean stream;
     private final CohereSafetyMode safetyMode;
     private final Integer priority;
     private final Integer seed;
@@ -26,7 +25,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
         this.thinkingType = builder.thinkingType;
         this.thinkingTokenBudget = builder.thinkingTokenBudget;
-        this.stream = builder.stream;
         this.safetyMode = builder.safetyMode;
         this.priority = builder.priority;
         this.seed = builder.seed;
@@ -37,8 +35,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
     public CohereThinkingType thinkingType() { return thinkingType; }
 
     public Integer thinkingTokenBudget() { return thinkingTokenBudget; }
-
-    public Boolean stream() { return stream; }
 
     public CohereSafetyMode safetyMode() { return safetyMode; }
 
@@ -84,7 +80,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 + ", responseFormat=" + responseFormat()
                 + ", thinkingType=" + quoted(thinkingType())
                 + ", thinkingTokenBudget=" + thinkingTokenBudget()
-                + ", stream=" + stream()
                 + ", safetyMode=" + quoted(safetyMode())
                 + ", priority=" + priority()
                 + ", seed=" + seed()
@@ -99,7 +94,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 super.hashCode(),
                 thinkingType,
                 thinkingTokenBudget,
-                stream,
                 safetyMode,
                 priority,
                 seed,
@@ -116,7 +110,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
         return super.equals(that)
                 && Objects.equals(thinkingType, that.thinkingType)
                 && Objects.equals(thinkingTokenBudget, that.thinkingTokenBudget)
-                && Objects.equals(stream, that.stream)
                 && Objects.equals(safetyMode, that.safetyMode)
                 && Objects.equals(priority, that.priority)
                 && Objects.equals(seed, that.seed)
@@ -128,7 +121,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
         private CohereThinkingType thinkingType;
         private Integer thinkingTokenBudget;
-        private Boolean stream;
         private CohereSafetyMode safetyMode;
         private Integer priority;
         private Integer seed;
@@ -142,7 +134,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
             if (parameters instanceof CohereChatRequestParameters cohereParameters) {
                 this.thinkingType = getOrDefault(cohereParameters.thinkingType, thinkingType);
                 this.thinkingTokenBudget = getOrDefault(cohereParameters.thinkingTokenBudget, thinkingTokenBudget);
-                this.stream = getOrDefault(cohereParameters.stream, stream);
                 this.safetyMode = getOrDefault(cohereParameters.safetyMode, safetyMode);
                 this.priority = getOrDefault(cohereParameters.priority, priority);
                 this.seed = getOrDefault(cohereParameters.seed, seed);
@@ -160,11 +151,6 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder thinkingTokenBudget(Integer thinkingTokenBudget) {
             this.thinkingTokenBudget = thinkingTokenBudget;
-            return this;
-        }
-
-        public Builder stream(Boolean stream) {
-            this.stream = stream;
             return this;
         }
 
@@ -193,6 +179,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
             return this;
         }
 
+        @Override
         public CohereChatRequestParameters build() {
             return new CohereChatRequestParameters(this);
         }
