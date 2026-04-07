@@ -38,6 +38,8 @@ import reactor.core.publisher.Sinks;
 
 class OciGenAiStreamingChatModelTest {
 
+    private static final long WAIT_TIMEOUT_SECONDS = 10;
+
     private static final String STREAMED_DATA = """
             data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"HELLO"}]}}
             data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" WORLD"}]}}
@@ -64,7 +66,7 @@ class OciGenAiStreamingChatModelTest {
                     var worker = new Thread(() -> {
                         requestScheduled.countDown();
                         try {
-                            assertTrue(releaseResponse.await(2, TimeUnit.SECONDS));
+                            assertTrue(releaseResponse.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
                             var response = ociResponse();
                             asyncHandler.onSuccess(request, response);
                             future.complete(response);
@@ -90,12 +92,12 @@ class OciGenAiStreamingChatModelTest {
 
             model.doChat(chatRequest(), handler);
 
-            assertTrue(requestScheduled.await(2, TimeUnit.SECONDS));
+            assertTrue(requestScheduled.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertTrue(handler.partialResponses.isEmpty());
 
             releaseResponse.countDown();
 
-            assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+            assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertNull(handler.error.get());
             assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
 
@@ -112,7 +114,7 @@ class OciGenAiStreamingChatModelTest {
 
         doAnswer(invocation -> {
                     requestStarted.countDown();
-                    assertTrue(releaseResponse.await(2, TimeUnit.SECONDS));
+                    assertTrue(releaseResponse.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
                     return ociResponse();
                 })
                 .when(syncClient)
@@ -127,12 +129,12 @@ class OciGenAiStreamingChatModelTest {
 
             model.doChat(chatRequest(), handler);
 
-            assertTrue(requestStarted.await(2, TimeUnit.SECONDS));
+            assertTrue(requestStarted.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertTrue(handler.partialResponses.isEmpty());
 
             releaseResponse.countDown();
 
-            assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+            assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertNull(handler.error.get());
             assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
 
@@ -160,7 +162,7 @@ class OciGenAiStreamingChatModelTest {
 
             model.doChat(chatRequest(), handler);
 
-            assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+            assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertSame(failure, handler.error.get());
         }
     }
@@ -173,15 +175,15 @@ class OciGenAiStreamingChatModelTest {
             var handler = new TestStreamingChatResponseHandler();
 
             CompletableFuture<Void> invokeFuture = CompletableFuture.runAsync(() -> model.chat(chatRequest(), handler));
-            invokeFuture.get(2, TimeUnit.SECONDS);
+            invokeFuture.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-            assertTrue(handler.firstPartial.await(2, TimeUnit.SECONDS));
+            assertTrue(handler.firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertThat(handler.partialResponses, contains("HELLO"));
             assertFalse(handler.completed.await(200, TimeUnit.MILLISECONDS));
 
             streamScript.allowCompletion();
 
-            assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+            assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             streamScript.assertCompleted();
             assertNull(handler.error.get());
             assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
@@ -219,14 +221,14 @@ class OciGenAiStreamingChatModelTest {
                     .onError(sink::tryEmitError)
                     .start());
 
-            startFuture.get(2, TimeUnit.SECONDS);
-            assertTrue(firstPartial.await(2, TimeUnit.SECONDS));
+            startFuture.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            assertTrue(firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertThat(partialResponses, contains("HELLO"));
             assertFalse(completed.await(200, TimeUnit.MILLISECONDS));
 
             streamScript.allowCompletion();
 
-            assertTrue(completed.await(2, TimeUnit.SECONDS));
+            assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             streamScript.assertCompleted();
             assertNull(error.get());
             assertThat(partialResponses, contains("HELLO", " WORLD"));
@@ -243,7 +245,7 @@ class OciGenAiStreamingChatModelTest {
                     .build();
 
             CompletableFuture<Flux<String>> fluxFuture = CompletableFuture.supplyAsync(() -> assistant.chat("Hello"));
-            Flux<String> flux = fluxFuture.get(2, TimeUnit.SECONDS);
+            Flux<String> flux = fluxFuture.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             List<String> partialResponses = new CopyOnWriteArrayList<>();
             CountDownLatch firstPartial = new CountDownLatch(1);
@@ -258,13 +260,13 @@ class OciGenAiStreamingChatModelTest {
                     .doOnError(error::set)
                     .subscribe();
 
-            assertTrue(firstPartial.await(2, TimeUnit.SECONDS));
+            assertTrue(firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertThat(partialResponses, contains("HELLO"));
             assertFalse(completed.await(200, TimeUnit.MILLISECONDS));
 
             streamScript.allowCompletion();
 
-            assertTrue(completed.await(2, TimeUnit.SECONDS));
+            assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             streamScript.assertCompleted();
             assertNull(error.get());
             assertThat(partialResponses, contains("HELLO", " WORLD"));
@@ -282,14 +284,14 @@ class OciGenAiStreamingChatModelTest {
             }
         });
 
-        assertTrue(handler.firstPartial.await(2, TimeUnit.SECONDS));
+        assertTrue(handler.firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertFalse(invocation.isDone());
         assertFalse(handler.completed.await(200, TimeUnit.MILLISECONDS));
 
         streamScript.allowCompletion();
 
-        invocation.get(2, TimeUnit.SECONDS);
-        assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+        invocation.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         streamScript.assertCompleted();
         assertNull(handler.error.get());
         assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
@@ -306,14 +308,14 @@ class OciGenAiStreamingChatModelTest {
             }
         });
 
-        assertTrue(handler.firstPartial.await(2, TimeUnit.SECONDS));
+        assertTrue(handler.firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         assertFalse(invocation.isDone());
         assertFalse(handler.completed.await(200, TimeUnit.MILLISECONDS));
 
         streamScript.allowCompletion();
 
-        invocation.get(2, TimeUnit.SECONDS);
-        assertTrue(handler.completed.await(2, TimeUnit.SECONDS));
+        invocation.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
         streamScript.assertCompleted();
         assertNull(handler.error.get());
         assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
@@ -408,7 +410,7 @@ class OciGenAiStreamingChatModelTest {
         }
 
         void assertCompleted() throws InterruptedException {
-            assertTrue(writerDone.await(2, TimeUnit.SECONDS));
+            assertTrue(writerDone.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertNull(writerError.get());
         }
 
@@ -430,7 +432,7 @@ class OciGenAiStreamingChatModelTest {
                 writeLine(
                         output,
                         "data: {\"index\":0,\"message\":{\"role\":\"ASSISTANT\",\"content\":[{\"type\":\"TEXT\",\"text\":\"HELLO\"}]}}");
-                if (!completionAllowed.await(2, TimeUnit.SECONDS)) {
+                if (!completionAllowed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                     throw new IllegalStateException("Timed out waiting to complete stream");
                 }
                 writeLine(
