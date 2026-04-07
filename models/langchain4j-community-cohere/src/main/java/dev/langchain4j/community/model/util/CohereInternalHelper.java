@@ -93,6 +93,8 @@ public class CohereInternalHelper {
         CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
                 .modelName(modelName)
                 .id(response.getId())
+                .billedUnits(response.getUsage().getBilledUnits())
+                .cachedTokens(response.getUsage().getCachedTokens())
                 .tokenUsage(new TokenUsage(
                         response.getUsage().getTokens().getInputTokens(),
                         response.getUsage().getTokens().getOutputTokens()))

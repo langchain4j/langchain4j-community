@@ -19,7 +19,7 @@ public class CohereUsage {
 
     private final CohereBilledUnits billedUnits;
     private final CohereTokens tokens;
-    private final Double cachedTokens;
+    private final Integer cachedTokens;
 
     private CohereUsage(Builder builder) {
         this.billedUnits = builder.billedUnits;
@@ -31,7 +31,7 @@ public class CohereUsage {
 
     public CohereTokens getTokens() { return tokens; }
 
-    public Double getCachedTokens() { return cachedTokens; }
+    public Integer getCachedTokens() { return cachedTokens; }
 
     @Override
     public String toString() {
@@ -66,7 +66,7 @@ public class CohereUsage {
 
         private CohereBilledUnits billedUnits;
         private CohereTokens tokens;
-        private Double cachedTokens;
+        private Integer cachedTokens;
 
         public Builder billedUnits(CohereBilledUnits billedUnits) {
             this.billedUnits = billedUnits;
@@ -78,7 +78,7 @@ public class CohereUsage {
             return this;
         }
 
-        public Builder cachedTokens(Double cachedTokens) {
+        public Builder cachedTokens(Integer cachedTokens) {
             this.cachedTokens = cachedTokens;
             return this;
         }

@@ -178,6 +178,8 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
 
     private ChatResponse build(CohereStreamingData data) {
         CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
+                .billedUnits(data.getDelta().getUsage().getBilledUnits())
+                .cachedTokens(data.getDelta().getUsage().getCachedTokens())
                 .tokenUsage(new TokenUsage(
                         data.getDelta().getUsage().getTokens().getInputTokens(),
                         data.getDelta().getUsage().getTokens().getOutputTokens()))
