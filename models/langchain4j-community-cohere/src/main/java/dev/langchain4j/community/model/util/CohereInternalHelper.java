@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.util;
 
+import dev.langchain4j.Internal;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
@@ -25,6 +26,7 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
 
+@Internal
 public class CohereInternalHelper {
 
     private CohereInternalHelper() {}
@@ -81,8 +83,8 @@ public class CohereInternalHelper {
                 .modelName(modelName)
                 .id(response.getId())
                 .tokenUsage(new TokenUsage(
-                        response.getUsage().getTokens().getInputTokens().intValue(),
-                        response.getUsage().getTokens().getOutputTokens().intValue()))
+                        response.getUsage().getTokens().getInputTokens(),
+                        response.getUsage().getTokens().getOutputTokens()))
                 .finishReason(fromFinishReason(response.getFinishReason()));
 
         if (!isNullOrEmpty(response.getLogprobs())) {

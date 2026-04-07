@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.client.chat.streaming;
 
+import dev.langchain4j.Internal;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
 import dev.langchain4j.community.model.client.chat.response.CohereLogprobs;
@@ -10,7 +11,6 @@ import dev.langchain4j.http.client.sse.ServerSentEventListener;
 import dev.langchain4j.internal.ExceptionMapper;
 import dev.langchain4j.internal.ToolCallBuilder;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.chat.response.CompleteToolCall;
 import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
@@ -35,6 +35,7 @@ import static dev.langchain4j.internal.Json.fromJson;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static java.util.Collections.synchronizedList;
 
+@Internal
 public class CohereServerSentEventListener implements ServerSentEventListener {
 
     private final String modelName;
@@ -178,8 +179,8 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
     private ChatResponse build(CohereStreamingData data) {
         CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
                 .tokenUsage(new TokenUsage(
-                        data.getDelta().getUsage().getTokens().getInputTokens().intValue(),
-                        data.getDelta().getUsage().getTokens().getOutputTokens().intValue()))
+                        data.getDelta().getUsage().getTokens().getInputTokens(),
+                        data.getDelta().getUsage().getTokens().getOutputTokens()))
                 .id(responseId.get())
                 .modelName(modelName)
                 .finishReason(fromFinishReason(data.getDelta().getFinishReason()));

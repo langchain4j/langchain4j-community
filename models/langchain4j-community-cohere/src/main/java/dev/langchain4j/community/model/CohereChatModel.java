@@ -31,6 +31,11 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toSet;
 
+/**
+ * Represents a Cohere LLM with a chat API.
+ * <p/>
+ * More details are available <a href="https://docs.cohere.com/reference/chat">here</a>.
+ */
 public class CohereChatModel implements ChatModel {
 
     private final CohereClient client;
@@ -232,11 +237,20 @@ public class CohereChatModel implements ChatModel {
             return this;
         }
 
+        /**
+         * If set to {@link CohereThinkingType#DISABLED}, it will disable
+         * <a href="https://docs.cohere.com/reference/chat-stream#request.body.thinking">thinking</a>
+         * for reasoning models.
+         */
         public Builder thinkingType(CohereThinkingType thinkingType) {
             this.thinkingType = thinkingType;
             return this;
         }
 
+        /**
+         * The maximum number of tokens the model can use for
+         * <a href="https://docs.cohere.com/reference/chat-stream#request.body.thinking">thinking</a>.
+         */
         public Builder thinkingTokenBudget(Integer thinkingTokenBudget) {
             this.thinkingTokenBudget = thinkingTokenBudget;
             return this;
@@ -271,13 +285,18 @@ public class CohereChatModel implements ChatModel {
         }
 
         /**
-         * If set to {@code true}, the log probabilities of the generated tokens will be included in the response.
+         * If set to {@code true}, the log probabilities of the generated tokens will be included in the response,
+         * as specified <a href="https://docs.cohere.com/reference/chat-stream#request.body.logprobs">here</a>.
          */
         public Builder logprobs(Boolean logprobs) {
             this.logprobs = logprobs;
             return this;
         }
 
+        /**
+         * If set to {@code true}, the model will be forced to follow the tool definitions strictly, as
+         * specified <a href="https://docs.cohere.com/reference/chat-stream#request.body.strict_tools">here</a>.
+         */
         public Builder strictTools(Boolean strictTools) {
             this.strictTools = strictTools;
             return this;

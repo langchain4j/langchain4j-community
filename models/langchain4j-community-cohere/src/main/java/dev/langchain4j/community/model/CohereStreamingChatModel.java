@@ -6,6 +6,7 @@ import dev.langchain4j.community.model.client.CohereSafetyMode;
 import dev.langchain4j.community.model.client.CohereThinkingType;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
+import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -28,6 +29,13 @@ import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static java.util.Arrays.asList;
 
+/**
+ * Represents a Cohere LLM with a chat API.
+ * <br/>
+ * The model's response is streamed token by token and should be handled with {@link StreamingResponseHandler}.
+ * <p>
+ * More details are available <a href="https://docs.cohere.com/reference/chat-stream">here</a>.
+ */
 public class CohereStreamingChatModel implements StreamingChatModel {
 
     private final CohereClient client;
@@ -199,19 +207,28 @@ public class CohereStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
+        /**
+         * If set to {@link CohereThinkingType#DISABLED}, it will disable
+         * <a href="https://docs.cohere.com/reference/chat-stream#request.body.thinking">thinking</a>
+         * for reasoning models.
+         */
         public CohereStreamingChatModelBuilder thinkingType(CohereThinkingType thinkingType) {
             this.thinkingType = thinkingType;
             return this;
         }
 
+        /**
+         * The maximum number of tokens the model can use for
+         * <a href="https://docs.cohere.com/reference/chat-stream#request.body.thinking">thinking</a>.
+         */
         public CohereStreamingChatModelBuilder thinkingTokenBudget(Integer thinkingTokenBudget) {
             this.thinkingTokenBudget = thinkingTokenBudget;
             return this;
         }
 
         /**
-         * Selects the <a href="https://docs.cohere.com/reference/chat-stream#request.body.safety_mode">safety instruction</a>
-         * inserted into the prompt of the model.
+         * The <a href="https://docs.cohere.com/reference/chat-stream#request.body.safety_mode">safety instruction</a>
+         * to be inserted into the prompt of the model.
          */
         public CohereStreamingChatModelBuilder safetyMode(CohereSafetyMode safetyMode) {
             this.safetyMode = safetyMode;
@@ -238,13 +255,18 @@ public class CohereStreamingChatModel implements StreamingChatModel {
         }
 
         /**
-         * If set to {@code true}, the log probabilities of the generated tokens will be included in the response.
+         * If set to {@code true}, the log probabilities of the generated tokens will be included in the response,
+         * as specified <a href="https://docs.cohere.com/reference/chat-stream#request.body.logprobs">here</a>.
          */
         public CohereStreamingChatModelBuilder logprobs(Boolean logprobs) {
             this.logprobs = logprobs;
             return this;
         }
 
+        /**
+         * If set to {@code true}, the model will be forced to follow the tool definitions strictly, as
+         * specified <a href="https://docs.cohere.com/reference/chat-stream#request.body.strict_tools">here</a>.
+         */
         public CohereStreamingChatModelBuilder strictTools(Boolean strictTools) {
             this.strictTools = strictTools;
             return this;
