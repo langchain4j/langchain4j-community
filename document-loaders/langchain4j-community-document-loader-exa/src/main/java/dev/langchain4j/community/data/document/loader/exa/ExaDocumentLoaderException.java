@@ -6,7 +6,7 @@ package dev.langchain4j.community.data.document.loader.exa;
  * search API.
  *
  * <p>
- * This exception wraps various failure scenarios, including but not limited to:
+ * This exception wraps various failure scenarios, including but not limited to:</p>
  * <ul>
  * <li>HTTP request failures (e.g., network errors, non-success status
  * codes)</li>
@@ -15,7 +15,7 @@ package dev.langchain4j.community.data.document.loader.exa;
  * <li>Unexpected runtime issues during document extraction or metadata
  * mapping</li>
  * </ul>
- * </p>
+ *
  *
  * <p>
  * All {@link ExaDocumentLoader} methods that interact with the Exa API

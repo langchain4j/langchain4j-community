@@ -119,13 +119,13 @@ public class ExaDocumentLoader {
      * </p>
      *
      * <p>
-     * The document content is derived in the following order:
+     * The document content is derived in the following order:</p>
      * <ul>
      * <li>Full text (if available and enabled)</li>
      * <li>Highlights returned by the API</li>
      * <li>Title as a fallback</li>
      * </ul>
-     * </p>
+     *
      *
      * <p>
      * If the API response contains no results, an empty list is returned.
