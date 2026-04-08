@@ -58,6 +58,9 @@
         <module>embedding-stores/langchain4j-community-jvector</module>
         <module>embedding-stores/langchain4j-community-s3-vectors</module>
 
+        <!-- Integration of chat memory stores -->
+        <module>chat-memory-stores/langchain4j-community-mongodb</module>
+
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
         <module>content-retrievers/langchain4j-community-neo4j-retriever</module>
