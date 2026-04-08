@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Cohere thinking mode for reasoning models.
- * <p/>
+ * <br/>
  * More details are available <a href="https://docs.cohere.com/reference/chat-stream#request.body.thinking.type">here</a>.
  */
 public enum CohereThinkingType {

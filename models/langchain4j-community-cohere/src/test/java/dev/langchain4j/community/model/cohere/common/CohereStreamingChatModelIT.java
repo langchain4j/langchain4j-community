@@ -91,7 +91,6 @@ class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
         }));
     }
 
-    // TODO: Review this, see if you can optimize it.
     @Override
     protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id1, String id2) {
         io.verify(handler, atLeastOnce())

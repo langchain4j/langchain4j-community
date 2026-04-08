@@ -2,7 +2,7 @@ package dev.langchain4j.community.model.client;
 
 /**
  * Cohere safety instruction variant, which moderates the model's responses.
- * <p/>
+ * <br/>
  * More details are available <a href="https://docs.cohere.com/v2/docs/safety-modes">here</a>.
  */
 public enum CohereSafetyMode {

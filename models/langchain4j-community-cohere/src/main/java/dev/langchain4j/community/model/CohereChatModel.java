@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 
 /**
  * Represents a Cohere LLM with a chat API.
- * <p/>
+ * <br/>
  * More details are available <a href="https://docs.cohere.com/reference/chat">here</a>.
  */
 public class CohereChatModel implements ChatModel {
