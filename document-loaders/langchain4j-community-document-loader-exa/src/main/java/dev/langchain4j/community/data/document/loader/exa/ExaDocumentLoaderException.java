@@ -57,7 +57,7 @@ public class ExaDocumentLoaderException extends RuntimeException {
      *
      * <p>
      * The {@code cause} can be any underlying exception, such as
-     * {@link IOException}, {@link dev.langchain4j.exception.HttpException}, or
+     * {@link java.io.IOException}, {@link dev.langchain4j.exception.HttpException}, or
      * runtime exceptions encountered during processing.
      * </p>
      *
