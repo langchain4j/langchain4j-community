@@ -285,8 +285,7 @@ class CohereMapperTest {
         CohereResponseFormat cohereResponseFormat = toCohereResponseFormat(responseFormat);
 
         // then
-        String expectedSchema =
-                """
+        String expectedSchema = """
                 {
                   "type": "object",
                   "properties": {
