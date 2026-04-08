@@ -4,6 +4,7 @@ import static dev.langchain4j.community.model.client.chat.content.CohereContentT
 import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
 import static dev.langchain4j.community.model.util.CohereMapper.toAiMessageAttributes;
 import static dev.langchain4j.community.model.util.CohereMapper.toFinishReason;
+import static dev.langchain4j.community.model.util.CohereMapper.toTokenUsage;
 import static dev.langchain4j.http.client.sse.ServerSentEventParsingHandleUtils.toStreamingHandle;
 import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteResponse;
 import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteToolCall;
@@ -30,7 +31,6 @@ import dev.langchain4j.model.chat.response.CompleteToolCall;
 import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.chat.response.StreamingHandle;
-import dev.langchain4j.model.output.TokenUsage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -183,17 +183,18 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
     }
 
     private ChatResponse build(CohereStreamingData data) {
-        CohereChatResponseMetadata metadata = CohereChatResponseMetadata.builder()
+        CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
                 .id(responseId.get())
-                .billedUnits(data.getDelta().getUsage().getBilledUnits())
-                .cachedTokens(data.getDelta().getUsage().getCachedTokens())
-                .tokenUsage(new TokenUsage(
-                        data.getDelta().getUsage().getTokens().getInputTokens(),
-                        data.getDelta().getUsage().getTokens().getOutputTokens()))
                 .modelName(modelName)
                 .finishReason(toFinishReason(data.getDelta().getFinishReason()))
-                .logprobs(logprobs.isEmpty() ? null : logprobs)
-                .build();
+                .logprobs(logprobs.isEmpty() ? null : logprobs);
+
+        if (data.getDelta().getUsage() != null) {
+            metadataBuilder
+                    .billedUnits(data.getDelta().getUsage().getBilledUnits())
+                    .cachedTokens(data.getDelta().getUsage().getCachedTokens())
+                    .tokenUsage(toTokenUsage(data.getDelta().getUsage().getTokens()));
+        }
 
         List<ToolExecutionRequest> toolExecutionRequests = List.of();
         if (toolCallBuilder.hasRequests()) {
@@ -207,7 +208,10 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
                 .toolExecutionRequests(toolExecutionRequests)
                 .build();
 
-        return ChatResponse.builder().aiMessage(aiMessage).metadata(metadata).build();
+        return ChatResponse.builder()
+                .aiMessage(aiMessage)
+                .metadata(metadataBuilder.build())
+                .build();
     }
 
     @Override

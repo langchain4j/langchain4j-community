@@ -5,6 +5,7 @@ import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatMess
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereResponseFormat;
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereTools;
 import static dev.langchain4j.community.model.util.CohereMapper.toFinishReason;
+import static dev.langchain4j.community.model.util.CohereMapper.toTokenUsage;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 import dev.langchain4j.Internal;
@@ -16,7 +17,6 @@ import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
 
 @Internal
@@ -72,18 +72,22 @@ public class CohereInternalHelper {
     public static ChatResponse fromCohereChatResponse(CohereChatResponse response, String modelName) {
         AiMessage aiMessage = toAiMessage(response.getMessage());
 
-        CohereChatResponseMetadata metadata = CohereChatResponseMetadata.builder()
+        CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
                 .modelName(modelName)
                 .id(response.getId())
-                .billedUnits(response.getUsage().getBilledUnits())
-                .cachedTokens(response.getUsage().getCachedTokens())
-                .tokenUsage(new TokenUsage(
-                        response.getUsage().getTokens().getInputTokens(),
-                        response.getUsage().getTokens().getOutputTokens()))
                 .finishReason(toFinishReason(response.getFinishReason()))
-                .logprobs(isNullOrEmpty(response.getLogprobs()) ? null : response.getLogprobs())
-                .build();
+                .logprobs(isNullOrEmpty(response.getLogprobs()) ? null : response.getLogprobs());
 
-        return ChatResponse.builder().aiMessage(aiMessage).metadata(metadata).build();
+        if (response.getUsage() != null) {
+            metadataBuilder
+                    .billedUnits(response.getUsage().getBilledUnits())
+                    .cachedTokens(response.getUsage().getCachedTokens())
+                    .tokenUsage(toTokenUsage(response.getUsage().getTokens()));
+        }
+
+        return ChatResponse.builder()
+                .aiMessage(aiMessage)
+                .metadata(metadataBuilder.build())
+                .build();
     }
 }

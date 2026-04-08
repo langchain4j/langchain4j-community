@@ -29,6 +29,7 @@ import dev.langchain4j.community.model.client.chat.message.CohereToolMessage;
 import dev.langchain4j.community.model.client.chat.message.CohereUserMessage;
 import dev.langchain4j.community.model.client.chat.message.content.CohereImageUrl;
 import dev.langchain4j.community.model.client.chat.response.CohereResponseMessage;
+import dev.langchain4j.community.model.client.chat.response.CohereTokens;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunction;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunctionCall;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
@@ -48,6 +49,7 @@ import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.output.FinishReason;
+import dev.langchain4j.model.output.TokenUsage;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -275,5 +277,13 @@ public class CohereMapper {
             case "TOOL_CALL" -> TOOL_EXECUTION;
             default -> OTHER;
         };
+    }
+
+    public static TokenUsage toTokenUsage(CohereTokens tokens) {
+        if (tokens == null) {
+            return null;
+        }
+
+        return new TokenUsage(tokens.getInputTokens(), tokens.getOutputTokens());
     }
 }
