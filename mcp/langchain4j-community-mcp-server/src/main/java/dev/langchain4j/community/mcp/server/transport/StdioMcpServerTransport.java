@@ -68,6 +68,14 @@ public class StdioMcpServerTransport implements Closeable {
         this(System.in, System.out, server);
     }
 
+    /**
+     * Blocks until the stdio reader thread terminates, either because the input stream reached EOF
+     * or because this transport was closed.
+     */
+    public void awaitClose() throws InterruptedException {
+        ioThread.join();
+    }
+
     private void handleMessage(JsonNode message) {
         try {
             messageExecutor.execute(() -> handleMessageInternal(message));

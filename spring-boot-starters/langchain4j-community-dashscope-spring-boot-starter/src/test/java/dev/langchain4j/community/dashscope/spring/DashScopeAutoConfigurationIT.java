@@ -180,6 +180,12 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.citation-format=[<number>]",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.forced-search=false",
                         "langchain4j.community.dashscope.chat-model.parameters.search-options.search-strategy=standard",
+                        "langchain4j.community.dashscope.chat-model.parameters.asr-options.language=zh",
+                        "langchain4j.community.dashscope.chat-model.parameters.asr-options.enable-itn=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.tts-options.voice=Cherry",
+                        "langchain4j.community.dashscope.chat-model.parameters.tts-options.language-type=Chinese",
+                        "langchain4j.community.dashscope.chat-model.parameters.tts-options.instructions=Speak slowly",
+                        "langchain4j.community.dashscope.chat-model.parameters.tts-options.optimize-instructions=true",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.source-lang=English",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.target-lang=Chinese",
                         "langchain4j.community.dashscope.chat-model.parameters.translation-options.domains=The sentence is from Ali Cloud IT domain.",
@@ -194,7 +200,10 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.chat-model.parameters.n=1",
                         "langchain4j.community.dashscope.chat-model.parameters.size=1024*1024",
                         "langchain4j.community.dashscope.chat-model.parameters.promptExtend=true",
-                        "langchain4j.community.dashscope.chat-model.parameters.negativePrompt=disfigured")
+                        "langchain4j.community.dashscope.chat-model.parameters.negativePrompt=disfigured",
+                        "langchain4j.community.dashscope.chat-model.parameters.parallel_tool_calls=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.strict-json-schema=true",
+                        "langchain4j.community.dashscope.chat-model.parameters.enable-chat-history=true")
                 .run(context -> {
                     ChatModel chatModel = context.getBean(ChatModel.class);
                     assertThat(chatModel).isInstanceOf(QwenChatModel.class);
@@ -222,6 +231,13 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.searchOptions().forcedSearch()).isFalse();
                     assertThat(defaultParameters.searchOptions().searchStrategy())
                             .isEqualTo("standard");
+                    assertThat(defaultParameters.asrOptions().language()).isEqualTo("Chinese");
+                    assertThat(defaultParameters.asrOptions().enableItn()).isTrue();
+                    assertThat(defaultParameters.ttsOptions().voice()).isEqualTo("Cherry");
+                    assertThat(defaultParameters.ttsOptions().languageType()).isEqualTo("Chinese");
+                    assertThat(defaultParameters.ttsOptions().instructions()).isEqualTo("Speak slowly");
+                    assertThat(defaultParameters.ttsOptions().optimizeInstructions())
+                            .isTrue();
                     assertThat(defaultParameters.translationOptions().sourceLang())
                             .isEqualTo("English");
                     assertThat(defaultParameters.translationOptions().targetLang())
@@ -260,6 +276,8 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.size()).isEqualTo("1024*1024");
                     assertThat(defaultParameters.promptExtend()).isTrue();
                     assertThat(defaultParameters.negativePrompt()).isEqualTo("disfigured");
+                    assertThat(defaultParameters.parallelToolCalls()).isTrue();
+                    assertThat(defaultParameters.strictJsonSchema()).isTrue();
 
                     assertThat(context.getBean(QwenChatModel.class)).isSameAs(chatModel);
                 });
@@ -287,6 +305,12 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.citation-format=[<number>]",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.forced-search=false",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.search-options.search-strategy=standard",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.asr-options.language=zh",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.asr-options.enable-itn=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.tts-options.voice=Cherry",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.tts-options.language-type=Chinese",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.tts-options.instructions=Speak slowly",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.tts-options.optimize-instructions=true",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.source-lang=English",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.target-lang=Chinese",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.translation-options.domains=The sentence is from Ali Cloud IT domain.",
@@ -301,7 +325,11 @@ public class DashScopeAutoConfigurationIT {
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.n=1",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.size=1024*1024",
                         "langchain4j.community.dashscope.streaming-chat-model.parameters.promptExtend=true",
-                        "langchain4j.community.dashscope.streaming-chat-model.parameters.negativePrompt=disfigured")
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.negativePrompt=disfigured",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.parallel_tool_calls=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.enable-code-interpreter=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.strict-json-schema=true",
+                        "langchain4j.community.dashscope.streaming-chat-model.parameters.enable-chat-history=true")
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
                     assertThat(streamingChatModel).isInstanceOf(QwenStreamingChatModel.class);
@@ -330,6 +358,13 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.searchOptions().forcedSearch()).isFalse();
                     assertThat(defaultParameters.searchOptions().searchStrategy())
                             .isEqualTo("standard");
+                    assertThat(defaultParameters.asrOptions().language()).isEqualTo("Chinese");
+                    assertThat(defaultParameters.asrOptions().enableItn()).isTrue();
+                    assertThat(defaultParameters.ttsOptions().voice()).isEqualTo("Cherry");
+                    assertThat(defaultParameters.ttsOptions().languageType()).isEqualTo("Chinese");
+                    assertThat(defaultParameters.ttsOptions().instructions()).isEqualTo("Speak slowly");
+                    assertThat(defaultParameters.ttsOptions().optimizeInstructions())
+                            .isTrue();
                     assertThat(defaultParameters.translationOptions().sourceLang())
                             .isEqualTo("English");
                     assertThat(defaultParameters.translationOptions().targetLang())
@@ -368,6 +403,9 @@ public class DashScopeAutoConfigurationIT {
                     assertThat(defaultParameters.size()).isEqualTo("1024*1024");
                     assertThat(defaultParameters.promptExtend()).isTrue();
                     assertThat(defaultParameters.negativePrompt()).isEqualTo("disfigured");
+                    assertThat(defaultParameters.parallelToolCalls()).isTrue();
+                    assertThat(defaultParameters.enableCodeInterpreter()).isTrue();
+                    assertThat(defaultParameters.strictJsonSchema()).isTrue();
 
                     assertThat(context.getBean(QwenStreamingChatModel.class)).isSameAs(streamingChatModel);
                 });

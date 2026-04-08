@@ -3,6 +3,7 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.chatResponseFrom;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.isMultimodalModel;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.repetitionPenaltyToFrequencyPenalty;
+import static dev.langchain4j.community.model.dashscope.QwenHelper.streamingOnlyModelName;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toGenerationParam;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.toMultiModalConversationParam;
 import static dev.langchain4j.internal.Utils.copyIfNotNull;
@@ -106,6 +107,8 @@ public class QwenChatModel implements ChatModel {
                 .seed(getOrDefault(seed, qwenParameters.seed()))
                 .enableSearch(getOrDefault(enableSearch, qwenParameters.enableSearch()))
                 .searchOptions(qwenParameters.searchOptions())
+                .asrOptions(qwenParameters.asrOptions())
+                .ttsOptions(qwenParameters.ttsOptions())
                 .translationOptions(qwenParameters.translationOptions())
                 .vlHighResolutionImages(qwenParameters.vlHighResolutionImages())
                 .isMultimodalModel(getOrDefault(isMultimodalModel, qwenParameters.isMultimodalModel()))
@@ -117,6 +120,8 @@ public class QwenChatModel implements ChatModel {
                 .size(qwenParameters.size())
                 .promptExtend(qwenParameters.promptExtend())
                 .negativePrompt(qwenParameters.negativePrompt())
+                .parallelToolCalls(qwenParameters.parallelToolCalls())
+                .strictJsonSchema(qwenParameters.strictJsonSchema())
                 .custom(copyIfNotNull(qwenParameters.custom()))
                 .build();
 
@@ -133,7 +138,8 @@ public class QwenChatModel implements ChatModel {
     }
 
     private ChatResponse generateByNonMultimodalModel(ChatRequest chatRequest) {
-        GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, false);
+        boolean incrementalOutput = streamingOnlyModelName(chatRequest.modelName());
+        GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, incrementalOutput);
         try {
             GenerationResult result = generation.call(param);
             return chatResponseFrom(param.getModel(), result);
@@ -143,8 +149,9 @@ public class QwenChatModel implements ChatModel {
     }
 
     private ChatResponse generateByMultimodalModel(ChatRequest chatRequest) {
-        MultiModalConversationParam param =
-                toMultiModalConversationParam(apiKey, chatRequest, multimodalConversationParamCustomizer, false);
+        boolean incrementalOutput = streamingOnlyModelName(chatRequest.modelName());
+        MultiModalConversationParam param = toMultiModalConversationParam(
+                apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
         try {
             MultiModalConversationResult result = conv.call(param);
             return chatResponseFrom(param.getModel(), result);

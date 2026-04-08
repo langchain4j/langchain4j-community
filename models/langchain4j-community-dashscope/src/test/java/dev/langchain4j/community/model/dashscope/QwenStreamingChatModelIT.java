@@ -1,22 +1,27 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.GENERATED_AUDIOS_KEY;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.chatMessages;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.getBase64DataFromResource;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalAudioData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithVideoUrl;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatModelNameProvider;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.nonMultimodalChatModelNameProvider;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessages;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.textToImageChatMessagesWithImageUrl;
-import static dev.langchain4j.community.model.dashscope.QwenTestHelper.vlChatModelNameProvider;
 import static dev.langchain4j.data.message.ToolExecutionResultMessage.from;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
+import static dev.langchain4j.internal.Json.toJson;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
@@ -29,23 +34,33 @@ import static org.mockito.Mockito.atLeastOnce;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.AudioContent;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.TestStreamingChatResponseHandler;
 import dev.langchain4j.model.chat.TestStreamingResponseHandler;
 import dev.langchain4j.model.chat.common.AbstractStreamingChatModelIT;
+import dev.langchain4j.model.chat.common.ChatResponseAndStreamingMetadata;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.chat.response.PartialResponse;
+import dev.langchain4j.model.chat.response.PartialResponseContext;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Disabled;
@@ -83,6 +98,8 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         model.setGenerationParamCustomizer(
                 generationParamBuilder -> generationParamBuilder.stopStrings(List.of("Rainy", "rainy")));
+        model.setMultimodalConversationParamCustomizer(multimodalConversationParamBuilder ->
+                multimodalConversationParamBuilder.parameter("stop", List.of("Rainy", "rainy")));
 
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(ChatRequest.builder().messages(chatMessages()).build(), handler);
@@ -319,7 +336,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#multimodalChatModelNameProvider")
     void should_send_multimodal_image_url_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
@@ -337,7 +354,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#multimodalChatModelNameProvider")
     void should_send_multimodal_image_data_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
@@ -354,14 +371,14 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
-    @Disabled("only served in China")
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
     void should_send_multimodal_audio_url_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
+
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(
                 ChatRequest.builder()
@@ -373,14 +390,14 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
-    @Disabled("only served in China")
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
     void should_send_multimodal_audio_data_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
                 .modelName(modelName)
                 .build();
+
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
         model.chat(
                 ChatRequest.builder()
@@ -393,7 +410,121 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
+    void should_respect_language_parameter_and_receive_response(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        // Use only the language hint; omit the system prompt.
+        Audio audio = Audio.builder()
+                .base64Data(multimodalAudioData())
+                .mimeType("audio/mp3")
+                .build();
+        AudioContent audioContent = AudioContent.from(audio);
+        List<ChatMessage> messages = Collections.singletonList(UserMessage.from(audioContent));
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("zh")
+                        .build())
+                .build();
+        ChatRequest chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
+    }
+
+    @Disabled("The `enable_itn` parameter is not working in streaming mode for now.")
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
+    void should_respect_enable_itn_parameter_and_receive_response(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .temperature(0F)
+                .build();
+
+        Audio audio = Audio.builder()
+                .base64Data(getBase64DataFromResource("/5dollars.mp3"))
+                .mimeType("audio/mp3")
+                .build();
+        AudioContent audioContent = AudioContent.from(audio);
+        List<ChatMessage> messages = Collections.singletonList(UserMessage.from(audioContent));
+
+        // ITN is not enabled
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("en")
+                        .enableItn(false)
+                        .build())
+                .build();
+        ChatRequest chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse response = handler.get();
+
+        assertThat(response.aiMessage().text()).containsAnyOf("5 dollars", "five dollars");
+
+        // ITN is enabled
+        parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("en")
+                        .enableItn(true)
+                        .build())
+                .build();
+        chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        response = handler.get();
+
+        assertThat(response.aiMessage().text()).contains("$5");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#ttsChatModelNameProvider")
+    void should_send_text_and_receive_audio(String modelName) {
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .ttsOptions(QwenChatRequestParameters.TtsOptions.builder()
+                        .voice("Cherry")
+                        .languageType("English")
+                        .instructions(
+                                "Speak quickly with a clear rising intonation, suitable for promoting fashion items.")
+                        .optimizeInstructions(true)
+                        .build())
+                .build();
+
+        ChatRequest request = ChatRequest.builder()
+                .messages(UserMessage.from("Today is a wonderful day to build something people love!"))
+                .parameters(parameters)
+                .build();
+
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler() {
+            @Override
+            public void onPartialResponse(PartialResponse partialResponse, PartialResponseContext context) {
+                assertThat(partialResponse.text()).isNotEmpty();
+                // We don't need to append the base64-encoded audio data to the final text reply.
+            }
+        };
+        model.chat(request, handler);
+        ChatResponse response = handler.get();
+
+        assertThat((List<Audio>) response.aiMessage().attributes().get(GENERATED_AUDIOS_KEY))
+                .hasSize(1);
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#multimodalChatModelNameProvider")
     void should_send_multimodal_video_url_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
@@ -411,7 +542,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#vlChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#multimodalChatModelNameProvider")
     void should_send_multimodal_video_data_and_receive_response(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
@@ -429,7 +560,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#searchingChatModelNameProvider")
     void should_send_messages_and_receive_response_by_searching(String modelName) {
         // given
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
@@ -561,6 +692,76 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
+    void should_respect_parallelToolCalls_parameter(String modelName) {
+        // given
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name("add")
+                .description("adds two numbers")
+                .parameters(JsonObjectSchema.builder()
+                        .addIntegerProperty("a")
+                        .addNumberProperty("b")
+                        .required("a", "b")
+                        .build())
+                .build();
+
+        ChatRequest.Builder chatRequestBuilder =
+                ChatRequest.builder().messages(UserMessage.from("How much is 2+2 and 3+3?"));
+
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .defaultRequestParameters(QwenChatRequestParameters.builder()
+                        .temperature(0.0d)
+                        .enableSanitizeMessages(false)
+                        .toolChoice(REQUIRED)
+                        .build())
+                .build();
+
+        // when parallelToolCalls = true
+        QwenChatRequestParameters qwenParameters = QwenChatRequestParameters.builder()
+                .toolSpecifications(toolSpecification)
+                .parallelToolCalls(true)
+                .build();
+        ChatRequest chatRequest = chatRequestBuilder.parameters(qwenParameters).build();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse chatResponse = handler.get();
+        // then
+        assertThat(chatResponse.aiMessage().toolExecutionRequests()).hasSize(2);
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
+    void should_execute_code_interpretation(String modelName) {
+        // given
+        StreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .enableCodeInterpreter(true)
+                .enableThinking(true)
+                .build();
+
+        // when
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(UserMessage.from(
+                        "What is 123 to the power of 21? Use Python to solve it. Output the pure number."))
+                .parameters(parameters)
+                .build();
+        TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
+        model.chat(chatRequest, handler);
+        ChatResponse chatResponse = handler.get();
+        // then
+        assertThat(chatResponse.aiMessage().text()).contains("77269364466549865653073473388030061522211723");
+        assertThat(chatResponse.aiMessage().thinking()).containsAnyOf("using Python", "use Python");
+    }
+
+    @ParameterizedTest
     @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#imageModelNameProvider")
     void should_send_prompt_and_receive_image(String modelName) {
         StreamingChatModel model = QwenStreamingChatModel.builder()
@@ -618,26 +819,37 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected List<StreamingChatModel> models() {
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .build();
+
         return nonMultimodalChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenStreamingChatModel.builder()
                         .apiKey(apiKey())
                         .modelName((String) modelName)
-                        .temperature(0.0f)
+                        .defaultRequestParameters(parameters)
                         .build())
                 .collect(Collectors.toList());
     }
 
     @Override
     protected List<StreamingChatModel> modelsSupportingTools() {
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .temperature(0.0d)
+                .enableSanitizeMessages(false)
+                .parallelToolCalls(true)
+                .build();
+
         return functionCallChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenStreamingChatModel.builder()
                         .apiKey(apiKey())
                         .modelName((String) modelName)
-                        .temperature(0.0f)
+                        .defaultRequestParameters(parameters)
                         .build())
                 .collect(Collectors.toList());
     }
@@ -649,7 +861,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected List<StreamingChatModel> modelsSupportingImageInputs() {
-        return vlChatModelNameProvider()
+        return multimodalChatModelNameProvider()
                 .map(Arguments::get)
                 .map(modelNames -> modelNames[0])
                 .map(modelName -> QwenStreamingChatModel.builder()
@@ -683,19 +895,8 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @Override
-    protected boolean supportsJsonResponseFormatWithSchema() {
-        return false;
-    }
-
-    @Override
-    protected boolean supportsJsonResponseFormatWithRawSchema() {
-        return false;
-    }
-
-    @Override
     protected void verifyToolCallbacks(StreamingChatResponseHandler handler, InOrder io, String id) {
         io.verify(handler, atLeastOnce()).onPartialToolCall(any(), any());
-
         io.verify(handler).onCompleteToolCall(argThat(toolCall -> {
             ToolExecutionRequest request = toolCall.toolExecutionRequest();
             return toolCall.index() == 0
@@ -762,28 +963,59 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .build();
     }
 
-    @Disabled("qwen max does not support JSON response format")
+    @Override
+    protected ChatResponseAndStreamingMetadata chat(StreamingChatModel chatModel, ChatRequest chatRequest) {
+        ChatRequestParameters parameters = chatRequest.parameters();
+        if (parameters.responseFormat() != null
+                && ResponseFormatType.JSON == parameters.responseFormat().type()
+                && parameters.responseFormat().jsonSchema() != null) {
+            // The 'messages' must contain the key word 'json' in some form to use 'response_format' of type
+            // 'json_schema' for now
+            List<ChatMessage> messages = chatRequest.messages();
+            List<ChatMessage> testMessages = new LinkedList<>();
+            boolean hasKeyWord = messages.stream().anyMatch(message -> {
+                if (message instanceof SystemMessage systemMessage) {
+                    return systemMessage.text().toLowerCase().contains("json");
+                } else if (message instanceof UserMessage userMessage) {
+                    return userMessage.contents().stream()
+                            .filter(TextContent.class::isInstance)
+                            .map(TextContent.class::cast)
+                            .anyMatch(textContent ->
+                                    textContent.text().toLowerCase().contains("json"));
+                }
+                return false;
+            });
+
+            String extraPrompt = "Response as json schema: "
+                    + toJson(toMap(parameters.responseFormat().jsonSchema().rootElement()));
+            if (hasKeyWord) {
+                testMessages.addAll(messages);
+            } else if (messages.get(0) instanceof SystemMessage systemMessage) {
+                SystemMessage newSystemMessage = SystemMessage.from(systemMessage.text() + "\n" + extraPrompt);
+                testMessages.add(newSystemMessage);
+                testMessages.addAll(messages.subList(1, messages.size()));
+            } else {
+                testMessages.add(SystemMessage.from(extraPrompt));
+                testMessages.addAll(messages);
+            }
+            chatRequest = ChatRequest.builder()
+                    .messages(testMessages)
+                    .parameters(parameters)
+                    .build();
+        }
+
+        return super.chat(chatModel, chatRequest);
+    }
+
+    @Override
+    protected boolean supportsToolsAndJsonResponseFormatWithSchema() {
+        return false;
+    }
+
+    @Disabled("qwen does not support both tool calls and JSON response format yet")
     @Override
     protected void should_execute_a_tool_then_answer_respecting_JSON_response_format_with_schema(
             StreamingChatModel model) {
         super.should_execute_a_tool_then_answer_respecting_JSON_response_format_with_schema(model);
-    }
-
-    @Disabled("qwen max does not support JSON response format")
-    @Override
-    protected void should_respect_JSON_response_format_with_schema(StreamingChatModel model) {
-        super.should_respect_JSON_response_format_with_schema(model);
-    }
-
-    @Disabled("qwen max does not support parallel tool call")
-    @Override
-    protected void should_execute_multiple_tools_in_parallel_then_answer(StreamingChatModel model) {
-        super.should_execute_multiple_tools_in_parallel_then_answer(model);
-    }
-
-    @Disabled("qwen max does not support JSON response format")
-    @Override
-    protected void should_respect_JsonRawSchema_responseFormat(StreamingChatModel model) {
-        super.should_respect_JsonRawSchema_responseFormat(model);
     }
 }

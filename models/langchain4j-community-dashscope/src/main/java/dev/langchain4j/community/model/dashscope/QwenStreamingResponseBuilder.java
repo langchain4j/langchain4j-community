@@ -18,6 +18,7 @@ import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.generation.GenerationUsage;
 import com.alibaba.dashscope.aigc.generation.SearchInfo;
+import com.alibaba.dashscope.aigc.multimodalconversation.AudioResult;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationUsage;
@@ -122,17 +123,61 @@ public class QwenStreamingResponseBuilder {
                 .build();
     }
 
-    public String append(MultiModalConversationResult partialResponse) {
+    public QwenPartialResponse append(MultiModalConversationResult partialResponse) {
         if (partialResponse == null) {
             return null;
         }
 
         String partialContent = null;
+        String partialReasoningContent = null;
+        List<PartialToolCall> partialToolCalls = new ArrayList<>();
+        List<CompleteToolCall> completeToolCalls = new ArrayList<>();
         if (hasAnswer(partialResponse)) {
             partialContent = answerFrom(partialResponse);
             if (!incrementalOutput && hasMultiModalConversationResult()) {
                 String generatedContent = answerFrom(accumulatedMultiModalConversationResult);
                 partialContent = partialContent.substring(generatedContent.length());
+            }
+        } else if (partialResponse.getOutput().getAudio() != null
+                && partialResponse.getOutput().getAudio().getData() != null) {
+            // The tts models will incrementally return base64-encoded PCM data.
+            partialContent = partialResponse.getOutput().getAudio().getData();
+        }
+        if (hasReasoningContent(partialResponse)) {
+            partialReasoningContent = reasoningContentFrom(partialResponse);
+            if (!incrementalOutput && hasGenerationResult()) {
+                String generatedReasoningContent = reasoningContentFrom(accumulatedGenerationResult);
+                partialReasoningContent = partialReasoningContent.substring(generatedReasoningContent.length());
+            }
+        }
+        if (isFunctionToolCalls(partialResponse)) {
+            List<ToolCallFunction> toolCalls = toolCallFunctionsFrom(partialResponse);
+            if (!isNullOrEmpty(toolCalls)) {
+                for (ToolCallFunction toolCall : toolCalls) {
+
+                    int index = getOrDefault(toolCall.getIndex(), 0);
+                    if (toolCallBuilder.index() != index) {
+                        completeToolCalls.add(toolCallBuilder.buildAndReset());
+                        toolCallBuilder.updateIndex(index);
+                    }
+
+                    String id = toolCallBuilder.updateId(toolCall.getId());
+                    String name =
+                            toolCallBuilder.updateName(toolCall.getFunction().getName());
+
+                    String partialArguments = toolCall.getFunction().getArguments();
+                    if (isNotNullOrEmpty(partialArguments)) {
+                        toolCallBuilder.appendArguments(partialArguments);
+
+                        PartialToolCall partialToolRequest = PartialToolCall.builder()
+                                .index(index)
+                                .id(id)
+                                .name(name)
+                                .partialArguments(partialArguments)
+                                .build();
+                        partialToolCalls.add(partialToolRequest);
+                    }
+                }
             }
         }
 
@@ -140,7 +185,13 @@ public class QwenStreamingResponseBuilder {
                 ? mergeResult(accumulatedMultiModalConversationResult, partialResponse)
                 : mergeResult(newMultiModalConversationResult(), partialResponse);
 
-        return partialContent;
+        return QwenPartialResponse.builder()
+                .delta(partialContent)
+                .partialThinking(
+                        isNullOrBlank(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
+                .partialToolCalls(partialToolCalls)
+                .completeToolCalls(completeToolCalls)
+                .build();
     }
 
     public ChatResponse build() {
@@ -400,12 +451,37 @@ public class QwenStreamingResponseBuilder {
 
     private MultiModalConversationOutput mergeOutput(
             MultiModalConversationOutput previous, MultiModalConversationOutput current) {
-        List<MultiModalConversationOutput.Choice> choices = mergeChoices(previous.getChoices(), current.getChoices());
-
         MultiModalConversationOutput output = new MultiModalConversationOutput();
+
+        String finishReason = getOrDefault(current.getFinishReason(), previous.getFinishReason());
+        List<MultiModalConversationOutput.Choice> choices = mergeChoices(previous.getChoices(), current.getChoices());
+        AudioResult audio = mergeAudio(previous.getAudio(), current.getAudio());
+
+        output.setFinishReason(finishReason);
         output.setChoices(choices);
+        output.setAudio(audio);
 
         return output;
+    }
+
+    private AudioResult mergeAudio(AudioResult previous, AudioResult current) {
+        if (previous == null) {
+            return current;
+        }
+        if (current == null) {
+            return previous;
+        }
+        String data = merge(previous.getData(), current.getData());
+        String id = merge(previous.getId(), current.getId());
+        String url = merge(previous.getUrl(), current.getUrl());
+        Long expiresAt = merge(previous.getExpiresAt(), current.getExpiresAt());
+
+        return AudioResult.builder()
+                .data(data)
+                .id(id)
+                .url(url)
+                .expiresAt(expiresAt)
+                .build();
     }
 
     private List<MultiModalConversationOutput.Choice> mergeChoices(
@@ -466,10 +542,23 @@ public class QwenStreamingResponseBuilder {
         }
 
         List<Map<String, Object>> contents = mergeContents(previous.getContent(), current.getContent());
+        String reasoningContent = merge(previous.getReasoningContent(), current.getReasoningContent());
         String role = getOrDefault(current.getRole(), previous.getRole());
         role = getOrDefault(role, Role.ASSISTANT.getValue());
+        String name = getOrDefault(current.getName(), previous.getName());
+        List<ToolCallBase> toolCalls = mergeToolCalls(previous.getToolCalls(), current.getToolCalls());
+        String toolCallId = getOrDefault(current.getToolCallId(), previous.getToolCallId());
+        List<Map<String, Object>> annotations = mergeContents(previous.getAnnotations(), current.getAnnotations());
 
-        return MultiModalMessage.builder().content(contents).role(role).build();
+        return MultiModalMessage.builder()
+                .content(contents)
+                .reasoningContent(reasoningContent)
+                .role(role)
+                .name(name)
+                .toolCalls(toolCalls)
+                .toolCallId(toolCallId)
+                .annotations(annotations)
+                .build();
     }
 
     private List<Map<String, Object>> mergeContents(
@@ -569,5 +658,9 @@ public class QwenStreamingResponseBuilder {
             return previous;
         }
         return previous + current;
+    }
+
+    private static Long merge(Long previous, Long current) {
+        return current == null ? previous : current;
     }
 }

@@ -138,6 +138,8 @@ public class DashScopeChatModelProperties {
         private Integer seed;
         private Boolean enableSearch;
         private SearchOptions searchOptions;
+        private AsrOptions asrOptions;
+        private TtsOptions ttsOptions;
         private TranslationOptions translationOptions;
         private Boolean vlHighResolutionImages;
         private Boolean isMultimodalModel;
@@ -149,6 +151,9 @@ public class DashScopeChatModelProperties {
         private String size;
         private Boolean promptExtend;
         private String negativePrompt;
+        private Boolean parallelToolCalls;
+        private Boolean enableCodeInterpreter;
+        private Boolean strictJsonSchema;
 
         public String getModelName() {
             return modelName;
@@ -254,6 +259,22 @@ public class DashScopeChatModelProperties {
             this.searchOptions = searchOptions;
         }
 
+        public AsrOptions getAsrOptions() {
+            return asrOptions;
+        }
+
+        public void setAsrOptions(AsrOptions asrOptions) {
+            this.asrOptions = asrOptions;
+        }
+
+        public TtsOptions getTtsOptions() {
+            return ttsOptions;
+        }
+
+        public void setTtsOptions(TtsOptions ttsOptions) {
+            this.ttsOptions = ttsOptions;
+        }
+
         public TranslationOptions getTranslationOptions() {
             return translationOptions;
         }
@@ -341,6 +362,30 @@ public class DashScopeChatModelProperties {
         public void setNegativePrompt(String negativePrompt) {
             this.negativePrompt = negativePrompt;
         }
+
+        public Boolean getParallelToolCalls() {
+            return parallelToolCalls;
+        }
+
+        public void setParallelToolCalls(Boolean parallelToolCalls) {
+            this.parallelToolCalls = parallelToolCalls;
+        }
+
+        public Boolean getEnableCodeInterpreter() {
+            return enableCodeInterpreter;
+        }
+
+        public void setEnableCodeInterpreter(Boolean enableCodeInterpreter) {
+            this.enableCodeInterpreter = enableCodeInterpreter;
+        }
+
+        public Boolean getStrictJsonSchema() {
+            return strictJsonSchema;
+        }
+
+        public void setStrictJsonSchema(Boolean strictJsonSchema) {
+            this.strictJsonSchema = strictJsonSchema;
+        }
     }
 
     public static class SearchOptions {
@@ -388,6 +433,66 @@ public class DashScopeChatModelProperties {
 
         public void setSearchStrategy(String searchStrategy) {
             this.searchStrategy = searchStrategy;
+        }
+    }
+
+    public static class AsrOptions {
+        private String language;
+        private Boolean enableItn;
+
+        public String getLanguage() {
+            return language;
+        }
+
+        public void setLanguage(String language) {
+            this.language = language;
+        }
+
+        public Boolean getEnableItn() {
+            return enableItn;
+        }
+
+        public void setEnableItn(Boolean enableItn) {
+            this.enableItn = enableItn;
+        }
+    }
+
+    public static class TtsOptions {
+        private String voice;
+        private String languageType;
+        private String instructions;
+        private Boolean optimizeInstructions;
+
+        public String getVoice() {
+            return voice;
+        }
+
+        public void setVoice(String voice) {
+            this.voice = voice;
+        }
+
+        public String getLanguageType() {
+            return languageType;
+        }
+
+        public void setLanguageType(String languageType) {
+            this.languageType = languageType;
+        }
+
+        public String getInstructions() {
+            return instructions;
+        }
+
+        public void setInstructions(String instructions) {
+            this.instructions = instructions;
+        }
+
+        public Boolean getOptimizeInstructions() {
+            return optimizeInstructions;
+        }
+
+        public void setOptimizeInstructions(Boolean optimizeInstructions) {
+            this.optimizeInstructions = optimizeInstructions;
         }
     }
 
