@@ -23,7 +23,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
 import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
-import static dev.langchain4j.community.model.util.CohereMapper.fromFinishReason;
+import static dev.langchain4j.community.model.util.CohereMapper.toAiMessageAttributes;
+import static dev.langchain4j.community.model.util.CohereMapper.toFinishReason;
 import static dev.langchain4j.http.client.sse.ServerSentEventParsingHandleUtils.toStreamingHandle;
 import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteResponse;
 import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteToolCall;
@@ -42,6 +43,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
     private final StreamingChatResponseHandler handler;
     private final StringBuilder textBuilder;
     private final StringBuilder thinkingBuilder;
+    private final StringBuilder toolPlanBuilder;
     private final AtomicReference<String> responseId;
     private final ToolCallBuilder toolCallBuilder;
     private final List<CohereLogprobs> logprobs;
@@ -54,6 +56,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
         this.handler = handler;
         this.textBuilder = new StringBuilder();
         this.thinkingBuilder = new StringBuilder();
+        this.toolPlanBuilder = new StringBuilder();
         this.responseId = new AtomicReference<>();
         this.toolCallBuilder = new ToolCallBuilder(-1);
         this.logprobs = synchronizedList(new ArrayList<>());
@@ -87,6 +90,8 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
             handlePartialToolCall(data);
         } else if (event.event().equals("tool-call-end")){
             handleCompleteToolCall();
+        } else if (event.event().equals("tool-plan-delta")) {
+            handleToolPlanDelta(data);
         } else if (event.event().equals("message-end")) {
             handleMessageEnd(data);
         }
@@ -171,25 +176,27 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
         onCompleteToolCall(handler, completeToolCall);
     }
 
+    private void handleToolPlanDelta(CohereStreamingData data) {
+        toolPlanBuilder.append(data.getDelta().getMessage().getToolPlan());
+    }
+
     private void handleMessageEnd(CohereStreamingData data) {
         ChatResponse response = build(data);
         onCompleteResponse(handler, response);
     }
 
     private ChatResponse build(CohereStreamingData data) {
-        CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
+        CohereChatResponseMetadata metadata = CohereChatResponseMetadata.builder()
+                .id(responseId.get())
                 .billedUnits(data.getDelta().getUsage().getBilledUnits())
                 .cachedTokens(data.getDelta().getUsage().getCachedTokens())
                 .tokenUsage(new TokenUsage(
                         data.getDelta().getUsage().getTokens().getInputTokens(),
                         data.getDelta().getUsage().getTokens().getOutputTokens()))
-                .id(responseId.get())
                 .modelName(modelName)
-                .finishReason(fromFinishReason(data.getDelta().getFinishReason()));
-
-        if (!logprobs.isEmpty()) {
-            metadataBuilder.logprobs(logprobs);
-        }
+                .finishReason(toFinishReason(data.getDelta().getFinishReason()))
+                .logprobs(logprobs.isEmpty() ? null : logprobs)
+                .build();
 
         List<ToolExecutionRequest> toolExecutionRequests = List.of();
         if (toolCallBuilder.hasRequests()) {
@@ -199,12 +206,15 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
         AiMessage aiMessage = AiMessage.builder()
                 .text(textBuilder.isEmpty() ? null : textBuilder.toString())
                 .thinking(thinkingBuilder.isEmpty() ? null : thinkingBuilder.toString())
+                .attributes(toolPlanBuilder.isEmpty()
+                        ? null
+                        : toAiMessageAttributes(toolPlanBuilder.toString()))
                 .toolExecutionRequests(toolExecutionRequests)
                 .build();
 
         return ChatResponse.builder()
                 .aiMessage(aiMessage)
-                .metadata(metadataBuilder.build())
+                .metadata(metadata)
                 .build();
     }
 
@@ -214,4 +224,3 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
         withLoggingExceptions(() -> handler.onError(mappedError));
     }
 }
-

@@ -11,6 +11,7 @@ import dev.langchain4j.community.model.client.chat.message.CohereSystemMessage;
 import dev.langchain4j.community.model.client.chat.message.CohereToolMessage;
 import dev.langchain4j.community.model.client.chat.message.CohereUserMessage;
 import dev.langchain4j.community.model.client.chat.message.content.CohereImageUrl;
+import dev.langchain4j.community.model.client.chat.response.CohereResponseMessage;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunction;
 import dev.langchain4j.community.model.client.chat.tool.CohereFunctionCall;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
@@ -39,6 +40,8 @@ import java.util.Map;
 import static dev.langchain4j.community.model.client.CohereResponseFormatType.JSON_OBJECT;
 import static dev.langchain4j.community.model.client.chat.content.CohereContent.image;
 import static dev.langchain4j.community.model.client.chat.content.CohereContent.text;
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
 import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
@@ -47,9 +50,13 @@ import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.OTHER;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.joining;
 
 @Internal
 public class CohereMapper {
+
+    private static final String TOOL_PLAN_KEY = "tool_plan";
 
     private static final Map<String, Object> EMPTY_SCHEMA = toMap(JsonObjectSchema.builder().build());
     private static final CohereResponseFormat JSON_MODE_SCHEMA = CohereResponseFormat.builder()
@@ -157,23 +164,6 @@ public class CohereMapper {
                 .build();
     }
 
-     public static FinishReason fromFinishReason(String finishReason) {
-        return switch (finishReason) {
-            case "COMPLETE", "STOP_SEQUENCE" -> STOP;
-            case "MAX_TOKENS" -> LENGTH;
-            case "TOOL_CALL" -> TOOL_EXECUTION;
-            default -> OTHER;
-        };
-    }
-
-    public static ToolExecutionRequest toToolExecutionRequest(CohereToolCall toolCall) {
-        return ToolExecutionRequest.builder()
-                .id(toolCall.getId())
-                .name(toolCall.getFunction().getName())
-                .arguments(toolCall.getFunction().getArguments())
-                .build();
-    }
-
     public static CohereResponseFormat toCohereResponseFormat(ResponseFormat responseFormat) {
         if (responseFormat == null || responseFormat.type() == ResponseFormatType.TEXT) {
             return null;
@@ -248,5 +238,55 @@ public class CohereMapper {
         defs.forEach((property, schema) -> map.put(property, toCohereSchema(schema)));
 
         return map;
+    }
+
+    public static AiMessage toAiMessage(CohereResponseMessage responseMessage) {
+        String text = null;
+        String thinking = null;
+
+        if (!isNullOrEmpty(responseMessage.getContent())) {
+            text = responseMessage.getContent().stream()
+                    .filter(content -> content.getType() == TEXT)
+                    .map(CohereContent::getText)
+                    .collect(collectingAndThen(joining("\n"), s -> s.isEmpty() ? null : s));
+
+            thinking = responseMessage.getContent().stream()
+                    .filter(content -> content.getType() == THINKING)
+                    .map(CohereContent::getThinking)
+                    .collect(collectingAndThen(joining("\n"), s -> s.isEmpty() ? null : s));
+        }
+
+        return AiMessage.builder()
+                .text(text)
+                .thinking(thinking)
+                .toolExecutionRequests(responseMessage.getToolCalls()
+                        .stream()
+                        .map(CohereMapper::toToolExecutionRequest)
+                        .toList())
+                .attributes(isNullOrEmpty(responseMessage.getToolPlan())
+                        ? null
+                        : toAiMessageAttributes(responseMessage.getToolPlan()))
+                .build();
+    }
+
+    public static ToolExecutionRequest toToolExecutionRequest(CohereToolCall toolCall) {
+        return ToolExecutionRequest.builder()
+                .id(toolCall.getId())
+                .name(toolCall.getFunction().getName())
+                .arguments(toolCall.getFunction().getArguments())
+                .build();
+    }
+
+    public static Map<String, Object> toAiMessageAttributes(String toolPlan) {
+        return Map.of(TOOL_PLAN_KEY, toolPlan);
+    }
+
+    public static FinishReason toFinishReason(String finishReason) {
+        return switch (finishReason) {
+            case "COMPLETE", "STOP_SEQUENCE" -> STOP;
+            case "MAX_TOKENS" -> LENGTH;
+            case "TOOL_CALL" -> TOOL_EXECUTION;
+            default -> OTHER;
+        };
     }
 }

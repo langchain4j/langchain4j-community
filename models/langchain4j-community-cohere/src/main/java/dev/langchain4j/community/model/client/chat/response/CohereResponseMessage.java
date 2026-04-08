@@ -11,6 +11,7 @@ import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static dev.langchain4j.internal.Utils.copy;
@@ -24,11 +25,13 @@ public class CohereResponseMessage {
     private final CohereRole role;
     private final List<CohereToolCall> toolCalls;
     private final List<CohereContent> content;
+    private final String toolPlan;
 
     private CohereResponseMessage(Builder builder) {
         this.role = builder.role;
         this.toolCalls = builder.toolCalls;
         this.content = builder.content;
+        this.toolPlan = builder.toolPlan;
     }
 
     public CohereRole getRole() { return role; }
@@ -37,7 +40,34 @@ public class CohereResponseMessage {
 
     public List<CohereContent> getContent() { return content; }
 
+    public String getToolPlan() { return toolPlan; }
+
     public static Builder builder() { return new Builder(); }
+
+    @Override
+    public String toString() {
+        return "CohereResponseMessage{"
+                + "role=" + role
+                + ", toolCalls=" + toolCalls
+                + ", content=" + content
+                + ", toolPlan=" + toolPlan
+                + '}';
+    }
+
+    @Override
+    public int hashCode() { return Objects.hash(role, toolCalls, content, toolPlan); }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof CohereResponseMessage that && equalsTo(that);
+    }
+
+    private boolean equalsTo(CohereResponseMessage that) {
+        return Objects.equals(role, that.role)
+                && Objects.equals(toolCalls, that.toolCalls)
+                && Objects.equals(content, that.content)
+                && Objects.equals(toolPlan, that.toolPlan);
+    }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)
@@ -48,6 +78,7 @@ public class CohereResponseMessage {
         private CohereRole role;
         private List<CohereToolCall> toolCalls;
         private List<CohereContent> content;
+        private String toolPlan;
 
         public Builder role(CohereRole role) {
             this.role = role;
@@ -61,6 +92,11 @@ public class CohereResponseMessage {
 
         public Builder content(List<CohereContent> content) {
             this.content = content;
+            return this;
+        }
+
+        public Builder toolPlan(String toolPlan) {
+            this.toolPlan = toolPlan;
             return this;
         }
 

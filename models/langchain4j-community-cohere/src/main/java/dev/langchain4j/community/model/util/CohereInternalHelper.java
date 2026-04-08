@@ -3,7 +3,6 @@ package dev.langchain4j.community.model.util;
 import dev.langchain4j.Internal;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
-import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
 import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
@@ -13,18 +12,13 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
 
 import java.util.List;
-import java.util.Optional;
 
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
-import static dev.langchain4j.community.model.util.CohereMapper.fromFinishReason;
+import static dev.langchain4j.community.model.util.CohereMapper.toAiMessage;
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatMessages;
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereResponseFormat;
 import static dev.langchain4j.community.model.util.CohereMapper.toCohereTools;
+import static dev.langchain4j.community.model.util.CohereMapper.toFinishReason;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.joining;
 
 @Internal
 public class CohereInternalHelper {
@@ -76,21 +70,9 @@ public class CohereInternalHelper {
     }
 
     public static ChatResponse fromCohereChatResponse(CohereChatResponse response, String modelName) {
-        String text = Optional.ofNullable(response.getMessage().getContent())
-                .orElse(emptyList())
-                .stream()
-                .filter(content -> content.getType() == TEXT)
-                .map(CohereContent::getText)
-                .collect(collectingAndThen(joining("\n"), s -> s.isEmpty() ? null : s));
+        AiMessage aiMessage = toAiMessage(response.getMessage());
 
-        String thinking = Optional.ofNullable(response.getMessage().getContent())
-                .orElse(emptyList())
-                .stream()
-                .filter(content -> content.getType() == THINKING)
-                .map(CohereContent::getThinking)
-                .collect(collectingAndThen(joining("\n"), s -> s.isEmpty() ? null : s));
-
-        CohereChatResponseMetadata.Builder metadataBuilder = CohereChatResponseMetadata.builder()
+        CohereChatResponseMetadata metadata = CohereChatResponseMetadata.builder()
                 .modelName(modelName)
                 .id(response.getId())
                 .billedUnits(response.getUsage().getBilledUnits())
@@ -98,22 +80,16 @@ public class CohereInternalHelper {
                 .tokenUsage(new TokenUsage(
                         response.getUsage().getTokens().getInputTokens(),
                         response.getUsage().getTokens().getOutputTokens()))
-                .finishReason(fromFinishReason(response.getFinishReason()));
-
-        if (!isNullOrEmpty(response.getLogprobs())) {
-            metadataBuilder.logprobs(response.getLogprobs());
-        }
+                .finishReason(toFinishReason(response.getFinishReason()))
+                .logprobs(isNullOrEmpty(response.getLogprobs())
+                        ? null
+                        : response.getLogprobs()
+                )
+                .build();
 
         return ChatResponse.builder()
-                .aiMessage(AiMessage.builder()
-                        .text(text)
-                        .thinking(thinking)
-                        .toolExecutionRequests(response.getMessage().getToolCalls()
-                                .stream()
-                                .map(CohereMapper::toToolExecutionRequest)
-                                .toList())
-                        .build())
-                .metadata(metadataBuilder.build())
+                .aiMessage(aiMessage)
+                .metadata(metadata)
                 .build();
     }
 }
