@@ -6,19 +6,18 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import dev.langchain4j.community.model.client.chat.message.CohereRole;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
+import dev.langchain4j.community.model.client.chat.message.CohereRole;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
 
 import java.util.List;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereResponseMessage.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereResponseMessage {
 
@@ -36,7 +35,7 @@ public class CohereResponseMessage {
 
     public CohereRole getRole() { return role; }
 
-    public List<CohereToolCall> getToolCalls() { return copy(toolCalls); }
+    public List<CohereToolCall> getToolCalls() { return toolCalls; }
 
     public List<CohereContent> getContent() { return content; }
 
@@ -50,7 +49,7 @@ public class CohereResponseMessage {
                 + "role=" + role
                 + ", toolCalls=" + toolCalls
                 + ", content=" + content
-                + ", toolPlan=" + toolPlan
+                + ", toolPlan=" + quoted(toolPlan)
                 + '}';
     }
 

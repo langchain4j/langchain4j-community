@@ -107,7 +107,7 @@ public class CohereChatRequest {
     @Override
     public String toString() {
         return "CohereChatRequest{"
-                + "model='" + quoted(model)
+                + "model=" + quoted(model)
                 + ", messages=" + messages
                 + ", responseFormat=" + responseFormat
                 + ", tools=" + tools

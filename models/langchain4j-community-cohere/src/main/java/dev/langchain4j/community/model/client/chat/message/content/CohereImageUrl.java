@@ -9,6 +9,7 @@ import dev.langchain4j.data.message.ImageContent;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -27,7 +28,7 @@ public class CohereImageUrl {
     @Override
     public String toString() {
         return "CohereImageUrl{"
-                + "url=" + url
+                + "url=" + quoted(url)
                 + ", detail=" + detail
                 + '}';
     }

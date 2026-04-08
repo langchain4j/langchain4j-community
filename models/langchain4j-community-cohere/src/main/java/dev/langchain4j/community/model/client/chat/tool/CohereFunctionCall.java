@@ -10,10 +10,10 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereFunctionCall.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereFunctionCall {
 
@@ -42,8 +42,8 @@ public class CohereFunctionCall {
     @Override
     public String toString() {
         return "CohereFunctionCall{"
-                + "name=" + name
-                + ", arguments=" + arguments
+                + "name=" + quoted(name)
+                + ", arguments=" + quoted(arguments)
                 + '}';
     }
 

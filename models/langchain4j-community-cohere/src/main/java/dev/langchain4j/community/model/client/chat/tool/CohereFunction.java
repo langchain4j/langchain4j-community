@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -20,7 +20,7 @@ public class CohereFunction {
 
     private CohereFunction(Builder builder) {
         this.name = builder.name;
-        this.parameters = copy(builder.parameters);
+        this.parameters = builder.parameters;
         this.description = builder.description;
     }
 
@@ -35,9 +35,9 @@ public class CohereFunction {
     @Override
     public String toString() {
         return "CohereFunction{"
-                + "name=" + name
+                + "name=" + quoted(name)
                 + ", parameters=" + parameters
-                + ", description=" + description
+                + ", description=" + quoted(description)
                 + '}';
     }
 

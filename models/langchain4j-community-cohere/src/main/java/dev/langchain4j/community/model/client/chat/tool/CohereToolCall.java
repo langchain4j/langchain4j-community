@@ -12,10 +12,10 @@ import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereToolCall.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereToolCall {
 
@@ -49,7 +49,7 @@ public class CohereToolCall {
     public String toString() {
         return "CohereToolCall{"
                 + "type=" + type
-                + ", id=" + id
+                + ", id=" + quoted(id)
                 + ", function=" + function
                 + '}';
     }

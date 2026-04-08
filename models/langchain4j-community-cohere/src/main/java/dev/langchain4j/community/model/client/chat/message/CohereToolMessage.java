@@ -11,6 +11,7 @@ import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static dev.langchain4j.community.model.client.chat.message.CohereRole.TOOL;
+import static dev.langchain4j.internal.Utils.quoted;
 import static java.util.Collections.singletonList;
 
 @JsonInclude(NON_NULL)
@@ -38,7 +39,7 @@ public class CohereToolMessage implements CohereMessage {
     @Override
     public String toString() {
         return "CohereToolMessage{"
-                + "toolCallId=" + toolCallId
+                + "toolCallId=" + quoted(toolCallId)
                 + ", content=" + content
                 + '}';
     }

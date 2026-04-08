@@ -12,13 +12,11 @@ import java.util.List;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.quoted;
 import static java.util.Arrays.asList;
 
 @JsonDeserialize(builder = CohereLogprobs.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereLogprobs {
 
@@ -32,11 +30,11 @@ public class CohereLogprobs {
         this.logprobs = builder.logprobs;
     }
 
-    public List<Integer> getTokenIds() { return copy(tokenIds); }
+    public List<Integer> getTokenIds() { return tokenIds; }
 
     public String getText() { return text; }
 
-    public List<Double> getLogprobs() { return copy(logprobs); }
+    public List<Double> getLogprobs() { return logprobs; }
 
     public static Builder builder() { return new Builder(); }
 

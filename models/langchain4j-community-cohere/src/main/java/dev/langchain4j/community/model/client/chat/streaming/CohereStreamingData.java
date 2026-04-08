@@ -11,10 +11,10 @@ import dev.langchain4j.community.model.client.chat.response.CohereLogprobs;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereStreamingData.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereStreamingData {
 
@@ -42,18 +42,21 @@ public class CohereStreamingData {
 
     public CohereLogprobs getLogprobs() { return logprobs; }
 
+    @Override
     public String toString() {
-        return "CohereStreamingResponse{"
-                    + "type=" + type
-                    + ", id=" + id
+        return "CohereStreamingData{"
+                    + "type=" + quoted(type)
+                    + ", id=" + quoted(id)
                     + ", delta=" + delta
                     + ", index=" + index
                     + ", logprobs=" + logprobs
                 + '}';
     }
 
+    @Override
     public int hashCode() { return Objects.hash(type, id, delta, index, logprobs); }
 
+    @Override
     public boolean equals(Object o) {
         return o instanceof CohereStreamingData response && equalsTo(response);
     }

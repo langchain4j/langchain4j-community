@@ -45,6 +45,7 @@ import static dev.langchain4j.community.model.client.chat.content.CohereContentT
 import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.OTHER;
@@ -66,10 +67,6 @@ public class CohereMapper {
     private CohereMapper() {}
 
     public static List<CohereMessage> toCohereChatMessages(List<ChatMessage> chatMessages) {
-        if (isNullOrEmpty(chatMessages)) {
-            return null;
-        }
-
         return chatMessages.stream()
                 .map(CohereMapper::toCohereChatMessage)
                 .toList();
@@ -140,10 +137,6 @@ public class CohereMapper {
     }
 
     public static List<CohereTool> toCohereTools(List<ToolSpecification> toolSpecifications) {
-        if (isNullOrEmpty(toolSpecifications)) {
-            return null;
-        }
-
         return toolSpecifications.stream()
                 .map(CohereMapper::toCohereTool)
                 .toList();
@@ -259,10 +252,11 @@ public class CohereMapper {
         return AiMessage.builder()
                 .text(text)
                 .thinking(thinking)
-                .toolExecutionRequests(responseMessage.getToolCalls()
-                        .stream()
-                        .map(CohereMapper::toToolExecutionRequest)
-                        .toList())
+                .toolExecutionRequests(isNullOrEmpty(responseMessage.getToolCalls())
+                        ? null
+                        : responseMessage.getToolCalls().stream()
+                                .map(CohereMapper::toToolExecutionRequest)
+                                .toList())
                 .attributes(isNullOrEmpty(responseMessage.getToolPlan())
                         ? null
                         : toAiMessageAttributes(responseMessage.getToolPlan()))
@@ -282,6 +276,7 @@ public class CohereMapper {
     }
 
     public static FinishReason toFinishReason(String finishReason) {
+        if (isNullOrBlank(finishReason)) return null;
         return switch (finishReason) {
             case "COMPLETE", "STOP_SEQUENCE" -> STOP;
             case "MAX_TOKENS" -> LENGTH;

@@ -28,7 +28,10 @@ public final class CohereChatResponseMetadata extends ChatResponseMetadata {
 
     @Override
     public Builder toBuilder() {
-        return ((Builder) super.toBuilder(builder())).logprobs(logprobs);
+        return ((Builder) super.toBuilder(builder()))
+                .logprobs(logprobs)
+                .billedUnits(billedUnits)
+                .cachedTokens(cachedTokens);
     }
 
     public static Builder builder() {
@@ -46,7 +49,7 @@ public final class CohereChatResponseMetadata extends ChatResponseMetadata {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), logprobs);
+        return Objects.hash(super.hashCode(), logprobs, billedUnits, cachedTokens);
     }
 
     @Override

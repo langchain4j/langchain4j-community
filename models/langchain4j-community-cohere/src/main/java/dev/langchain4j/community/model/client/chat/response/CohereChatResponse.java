@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereChatResponse.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereChatResponse {
 
@@ -45,9 +45,9 @@ public class CohereChatResponse {
     @Override
     public String toString() {
         return "CohereChatResponse{"
-                + "id=" + id
+                + "id=" + quoted(id)
                 + ", message=" + message
-                + ", finishReason=" + finishReason
+                + ", finishReason=" + quoted(finishReason)
                 + ", usage=" + usage
                 + ", logprobs=" + logprobs
                 + '}';

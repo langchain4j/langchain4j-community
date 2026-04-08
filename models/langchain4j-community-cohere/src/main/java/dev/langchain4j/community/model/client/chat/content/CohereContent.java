@@ -15,10 +15,10 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static dev.langchain4j.community.model.client.chat.content.CohereContentType.IMAGE_URL;
 import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
 import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereContent.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereContent {
 
@@ -62,8 +62,8 @@ public class CohereContent {
     public String toString() {
         return "CohereContent{"
                 + "type=" + type
-                + ", text=" + text
-                + ", thinking=" + thinking
+                + ", text=" + quoted(text)
+                + ", thinking=" + quoted(thinking)
                 + ", imageUrl=" + imageUrl
                 + '}';
     }

@@ -11,10 +11,10 @@ import dev.langchain4j.community.model.client.chat.response.CohereUsage;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereDelta.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereDelta {
 
@@ -38,17 +38,20 @@ public class CohereDelta {
 
     public CohereUsage getUsage() { return usage; }
 
+    @Override
     public String toString() {
         return "CohereDelta{"
-                + "error=" + error
+                + "error=" + quoted(error)
                 + ", message=" + message
-                + ", finishReason=" + finishReason
+                + ", finishReason=" + quoted(finishReason)
                 + ", usage=" + usage
                 + '}';
     }
 
+    @Override
     public int hashCode() { return Objects.hash(error, message, finishReason, usage); }
 
+    @Override
     public boolean equals(Object o) {
         return o instanceof CohereDelta other && equalsTo(other);
     }

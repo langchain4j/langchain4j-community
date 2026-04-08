@@ -12,11 +12,11 @@ import dev.langchain4j.community.model.client.chat.content.CohereContentType;
 import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 
 @JsonDeserialize(builder = CohereStreamingContent.Builder.class)
 @JsonInclude(NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereStreamingContent {
 
@@ -36,16 +36,19 @@ public class CohereStreamingContent {
 
     public String getThinking() { return thinking; }
 
+    @Override
     public String toString() {
         return "CohereStreamingContent{"
                     + "type=" + type
-                    + ", text=" + text
-                    + ", thinking=" + thinking
+                    + ", text=" + quoted(text)
+                    + ", thinking=" + quoted(thinking)
                 + '}';
     }
 
+    @Override
     public int hashCode() { return Objects.hash(type, text, thinking); }
 
+    @Override
     public boolean equals(Object o) {
         return o instanceof CohereStreamingContent message && equalsTo(message);
     }

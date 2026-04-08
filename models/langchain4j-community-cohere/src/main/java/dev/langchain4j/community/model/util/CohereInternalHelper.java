@@ -40,9 +40,13 @@ public class CohereInternalHelper {
                                                         Boolean stream) {
         CohereChatRequest.Builder builder = CohereChatRequest.builder()
                 .model(parameters.modelName())
-                .messages(toCohereChatMessages(messages))
+                .messages(isNullOrEmpty(messages)
+                        ? null
+                        : toCohereChatMessages(messages))
                 .responseFormat(toCohereResponseFormat(parameters.responseFormat()))
-                .tools(toCohereTools(parameters.toolSpecifications()))
+                .tools(isNullOrEmpty(parameters.toolSpecifications())
+                        ? null
+                        : toCohereTools(parameters.toolSpecifications()))
                 .toolChoice(parameters.toolChoice())
                 .temperature(parameters.temperature())
                 .p(parameters.topP())
@@ -50,7 +54,9 @@ public class CohereInternalHelper {
                 .presencePenalty(parameters.presencePenalty())
                 .frequencyPenalty(parameters.frequencyPenalty())
                 .maxTokens(parameters.maxOutputTokens())
-                .stopSequences(isNullOrEmpty(parameters.stopSequences()) ? null : parameters.stopSequences())
+                .stopSequences(isNullOrEmpty(parameters.stopSequences())
+                        ? null
+                        : parameters.stopSequences())
                 .stream(stream)
                 .safetyMode(parameters.safetyMode())
                 .priority(parameters.priority())

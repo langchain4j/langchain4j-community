@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 import java.util.Objects;
 
+import static dev.langchain4j.internal.Utils.quoted;
+
 @JsonDeserialize(builder = CohereStreamingStartData.Builder.class)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereStreamingStartData {
@@ -23,7 +25,7 @@ public class CohereStreamingStartData {
     @Override
     public String toString() {
         return "CohereStreamingStartData{"
-                + "id=" + id
+                + "id=" + quoted(id)
                 + '}';
     }
 
