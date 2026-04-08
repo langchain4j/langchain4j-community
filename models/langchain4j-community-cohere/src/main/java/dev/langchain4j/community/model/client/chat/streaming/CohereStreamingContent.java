@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.client.chat.streaming;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -8,12 +10,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.content.CohereContentType;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
-
 
 @JsonDeserialize(builder = CohereStreamingContent.Builder.class)
 @JsonInclude(NON_NULL)
@@ -30,23 +27,31 @@ public class CohereStreamingContent {
         this.thinking = builder.thinking;
     }
 
-    public CohereContentType getType() { return type; }
+    public CohereContentType getType() {
+        return type;
+    }
 
-    public String getText() { return text; }
+    public String getText() {
+        return text;
+    }
 
-    public String getThinking() { return thinking; }
+    public String getThinking() {
+        return thinking;
+    }
 
     @Override
     public String toString() {
         return "CohereStreamingContent{"
-                    + "type=" + type
-                    + ", text=" + quoted(text)
-                    + ", thinking=" + quoted(thinking)
+                + "type=" + type
+                + ", text=" + quoted(text)
+                + ", thinking=" + quoted(thinking)
                 + '}';
     }
 
     @Override
-    public int hashCode() { return Objects.hash(type, text, thinking); }
+    public int hashCode() {
+        return Objects.hash(type, text, thinking);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -54,7 +59,8 @@ public class CohereStreamingContent {
     }
 
     private boolean equalsTo(CohereStreamingContent that) {
-        return Objects.equals(type, that.type) && Objects.equals(text, that.text)
+        return Objects.equals(type, that.type)
+                && Objects.equals(text, that.text)
                 && Objects.equals(thinking, that.thinking);
     }
 

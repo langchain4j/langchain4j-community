@@ -1,5 +1,9 @@
 package dev.langchain4j.community.model.cohere;
 
+import static dev.langchain4j.community.model.client.CohereThinkingType.DISABLED;
+import static dev.langchain4j.community.model.client.CohereThinkingType.ENABLED;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -8,15 +12,10 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-import static dev.langchain4j.community.model.client.CohereThinkingType.DISABLED;
-import static dev.langchain4j.community.model.client.CohereThinkingType.ENABLED;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereChatModelThinkingIT {
 
     private static final Integer MAX_THINKING_TOKENS = 20;
-
 
     @Test
     void should_return_thinking() {
@@ -33,8 +32,7 @@ class CohereChatModelThinkingIT {
                 .build();
 
         // when
-        ChatResponse response = chatModel.chat(
-                UserMessage.from("What is the Capital of Venezuela?"));
+        ChatResponse response = chatModel.chat(UserMessage.from("What is the Capital of Venezuela?"));
 
         // then
         AiMessage aiMessage = response.aiMessage();
@@ -57,14 +55,11 @@ class CohereChatModelThinkingIT {
                 .build();
 
         // when
-        ChatResponse response = chatModel.chat(
-                UserMessage.from("What is the Capital of Venezuela?"));
-
+        ChatResponse response = chatModel.chat(UserMessage.from("What is the Capital of Venezuela?"));
 
         // then
         AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.text()).containsIgnoringCase("Caracas");
         assertThat(aiMessage.thinking()).isBlank();
     }
-
 }

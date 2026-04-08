@@ -1,5 +1,8 @@
 package dev.langchain4j.community.model.client.chat.streaming;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -7,11 +10,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.response.CohereLogprobs;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereStreamingData.Builder.class)
 @JsonInclude(NON_NULL)
@@ -32,29 +31,41 @@ public class CohereStreamingData {
         this.logprobs = builder.logprobs;
     }
 
-    public String getType() { return type; }
+    public String getType() {
+        return type;
+    }
 
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
-    public CohereDelta getDelta() { return delta; }
+    public CohereDelta getDelta() {
+        return delta;
+    }
 
-    public Integer getIndex() { return index; }
+    public Integer getIndex() {
+        return index;
+    }
 
-    public CohereLogprobs getLogprobs() { return logprobs; }
+    public CohereLogprobs getLogprobs() {
+        return logprobs;
+    }
 
     @Override
     public String toString() {
         return "CohereStreamingData{"
-                    + "type=" + quoted(type)
-                    + ", id=" + quoted(id)
-                    + ", delta=" + delta
-                    + ", index=" + index
-                    + ", logprobs=" + logprobs
+                + "type=" + quoted(type)
+                + ", id=" + quoted(id)
+                + ", delta=" + delta
+                + ", index=" + index
+                + ", logprobs=" + logprobs
                 + '}';
     }
 
     @Override
-    public int hashCode() { return Objects.hash(type, id, delta, index, logprobs); }
+    public int hashCode() {
+        return Objects.hash(type, id, delta, index, logprobs);
+    }
 
     @Override
     public boolean equals(Object o) {

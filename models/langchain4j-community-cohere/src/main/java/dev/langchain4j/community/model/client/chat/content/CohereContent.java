@@ -1,5 +1,10 @@
 package dev.langchain4j.community.model.client.chat.content;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.IMAGE_URL;
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
+import static dev.langchain4j.internal.Utils.quoted;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -8,14 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.message.content.CohereImageUrl;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.IMAGE_URL;
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereContent.Builder.class)
 @JsonInclude(NON_NULL)
@@ -34,13 +32,21 @@ public class CohereContent {
         this.imageUrl = builder.imageUrl;
     }
 
-    public CohereContentType getType() { return type; }
+    public CohereContentType getType() {
+        return type;
+    }
 
-    public String getText() { return text; }
+    public String getText() {
+        return text;
+    }
 
-    public String getThinking() { return thinking; }
+    public String getThinking() {
+        return thinking;
+    }
 
-    public CohereImageUrl getImageUrl() { return imageUrl; }
+    public CohereImageUrl getImageUrl() {
+        return imageUrl;
+    }
 
     public static CohereContent text(String text) {
         return builder().type(TEXT).text(text).build();

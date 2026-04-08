@@ -1,15 +1,14 @@
 package dev.langchain4j.community.model.client.chat.response;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonDeserialize(builder = CohereBilledUnits.Builder.class)
 @JsonInclude(NON_NULL)
@@ -28,13 +27,21 @@ public class CohereBilledUnits {
         this.classifications = builder.classifications;
     }
 
-    public Double getInputTokens() { return inputTokens; }
+    public Double getInputTokens() {
+        return inputTokens;
+    }
 
-    public Double getOutputTokens() { return outputTokens; }
+    public Double getOutputTokens() {
+        return outputTokens;
+    }
 
-    public Double getSearchUnits() { return searchUnits; }
+    public Double getSearchUnits() {
+        return searchUnits;
+    }
 
-    public Double getClassifications() { return classifications; }
+    public Double getClassifications() {
+        return classifications;
+    }
 
     @Override
     public String toString() {
@@ -47,7 +54,9 @@ public class CohereBilledUnits {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(inputTokens, outputTokens, searchUnits, classifications); }
+    public int hashCode() {
+        return Objects.hash(inputTokens, outputTokens, searchUnits, classifications);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -61,7 +70,9 @@ public class CohereBilledUnits {
                 && Objects.equals(classifications, that.classifications);
     }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)
@@ -94,6 +105,8 @@ public class CohereBilledUnits {
             return this;
         }
 
-        public CohereBilledUnits build() { return new CohereBilledUnits(this); }
+        public CohereBilledUnits build() {
+            return new CohereBilledUnits(this);
+        }
     }
 }

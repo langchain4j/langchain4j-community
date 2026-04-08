@@ -1,12 +1,11 @@
 package dev.langchain4j.community.model.client;
 
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
-
-import java.util.Objects;
-
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.quoted;
+
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import java.util.Objects;
 
 public class CohereChatRequestParameters extends DefaultChatRequestParameters {
 
@@ -32,19 +31,33 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
         this.strictTools = builder.strictTools;
     }
 
-    public CohereThinkingType thinkingType() { return thinkingType; }
+    public CohereThinkingType thinkingType() {
+        return thinkingType;
+    }
 
-    public Integer thinkingTokenBudget() { return thinkingTokenBudget; }
+    public Integer thinkingTokenBudget() {
+        return thinkingTokenBudget;
+    }
 
-    public CohereSafetyMode safetyMode() { return safetyMode; }
+    public CohereSafetyMode safetyMode() {
+        return safetyMode;
+    }
 
-    public Integer priority() { return priority; }
+    public Integer priority() {
+        return priority;
+    }
 
-    public Integer seed() { return seed; }
+    public Integer seed() {
+        return seed;
+    }
 
-    public Boolean logprobs() { return logprobs; }
+    public Boolean logprobs() {
+        return logprobs;
+    }
 
-    public Boolean strictTools() { return strictTools; }
+    public Boolean strictTools() {
+        return strictTools;
+    }
 
     @Override
     public CohereChatRequestParameters overrideWith(ChatRequestParameters that) {
@@ -62,7 +75,9 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
                 .build();
     }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     @Override
     public String toString() {
@@ -91,14 +106,7 @@ public class CohereChatRequestParameters extends DefaultChatRequestParameters {
     @Override
     public int hashCode() {
         return Objects.hash(
-                super.hashCode(),
-                thinkingType,
-                thinkingTokenBudget,
-                safetyMode,
-                priority,
-                seed,
-                logprobs,
-                strictTools);
+                super.hashCode(), thinkingType, thinkingTokenBudget, safetyMode, priority, seed, logprobs, strictTools);
     }
 
     @Override

@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model.client.chat.tool;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.Map;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -24,13 +23,21 @@ public class CohereFunction {
         this.description = builder.description;
     }
 
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
-    public Map<String, Object> getParameters() { return parameters; }
+    public Map<String, Object> getParameters() {
+        return parameters;
+    }
 
-    public String getDescription() { return description; }
+    public String getDescription() {
+        return description;
+    }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     @Override
     public String toString() {
@@ -42,7 +49,9 @@ public class CohereFunction {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(name, parameters, description); }
+    public int hashCode() {
+        return Objects.hash(name, parameters, description);
+    }
 
     @Override
     public boolean equals(Object o) {

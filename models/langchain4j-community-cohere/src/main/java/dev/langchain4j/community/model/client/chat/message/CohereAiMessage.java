@@ -1,18 +1,17 @@
 package dev.langchain4j.community.model.client.chat.message;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.community.model.client.chat.message.CohereRole.ASSISTANT;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
-
 import java.util.List;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.community.model.client.chat.message.CohereRole.ASSISTANT;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -27,18 +26,24 @@ public class CohereAiMessage implements CohereMessage {
     }
 
     @Override
-    public CohereRole role() { return ASSISTANT; }
+    public CohereRole role() {
+        return ASSISTANT;
+    }
 
-    public List<CohereContent> content() { return content; }
+    public List<CohereContent> content() {
+        return content;
+    }
 
-    public List<CohereToolCall> toolCalls() { return toolCalls; }
+    public List<CohereToolCall> toolCalls() {
+        return toolCalls;
+    }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static CohereAiMessage from(String text) {
-        return builder()
-                .content(singletonList(CohereContent.text(text)))
-                .build();
+        return builder().content(singletonList(CohereContent.text(text))).build();
     }
 
     public static CohereAiMessage from(CohereToolCall... toolCalls) {
@@ -46,21 +51,18 @@ public class CohereAiMessage implements CohereMessage {
     }
 
     public static CohereAiMessage from(List<CohereToolCall> toolCalls) {
-        return builder()
-                .toolCalls(toolCalls)
-                .build();
+        return builder().toolCalls(toolCalls).build();
     }
 
     @Override
     public String toString() {
-        return "CohereAiMessage{"
-                + "content=" + content
-                + ", toolCalls=" + toolCalls
-                + '}';
+        return "CohereAiMessage{" + "content=" + content + ", toolCalls=" + toolCalls + '}';
     }
 
     @Override
-    public int hashCode() { return Objects.hash(content, toolCalls); }
+    public int hashCode() {
+        return Objects.hash(content, toolCalls);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -68,10 +70,8 @@ public class CohereAiMessage implements CohereMessage {
     }
 
     private boolean equalsTo(CohereAiMessage that) {
-        return Objects.equals(content, that.content)
-                && Objects.equals(toolCalls, that.toolCalls);
+        return Objects.equals(content, that.content) && Objects.equals(toolCalls, that.toolCalls);
     }
-
 
     public static class Builder {
 
@@ -96,6 +96,8 @@ public class CohereAiMessage implements CohereMessage {
             return this;
         }
 
-        public CohereAiMessage build() { return new CohereAiMessage(this); }
+        public CohereAiMessage build() {
+            return new CohereAiMessage(this);
+        }
     }
 }

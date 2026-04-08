@@ -1,18 +1,17 @@
 package dev.langchain4j.community.model.client.chat.message;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.community.model.client.chat.message.CohereRole.TOOL;
+import static dev.langchain4j.internal.Utils.quoted;
+import static java.util.Collections.singletonList;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
-
 import java.util.List;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.community.model.client.chat.message.CohereRole.TOOL;
-import static dev.langchain4j.internal.Utils.quoted;
-import static java.util.Collections.singletonList;
 
 @JsonInclude(NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -28,24 +27,23 @@ public class CohereToolMessage implements CohereMessage {
     }
 
     @Override
-    public CohereRole role() { return TOOL; }
+    public CohereRole role() {
+        return TOOL;
+    }
 
     public static CohereToolMessage from(String toolCallId, String result) {
-        return new CohereToolMessage(
-                toolCallId,
-                singletonList(CohereContent.text(result)));
+        return new CohereToolMessage(toolCallId, singletonList(CohereContent.text(result)));
     }
 
     @Override
     public String toString() {
-        return "CohereToolMessage{"
-                + "toolCallId=" + quoted(toolCallId)
-                + ", content=" + content
-                + '}';
+        return "CohereToolMessage{" + "toolCallId=" + quoted(toolCallId) + ", content=" + content + '}';
     }
 
     @Override
-    public int hashCode() { return Objects.hash(toolCallId, content); }
+    public int hashCode() {
+        return Objects.hash(toolCallId, content);
+    }
 
     @Override
     public boolean equals(Object o) {

@@ -1,15 +1,13 @@
 package dev.langchain4j.community.model.client.chat.message.content;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.data.message.ImageContent;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -23,18 +21,19 @@ public class CohereImageUrl {
         this.detail = builder.detail;
     }
 
-    public static Builder builder() { return new Builder(); }
-
-    @Override
-    public String toString() {
-        return "CohereImageUrl{"
-                + "url=" + quoted(url)
-                + ", detail=" + detail
-                + '}';
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
-    public int hashCode() { return Objects.hash(url, detail); }
+    public String toString() {
+        return "CohereImageUrl{" + "url=" + quoted(url) + ", detail=" + detail + '}';
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(url, detail);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -63,6 +62,4 @@ public class CohereImageUrl {
             return new CohereImageUrl(this);
         }
     }
-
-
 }

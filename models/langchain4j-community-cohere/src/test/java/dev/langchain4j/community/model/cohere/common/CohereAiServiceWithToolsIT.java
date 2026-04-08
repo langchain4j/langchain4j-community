@@ -3,10 +3,9 @@ package dev.langchain4j.community.model.cohere.common;
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.common.AbstractAiServiceWithToolsIT;
+import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
-import java.util.List;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereAiServiceWithToolsIT extends AbstractAiServiceWithToolsIT {

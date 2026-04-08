@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>langchain4j-community-cohere</artifactId>
-    <name> Langchain4j :: Community :: Integration :: Cohere</name>
+    <name>Langchain4j :: Community :: Integration :: Cohere</name>
 
     <dependencies>
 

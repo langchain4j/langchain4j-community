@@ -1,5 +1,9 @@
 package dev.langchain4j.community.model.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
+import static java.util.Arrays.asList;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -9,13 +13,8 @@ import dev.langchain4j.community.model.client.chat.message.CohereMessage;
 import dev.langchain4j.community.model.client.chat.thinking.CohereThinking;
 import dev.langchain4j.community.model.client.chat.tool.CohereTool;
 import dev.langchain4j.model.chat.request.ToolChoice;
-
 import java.util.List;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
-import static java.util.Arrays.asList;
 
 @JsonInclude(NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -68,41 +67,77 @@ public class CohereChatRequest {
         return model;
     }
 
-    public List<CohereMessage> getMessages() { return messages; }
+    public List<CohereMessage> getMessages() {
+        return messages;
+    }
 
-    public CohereResponseFormat getResponseFormat() { return responseFormat; }
+    public CohereResponseFormat getResponseFormat() {
+        return responseFormat;
+    }
 
-    public List<CohereTool> getTools() { return tools; }
+    public List<CohereTool> getTools() {
+        return tools;
+    }
 
-    public ToolChoice getToolChoice() { return toolChoice; }
+    public ToolChoice getToolChoice() {
+        return toolChoice;
+    }
 
-    public Double getTemperature() { return this.temperature; }
+    public Double getTemperature() {
+        return this.temperature;
+    }
 
-    public Double getP() { return this.p; }
+    public Double getP() {
+        return this.p;
+    }
 
-    public Integer getK() { return this.k; }
+    public Integer getK() {
+        return this.k;
+    }
 
-    public Double getPresencePenalty() { return this.presencePenalty; }
+    public Double getPresencePenalty() {
+        return this.presencePenalty;
+    }
 
-    public Double getFrequencyPenalty() { return this.frequencyPenalty; }
+    public Double getFrequencyPenalty() {
+        return this.frequencyPenalty;
+    }
 
-    public Integer getMaxTokens() { return this.maxTokens; }
+    public Integer getMaxTokens() {
+        return this.maxTokens;
+    }
 
-    public List<String> getStopSequences() { return this.stopSequences; }
+    public List<String> getStopSequences() {
+        return this.stopSequences;
+    }
 
-    public CohereThinking getThinking() { return thinking; }
+    public CohereThinking getThinking() {
+        return thinking;
+    }
 
-    public Boolean isStream() { return stream; }
+    public Boolean isStream() {
+        return stream;
+    }
 
-    public CohereSafetyMode getSafetyMode() { return safetyMode; }
+    public CohereSafetyMode getSafetyMode() {
+        return safetyMode;
+    }
 
-    public Integer getPriority() { return priority; }
+    public Integer getPriority() {
+        return priority;
+    }
 
-    public Integer getSeed() { return seed; }
+    public Integer getSeed() {
+        return seed;
+    }
 
-    public Boolean hasLogprobs() { return logprobs; }
+    public Boolean hasLogprobs() {
+        return logprobs;
+    }
 
-    public Boolean hasStrictTools() { return strictTools; }
+    public Boolean hasStrictTools() {
+        return strictTools;
+    }
 
     @Override
     public String toString() {
@@ -132,9 +167,25 @@ public class CohereChatRequest {
     @Override
     public int hashCode() {
         return Objects.hash(
-                model, messages, responseFormat, tools, toolChoice, temperature, p, k,
-                presencePenalty, frequencyPenalty, maxTokens, stopSequences, thinking, stream,
-                safetyMode, priority, seed, logprobs, strictTools);
+                model,
+                messages,
+                responseFormat,
+                tools,
+                toolChoice,
+                temperature,
+                p,
+                k,
+                presencePenalty,
+                frequencyPenalty,
+                maxTokens,
+                stopSequences,
+                thinking,
+                stream,
+                safetyMode,
+                priority,
+                seed,
+                logprobs,
+                strictTools);
     }
 
     @Override
@@ -164,7 +215,9 @@ public class CohereChatRequest {
                 && Objects.equals(strictTools, that.strictTools);
     }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static class Builder {
 

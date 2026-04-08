@@ -1,5 +1,10 @@
 package dev.langchain4j.community.model;
 
+import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereStreamingChatRequest;
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static java.util.Arrays.asList;
+
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.CohereClient;
@@ -16,18 +21,12 @@ import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import org.slf4j.Logger;
-
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereStreamingChatRequest;
-import static dev.langchain4j.internal.Utils.copy;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static java.util.Arrays.asList;
+import org.slf4j.Logger;
 
 /**
  * Represents a Cohere LLM with a chat API.
@@ -53,7 +52,8 @@ public class CohereStreamingChatModel implements StreamingChatModel {
                 .logger(builder.logger)
                 .build();
 
-        ChatRequestParameters commonParameters = getOrDefault(builder.defaultRequestParameters, DefaultChatRequestParameters.EMPTY);
+        ChatRequestParameters commonParameters =
+                getOrDefault(builder.defaultRequestParameters, DefaultChatRequestParameters.EMPTY);
         CohereChatRequestParameters cohereDefaultParameters =
                 builder.defaultRequestParameters instanceof CohereChatRequestParameters cohereChatRequestParameters
                         ? cohereChatRequestParameters
@@ -69,12 +69,14 @@ public class CohereStreamingChatModel implements StreamingChatModel {
                 .presencePenalty(getOrDefault(builder.presencePenalty, commonParameters.presencePenalty()))
                 .maxOutputTokens(getOrDefault(builder.maxTokens, commonParameters.maxOutputTokens()))
                 .stopSequences(getOrDefault(copy(builder.stopSequences), commonParameters.stopSequences()))
-                .toolSpecifications(getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
+                .toolSpecifications(
+                        getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
                 .toolChoice(getOrDefault(builder.toolChoice, commonParameters.toolChoice()))
                 .responseFormat(getOrDefault(builder.responseFormat, commonParameters.responseFormat()))
                 // Cohere specific parameters
                 .thinkingType(getOrDefault(builder.thinkingType, cohereDefaultParameters.thinkingType()))
-                .thinkingTokenBudget(getOrDefault(builder.thinkingTokenBudget, cohereDefaultParameters.thinkingTokenBudget()))
+                .thinkingTokenBudget(
+                        getOrDefault(builder.thinkingTokenBudget, cohereDefaultParameters.thinkingTokenBudget()))
                 .safetyMode(getOrDefault(builder.safetyMode, cohereDefaultParameters.safetyMode()))
                 .priority(getOrDefault(builder.priority, cohereDefaultParameters.priority()))
                 .seed(getOrDefault(builder.seed, cohereDefaultParameters.seed()))
@@ -88,9 +90,8 @@ public class CohereStreamingChatModel implements StreamingChatModel {
 
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        CohereChatRequestParameters parameters = CohereChatRequestParameters.builder()
-                .build()
-                .defaultedBy(chatRequest.parameters());
+        CohereChatRequestParameters parameters =
+                CohereChatRequestParameters.builder().build().defaultedBy(chatRequest.parameters());
 
         CohereChatRequest cohereChatRequest = toCohereStreamingChatRequest(chatRequest.messages(), parameters);
 
@@ -271,7 +272,8 @@ public class CohereStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
-        public CohereStreamingChatModelBuilder defaultRequestParameters(ChatRequestParameters defaultRequestParameters) {
+        public CohereStreamingChatModelBuilder defaultRequestParameters(
+                ChatRequestParameters defaultRequestParameters) {
             this.defaultRequestParameters = defaultRequestParameters;
             return this;
         }
@@ -310,11 +312,15 @@ public class CohereStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
-        public CohereStreamingChatModel build() { return new CohereStreamingChatModel(this); }
+        public CohereStreamingChatModel build() {
+            return new CohereStreamingChatModel(this);
+        }
     }
 
     @Override
-    public List<ChatModelListener> listeners() { return listeners; }
+    public List<ChatModelListener> listeners() {
+        return listeners;
+    }
 
     @Override
     public ChatRequestParameters defaultRequestParameters() {
@@ -322,5 +328,7 @@ public class CohereStreamingChatModel implements StreamingChatModel {
     }
 
     @Override
-    public Set<Capability> supportedCapabilities() { return supportedCapabilities; }
+    public Set<Capability> supportedCapabilities() {
+        return supportedCapabilities;
+    }
 }

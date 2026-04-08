@@ -1,16 +1,15 @@
 package dev.langchain4j.community.model.client.chat.message;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.community.model.client.chat.message.CohereRole.SYSTEM;
+import static java.util.Collections.singletonList;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
-
 import java.util.List;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.community.model.client.chat.message.CohereRole.SYSTEM;
-import static java.util.Collections.singletonList;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -23,7 +22,9 @@ public class CohereSystemMessage implements CohereMessage {
     }
 
     @Override
-    public CohereRole role() { return SYSTEM; }
+    public CohereRole role() {
+        return SYSTEM;
+    }
 
     public static CohereMessage from(String text) {
         return new CohereSystemMessage(singletonList(CohereContent.text(text)));
@@ -31,17 +32,16 @@ public class CohereSystemMessage implements CohereMessage {
 
     @Override
     public String toString() {
-        return "CohereSystemMessage{"
-                + "content=" + content
-                + '}';
+        return "CohereSystemMessage{" + "content=" + content + '}';
     }
 
     @Override
-    public int hashCode() { return Objects.hash(content); }
+    public int hashCode() {
+        return Objects.hash(content);
+    }
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof CohereSystemMessage that
-                && Objects.equals(content, that.content);
+        return o instanceof CohereSystemMessage that && Objects.equals(content, that.content);
     }
 }

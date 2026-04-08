@@ -1,5 +1,22 @@
 package dev.langchain4j.community.model.util;
 
+import static dev.langchain4j.community.model.client.CohereResponseFormatType.JSON_OBJECT;
+import static dev.langchain4j.community.model.client.chat.content.CohereContent.image;
+import static dev.langchain4j.community.model.client.chat.content.CohereContent.text;
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
+import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
+import static dev.langchain4j.internal.Exceptions.illegalArgument;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
+import static dev.langchain4j.model.output.FinishReason.OTHER;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.joining;
+
 import dev.langchain4j.Internal;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -31,45 +48,25 @@ import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.output.FinishReason;
-
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import static dev.langchain4j.community.model.client.CohereResponseFormatType.JSON_OBJECT;
-import static dev.langchain4j.community.model.client.chat.content.CohereContent.image;
-import static dev.langchain4j.community.model.client.chat.content.CohereContent.text;
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
-import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
-import static dev.langchain4j.internal.Exceptions.illegalArgument;
-import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static dev.langchain4j.model.output.FinishReason.LENGTH;
-import static dev.langchain4j.model.output.FinishReason.OTHER;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.joining;
 
 @Internal
 public class CohereMapper {
 
     private static final String TOOL_PLAN_KEY = "tool_plan";
 
-    private static final Map<String, Object> EMPTY_SCHEMA = toMap(JsonObjectSchema.builder().build());
-    private static final CohereResponseFormat JSON_MODE_SCHEMA = CohereResponseFormat.builder()
-            .type(JSON_OBJECT)
-            .build();
+    private static final Map<String, Object> EMPTY_SCHEMA =
+            toMap(JsonObjectSchema.builder().build());
+    private static final CohereResponseFormat JSON_MODE_SCHEMA =
+            CohereResponseFormat.builder().type(JSON_OBJECT).build();
 
     private CohereMapper() {}
 
     public static List<CohereMessage> toCohereChatMessages(List<ChatMessage> chatMessages) {
-        return chatMessages.stream()
-                .map(CohereMapper::toCohereChatMessage)
-                .toList();
+        return chatMessages.stream().map(CohereMapper::toCohereChatMessage).toList();
     }
 
     private static CohereMessage toCohereChatMessage(ChatMessage chatMessage) {
@@ -78,8 +75,7 @@ public class CohereMapper {
         }
 
         if (chatMessage instanceof UserMessage userMessage) {
-            return CohereUserMessage.from(userMessage.contents()
-                    .stream()
+            return CohereUserMessage.from(userMessage.contents().stream()
                     .map(CohereMapper::toCohereContent)
                     .toList());
         }
@@ -93,10 +89,7 @@ public class CohereMapper {
 
             if (aiMessage.hasToolExecutionRequests()) {
                 builder.toolCalls(aiMessage.toolExecutionRequests().stream()
-                        .map(tc -> CohereToolCall.from(
-                                tc.id(),
-                                CohereFunctionCall.from(tc.name(), tc.arguments())
-                        ))
+                        .map(tc -> CohereToolCall.from(tc.id(), CohereFunctionCall.from(tc.name(), tc.arguments())))
                         .toList());
             }
 
@@ -104,9 +97,7 @@ public class CohereMapper {
         }
 
         if (chatMessage instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
-            return CohereToolMessage.from(
-                    toolExecutionResultMessage.id(),
-                    toolExecutionResultMessage.text());
+            return CohereToolMessage.from(toolExecutionResultMessage.id(), toolExecutionResultMessage.text());
         }
 
         throw illegalArgument("Unsupported chat message type: " + chatMessage);
@@ -137,9 +128,7 @@ public class CohereMapper {
     }
 
     public static List<CohereTool> toCohereTools(List<ToolSpecification> toolSpecifications) {
-        return toolSpecifications.stream()
-                .map(CohereMapper::toCohereTool)
-                .toList();
+        return toolSpecifications.stream().map(CohereMapper::toCohereTool).toList();
     }
 
     private static CohereTool toCohereTool(ToolSpecification toolSpecification) {
@@ -183,19 +172,20 @@ public class CohereMapper {
             }
 
             Map<String, Object> properties = new LinkedHashMap<>();
-            objectSchema.properties()
-                    .forEach((property, value) -> properties.put(property, toCohereSchema(value)));
+            objectSchema.properties().forEach((property, value) -> properties.put(property, toCohereSchema(value)));
 
             map.put("properties", properties);
 
             // Set all properties as required if not specified
             // (an object schema may not have zero required properties, as specified in the Cohere API docs).
-            map.put("required", objectSchema.required().isEmpty()
-                    ? objectSchema.properties().keySet()
-                    : objectSchema.required());
+            map.put(
+                    "required",
+                    objectSchema.required().isEmpty()
+                            ? objectSchema.properties().keySet()
+                            : objectSchema.required());
 
-             if (objectSchema.additionalProperties() != null) {
-                 map.put("additionalProperties", objectSchema.additionalProperties());
+            if (objectSchema.additionalProperties() != null) {
+                map.put("additionalProperties", objectSchema.additionalProperties());
             }
 
             if (!objectSchema.definitions().isEmpty()) {
@@ -252,14 +242,16 @@ public class CohereMapper {
         return AiMessage.builder()
                 .text(text)
                 .thinking(thinking)
-                .toolExecutionRequests(isNullOrEmpty(responseMessage.getToolCalls())
-                        ? null
-                        : responseMessage.getToolCalls().stream()
-                                .map(CohereMapper::toToolExecutionRequest)
-                                .toList())
-                .attributes(isNullOrEmpty(responseMessage.getToolPlan())
-                        ? null
-                        : toAiMessageAttributes(responseMessage.getToolPlan()))
+                .toolExecutionRequests(
+                        isNullOrEmpty(responseMessage.getToolCalls())
+                                ? null
+                                : responseMessage.getToolCalls().stream()
+                                        .map(CohereMapper::toToolExecutionRequest)
+                                        .toList())
+                .attributes(
+                        isNullOrEmpty(responseMessage.getToolPlan())
+                                ? null
+                                : toAiMessageAttributes(responseMessage.getToolPlan()))
                 .build();
     }
 

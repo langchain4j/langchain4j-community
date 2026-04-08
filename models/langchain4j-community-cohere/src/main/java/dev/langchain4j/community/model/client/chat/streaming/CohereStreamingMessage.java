@@ -1,5 +1,8 @@
 package dev.langchain4j.community.model.client.chat.streaming;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -7,11 +10,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereStreamingMessage.Builder.class)
 @JsonInclude(NON_NULL)
@@ -28,11 +27,17 @@ public class CohereStreamingMessage {
         this.toolPlan = builder.toolPlan;
     }
 
-    public CohereStreamingContent getContent() { return content; }
+    public CohereStreamingContent getContent() {
+        return content;
+    }
 
-    public CohereToolCall getToolCalls() { return toolCalls; }
+    public CohereToolCall getToolCalls() {
+        return toolCalls;
+    }
 
-    public String getToolPlan() { return toolPlan; }
+    public String getToolPlan() {
+        return toolPlan;
+    }
 
     @Override
     public String toString() {
@@ -40,11 +45,13 @@ public class CohereStreamingMessage {
                 + "content=" + content
                 + ", toolCalls=" + toolCalls
                 + ", toolPlan=" + quoted(toolPlan)
-            + '}';
+                + '}';
     }
 
     @Override
-    public int hashCode() { return Objects.hash(content, toolCalls, toolPlan); }
+    public int hashCode() {
+        return Objects.hash(content, toolCalls, toolPlan);
+    }
 
     @Override
     public boolean equals(Object o) {

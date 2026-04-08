@@ -1,5 +1,17 @@
 package dev.langchain4j.community.model.cohere;
 
+import static dev.langchain4j.community.model.client.CohereSafetyMode.CONTEXTUAL;
+import static dev.langchain4j.community.model.client.CohereThinkingType.ENABLED;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereStreamingChatRequest;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
@@ -18,26 +30,13 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
+import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.List;
-import java.util.stream.Stream;
-
-import static dev.langchain4j.community.model.client.CohereSafetyMode.CONTEXTUAL;
-import static dev.langchain4j.community.model.client.CohereThinkingType.ENABLED;
-import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
-import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
-import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereStreamingChatRequest;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereInternalHelperTest {
@@ -50,12 +49,13 @@ class CohereInternalHelperTest {
                 // Just messages
                 Arguments.of(
                         singletonList(UserMessage.from("User message")),
-                        CohereChatRequestParameters.builder().modelName(MODEL_NAME).build(),
+                        CohereChatRequestParameters.builder()
+                                .modelName(MODEL_NAME)
+                                .build(),
                         CohereChatRequest.builder()
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
-                                .build()
-                ),
+                                .build()),
 
                 // Messages with common L4J parameters
                 Arguments.of(
@@ -80,8 +80,7 @@ class CohereInternalHelperTest {
                                 .frequencyPenalty(0.1)
                                 .maxTokens(300)
                                 .stopSequences(asList("STOP_1", "STOP_2"))
-                                .build()
-                ),
+                                .build()),
 
                 // With thinking type defined (but no token budget)
                 Arguments.of(
@@ -94,8 +93,7 @@ class CohereInternalHelperTest {
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
                                 .thinking(CohereThinking.builder().type(ENABLED).build())
-                                .build()
-                ),
+                                .build()),
 
                 // With token budget defined (but no thinking type)
                 Arguments.of(
@@ -107,9 +105,10 @@ class CohereInternalHelperTest {
                         CohereChatRequest.builder()
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
-                                .thinking(CohereThinking.builder().tokenBudget(128).build())
-                                .build()
-                ),
+                                .thinking(CohereThinking.builder()
+                                        .tokenBudget(128)
+                                        .build())
+                                .build()),
 
                 // With safety mode
                 Arguments.of(
@@ -122,8 +121,7 @@ class CohereInternalHelperTest {
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
                                 .safetyMode(CONTEXTUAL)
-                                .build()
-                ),
+                                .build()),
 
                 // With priority
                 Arguments.of(
@@ -136,8 +134,7 @@ class CohereInternalHelperTest {
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
                                 .priority(999)
-                                .build()
-                ),
+                                .build()),
 
                 // With seed
                 Arguments.of(
@@ -150,8 +147,7 @@ class CohereInternalHelperTest {
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
                                 .seed(99)
-                                .build()
-                ),
+                                .build()),
 
                 // With logprobs
                 Arguments.of(
@@ -164,8 +160,7 @@ class CohereInternalHelperTest {
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
                                 .logprobs(true)
-                                .build()
-                ),
+                                .build()),
 
                 // With strict tools
                 Arguments.of(
@@ -178,9 +173,7 @@ class CohereInternalHelperTest {
                                 .model(MODEL_NAME)
                                 .messages(CohereUserMessage.from("User message"))
                                 .strictTools(true)
-                                .build()
-                )
-        );
+                                .build()));
     }
 
     static Stream<Arguments> expectedResponseDeconversions() {
@@ -208,8 +201,7 @@ class CohereInternalHelperTest {
                                         .tokenUsage(new TokenUsage(1, 1))
                                         .finishReason(STOP)
                                         .build())
-                                .build()
-                ),
+                                .build()),
 
                 // Text + thinking, no tools.
                 Arguments.of(
@@ -224,8 +216,7 @@ class CohereInternalHelperTest {
                                                 CohereContent.thinking("Thinking response 1"),
                                                 CohereContent.text("Text response 1"),
                                                 CohereContent.thinking("Thinking response 2"),
-                                                CohereContent.text("Text response 2")
-                                        ))
+                                                CohereContent.text("Text response 2")))
                                         .build())
                                 .build(),
                         ChatResponse.builder()
@@ -236,11 +227,10 @@ class CohereInternalHelperTest {
                                 .metadata(CohereChatResponseMetadata.builder()
                                         .modelName(MODEL_NAME)
                                         .id("12345")
-                                        .tokenUsage(new TokenUsage(1, 1 ))
+                                        .tokenUsage(new TokenUsage(1, 1))
                                         .finishReason(STOP)
                                         .build())
-                                .build()
-                ),
+                                .build()),
 
                 // Just tool calls, neither text nor thinking.
                 Arguments.of(
@@ -253,9 +243,13 @@ class CohereInternalHelperTest {
                                 .message(CohereResponseMessage.builder()
                                         .content(emptyList())
                                         .toolCalls(asList(
-                                                CohereToolCall.from("tool_1", CohereFunctionCall.from("getWeather", "{\"city\":\"Valera\"}")),
-                                                CohereToolCall.from("tool_2", CohereFunctionCall.from("getWeather", "{\"city\":\"Merida\"}"))
-                                        ))
+                                                CohereToolCall.from(
+                                                        "tool_1",
+                                                        CohereFunctionCall.from("getWeather", "{\"city\":\"Valera\"}")),
+                                                CohereToolCall.from(
+                                                        "tool_2",
+                                                        CohereFunctionCall.from(
+                                                                "getWeather", "{\"city\":\"Merida\"}"))))
                                         .build())
                                 .build(),
                         ChatResponse.builder()
@@ -272,8 +266,7 @@ class CohereInternalHelperTest {
                                                         .id("tool_2")
                                                         .name("getWeather")
                                                         .arguments("{\"city\":\"Merida\"}")
-                                                        .build()
-                                        ))
+                                                        .build()))
                                         .build())
                                 .metadata(CohereChatResponseMetadata.builder()
                                         .modelName(MODEL_NAME)
@@ -281,16 +274,15 @@ class CohereInternalHelperTest {
                                         .tokenUsage(new TokenUsage(1, 1))
                                         .finishReason(TOOL_EXECUTION)
                                         .build())
-                                .build()
-                )
-        );
+                                .build()));
     }
 
     @ParameterizedTest
     @MethodSource("expectedParameterConversions")
-    void should_convert_chat_requests_to_cohere_format(List<ChatMessage> chatMessages,
-                                                       CohereChatRequestParameters inputParameters,
-                                                       CohereChatRequest expectedRequest) {
+    void should_convert_chat_requests_to_cohere_format(
+            List<ChatMessage> chatMessages,
+            CohereChatRequestParameters inputParameters,
+            CohereChatRequest expectedRequest) {
 
         // given - when
         CohereChatRequest result = toCohereChatRequest(chatMessages, inputParameters);
@@ -304,14 +296,12 @@ class CohereInternalHelperTest {
 
         // given
         List<ChatMessage> chatMessages = singletonList(UserMessage.from("User message"));
-        CohereChatRequestParameters inputParameters = CohereChatRequestParameters.builder()
-                .modelName(MODEL_NAME)
-                .build();
-        CohereChatRequest expectedRequest = CohereChatRequest.builder()
-                .model(MODEL_NAME)
-                .messages(CohereUserMessage.from("User message"))
-                .stream(true)
-                .build();
+        CohereChatRequestParameters inputParameters =
+                CohereChatRequestParameters.builder().modelName(MODEL_NAME).build();
+        CohereChatRequest expectedRequest =
+                CohereChatRequest.builder().model(MODEL_NAME).messages(CohereUserMessage.from("User message")).stream(
+                                true)
+                        .build();
 
         // when
         CohereChatRequest result = toCohereStreamingChatRequest(chatMessages, inputParameters);
@@ -322,8 +312,8 @@ class CohereInternalHelperTest {
 
     @ParameterizedTest
     @MethodSource("expectedResponseDeconversions")
-    void should_convert_cohere_responses_to_l4j_format(CohereChatResponse cohereResponse,
-                                                       ChatResponse expectedResponse) {
+    void should_convert_cohere_responses_to_l4j_format(
+            CohereChatResponse cohereResponse, ChatResponse expectedResponse) {
 
         // given - when
         ChatResponse response = fromCohereChatResponse(cohereResponse, MODEL_NAME);

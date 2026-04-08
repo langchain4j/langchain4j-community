@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model.client.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.client.CohereResponseFormatType;
-
 import java.util.Map;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -22,22 +21,27 @@ public class CohereResponseFormat {
         this.jsonSchema = builder.jsonSchema;
     }
 
-    public CohereResponseFormatType getType() { return type; }
+    public CohereResponseFormatType getType() {
+        return type;
+    }
 
-    public Map<String, Object> getJsonSchema() { return jsonSchema; }
+    public Map<String, Object> getJsonSchema() {
+        return jsonSchema;
+    }
 
-    public static Builder builder() { return new Builder(); }
-
-    @Override
-    public String toString() {
-        return "CohereResponseFormat["
-                + "type=" + type
-                + ", jsonSchema=" + jsonSchema
-                +"]";
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
-    public int hashCode() { return Objects.hash(type, jsonSchema); }
+    public String toString() {
+        return "CohereResponseFormat[" + "type=" + type + ", jsonSchema=" + jsonSchema + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, jsonSchema);
+    }
 
     @Override
     public boolean equals(Object other) {
@@ -63,6 +67,8 @@ public class CohereResponseFormat {
             return this;
         }
 
-        public CohereResponseFormat build() { return new CohereResponseFormat(this); }
+        public CohereResponseFormat build() {
+            return new CohereResponseFormat(this);
+        }
     }
 }

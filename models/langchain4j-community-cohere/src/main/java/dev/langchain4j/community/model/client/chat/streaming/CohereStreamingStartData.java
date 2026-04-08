@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model.client.chat.streaming;
 
+import static dev.langchain4j.internal.Utils.quoted;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.Objects;
-
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereStreamingStartData.Builder.class)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -20,13 +19,13 @@ public class CohereStreamingStartData {
         this.id = builder.id;
     }
 
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
     @Override
     public String toString() {
-        return "CohereStreamingStartData{"
-                + "id=" + quoted(id)
-                + '}';
+        return "CohereStreamingStartData{" + "id=" + quoted(id) + '}';
     }
 
     @Override

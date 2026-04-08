@@ -1,5 +1,8 @@
 package dev.langchain4j.community.model.client.chat.response;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -9,12 +12,8 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.content.CohereContent;
 import dev.langchain4j.community.model.client.chat.message.CohereRole;
 import dev.langchain4j.community.model.client.chat.tool.CohereToolCall;
-
 import java.util.List;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereResponseMessage.Builder.class)
 @JsonInclude(NON_NULL)
@@ -33,15 +32,25 @@ public class CohereResponseMessage {
         this.toolPlan = builder.toolPlan;
     }
 
-    public CohereRole getRole() { return role; }
+    public CohereRole getRole() {
+        return role;
+    }
 
-    public List<CohereToolCall> getToolCalls() { return toolCalls; }
+    public List<CohereToolCall> getToolCalls() {
+        return toolCalls;
+    }
 
-    public List<CohereContent> getContent() { return content; }
+    public List<CohereContent> getContent() {
+        return content;
+    }
 
-    public String getToolPlan() { return toolPlan; }
+    public String getToolPlan() {
+        return toolPlan;
+    }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     @Override
     public String toString() {
@@ -54,7 +63,9 @@ public class CohereResponseMessage {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(role, toolCalls, content, toolPlan); }
+    public int hashCode() {
+        return Objects.hash(role, toolCalls, content, toolPlan);
+    }
 
     @Override
     public boolean equals(Object o) {

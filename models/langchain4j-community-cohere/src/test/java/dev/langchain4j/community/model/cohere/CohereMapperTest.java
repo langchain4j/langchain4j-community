@@ -1,5 +1,16 @@
 package dev.langchain4j.community.model.cohere;
 
+import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
+import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatMessages;
+import static dev.langchain4j.community.model.util.CohereMapper.toCohereResponseFormat;
+import static dev.langchain4j.community.model.util.CohereMapper.toCohereTools;
+import static dev.langchain4j.data.message.ImageContent.DetailLevel.LOW;
+import static dev.langchain4j.internal.Json.fromJson;
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereResponseFormatType;
@@ -28,107 +39,61 @@ import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-
-import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
-import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatMessages;
-import static dev.langchain4j.community.model.util.CohereMapper.toCohereResponseFormat;
-import static dev.langchain4j.community.model.util.CohereMapper.toCohereTools;
-import static dev.langchain4j.data.message.ImageContent.DetailLevel.LOW;
-import static dev.langchain4j.internal.Json.fromJson;
-import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
-
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereMapperTest {
 
-    private static final String CHEDDARINI_IMAGE_URL
-            = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRHaKSxFSmgJfy3UQJeoJM0n3wHGlKtfeBoQ&s";
+    private static final String CHEDDARINI_IMAGE_URL =
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRHaKSxFSmgJfy3UQJeoJM0n3wHGlKtfeBoQ&s";
 
-    private static final CohereImageUrl CHEDDARINI_IMAGE = CohereImageUrl.builder()
-            .url(CHEDDARINI_IMAGE_URL)
-            .detail(LOW)
-            .build();
+    private static final CohereImageUrl CHEDDARINI_IMAGE =
+            CohereImageUrl.builder().url(CHEDDARINI_IMAGE_URL).detail(LOW).build();
 
     static Stream<Arguments> expectedMessageConversions() {
         return Stream.of(
+                Arguments.of(singletonList(UserMessage.from("Hi!")), singletonList(CohereUserMessage.from("Hi!"))),
                 Arguments.of(
-                        singletonList(UserMessage.from("Hi!")),
-                        singletonList(CohereUserMessage.from("Hi!"))
-                ),
-
-                Arguments.of(
-                        asList(
-                                SystemMessage.from("You are a helpful assistant."),
-                                UserMessage.from("Hi!")
-                        ),
+                        asList(SystemMessage.from("You are a helpful assistant."), UserMessage.from("Hi!")),
                         asList(
                                 CohereSystemMessage.from("You are a helpful assistant."),
-                                CohereUserMessage.from("Hi!")
-                        )
-                ),
-
+                                CohereUserMessage.from("Hi!"))),
                 Arguments.of(
-                        asList(
-                                UserMessage.from("Hi!"),
-                                AiMessage.from("Hello!")
-                        ),
-                        asList(
-                                CohereUserMessage.from("Hi!"),
-                                CohereAiMessage.from("Hello!")
-                        )
-                ),
-
+                        asList(UserMessage.from("Hi!"), AiMessage.from("Hello!")),
+                        asList(CohereUserMessage.from("Hi!"), CohereAiMessage.from("Hello!"))),
                 Arguments.of(
                         asList(
                                 SystemMessage.from("You are a helpful assistant."),
                                 UserMessage.from("Hi!"),
                                 AiMessage.from("Hello!"),
-                                UserMessage.from("How are you?")
-                        ),
+                                UserMessage.from("How are you?")),
                         asList(
                                 CohereSystemMessage.from("You are a helpful assistant."),
                                 CohereUserMessage.from("Hi!"),
                                 CohereAiMessage.from("Hello!"),
-                                CohereUserMessage.from("How are you?")
-                        )
-                ),
-
+                                CohereUserMessage.from("How are you?"))),
                 Arguments.of(
                         asList(
                                 UserMessage.from("What's the current weather in Valera like?"),
-                                AiMessage.from(
-                                        ToolExecutionRequest.builder()
-                                                .id("12345")
-                                                .name("getWeather")
-                                                .arguments("{\"location\": \"Valera\"}")
-                                                .build()
-                                ),
-                                ToolExecutionResultMessage.from("12345", "getWeather", "Rainy")
-                        ),
+                                AiMessage.from(ToolExecutionRequest.builder()
+                                        .id("12345")
+                                        .name("getWeather")
+                                        .arguments("{\"location\": \"Valera\"}")
+                                        .build()),
+                                ToolExecutionResultMessage.from("12345", "getWeather", "Rainy")),
                         asList(
                                 CohereUserMessage.from("What's the current weather in Valera like?"),
                                 CohereAiMessage.from(CohereToolCall.from(
-                                        "12345",
-                                        CohereFunctionCall.from(
-                                                "getWeather",
-                                                "{\"location\": \"Valera\"}")
-                                )),
-                                CohereToolMessage.from("12345", "Rainy")
-                        )
-                ),
-
+                                        "12345", CohereFunctionCall.from("getWeather", "{\"location\": \"Valera\"}"))),
+                                CohereToolMessage.from("12345", "Rainy"))),
                 Arguments.of(
                         asList(
                                 UserMessage.from("What's the weather like in Valera and Merida?"),
@@ -142,8 +107,7 @@ class CohereMapperTest {
                                                 .id("6789")
                                                 .name("getWeather")
                                                 .arguments("{\"location\": \"Merida\"}")
-                                                .build()
-                                ),
+                                                .build()),
                                 ToolExecutionResultMessage.from("12345", "getWeather", "Rainy"),
                                 ToolExecutionResultMessage.from("6789", "getWeather", "Cold")),
                         asList(
@@ -151,55 +115,31 @@ class CohereMapperTest {
                                 CohereAiMessage.from(
                                         CohereToolCall.from(
                                                 "12345",
-                                                CohereFunctionCall.from(
-                                                        "getWeather",
-                                                        "{\"location\": \"Valera\"}")),
+                                                CohereFunctionCall.from("getWeather", "{\"location\": \"Valera\"}")),
                                         CohereToolCall.from(
                                                 "6789",
-                                                CohereFunctionCall.from(
-                                                        "getWeather",
-                                                        "{\"location\": \"Merida\"}")
-                                        )
-                                ),
+                                                CohereFunctionCall.from("getWeather", "{\"location\": \"Merida\"}"))),
                                 CohereToolMessage.from("12345", "Rainy"),
-                                CohereToolMessage.from("6789", "Cold")
-                        )
-                ),
-
-
+                                CohereToolMessage.from("6789", "Cold"))),
                 Arguments.of(
-                        singletonList(UserMessage.from(ImageContent.from(
-                                URI.create(CHEDDARINI_IMAGE_URL)
-                        ))),
-                        singletonList(CohereUserMessage.from(
-                                CohereContent.image(CHEDDARINI_IMAGE)
-                        ))
-                ),
-
+                        singletonList(UserMessage.from(ImageContent.from(URI.create(CHEDDARINI_IMAGE_URL)))),
+                        singletonList(CohereUserMessage.from(CohereContent.image(CHEDDARINI_IMAGE)))),
                 Arguments.of(
                         singletonList(UserMessage.from(ImageContent.from(Image.builder()
-                                        .base64Data("imagedata")
-                                        .mimeType("image/jpeg")
+                                .base64Data("imagedata")
+                                .mimeType("image/jpeg")
                                 .build()))),
-                        singletonList(CohereUserMessage.from(
-                                CohereContent.image(CohereImageUrl.builder()
-                                        .url("data:image/jpeg;base64,imagedata")
-                                        .detail(LOW)
-                                        .build())
-                        ))
-                ),
-
+                        singletonList(CohereUserMessage.from(CohereContent.image(CohereImageUrl.builder()
+                                .url("data:image/jpeg;base64,imagedata")
+                                .detail(LOW)
+                                .build())))),
                 Arguments.of(
                         singletonList(UserMessage.from(List.of(
                                 TextContent.from("What do you see in the image?"),
-                                ImageContent.from(URI.create(CHEDDARINI_IMAGE_URL))
-                        ))),
+                                ImageContent.from(URI.create(CHEDDARINI_IMAGE_URL))))),
                         singletonList(CohereUserMessage.from(
                                 CohereContent.text("What do you see in the image?"),
-                                CohereContent.image(CHEDDARINI_IMAGE)
-                        ))
-                )
-        );
+                                CohereContent.image(CHEDDARINI_IMAGE)))));
     }
 
     @ParameterizedTest
@@ -222,7 +162,8 @@ class CohereMapperTest {
 
         ToolSpecification toolSpecification = ToolSpecification.builder()
                 .name("queryDailySalesReport")
-                .description("Connects to a database to retrieve overall sales volumes and sales information for a given day.")
+                .description(
+                        "Connects to a database to retrieve overall sales volumes and sales information for a given day.")
                 .parameters(JsonObjectSchema.builder()
                         .addStringProperty("day", "Retrieves sales data for this day, formatted as YYYY-MM-DD.")
                         .build())
@@ -232,7 +173,8 @@ class CohereMapperTest {
                 .type(FUNCTION)
                 .function(CohereFunction.builder()
                         .name("queryDailySalesReport")
-                        .description("Connects to a database to retrieve overall sales volumes and sales information for a given day.")
+                        .description(
+                                "Connects to a database to retrieve overall sales volumes and sales information for a given day.")
                         .parameters(toMap(toolSchema))
                         .build())
                 .build();
@@ -255,9 +197,8 @@ class CohereMapperTest {
                 .parameters(emptySchema)
                 .build();
 
-        ToolSpecification toolSpecification2 = ToolSpecification.builder()
-                .name("tellOldSaying")
-                .build();
+        ToolSpecification toolSpecification2 =
+                ToolSpecification.builder().name("tellOldSaying").build();
 
         Map<String, Object> expectedSchema = toMap(emptySchema);
 
@@ -281,9 +222,7 @@ class CohereMapperTest {
         List<CohereTool> result = toCohereTools(List.of(toolSpecification1, toolSpecification2));
 
         // then
-        assertThat(result).containsExactly(
-                expectedTool1,
-                expectedTool2);
+        assertThat(result).containsExactly(expectedTool1, expectedTool2);
     }
 
     @Test
@@ -332,24 +271,22 @@ class CohereMapperTest {
                 .build();
 
         JsonObjectSchema rootSchema = JsonObjectSchema.builder()
-                .addProperty("actions", JsonArraySchema.builder()
-                        .items(actionSchema)
-                        .build())
+                .addProperty(
+                        "actions", JsonArraySchema.builder().items(actionSchema).build())
                 .required("actions")
                 .build();
 
         ResponseFormat responseFormat = ResponseFormat.builder()
                 .type(ResponseFormatType.JSON)
-                .jsonSchema(JsonSchema.builder()
-                        .rootElement(rootSchema)
-                        .build())
+                .jsonSchema(JsonSchema.builder().rootElement(rootSchema).build())
                 .build();
 
         // when
         CohereResponseFormat cohereResponseFormat = toCohereResponseFormat(responseFormat);
 
         // then
-        String expectedSchema = """
+        String expectedSchema =
+                """
                 {
                   "type": "object",
                   "properties": {

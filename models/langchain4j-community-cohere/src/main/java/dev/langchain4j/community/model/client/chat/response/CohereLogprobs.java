@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.client.chat.response;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -7,13 +9,8 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
-import static java.util.Arrays.asList;
 
 @JsonDeserialize(builder = CohereLogprobs.Builder.class)
 @JsonInclude(NON_NULL)
@@ -30,21 +27,25 @@ public class CohereLogprobs {
         this.logprobs = builder.logprobs;
     }
 
-    public List<Integer> getTokenIds() { return tokenIds; }
+    public List<Integer> getTokenIds() {
+        return tokenIds;
+    }
 
-    public String getText() { return text; }
+    public String getText() {
+        return text;
+    }
 
-    public List<Double> getLogprobs() { return logprobs; }
+    public List<Double> getLogprobs() {
+        return logprobs;
+    }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     @Override
     public String toString() {
-        return "CohereLogprobs{"
-                + "tokenIds=" + tokenIds
-                + ", text=" + quoted(text)
-                + ", logprobs=" + logprobs
-                + '}';
+        return "CohereLogprobs{" + "tokenIds=" + tokenIds + ", text=" + quoted(text) + ", logprobs=" + logprobs + '}';
     }
 
     @Override
@@ -88,6 +89,8 @@ public class CohereLogprobs {
             return this;
         }
 
-        public CohereLogprobs build() { return new CohereLogprobs(this); }
+        public CohereLogprobs build() {
+            return new CohereLogprobs(this);
+        }
     }
 }

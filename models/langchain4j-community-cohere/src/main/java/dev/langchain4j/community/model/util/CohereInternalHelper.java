@@ -1,5 +1,12 @@
 package dev.langchain4j.community.model.util;
 
+import static dev.langchain4j.community.model.util.CohereMapper.toAiMessage;
+import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatMessages;
+import static dev.langchain4j.community.model.util.CohereMapper.toCohereResponseFormat;
+import static dev.langchain4j.community.model.util.CohereMapper.toCohereTools;
+import static dev.langchain4j.community.model.util.CohereMapper.toFinishReason;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+
 import dev.langchain4j.Internal;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
@@ -10,43 +17,33 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.util.List;
-
-import static dev.langchain4j.community.model.util.CohereMapper.toAiMessage;
-import static dev.langchain4j.community.model.util.CohereMapper.toCohereChatMessages;
-import static dev.langchain4j.community.model.util.CohereMapper.toCohereResponseFormat;
-import static dev.langchain4j.community.model.util.CohereMapper.toCohereTools;
-import static dev.langchain4j.community.model.util.CohereMapper.toFinishReason;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 @Internal
 public class CohereInternalHelper {
 
     private CohereInternalHelper() {}
 
-    public static CohereChatRequest toCohereChatRequest(List<ChatMessage> messages,
-                                                        CohereChatRequestParameters parameters) {
+    public static CohereChatRequest toCohereChatRequest(
+            List<ChatMessage> messages, CohereChatRequestParameters parameters) {
         return toCohereChatRequest(messages, parameters, null);
     }
 
-    public static CohereChatRequest toCohereStreamingChatRequest(List<ChatMessage> messages,
-                                                                 CohereChatRequestParameters parameters) {
+    public static CohereChatRequest toCohereStreamingChatRequest(
+            List<ChatMessage> messages, CohereChatRequestParameters parameters) {
         return toCohereChatRequest(messages, parameters, true);
     }
 
-    private static CohereChatRequest toCohereChatRequest(List<ChatMessage> messages,
-                                                        CohereChatRequestParameters parameters,
-                                                        Boolean stream) {
+    private static CohereChatRequest toCohereChatRequest(
+            List<ChatMessage> messages, CohereChatRequestParameters parameters, Boolean stream) {
         CohereChatRequest.Builder builder = CohereChatRequest.builder()
                 .model(parameters.modelName())
-                .messages(isNullOrEmpty(messages)
-                        ? null
-                        : toCohereChatMessages(messages))
+                .messages(isNullOrEmpty(messages) ? null : toCohereChatMessages(messages))
                 .responseFormat(toCohereResponseFormat(parameters.responseFormat()))
-                .tools(isNullOrEmpty(parameters.toolSpecifications())
-                        ? null
-                        : toCohereTools(parameters.toolSpecifications()))
+                .tools(
+                        isNullOrEmpty(parameters.toolSpecifications())
+                                ? null
+                                : toCohereTools(parameters.toolSpecifications()))
                 .toolChoice(parameters.toolChoice())
                 .temperature(parameters.temperature())
                 .p(parameters.topP())
@@ -54,9 +51,7 @@ public class CohereInternalHelper {
                 .presencePenalty(parameters.presencePenalty())
                 .frequencyPenalty(parameters.frequencyPenalty())
                 .maxTokens(parameters.maxOutputTokens())
-                .stopSequences(isNullOrEmpty(parameters.stopSequences())
-                        ? null
-                        : parameters.stopSequences())
+                .stopSequences(isNullOrEmpty(parameters.stopSequences()) ? null : parameters.stopSequences())
                 .stream(stream)
                 .safetyMode(parameters.safetyMode())
                 .priority(parameters.priority())
@@ -64,8 +59,7 @@ public class CohereInternalHelper {
                 .logprobs(parameters.logprobs())
                 .strictTools(parameters.strictTools());
 
-        if (parameters.thinkingType() != null
-                || parameters.thinkingTokenBudget() != null) {
+        if (parameters.thinkingType() != null || parameters.thinkingTokenBudget() != null) {
             builder.thinking(CohereThinking.builder()
                     .type(parameters.thinkingType())
                     .tokenBudget(parameters.thinkingTokenBudget())
@@ -87,15 +81,9 @@ public class CohereInternalHelper {
                         response.getUsage().getTokens().getInputTokens(),
                         response.getUsage().getTokens().getOutputTokens()))
                 .finishReason(toFinishReason(response.getFinishReason()))
-                .logprobs(isNullOrEmpty(response.getLogprobs())
-                        ? null
-                        : response.getLogprobs()
-                )
+                .logprobs(isNullOrEmpty(response.getLogprobs()) ? null : response.getLogprobs())
                 .build();
 
-        return ChatResponse.builder()
-                .aiMessage(aiMessage)
-                .metadata(metadata)
-                .build();
+        return ChatResponse.builder().aiMessage(aiMessage).metadata(metadata).build();
     }
 }

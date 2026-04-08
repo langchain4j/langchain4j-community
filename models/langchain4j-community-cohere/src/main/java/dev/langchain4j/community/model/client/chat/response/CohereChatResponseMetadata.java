@@ -1,11 +1,10 @@
 package dev.langchain4j.community.model.client.chat.response;
 
-import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import static dev.langchain4j.internal.Utils.quoted;
 
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import java.util.List;
 import java.util.Objects;
-
-import static dev.langchain4j.internal.Utils.quoted;
 
 public final class CohereChatResponseMetadata extends ChatResponseMetadata {
 
@@ -20,11 +19,17 @@ public final class CohereChatResponseMetadata extends ChatResponseMetadata {
         cachedTokens = builder.cachedTokens;
     }
 
-    public List<CohereLogprobs> logprobs() { return logprobs; }
+    public List<CohereLogprobs> logprobs() {
+        return logprobs;
+    }
 
-    public CohereBilledUnits billedUnits() { return billedUnits; }
+    public CohereBilledUnits billedUnits() {
+        return billedUnits;
+    }
 
-    public Integer cachedTokens() { return cachedTokens; }
+    public Integer cachedTokens() {
+        return cachedTokens;
+    }
 
     @Override
     public Builder toBuilder() {

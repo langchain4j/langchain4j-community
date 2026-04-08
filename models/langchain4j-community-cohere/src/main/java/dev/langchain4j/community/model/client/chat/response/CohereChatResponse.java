@@ -1,17 +1,16 @@
 package dev.langchain4j.community.model.client.chat.response;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.List;
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereChatResponse.Builder.class)
 @JsonInclude(NON_NULL)
@@ -32,15 +31,25 @@ public class CohereChatResponse {
         this.logprobs = builder.logprobs;
     }
 
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
-    public CohereResponseMessage getMessage() { return message; }
+    public CohereResponseMessage getMessage() {
+        return message;
+    }
 
-    public String getFinishReason() { return finishReason; }
+    public String getFinishReason() {
+        return finishReason;
+    }
 
-    public CohereUsage getUsage() { return usage; }
+    public CohereUsage getUsage() {
+        return usage;
+    }
 
-    public List<CohereLogprobs> getLogprobs() { return logprobs; }
+    public List<CohereLogprobs> getLogprobs() {
+        return logprobs;
+    }
 
     @Override
     public String toString() {
@@ -54,7 +63,9 @@ public class CohereChatResponse {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(id, message, finishReason, usage, logprobs); }
+    public int hashCode() {
+        return Objects.hash(id, message, finishReason, usage, logprobs);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -69,7 +80,9 @@ public class CohereChatResponse {
                 && Objects.equals(logprobs, that.logprobs);
     }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)
@@ -108,6 +121,8 @@ public class CohereChatResponse {
             return this;
         }
 
-        public CohereChatResponse build() { return new CohereChatResponse(this); }
+        public CohereChatResponse build() {
+            return new CohereChatResponse(this);
+        }
     }
 }

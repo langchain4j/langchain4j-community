@@ -8,8 +8,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * More details are available <a href="https://docs.cohere.com/reference/chat-stream#request.body.thinking.type">here</a>.
  */
 public enum CohereThinkingType {
+    @JsonProperty("enabled")
+    ENABLED,
 
-    @JsonProperty("enabled")  ENABLED,
-
-    @JsonProperty("disabled") DISABLED
+    @JsonProperty("disabled")
+    DISABLED
 }

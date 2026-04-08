@@ -1,15 +1,14 @@
 package dev.langchain4j.community.model.client.chat.response;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
 @JsonDeserialize(builder = CohereUsage.Builder.class)
 @JsonInclude(NON_NULL)
@@ -26,11 +25,17 @@ public class CohereUsage {
         this.cachedTokens = builder.cachedTokens;
     }
 
-    public CohereBilledUnits getBilledUnits() { return billedUnits; }
+    public CohereBilledUnits getBilledUnits() {
+        return billedUnits;
+    }
 
-    public CohereTokens getTokens() { return tokens; }
+    public CohereTokens getTokens() {
+        return tokens;
+    }
 
-    public Integer getCachedTokens() { return cachedTokens; }
+    public Integer getCachedTokens() {
+        return cachedTokens;
+    }
 
     @Override
     public String toString() {
@@ -42,7 +47,9 @@ public class CohereUsage {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(billedUnits, tokens, cachedTokens); }
+    public int hashCode() {
+        return Objects.hash(billedUnits, tokens, cachedTokens);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -55,7 +62,9 @@ public class CohereUsage {
                 && Objects.equals(cachedTokens, that.cachedTokens);
     }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     @JsonPOJOBuilder(withPrefix = "")
     @JsonInclude(NON_NULL)
@@ -82,6 +91,8 @@ public class CohereUsage {
             return this;
         }
 
-        public CohereUsage build() { return new CohereUsage(this); }
+        public CohereUsage build() {
+            return new CohereUsage(this);
+        }
     }
 }

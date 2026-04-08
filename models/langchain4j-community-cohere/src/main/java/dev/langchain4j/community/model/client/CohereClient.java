@@ -1,5 +1,10 @@
 package dev.langchain4j.community.model.client;
 
+import static dev.langchain4j.http.client.HttpMethod.POST;
+import static dev.langchain4j.internal.Json.fromJson;
+import static dev.langchain4j.internal.Json.toJson;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+
 import dev.langchain4j.Internal;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
@@ -11,14 +16,8 @@ import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import dev.langchain4j.http.client.log.LoggingHttpClient;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import org.slf4j.Logger;
-
 import java.time.Duration;
-
-import static dev.langchain4j.http.client.HttpMethod.POST;
-import static dev.langchain4j.internal.Json.fromJson;
-import static dev.langchain4j.internal.Json.toJson;
-import static dev.langchain4j.internal.Utils.getOrDefault;
+import org.slf4j.Logger;
 
 @Internal
 public class CohereClient {
@@ -28,7 +27,8 @@ public class CohereClient {
     private final String apiKey;
 
     public CohereClient(Builder builder) {
-        HttpClientBuilder httpClientBuilder = getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
+        HttpClientBuilder httpClientBuilder =
+                getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
 
         HttpClient httpClient = httpClientBuilder
                 .connectTimeout(getOrDefault(builder.timeout, Duration.ofSeconds(30)))
@@ -36,8 +36,9 @@ public class CohereClient {
                 .build();
 
         if (builder.logRequests != null && builder.logRequests
-                || builder.logResponses != null && builder.logResponses)  {
-            this.httpClient = new LoggingHttpClient(httpClient, builder.logRequests, builder.logResponses, builder.logger);
+                || builder.logResponses != null && builder.logResponses) {
+            this.httpClient =
+                    new LoggingHttpClient(httpClient, builder.logRequests, builder.logResponses, builder.logger);
         } else {
             this.httpClient = httpClient;
         }
@@ -54,11 +55,10 @@ public class CohereClient {
     public void createStreamingMessage(CohereChatRequest cohereChatRequest, StreamingChatResponseHandler handler) {
         this.httpClient.execute(
                 toHttpRequest(cohereChatRequest),
-                new CohereServerSentEventListener(cohereChatRequest.getModel(), handler)
-        );
+                new CohereServerSentEventListener(cohereChatRequest.getModel(), handler));
     }
 
-    private HttpRequest toHttpRequest(CohereChatRequest cohereChatRequest)  {
+    private HttpRequest toHttpRequest(CohereChatRequest cohereChatRequest) {
         return HttpRequest.builder()
                 .method(POST)
                 .url(baseUrl, "/chat")
@@ -68,7 +68,9 @@ public class CohereClient {
                 .build();
     }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static class Builder {
 
@@ -106,7 +108,7 @@ public class CohereClient {
         }
 
         public Builder logResponses(Boolean logResponses) {
-            this.logResponses =  logResponses;
+            this.logResponses = logResponses;
             return this;
         }
 
@@ -115,6 +117,8 @@ public class CohereClient {
             return this;
         }
 
-        public CohereClient build() { return new CohereClient(this); }
+        public CohereClient build() {
+            return new CohereClient(this);
+        }
     }
 }

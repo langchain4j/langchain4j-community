@@ -1,14 +1,13 @@
 package dev.langchain4j.community.model.cohere.common;
 
+import static dev.langchain4j.model.chat.Capability.RESPONSE_FORMAT_JSON_SCHEMA;
+
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.common.AbstractAiServiceWithJsonSchemaIT;
+import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
-import java.util.List;
-
-import static dev.langchain4j.model.chat.Capability.RESPONSE_FORMAT_JSON_SCHEMA;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereAiServiceWithJsonSchemaIT extends AbstractAiServiceWithJsonSchemaIT {
@@ -25,7 +24,9 @@ class CohereAiServiceWithJsonSchemaIT extends AbstractAiServiceWithJsonSchemaIT 
     }
 
     @Override
-    public boolean supportsRecursion() { return true; }
+    public boolean supportsRecursion() {
+        return true;
+    }
 
     @Disabled("Cohere does not support this schema.")
     @Override

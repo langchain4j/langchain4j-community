@@ -1,5 +1,8 @@
 package dev.langchain4j.community.model.client.chat.tool;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
+import static dev.langchain4j.internal.Utils.quoted;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -7,12 +10,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.community.model.client.chat.tool.CohereToolType.FUNCTION;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereToolCall.Builder.class)
 @JsonInclude(NON_NULL)
@@ -29,33 +27,35 @@ public class CohereToolCall {
         this.function = builder.function;
     }
 
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
-    public CohereToolType getType() { return type; }
+    public CohereToolType getType() {
+        return type;
+    }
 
-    public CohereFunctionCall getFunction() { return function; }
+    public CohereFunctionCall getFunction() {
+        return function;
+    }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static CohereToolCall from(String id, CohereFunctionCall function) {
-        return CohereToolCall.builder()
-                .type(FUNCTION)
-                .id(id)
-                .function(function)
-                .build();
+        return CohereToolCall.builder().type(FUNCTION).id(id).function(function).build();
     }
 
     @Override
     public String toString() {
-        return "CohereToolCall{"
-                + "type=" + type
-                + ", id=" + quoted(id)
-                + ", function=" + function
-                + '}';
+        return "CohereToolCall{" + "type=" + type + ", id=" + quoted(id) + ", function=" + function + '}';
     }
 
     @Override
-    public int hashCode() { return Objects.hash(type, id, function); }
+    public int hashCode() {
+        return Objects.hash(type, id, function);
+    }
 
     @Override
     public boolean equals(Object o) {

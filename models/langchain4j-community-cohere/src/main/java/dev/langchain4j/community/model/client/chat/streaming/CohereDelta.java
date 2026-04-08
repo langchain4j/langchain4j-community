@@ -1,5 +1,8 @@
 package dev.langchain4j.community.model.client.chat.streaming;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static dev.langchain4j.internal.Utils.quoted;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -7,11 +10,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import dev.langchain4j.community.model.client.chat.response.CohereUsage;
-
 import java.util.Objects;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static dev.langchain4j.internal.Utils.quoted;
 
 @JsonDeserialize(builder = CohereDelta.Builder.class)
 @JsonInclude(NON_NULL)
@@ -30,13 +29,21 @@ public class CohereDelta {
         this.usage = builder.usage;
     }
 
-    public String getError() { return error; }
+    public String getError() {
+        return error;
+    }
 
-    public CohereStreamingMessage getMessage() { return message; }
+    public CohereStreamingMessage getMessage() {
+        return message;
+    }
 
-    public String getFinishReason() { return finishReason; }
+    public String getFinishReason() {
+        return finishReason;
+    }
 
-    public CohereUsage getUsage() { return usage; }
+    public CohereUsage getUsage() {
+        return usage;
+    }
 
     @Override
     public String toString() {
@@ -49,7 +56,9 @@ public class CohereDelta {
     }
 
     @Override
-    public int hashCode() { return Objects.hash(error, message, finishReason, usage); }
+    public int hashCode() {
+        return Objects.hash(error, message, finishReason, usage);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -57,8 +66,10 @@ public class CohereDelta {
     }
 
     private boolean equalsTo(CohereDelta that) {
-        return Objects.equals(error, that.error) && Objects.equals(message, that.message)
-                && Objects.equals(finishReason, that.finishReason) && Objects.equals(usage, that.usage);
+        return Objects.equals(error, that.error)
+                && Objects.equals(message, that.message)
+                && Objects.equals(finishReason, that.finishReason)
+                && Objects.equals(usage, that.usage);
     }
 
     @JsonPOJOBuilder(withPrefix = "")
@@ -92,6 +103,8 @@ public class CohereDelta {
             return this;
         }
 
-        public CohereDelta build() { return new CohereDelta(this); }
+        public CohereDelta build() {
+            return new CohereDelta(this);
+        }
     }
 }

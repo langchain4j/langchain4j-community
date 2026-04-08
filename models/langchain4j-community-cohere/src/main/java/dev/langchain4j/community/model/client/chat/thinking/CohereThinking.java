@@ -1,13 +1,13 @@
 package dev.langchain4j.community.model.client.chat.thinking;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import dev.langchain4j.community.model.client.CohereThinkingType;
-
 import java.util.Objects;
 
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 @JsonInclude(NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CohereThinking {
@@ -20,18 +20,19 @@ public class CohereThinking {
         this.tokenBudget = builder.tokenBudget;
     }
 
-    public static Builder builder() { return new Builder(); }
-
-    @Override
-    public String toString() {
-        return "CohereThinking{"
-                + "type=" + type
-                + ", tokenBudget=" + tokenBudget
-                + '}';
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
-    public int hashCode() { return Objects.hash(type, tokenBudget); }
+    public String toString() {
+        return "CohereThinking{" + "type=" + type + ", tokenBudget=" + tokenBudget + '}';
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, tokenBudget);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -57,6 +58,8 @@ public class CohereThinking {
             return this;
         }
 
-        public CohereThinking build() { return new CohereThinking(this); }
+        public CohereThinking build() {
+            return new CohereThinking(this);
+        }
     }
 }

@@ -5,9 +5,8 @@ import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMe
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.service.common.AbstractStreamingAiServiceIT;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import java.util.List;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereStreamingAiServiceIT extends AbstractStreamingAiServiceIT {

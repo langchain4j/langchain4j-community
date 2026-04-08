@@ -1,5 +1,13 @@
 package dev.langchain4j.community.model;
 
+import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
+import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
+import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptions;
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.getOrDefault;
+import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toSet;
+
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.CohereClient;
@@ -16,20 +24,11 @@ import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import org.slf4j.Logger;
-
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-
-import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
-import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
-import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptions;
-import static dev.langchain4j.internal.Utils.copy;
-import static dev.langchain4j.internal.Utils.getOrDefault;
-import static java.util.Arrays.asList;
-import static java.util.stream.Collectors.toSet;
+import org.slf4j.Logger;
 
 /**
  * Represents a Cohere LLM with a chat API.
@@ -54,11 +53,12 @@ public class CohereChatModel implements ChatModel {
                 .authToken(builder.apiKey)
                 .build();
 
-        ChatRequestParameters commonParameters = getOrDefault(builder.defaultRequestParameters, DefaultChatRequestParameters.EMPTY);
+        ChatRequestParameters commonParameters =
+                getOrDefault(builder.defaultRequestParameters, DefaultChatRequestParameters.EMPTY);
         CohereChatRequestParameters cohereDefaultParameters =
                 builder.defaultRequestParameters instanceof CohereChatRequestParameters cohereChatRequestParameters
-                    ? cohereChatRequestParameters
-                    : CohereChatRequestParameters.EMPTY;
+                        ? cohereChatRequestParameters
+                        : CohereChatRequestParameters.EMPTY;
 
         this.defaultRequestParameters = CohereChatRequestParameters.builder()
                 // Common parameters
@@ -70,12 +70,14 @@ public class CohereChatModel implements ChatModel {
                 .presencePenalty(getOrDefault(builder.presencePenalty, commonParameters.presencePenalty()))
                 .maxOutputTokens(getOrDefault(builder.maxTokens, commonParameters.maxOutputTokens()))
                 .stopSequences(getOrDefault(copy(builder.stopSequences), commonParameters.stopSequences()))
-                .toolSpecifications(getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
+                .toolSpecifications(
+                        getOrDefault(copy(builder.toolSpecifications), commonParameters.toolSpecifications()))
                 .toolChoice(getOrDefault(builder.toolChoice, commonParameters.toolChoice()))
                 .responseFormat(getOrDefault(builder.responseFormat, commonParameters.responseFormat()))
                 // Cohere specific parameters
                 .thinkingType(getOrDefault(builder.thinkingType, cohereDefaultParameters.thinkingType()))
-                .thinkingTokenBudget(getOrDefault(builder.thinkingTokenBudget, cohereDefaultParameters.thinkingTokenBudget()))
+                .thinkingTokenBudget(
+                        getOrDefault(builder.thinkingTokenBudget, cohereDefaultParameters.thinkingTokenBudget()))
                 .safetyMode(getOrDefault(builder.safetyMode, cohereDefaultParameters.safetyMode()))
                 .priority(getOrDefault(builder.priority, cohereDefaultParameters.priority()))
                 .seed(getOrDefault(builder.seed, cohereDefaultParameters.seed()))
@@ -95,16 +97,15 @@ public class CohereChatModel implements ChatModel {
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
-        CohereChatRequestParameters parameters = CohereChatRequestParameters.builder()
-                .build()
-                .defaultedBy(chatRequest.parameters());
+        CohereChatRequestParameters parameters =
+                CohereChatRequestParameters.builder().build().defaultedBy(chatRequest.parameters());
 
         CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.messages(), parameters);
 
-       CohereChatResponse cohereResponse =
-               withRetryMappingExceptions(() -> client.createMessage(cohereChatRequest), maxRetries);
+        CohereChatResponse cohereResponse =
+                withRetryMappingExceptions(() -> client.createMessage(cohereChatRequest), maxRetries);
 
-       return fromCohereChatResponse(cohereResponse, cohereChatRequest.getModel());
+        return fromCohereChatResponse(cohereResponse, cohereChatRequest.getModel());
     }
 
     public static Builder builder() {
@@ -338,8 +339,12 @@ public class CohereChatModel implements ChatModel {
     }
 
     @Override
-    public List<ChatModelListener> listeners() { return listeners; }
+    public List<ChatModelListener> listeners() {
+        return listeners;
+    }
 
     @Override
-    public Set<Capability> supportedCapabilities() { return supportedCapabilities; }
+    public Set<Capability> supportedCapabilities() {
+        return supportedCapabilities;
+    }
 }

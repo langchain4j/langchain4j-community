@@ -6,9 +6,8 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelIT;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import java.util.List;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereChatModelIT extends AbstractChatModelIT {
@@ -47,13 +46,13 @@ class CohereChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
-    protected String customModelName() { return "command-r-plus-08-2024"; }
+    protected String customModelName() {
+        return "command-r-plus-08-2024";
+    }
 
     @Override
     protected ChatRequestParameters createIntegrationSpecificParameters(int maxOutputTokens) {
-        return ChatRequestParameters.builder()
-                .maxOutputTokens(maxOutputTokens)
-                .build();
+        return ChatRequestParameters.builder().maxOutputTokens(maxOutputTokens).build();
     }
 
     @Override
@@ -62,7 +61,9 @@ class CohereChatModelIT extends AbstractChatModelIT {
     }
 
     @Override
-    public List<ChatModel> modelsSupportingImageInputs() { return List.of(COHERE_VISION_MODEL); }
+    public List<ChatModel> modelsSupportingImageInputs() {
+        return List.of(COHERE_VISION_MODEL);
+    }
 
     @Override
     protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(ChatModel model) {

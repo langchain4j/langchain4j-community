@@ -1,5 +1,20 @@
 package dev.langchain4j.community.model.client.chat.streaming;
 
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
+import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
+import static dev.langchain4j.community.model.util.CohereMapper.toAiMessageAttributes;
+import static dev.langchain4j.community.model.util.CohereMapper.toFinishReason;
+import static dev.langchain4j.http.client.sse.ServerSentEventParsingHandleUtils.toStreamingHandle;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteResponse;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteToolCall;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialResponse;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialThinking;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialToolCall;
+import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions;
+import static dev.langchain4j.internal.Json.fromJson;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static java.util.Collections.synchronizedList;
+
 import dev.langchain4j.Internal;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
@@ -16,25 +31,9 @@ import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.chat.response.StreamingHandle;
 import dev.langchain4j.model.output.TokenUsage;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.TEXT;
-import static dev.langchain4j.community.model.client.chat.content.CohereContentType.THINKING;
-import static dev.langchain4j.community.model.util.CohereMapper.toAiMessageAttributes;
-import static dev.langchain4j.community.model.util.CohereMapper.toFinishReason;
-import static dev.langchain4j.http.client.sse.ServerSentEventParsingHandleUtils.toStreamingHandle;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteResponse;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onCompleteToolCall;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialResponse;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialThinking;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.onPartialToolCall;
-import static dev.langchain4j.internal.InternalStreamingChatResponseHandlerUtils.withLoggingExceptions;
-import static dev.langchain4j.internal.Json.fromJson;
-import static dev.langchain4j.internal.Utils.isNullOrEmpty;
-import static java.util.Collections.synchronizedList;
 
 @Internal
 public class CohereServerSentEventListener implements ServerSentEventListener {
@@ -50,8 +49,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
 
     volatile StreamingHandle streamingHandle;
 
-    public CohereServerSentEventListener(String modelName,
-                                         StreamingChatResponseHandler handler) {
+    public CohereServerSentEventListener(String modelName, StreamingChatResponseHandler handler) {
         this.modelName = modelName;
         this.handler = handler;
         this.textBuilder = new StringBuilder();
@@ -88,7 +86,7 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
             handleStartToolCall(data);
         } else if (event.event().equals("tool-call-delta")) {
             handlePartialToolCall(data);
-        } else if (event.event().equals("tool-call-end")){
+        } else if (event.event().equals("tool-call-end")) {
             handleCompleteToolCall();
         } else if (event.event().equals("tool-plan-delta")) {
             handleToolPlanDelta(data);
@@ -134,19 +132,18 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
     }
 
     private void handleStartToolCall(CohereStreamingData data) {
-        String partialArguments = data.getDelta().getMessage().getToolCalls().getFunction().getArguments();
+        String partialArguments =
+                data.getDelta().getMessage().getToolCalls().getFunction().getArguments();
         toolCallBuilder.updateIndex(data.getIndex());
         toolCallBuilder.updateId(data.getDelta().getMessage().getToolCalls().getId());
-        toolCallBuilder.updateName(data.getDelta().getMessage().getToolCalls().getFunction().getName());
+        toolCallBuilder.updateName(
+                data.getDelta().getMessage().getToolCalls().getFunction().getName());
         toolCallBuilder.appendArguments(partialArguments);
     }
 
     private void handlePartialToolCall(CohereStreamingData data) {
-        String partialArguments = data.getDelta()
-                .getMessage()
-                .getToolCalls()
-                .getFunction()
-                .getArguments();
+        String partialArguments =
+                data.getDelta().getMessage().getToolCalls().getFunction().getArguments();
 
         toolCallBuilder.appendArguments(partialArguments);
 
@@ -206,16 +203,11 @@ public class CohereServerSentEventListener implements ServerSentEventListener {
         AiMessage aiMessage = AiMessage.builder()
                 .text(textBuilder.isEmpty() ? null : textBuilder.toString())
                 .thinking(thinkingBuilder.isEmpty() ? null : thinkingBuilder.toString())
-                .attributes(toolPlanBuilder.isEmpty()
-                        ? null
-                        : toAiMessageAttributes(toolPlanBuilder.toString()))
+                .attributes(toolPlanBuilder.isEmpty() ? null : toAiMessageAttributes(toolPlanBuilder.toString()))
                 .toolExecutionRequests(toolExecutionRequests)
                 .build();
 
-        return ChatResponse.builder()
-                .aiMessage(aiMessage)
-                .metadata(metadata)
-                .build();
+        return ChatResponse.builder().aiMessage(aiMessage).metadata(metadata).build();
     }
 
     @Override

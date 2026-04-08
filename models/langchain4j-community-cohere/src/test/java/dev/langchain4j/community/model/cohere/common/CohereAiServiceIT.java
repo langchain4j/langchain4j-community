@@ -3,9 +3,8 @@ package dev.langchain4j.community.model.cohere.common;
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.common.AbstractAiServiceIT;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import java.util.List;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereAiServiceIT extends AbstractAiServiceIT {
@@ -18,5 +17,7 @@ class CohereAiServiceIT extends AbstractAiServiceIT {
             .build();
 
     @Override
-    protected List<ChatModel> models() { return List.of(COHERE_CHAT_MODEL); }
+    protected List<ChatModel> models() {
+        return List.of(COHERE_CHAT_MODEL);
+    }
 }

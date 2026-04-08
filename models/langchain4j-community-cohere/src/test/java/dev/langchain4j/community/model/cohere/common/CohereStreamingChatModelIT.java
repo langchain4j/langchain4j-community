@@ -1,5 +1,9 @@
 package dev.langchain4j.community.model.cohere.common;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
+
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.community.model.CohereStreamingChatModel;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
@@ -9,14 +13,9 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import java.util.List;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.mockito.InOrder;
-
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.atLeastOnce;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
@@ -61,13 +60,13 @@ class CohereStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     public ChatRequestParameters createIntegrationSpecificParameters(int maxOutputTokens) {
-        return ChatRequestParameters.builder()
-                .maxOutputTokens(maxOutputTokens)
-                .build();
+        return ChatRequestParameters.builder().maxOutputTokens(maxOutputTokens).build();
     }
 
     @Override
-    public String customModelName() { return "command-r-plus-08-2024"; }
+    public String customModelName() {
+        return "command-r-plus-08-2024";
+    }
 
     @Override
     protected List<StreamingChatModel> models() {

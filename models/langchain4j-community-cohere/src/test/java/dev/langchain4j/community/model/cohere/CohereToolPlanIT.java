@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.cohere;
 
+import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.CohereChatModel;
@@ -14,8 +15,6 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereToolPlanIT {
@@ -67,9 +66,8 @@ class CohereToolPlanIT {
     void should_NOT_include_tool_plan_when_chat_model_does_NOT_have_defined_tools() {
 
         // given
-        ChatRequest chatRequest = ChatRequest.builder()
-                .messages(UserMessage.from(USER_PROMPT))
-                .build();
+        ChatRequest chatRequest =
+                ChatRequest.builder().messages(UserMessage.from(USER_PROMPT)).build();
 
         // when
         ChatResponse response = CHAT_MODEL.chat(chatRequest);
@@ -103,9 +101,8 @@ class CohereToolPlanIT {
     void should_NOT_include_tool_plan_when_streaming_model_does_NOT_have_defined_tools() {
 
         // given
-        ChatRequest chatRequest = ChatRequest.builder()
-                .messages(UserMessage.from(USER_PROMPT))
-                .build();
+        ChatRequest chatRequest =
+                ChatRequest.builder().messages(UserMessage.from(USER_PROMPT)).build();
         TestStreamingChatResponseHandler handler = new TestStreamingChatResponseHandler();
 
         // when
@@ -116,5 +113,4 @@ class CohereToolPlanIT {
         AiMessage aiMessage = response.aiMessage();
         assertThat(aiMessage.attributes().get("tool_plan")).isNull();
     }
-
 }
