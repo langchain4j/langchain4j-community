@@ -273,7 +273,10 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     }
 
     private static Throwable closeClient(
-            Lock lock, Supplier<? extends AutoCloseable> closeableSupplier, Runnable clearAction, Throwable closeFailure) {
+            Lock lock,
+            Supplier<? extends AutoCloseable> closeableSupplier,
+            Runnable clearAction,
+            Throwable closeFailure) {
         lock.lock();
         try {
             var closeable = closeableSupplier.get();

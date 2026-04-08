@@ -30,7 +30,8 @@ final class StreamingCallbackContext {
         try {
             callback.run();
         } finally {
-            callbackThreads.computeIfPresent(callbackThread, (thread, depth) -> depth.decrementAndGet() <= 0 ? null : depth);
+            callbackThreads.computeIfPresent(
+                    callbackThread, (thread, depth) -> depth.decrementAndGet() <= 0 ? null : depth);
         }
     }
 
