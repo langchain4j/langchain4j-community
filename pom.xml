@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.13.0-beta23-SNAPSHOT</version>
+        <version>1.13.0-beta23</version>
         <relativePath></relativePath>
     </parent>
 
@@ -108,10 +108,10 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.13.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.13.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.13.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.13.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.13.0</langchain4j.core.version>
+        <langchain4j.version>1.13.0</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.13.0</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.13.0</langchain4j.open-ai.version>
         <project.build.outputTimestamp>2026-03-10T10:40:00Z</project.build.outputTimestamp>
     </properties>
 
