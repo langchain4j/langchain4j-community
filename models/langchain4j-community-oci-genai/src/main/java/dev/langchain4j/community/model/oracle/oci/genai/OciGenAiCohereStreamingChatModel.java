@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
+import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
 import com.oracle.bmc.generativeaiinference.model.CohereChatResponse;
 import com.oracle.bmc.generativeaiinference.model.CohereToolCall;
 import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
@@ -18,6 +19,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,10 +38,12 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OciGenAiCohereStreamingChatModel.class);
     private final Builder builder;
+    private final StreamingCallbackContext streamingCallbackContext;
 
     OciGenAiCohereStreamingChatModel(Builder builder) {
         super(builder);
         this.builder = builder;
+        this.streamingCallbackContext = new StreamingCallbackContext(this);
     }
 
     @Override
@@ -50,6 +54,11 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
     @Override
     public List<ChatModelListener> listeners() {
         return this.builder.listeners();
+    }
+
+    @Override
+    public void close() {
+        streamingCallbackContext.close();
     }
 
     @Override
@@ -69,8 +78,34 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                         DedicatedServingMode.builder().endpointId(modelName).build();
                 };
 
-        try (var isr = new InputStreamReader(
-                        super.ociChat(bmcChatRequest, servingMode).getEventStream());
+        var activeOperation = new AtomicBoolean();
+        super.ociChatAsync(bmcChatRequest, servingMode, activeOperation)
+                .thenAcceptAsync(
+                        response -> streamingCallbackContext.runInStreamingCallbackContext(() -> {
+                            try {
+                                handleStream(response, modelName, handler);
+                            } finally {
+                                releaseActiveOperation(activeOperation);
+                            }
+                        }),
+                        streamingExecutor())
+                .exceptionally(error -> {
+                    streamingCallbackContext.runInStreamingCallbackContext(() -> {
+                        try {
+                            notifyError(handler, unwrapCompletionFailure(error));
+                        } finally {
+                            releaseActiveOperation(activeOperation);
+                        }
+                    });
+                    return null;
+                });
+    }
+
+    private void handleStream(
+            com.oracle.bmc.generativeaiinference.responses.ChatResponse response,
+            String modelName,
+            StreamingChatResponseHandler handler) {
+        try (var isr = new InputStreamReader(response.getEventStream());
                 var reader = new BufferedReader(isr)) {
             String line;
             com.oracle.bmc.generativeaiinference.model.CohereChatResponse lastCohereChatResponse = null;
@@ -148,11 +183,15 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
                         .build());
             }
         } catch (Exception e) {
-            try {
-                handler.onError(e);
-            } catch (Exception userException) {
-                LOGGER.error("Error in user error handler", userException);
-            }
+            notifyError(handler, e);
+        }
+    }
+
+    private void notifyError(StreamingChatResponseHandler handler, Throwable error) {
+        try {
+            handler.onError(error);
+        } catch (Exception userException) {
+            LOGGER.error("Error in user error handler", userException);
         }
     }
 
@@ -175,6 +214,10 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
         @Override
         Builder self() {
             return this;
+        }
+
+        public Builder genAiAsyncClient(GenerativeAiInferenceAsyncClient genAiAsyncClient) {
+            return super.genAiAsyncClient(genAiAsyncClient);
         }
 
         public OciGenAiCohereStreamingChatModel build() {
