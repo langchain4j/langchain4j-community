@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.oracle.oci.genai;
 
+import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
 import com.oracle.bmc.generativeaiinference.model.DedicatedServingMode;
 import com.oracle.bmc.generativeaiinference.model.OnDemandServingMode;
 import dev.langchain4j.model.ModelProvider;
@@ -11,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,10 +29,12 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OciGenAiStreamingChatModel.class);
     private final Builder builder;
+    private final StreamingCallbackContext streamingCallbackContext;
 
     OciGenAiStreamingChatModel(Builder builder) {
         super(builder);
         this.builder = builder;
+        this.streamingCallbackContext = new StreamingCallbackContext(this);
     }
 
     @Override
@@ -41,6 +45,11 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
     @Override
     public List<ChatModelListener> listeners() {
         return this.builder.listeners();
+    }
+
+    @Override
+    public void close() {
+        streamingCallbackContext.close();
     }
 
     @Override
@@ -57,10 +66,35 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
                         DedicatedServingMode.builder().endpointId(modelName).build();
                 };
 
-        try (var isr = new InputStreamReader(
-                        super.ociChat(bmcChatRequest, servingMode).getEventStream());
-                var reader = new BufferedReader(isr)) {
+        var activeOperation = new AtomicBoolean();
+        super.ociChatAsync(bmcChatRequest, servingMode, activeOperation)
+                .thenAcceptAsync(
+                        response -> streamingCallbackContext.runInStreamingCallbackContext(() -> {
+                            try {
+                                handleStream(response, modelName, handler);
+                            } finally {
+                                releaseActiveOperation(activeOperation);
+                            }
+                        }),
+                        streamingExecutor())
+                .exceptionally(error -> {
+                    streamingCallbackContext.runInStreamingCallbackContext(() -> {
+                        try {
+                            notifyError(handler, unwrapCompletionFailure(error));
+                        } finally {
+                            releaseActiveOperation(activeOperation);
+                        }
+                    });
+                    return null;
+                });
+    }
 
+    private void handleStream(
+            com.oracle.bmc.generativeaiinference.responses.ChatResponse response,
+            String modelName,
+            StreamingChatResponseHandler handler) {
+        try (var isr = new InputStreamReader(response.getEventStream());
+                var reader = new BufferedReader(isr)) {
             String line;
             var streamingResponseBuilder = new GenericStreamingResponseBuilder(modelName, handler);
             while ((line = reader.readLine()) != null) {
@@ -73,11 +107,15 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
 
             streamingResponseBuilder.build();
         } catch (Exception e) {
-            try {
-                handler.onError(e);
-            } catch (Exception userException) {
-                LOGGER.debug("Error in user error handler", userException);
-            }
+            notifyError(handler, e);
+        }
+    }
+
+    private void notifyError(StreamingChatResponseHandler handler, Throwable error) {
+        try {
+            handler.onError(error);
+        } catch (Exception userException) {
+            LOGGER.debug("Error in user error handler", userException);
         }
     }
 
@@ -100,6 +138,10 @@ public class OciGenAiStreamingChatModel extends BaseGenericChatModel<OciGenAiStr
         @Override
         Builder self() {
             return this;
+        }
+
+        public Builder genAiAsyncClient(GenerativeAiInferenceAsyncClient genAiAsyncClient) {
+            return super.genAiAsyncClient(genAiAsyncClient);
         }
 
         public OciGenAiStreamingChatModel build() {

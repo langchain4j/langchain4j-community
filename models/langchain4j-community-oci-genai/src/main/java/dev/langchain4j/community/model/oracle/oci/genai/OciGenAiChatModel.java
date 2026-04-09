@@ -183,6 +183,7 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
 
         @Override
         public OciGenAiChatModel build() {
+            validateSyncClientConfiguration();
             return new OciGenAiChatModel(this);
         }
     }

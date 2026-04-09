@@ -2,6 +2,7 @@ package dev.langchain4j.community.model.oracle.oci.genai;
 
 import com.oracle.bmc.Region;
 import com.oracle.bmc.auth.BasicAuthenticationDetailsProvider;
+import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceClient;
 import com.oracle.bmc.generativeaiinference.model.BaseChatRequest;
 import com.oracle.bmc.generativeaiinference.model.ChatDetails;
@@ -14,26 +15,92 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseChatModel.class);
+    private static final String CLIENT_REQUIRED_MESSAGE =
+            "GenAi client, async GenAi client, or authentication provider needs to be provided.";
+    private static final String SYNC_CLIENT_REQUIRED_MESSAGE =
+            "GenAi client or authentication provider needs to be provided.";
+    private static final String MODEL_CLOSED_MESSAGE = "OCI GenAI model is closed.";
 
-    private final GenerativeAiInferenceClient client;
+    private final Region region;
+    private final BasicAuthenticationDetailsProvider authProvider;
     private final String compartmentId;
+    private final boolean hasSyncClientConfiguration;
+    private final boolean hasAsyncClientConfiguration;
+    private final Lock lifecycleLock = new ReentrantLock();
+    private final Condition noActiveOperations = lifecycleLock.newCondition();
+    private final Lock syncClientLock = new ReentrantLock();
+    private final Lock asyncClientLock = new ReentrantLock();
+    private final ExecutorService streamingExecutor = Executors.newCachedThreadPool();
+    private final AtomicBoolean resourcesClosed = new AtomicBoolean();
+    private int activeOperations;
+    private volatile boolean closed;
+    private volatile GenerativeAiInferenceClient client;
+    private volatile GenerativeAiInferenceAsyncClient asyncClient;
 
     BaseChatModel(Builder<?, ?> builder) {
+        if (!builder.hasGenAiClient() && !builder.hasGenAiAsyncClient()) {
+            throw new IllegalArgumentException(CLIENT_REQUIRED_MESSAGE);
+        }
+        this.region = builder.region;
+        this.authProvider = builder.authProvider;
         this.compartmentId = builder.compartmentId();
-        this.client = builder.genAiClient();
+        this.client = builder.genAiClient;
+        this.asyncClient = builder.genAiAsyncClient;
+        this.hasSyncClientConfiguration = builder.hasGenAiClient();
+        this.hasAsyncClientConfiguration = builder.hasGenAiAsyncClient();
     }
 
     @Override
     public void close() {
-        client.close();
+        closeModel(false);
+    }
+
+    final void closeModel(boolean closeCalledFromCallbackThread) {
+        boolean interrupted = false;
+        boolean waitForActiveOperations = true;
+        lifecycleLock.lock();
+        try {
+            closed = true;
+            if (activeOperations > 0 && closeCalledFromCallbackThread) {
+                waitForActiveOperations = false;
+            }
+            while (waitForActiveOperations && activeOperations > 0) {
+                try {
+                    noActiveOperations.await();
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                }
+            }
+        } finally {
+            lifecycleLock.unlock();
+        }
+
+        if (waitForActiveOperations) {
+            closeResources();
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -62,20 +129,259 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     protected com.oracle.bmc.generativeaiinference.responses.ChatResponse ociChat(
             BaseChatRequest chatRequest, ServingMode servingMode) {
         LOGGER.debug("Chat Request: {}", chatRequest);
+        var request = ociChatRequest(chatRequest, servingMode);
+        var chatResponse = syncClient().chat(request);
+        LOGGER.debug("Chat Response: {}", chatResponse);
+        return chatResponse;
+    }
 
+    /**
+     * Sends given OCI BMC request asynchronously and returns a stage that completes once the OCI SDK yields
+     * the streaming {@link com.oracle.bmc.generativeaiinference.responses.ChatResponse}.
+     * <p>
+     * When an async OCI client is available, this method intentionally uses the SDK Future mode
+     * ({@code asyncClient.chat(request, null)}) instead of {@code AsyncHandler} mode. OCI streams are safe to
+     * consume outside callbacks only in Future mode, and downstream streaming handlers in this module consume the
+     * event stream after this method returns.
+     *
+     * @param chatRequest OCI BMC request
+     * @param servingMode Serving mode with model name information
+     * @param activeOperation operation flag used for lifecycle accounting and safe close semantics
+     * @return a stage that completes once the response stream is available
+     */
+    protected CompletionStage<com.oracle.bmc.generativeaiinference.responses.ChatResponse> ociChatAsync(
+            BaseChatRequest chatRequest, ServingMode servingMode, AtomicBoolean activeOperation) {
+        lifecycleLock.lock();
+        try {
+            if (closed) {
+                return CompletableFuture.failedFuture(new IllegalStateException(MODEL_CLOSED_MESSAGE));
+            }
+            activeOperations++;
+            activeOperation.set(true);
+            LOGGER.debug("Chat Request: {}", chatRequest);
+            var request = ociChatRequest(chatRequest, servingMode);
+            var asyncClient = asyncClient();
+            if (asyncClient != null) {
+                return CompletableFuture.supplyAsync(
+                        () -> {
+                            try {
+                                // The OCI SDK requires stream handling in one of two exclusive modes:
+                                // - via AsyncHandler callback (stream consumed inside callback), or
+                                // - via Future mode (handler = null), where caller reads stream from the Future result.
+                                // We use Future mode so stream consumption can happen later in streaming handlers.
+                                var chatResponse =
+                                        asyncClient.chat(request, null).get();
+                                LOGGER.debug("Chat Response: {}", chatResponse);
+                                return chatResponse;
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                throw new CompletionException(e);
+                            } catch (ExecutionException e) {
+                                throw new CompletionException(e.getCause() != null ? e.getCause() : e);
+                            }
+                        },
+                        streamingExecutor);
+            }
+
+            var syncClient = syncClient();
+            return CompletableFuture.supplyAsync(
+                    () -> {
+                        var chatResponse = syncClient.chat(request);
+                        LOGGER.debug("Chat Response: {}", chatResponse);
+                        return chatResponse;
+                    },
+                    streamingExecutor);
+        } catch (Throwable t) {
+            releaseActiveOperation(activeOperation);
+            return CompletableFuture.failedFuture(t);
+        } finally {
+            lifecycleLock.unlock();
+        }
+    }
+
+    /**
+     * Unwraps nested completion wrappers and returns the root cause.
+     *
+     * @param throwable completion-stage failure
+     * @return unwrapped failure cause
+     */
+    protected static Throwable unwrapCompletionFailure(Throwable throwable) {
+        Throwable unwrapped = throwable;
+        while ((unwrapped instanceof CompletionException || unwrapped instanceof ExecutionException)
+                && unwrapped.getCause() != null) {
+            unwrapped = unwrapped.getCause();
+        }
+        return unwrapped;
+    }
+
+    /**
+     * Marks one asynchronous operation as completed and triggers deferred close when needed.
+     */
+    protected void completeActiveOperation() {
+        boolean closeResourcesAfterCompletion = false;
+        lifecycleLock.lock();
+        try {
+            activeOperations--;
+            if (activeOperations == 0) {
+                noActiveOperations.signalAll();
+                closeResourcesAfterCompletion = closed;
+            }
+        } finally {
+            lifecycleLock.unlock();
+        }
+        if (closeResourcesAfterCompletion) {
+            closeResources();
+        }
+    }
+
+    /**
+     * Releases operation accounting exactly once for the given operation flag.
+     * Any teardown exception is logged and swallowed to avoid turning a completed stream into an error callback.
+     *
+     * @param activeOperation operation state flag associated with a started call
+     */
+    protected void releaseActiveOperation(AtomicBoolean activeOperation) {
+        if (activeOperation.compareAndSet(true, false)) {
+            try {
+                completeActiveOperation();
+            } catch (Throwable t) {
+                LOGGER.warn("Error while releasing active OCI GenAI operation", t);
+            }
+        }
+    }
+
+    /**
+     * Executor used for asynchronous request startup and stream processing.
+     *
+     * @return streaming executor
+     */
+    protected Executor streamingExecutor() {
+        return streamingExecutor;
+    }
+
+    private void closeResources() {
+        if (!resourcesClosed.compareAndSet(false, true)) {
+            return;
+        }
+
+        Throwable closeFailure = null;
+        closeFailure = closeClient(syncClientLock, () -> client, () -> client = null, closeFailure);
+        closeFailure = closeClient(asyncClientLock, () -> asyncClient, () -> asyncClient = null, closeFailure);
+        closeFailure = captureFailure(closeFailure, streamingExecutor::shutdown);
+
+        throwUnchecked(closeFailure);
+    }
+
+    private static Throwable closeClient(
+            Lock lock,
+            Supplier<? extends AutoCloseable> closeableSupplier,
+            Runnable clearAction,
+            Throwable closeFailure) {
+        lock.lock();
+        try {
+            var closeable = closeableSupplier.get();
+            if (closeable != null) {
+                closeFailure = captureFailure(closeFailure, closeable::close);
+                clearAction.run();
+            }
+            return closeFailure;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private static Throwable captureFailure(Throwable closeFailure, ThrowingRunnable action) {
+        try {
+            action.run();
+            return closeFailure;
+        } catch (Throwable t) {
+            return addSuppressed(closeFailure, t);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
+    private static Throwable addSuppressed(Throwable currentFailure, Throwable nextFailure) {
+        if (currentFailure == null) {
+            return nextFailure;
+        }
+        if (nextFailure != currentFailure) {
+            currentFailure.addSuppressed(nextFailure);
+        }
+        return currentFailure;
+    }
+
+    private static void throwUnchecked(Throwable throwable) {
+        if (throwable == null) {
+            return;
+        }
+        if (throwable instanceof RuntimeException runtimeException) {
+            throw runtimeException;
+        }
+        if (throwable instanceof Error error) {
+            throw error;
+        }
+        throw new RuntimeException(throwable);
+    }
+
+    private com.oracle.bmc.generativeaiinference.requests.ChatRequest ociChatRequest(
+            BaseChatRequest chatRequest, ServingMode servingMode) {
         var details = ChatDetails.builder()
                 .servingMode(servingMode)
                 .compartmentId(compartmentId)
                 .chatRequest(chatRequest)
                 .build();
 
-        var request = com.oracle.bmc.generativeaiinference.requests.ChatRequest.builder()
+        return com.oracle.bmc.generativeaiinference.requests.ChatRequest.builder()
                 .chatDetails(details)
                 .build();
+    }
 
-        var chatResponse = client.chat(request);
-        LOGGER.debug("Chat Response: {}", chatResponse);
-        return chatResponse;
+    private GenerativeAiInferenceClient syncClient() {
+        syncClientLock.lock();
+        try {
+            if (closed) {
+                throw new IllegalStateException(MODEL_CLOSED_MESSAGE);
+            }
+            if (client == null) {
+                if (!hasSyncClientConfiguration) {
+                    throw new IllegalStateException("Synchronous OCI GenAI client is not configured.");
+                }
+                var clientBuilder = GenerativeAiInferenceClient.builder();
+                if (region != null) {
+                    clientBuilder.region(region);
+                }
+                client = clientBuilder.build(authProvider);
+            }
+            return client;
+        } finally {
+            syncClientLock.unlock();
+        }
+    }
+
+    private GenerativeAiInferenceAsyncClient asyncClient() {
+        asyncClientLock.lock();
+        try {
+            if (closed) {
+                throw new IllegalStateException(MODEL_CLOSED_MESSAGE);
+            }
+            if (!hasAsyncClientConfiguration) {
+                return null;
+            }
+            if (asyncClient == null) {
+                var clientBuilder = GenerativeAiInferenceAsyncClient.builder();
+                if (region != null) {
+                    clientBuilder.region(region);
+                }
+                asyncClient = clientBuilder.build(authProvider);
+            }
+            return asyncClient;
+        } finally {
+            asyncClientLock.unlock();
+        }
     }
 
     static <P> void setIfNotNull(P value, Consumer<P> consumer) {
@@ -124,6 +430,7 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         private Integer seed;
         private List<String> stop;
         private GenerativeAiInferenceClient genAiClient;
+        private GenerativeAiInferenceAsyncClient genAiAsyncClient;
         private List<ChatModelListener> listeners = List.of();
         private ServingMode.ServingType servingType = ServingMode.ServingType.OnDemand;
         private ChatRequestParameters defaultRequestParameters =
@@ -180,9 +487,13 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
             return self();
         }
 
+        boolean hasGenAiClient() {
+            return this.genAiClient != null || this.authProvider != null;
+        }
+
         GenerativeAiInferenceClient genAiClient() {
             if (this.genAiClient == null && this.authProvider == null) {
-                throw new IllegalArgumentException("GenAi client or authentication provider needs to be provided.");
+                throw new IllegalArgumentException(CLIENT_REQUIRED_MESSAGE);
             }
 
             if (this.genAiClient == null) {
@@ -194,6 +505,48 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
             }
 
             return this.genAiClient;
+        }
+
+        /**
+         * Manually configured async OCI SDK GenAi client.
+         * When set, values provided with {@link Builder#region(Region)}
+         * and {@link Builder#authProvider(BasicAuthenticationDetailsProvider)}
+         * are ignored for async client creation.
+         *
+         * @param genAiAsyncClient manually configured async OCI SDK GenAi client
+         * @return builder
+         */
+        public B genAiAsyncClient(GenerativeAiInferenceAsyncClient genAiAsyncClient) {
+            this.genAiAsyncClient = genAiAsyncClient;
+            return self();
+        }
+
+        boolean hasGenAiAsyncClient() {
+            // If a manual sync client is supplied, streaming models should fall back to it
+            // instead of silently creating a second async client from authProvider.
+            return this.genAiAsyncClient != null || (this.genAiClient == null && this.authProvider != null);
+        }
+
+        GenerativeAiInferenceAsyncClient genAiAsyncClient() {
+            if (this.genAiAsyncClient == null && this.authProvider == null) {
+                throw new IllegalArgumentException(CLIENT_REQUIRED_MESSAGE);
+            }
+
+            if (this.genAiAsyncClient == null) {
+                var clientBuilder = GenerativeAiInferenceAsyncClient.builder();
+                if (this.region() != null) {
+                    clientBuilder.region(this.region());
+                }
+                this.genAiAsyncClient = clientBuilder.build(this.authProvider());
+            }
+
+            return this.genAiAsyncClient;
+        }
+
+        void validateSyncClientConfiguration() {
+            if (!hasGenAiClient()) {
+                throw new IllegalArgumentException(SYNC_CLIENT_REQUIRED_MESSAGE);
+            }
         }
 
         /**

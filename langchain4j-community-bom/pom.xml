@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.13.0-beta23-SNAPSHOT</version>
+        <version>1.14.0-beta24-SNAPSHOT</version>
     </parent>
 
     <artifactId>langchain4j-community-bom</artifactId>
@@ -145,6 +145,13 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- memory stores -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-mongodb</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- content retrievers -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
@@ -162,6 +169,12 @@
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-document-loader-confluence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-document-loader-exa</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
