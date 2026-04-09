@@ -43,6 +43,7 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
@@ -99,6 +100,10 @@ public class CohereMapper {
         }
 
         if (chatMessage instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
+            if (!toolExecutionResultMessage.hasSingleText()) {
+                throw new UnsupportedFeatureException(
+                        "Cohere does not support non-text content in tool results. Only text content is supported.");
+            }
             return CohereToolMessage.from(toolExecutionResultMessage.id(), toolExecutionResultMessage.text());
         }
 
