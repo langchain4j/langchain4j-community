@@ -10,23 +10,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceClient;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.CompleteToolCall;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.TokenStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -35,17 +35,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
 
-class OciGenAiStreamingChatModelTest {
+class OciGenAiCohereStreamingChatModelTest {
 
     private static final long WAIT_TIMEOUT_SECONDS = 10;
 
     private static final String STREAMED_DATA = """
-            data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"HELLO"}]}}
-            data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" WORLD"}]}}
-            data: {"finishReason":"stop"}
+            data: {"apiFormat":"COHERE","text":"HELLO"}
+            data: {"apiFormat":"COHERE","text":" WORLD"}
+            """;
+
+    private static final String TOOL_CALL_DATA = """
+            data: {"apiFormat":"COHERE","toolCalls":[{"name":"getWeather","parameters":{"city":"Munich"}}]}
             """;
 
     @Test
@@ -61,7 +62,7 @@ class OciGenAiStreamingChatModelTest {
                         requestScheduled.countDown();
                         try {
                             assertTrue(releaseResponse.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-                            future.complete(ociResponse());
+                            future.complete(ociResponse(STREAMED_DATA));
                         } catch (Throwable t) {
                             future.completeExceptionally(t);
                         }
@@ -74,7 +75,7 @@ class OciGenAiStreamingChatModelTest {
                 .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
 
         var handler = new TestStreamingChatResponseHandler();
-        try (var model = OciGenAiStreamingChatModel.builder()
+        try (var model = OciGenAiCohereStreamingChatModel.builder()
                 .modelName("test-model")
                 .compartmentId("test-compartment")
                 .genAiClient(syncClient)
@@ -91,6 +92,7 @@ class OciGenAiStreamingChatModelTest {
             assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertNull(handler.error.get());
             assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
+            assertThat(handler.completeResponses, contains("HELLO WORLD"));
 
             verify(asyncClient).chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
             verify(syncClient, never()).chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class));
@@ -106,13 +108,13 @@ class OciGenAiStreamingChatModelTest {
         doAnswer(invocation -> {
                     requestStarted.countDown();
                     assertTrue(releaseResponse.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-                    return ociResponse();
+                    return ociResponse(STREAMED_DATA);
                 })
                 .when(syncClient)
                 .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class));
 
         var handler = new TestStreamingChatResponseHandler();
-        try (var model = OciGenAiStreamingChatModel.builder()
+        try (var model = OciGenAiCohereStreamingChatModel.builder()
                 .modelName("test-model")
                 .compartmentId("test-compartment")
                 .genAiClient(syncClient)
@@ -128,7 +130,7 @@ class OciGenAiStreamingChatModelTest {
             assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertNull(handler.error.get());
             assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
-
+            assertThat(handler.completeResponses, contains("HELLO WORLD"));
             verify(syncClient).chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class));
         }
     }
@@ -136,7 +138,7 @@ class OciGenAiStreamingChatModelTest {
     @Test
     void doChatUsesConfiguredExecutorServiceForAsyncStreaming() throws Exception {
         var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
-        var executorService = new TrackingExecutorService("oci-generic-async-executor");
+        var executorService = new TrackingExecutorService("oci-cohere-async-executor");
         var requestThread = new AtomicReference<String>();
         var callbackThread = new AtomicReference<String>();
         var completed = new CountDownLatch(1);
@@ -144,13 +146,13 @@ class OciGenAiStreamingChatModelTest {
 
         doAnswer(invocation -> {
                     requestThread.set(Thread.currentThread().getName());
-                    return CompletableFuture.completedFuture(ociResponse());
+                    return CompletableFuture.completedFuture(ociResponse(STREAMED_DATA));
                 })
                 .when(asyncClient)
                 .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
 
         try {
-            try (var model = OciGenAiStreamingChatModel.builder()
+            try (var model = OciGenAiCohereStreamingChatModel.builder()
                     .modelName("test-model")
                     .compartmentId("test-compartment")
                     .genAiAsyncClient(asyncClient)
@@ -180,63 +182,8 @@ class OciGenAiStreamingChatModelTest {
                 assertNull(error.get());
             }
 
-            assertTrue(requestThread.get().startsWith("oci-generic-async-executor-"));
-            assertTrue(callbackThread.get().startsWith("oci-generic-async-executor-"));
-            assertFalse(executorService.shutdownWasRequested());
-        } finally {
-            executorService.shutdownDelegateNow();
-        }
-    }
-
-    @Test
-    void doChatUsesConfiguredExecutorServiceForSyncFallback() throws Exception {
-        var syncClient = mock(GenerativeAiInferenceClient.class);
-        var executorService = new TrackingExecutorService("oci-generic-sync-executor");
-        var requestThread = new AtomicReference<String>();
-        var callbackThread = new AtomicReference<String>();
-        var completed = new CountDownLatch(1);
-        var error = new AtomicReference<Throwable>();
-
-        doAnswer(invocation -> {
-                    requestThread.set(Thread.currentThread().getName());
-                    return ociResponse();
-                })
-                .when(syncClient)
-                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class));
-
-        try {
-            try (var model = OciGenAiStreamingChatModel.builder()
-                    .modelName("test-model")
-                    .compartmentId("test-compartment")
-                    .genAiClient(syncClient)
-                    .executorService(executorService)
-                    .build()) {
-
-                model.doChat(chatRequest(), new StreamingChatResponseHandler() {
-                    @Override
-                    public void onPartialResponse(String partialResponse) {
-                        callbackThread.compareAndSet(
-                                null, Thread.currentThread().getName());
-                    }
-
-                    @Override
-                    public void onCompleteResponse(ChatResponse completeResponse) {
-                        completed.countDown();
-                    }
-
-                    @Override
-                    public void onError(Throwable throwable) {
-                        error.set(throwable);
-                        completed.countDown();
-                    }
-                });
-
-                assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-                assertNull(error.get());
-            }
-
-            assertTrue(requestThread.get().startsWith("oci-generic-sync-executor-"));
-            assertTrue(callbackThread.get().startsWith("oci-generic-sync-executor-"));
+            assertTrue(requestThread.get().startsWith("oci-cohere-async-executor-"));
+            assertTrue(callbackThread.get().startsWith("oci-cohere-async-executor-"));
             assertFalse(executorService.shutdownWasRequested());
         } finally {
             executorService.shutdownDelegateNow();
@@ -255,7 +202,7 @@ class OciGenAiStreamingChatModelTest {
                 .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
 
         var handler = new TestStreamingChatResponseHandler();
-        try (var model = OciGenAiStreamingChatModel.builder()
+        try (var model = OciGenAiCohereStreamingChatModel.builder()
                 .modelName("test-model")
                 .compartmentId("test-compartment")
                 .genAiAsyncClient(asyncClient)
@@ -269,108 +216,33 @@ class OciGenAiStreamingChatModelTest {
     }
 
     @Test
-    void directHandlerReproducerStreamsBeforeCompletion() throws Exception {
-        var streamScript = new BlockingEventStream();
+    void doChatShouldEmitCompleteToolCallForToolResponse() throws Exception {
+        var handler = new TestStreamingChatResponseHandler();
 
-        try (var model = modelWithAsyncResponse(streamScript.response())) {
-            var handler = new TestStreamingChatResponseHandler();
-
-            CompletableFuture<Void> invokeFuture = CompletableFuture.runAsync(() -> model.chat(chatRequest(), handler));
-            invokeFuture.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            assertTrue(handler.firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            assertThat(handler.partialResponses, contains("HELLO"));
-            assertFalse(handler.completed.await(200, TimeUnit.MILLISECONDS));
-
-            streamScript.allowCompletion();
+        try (var model = modelWithAsyncResponse(ociResponse(TOOL_CALL_DATA))) {
+            model.doChat(chatRequest(), handler);
 
             assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            streamScript.assertCompleted();
             assertNull(handler.error.get());
-            assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
-        }
-    }
-
-    @Test
-    void tokenStreamReproducerStreamsIntoSinkBeforeCompletion() throws Exception {
-        var streamScript = new BlockingEventStream();
-
-        try (var model = modelWithAsyncResponse(streamScript.response())) {
-            TokenStreamAssistant assistant = AiServices.builder(TokenStreamAssistant.class)
-                    .streamingChatModel(model)
-                    .build();
-
-            Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
-            List<String> partialResponses = new CopyOnWriteArrayList<>();
-            CountDownLatch firstPartial = new CountDownLatch(1);
-            CountDownLatch completed = new CountDownLatch(1);
-            AtomicReference<Throwable> error = new AtomicReference<>();
-
-            sink.asFlux()
-                    .doOnNext(token -> {
-                        partialResponses.add(token);
-                        firstPartial.countDown();
-                    })
-                    .doOnComplete(completed::countDown)
-                    .doOnError(error::set)
-                    .subscribe();
-
-            CompletableFuture<Void> startFuture = CompletableFuture.runAsync(() -> assistant
-                    .chat("Hello")
-                    .onPartialResponse(sink::tryEmitNext)
-                    .onCompleteResponse(ignored -> sink.tryEmitComplete())
-                    .onError(sink::tryEmitError)
-                    .start());
-
-            startFuture.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            assertTrue(firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            assertThat(partialResponses, contains("HELLO"));
-            assertFalse(completed.await(200, TimeUnit.MILLISECONDS));
-
-            streamScript.allowCompletion();
-
-            assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            streamScript.assertCompleted();
-            assertNull(error.get());
-            assertThat(partialResponses, contains("HELLO", " WORLD"));
-        }
-    }
-
-    @Test
-    void fluxReproducerReturnsImmediatelyAndStreamsBeforeCompletion() throws Exception {
-        var streamScript = new BlockingEventStream();
-
-        try (var model = modelWithAsyncResponse(streamScript.response())) {
-            FluxAssistant assistant = AiServices.builder(FluxAssistant.class)
-                    .streamingChatModel(model)
-                    .build();
-
-            CompletableFuture<Flux<String>> fluxFuture = CompletableFuture.supplyAsync(() -> assistant.chat("Hello"));
-            Flux<String> flux = fluxFuture.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            List<String> partialResponses = new CopyOnWriteArrayList<>();
-            CountDownLatch firstPartial = new CountDownLatch(1);
-            CountDownLatch completed = new CountDownLatch(1);
-            AtomicReference<Throwable> error = new AtomicReference<>();
-
-            flux.doOnNext(token -> {
-                        partialResponses.add(token);
-                        firstPartial.countDown();
-                    })
-                    .doOnComplete(completed::countDown)
-                    .doOnError(error::set)
-                    .subscribe();
-
-            assertTrue(firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            assertThat(partialResponses, contains("HELLO"));
-            assertFalse(completed.await(200, TimeUnit.MILLISECONDS));
-
-            streamScript.allowCompletion();
-
-            assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            streamScript.assertCompleted();
-            assertNull(error.get());
-            assertThat(partialResponses, contains("HELLO", " WORLD"));
+            assertTrue(handler.partialResponses.isEmpty());
+            assertThat(handler.completeResponses, contains((String) null));
+            assertThat(
+                    handler.completeToolCalls.stream()
+                            .map(CompleteToolCall::index)
+                            .toList(),
+                    contains(0));
+            assertThat(
+                    handler.completeToolCalls.stream()
+                            .map(CompleteToolCall::toolExecutionRequest)
+                            .map(ToolExecutionRequest::name)
+                            .toList(),
+                    contains("getWeather"));
+            assertThat(
+                    handler.completeToolCalls.stream()
+                            .map(CompleteToolCall::toolExecutionRequest)
+                            .map(ToolExecutionRequest::arguments)
+                            .toList(),
+                    contains("{\"city\":\"Munich\"}"));
         }
     }
 
@@ -396,30 +268,7 @@ class OciGenAiStreamingChatModelTest {
         streamScript.assertCompleted();
         assertNull(handler.error.get());
         assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
-    }
-
-    @Test
-    void tryWithResourcesShouldWaitForSyncFallbackStreamCompletion() throws Exception {
-        var streamScript = new BlockingEventStream();
-        var handler = new TestStreamingChatResponseHandler();
-
-        var invocation = CompletableFuture.runAsync(() -> {
-            try (var model = modelWithSyncResponse(streamScript.response())) {
-                model.doChat(chatRequest(), handler);
-            }
-        });
-
-        assertTrue(handler.firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        assertFalse(invocation.isDone());
-        assertFalse(handler.completed.await(200, TimeUnit.MILLISECONDS));
-
-        streamScript.allowCompletion();
-
-        invocation.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertTrue(handler.completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        streamScript.assertCompleted();
-        assertNull(handler.error.get());
-        assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
+        assertThat(handler.completeResponses, contains("HELLO WORLD"));
     }
 
     @Test
@@ -474,80 +323,17 @@ class OciGenAiStreamingChatModelTest {
         }
     }
 
-    @Test
-    void closeFailureAfterCompletionShouldNotInvokeErrorCallback() throws Exception {
-        var streamScript = new BlockingEventStream();
-        var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
-        var closeFailure = new RuntimeException("close failed");
-
-        doAnswer(invocation -> {
-                    var future = new CompletableFuture<com.oracle.bmc.generativeaiinference.responses.ChatResponse>();
-                    var worker = new Thread(() -> future.complete(streamScript.response()));
-                    worker.setDaemon(true);
-                    worker.start();
-                    return future;
-                })
-                .when(asyncClient)
-                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
-        doThrow(closeFailure).when(asyncClient).close();
-
-        var model = OciGenAiStreamingChatModel.builder()
-                .modelName("test-model")
-                .compartmentId("test-compartment")
-                .genAiAsyncClient(asyncClient)
-                .build();
-
-        try {
-            var firstPartial = new CountDownLatch(1);
-            var completed = new CountDownLatch(1);
-            var errored = new CountDownLatch(1);
-            var closeInvoked = new AtomicBoolean();
-            var error = new AtomicReference<Throwable>();
-
-            model.doChat(chatRequest(), new StreamingChatResponseHandler() {
-                @Override
-                public void onPartialResponse(String partialResponse) {
-                    if (closeInvoked.compareAndSet(false, true)) {
-                        model.close();
-                    }
-                    firstPartial.countDown();
-                }
-
-                @Override
-                public void onCompleteResponse(ChatResponse completeResponse) {
-                    completed.countDown();
-                }
-
-                @Override
-                public void onError(Throwable throwable) {
-                    error.set(throwable);
-                    errored.countDown();
-                }
-            });
-
-            assertTrue(firstPartial.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            streamScript.allowCompletion();
-
-            assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-            streamScript.assertCompleted();
-            assertFalse(errored.await(300, TimeUnit.MILLISECONDS));
-            assertNull(error.get());
-        } finally {
-            model.close();
-        }
-    }
-
     private static ChatRequest chatRequest() {
         return ChatRequest.builder().messages(UserMessage.from("Hello")).build();
     }
 
-    private static com.oracle.bmc.generativeaiinference.responses.ChatResponse ociResponse() {
+    private static com.oracle.bmc.generativeaiinference.responses.ChatResponse ociResponse(String streamedData) {
         return com.oracle.bmc.generativeaiinference.responses.ChatResponse.builder()
-                .eventStream(new ByteArrayInputStream(STREAMED_DATA.getBytes(UTF_8)))
+                .eventStream(new ByteArrayInputStream(streamedData.getBytes(UTF_8)))
                 .build();
     }
 
-    private static OciGenAiStreamingChatModel modelWithAsyncResponse(
+    private static OciGenAiCohereStreamingChatModel modelWithAsyncResponse(
             com.oracle.bmc.generativeaiinference.responses.ChatResponse response) {
         var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
 
@@ -561,34 +347,11 @@ class OciGenAiStreamingChatModelTest {
                 .when(asyncClient)
                 .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
 
-        return OciGenAiStreamingChatModel.builder()
+        return OciGenAiCohereStreamingChatModel.builder()
                 .modelName("test-model")
                 .compartmentId("test-compartment")
                 .genAiAsyncClient(asyncClient)
                 .build();
-    }
-
-    private static OciGenAiStreamingChatModel modelWithSyncResponse(
-            com.oracle.bmc.generativeaiinference.responses.ChatResponse response) {
-        var syncClient = mock(GenerativeAiInferenceClient.class);
-
-        doAnswer(invocation -> response)
-                .when(syncClient)
-                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class));
-
-        return OciGenAiStreamingChatModel.builder()
-                .modelName("test-model")
-                .compartmentId("test-compartment")
-                .genAiClient(syncClient)
-                .build();
-    }
-
-    private interface TokenStreamAssistant {
-        TokenStream chat(String text);
-    }
-
-    private interface FluxAssistant {
-        Flux<String> chat(String text);
     }
 
     private static class BlockingEventStream {
@@ -629,16 +392,11 @@ class OciGenAiStreamingChatModelTest {
 
         private void writeStream(PipedOutputStream output) {
             try (output) {
-                writeLine(
-                        output,
-                        "data: {\"index\":0,\"message\":{\"role\":\"ASSISTANT\",\"content\":[{\"type\":\"TEXT\",\"text\":\"HELLO\"}]}}");
+                writeLine(output, "data: {\"apiFormat\":\"COHERE\",\"text\":\"HELLO\"}");
                 if (!completionAllowed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                     throw new IllegalStateException("Timed out waiting to complete stream");
                 }
-                writeLine(
-                        output,
-                        "data: {\"index\":0,\"message\":{\"role\":\"ASSISTANT\",\"content\":[{\"type\":\"TEXT\",\"text\":\" WORLD\"}]}}");
-                writeLine(output, "data: {\"finishReason\":\"stop\"}");
+                writeLine(output, "data: {\"apiFormat\":\"COHERE\",\"text\":\" WORLD\"}");
             } catch (Throwable t) {
                 writerError.set(t);
             } finally {
@@ -655,6 +413,8 @@ class OciGenAiStreamingChatModelTest {
     private static class TestStreamingChatResponseHandler implements StreamingChatResponseHandler {
 
         private final List<String> partialResponses = new CopyOnWriteArrayList<>();
+        private final List<String> completeResponses = new CopyOnWriteArrayList<>();
+        private final List<CompleteToolCall> completeToolCalls = new ArrayList<>();
         private final CountDownLatch firstPartial = new CountDownLatch(1);
         private final CountDownLatch completed = new CountDownLatch(1);
         private final AtomicReference<Throwable> error = new AtomicReference<>();
@@ -667,6 +427,7 @@ class OciGenAiStreamingChatModelTest {
 
         @Override
         public void onCompleteResponse(ChatResponse completeResponse) {
+            completeResponses.add(completeResponse.aiMessage().text());
             completed.countDown();
         }
 
@@ -674,6 +435,11 @@ class OciGenAiStreamingChatModelTest {
         public void onError(Throwable throwable) {
             error.set(throwable);
             completed.countDown();
+        }
+
+        @Override
+        public void onCompleteToolCall(CompleteToolCall completeToolCall) {
+            completeToolCalls.add(completeToolCall);
         }
     }
 }
