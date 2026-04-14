@@ -31,9 +31,13 @@ import org.slf4j.Logger;
 /**
  * Represents a Cohere LLM with a chat API.
  * <br/>
+ * This implementation is based on Cohere's V2 Chat API.
+ * <p>
  * The model's response is streamed token by token and should be handled with {@link StreamingResponseHandler}.
- * <br/>
- * More details are available <a href="https://docs.cohere.com/reference/chat-stream">here</a>.
+ *
+ * @see <a href="https://docs.cohere.com/reference/chat">Cohere's V2 Chat API specification</a>
+ * @see <a href="https://docs.cohere.com/v2/docs/migrating-v1-to-v2">Cohere's API migration guide</a>
+ * @see <a href="https://docs.cohere.com/v2/docs/chat-api">Cohere's text generation guides</a>
  */
 public class CohereStreamingChatModel implements StreamingChatModel {
 
