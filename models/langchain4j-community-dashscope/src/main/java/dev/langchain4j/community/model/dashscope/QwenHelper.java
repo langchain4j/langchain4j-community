@@ -81,6 +81,8 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,6 +91,7 @@ class QwenHelper {
     private static final Logger log = LoggerFactory.getLogger(QwenHelper.class);
     public static final String GENERATED_AUDIOS_KEY =
             "generated_audios"; // key for storing generated audios in AiMessage attributes
+    private static final Pattern VERSION_PATTERN = Pattern.compile("^qwen(\\d+(?:\\.\\d+)?)-(max|plus|flash)(?:-.*)?$");
 
     static List<Message> toQwenMessages(List<ChatMessage> messages, Boolean enableSanitizeMessages) {
         List<ChatMessage> inputMessages =
@@ -179,8 +182,10 @@ class QwenHelper {
             case SYSTEM ->
                 Collections.singletonList(Collections.singletonMap("text", ((SystemMessage) message).text()));
             case TOOL_EXECUTION_RESULT ->
-                Collections.singletonList(
-                        Collections.singletonMap("text", ((ToolExecutionResultMessage) message).text()));
+                ((ToolExecutionResultMessage) message)
+                        .contents().stream()
+                                .map(QwenHelper::toMultiModalContent)
+                                .collect(toList());
             default -> Collections.emptyList();
         };
     }
@@ -434,15 +439,29 @@ class QwenHelper {
                 .orElse(null);
     }
 
-    static boolean isMultimodalModelName(String modelName) {
+    private static float extractVersion(String modelName) {
+        Matcher matcher = VERSION_PATTERN.matcher(modelName);
+        if (matcher.find()) {
+            String versionStr = matcher.group(1);
+            try {
+                return Float.parseFloat(versionStr);
+            } catch (NumberFormatException e) {
+                log.warn("Failed to parse qwen model version for {}", modelName, e);
+            }
+        }
+        return 0f;
+    }
+
+    public static boolean isMultimodalModelName(String modelName) {
         // rough judgment
         return modelName.contains("-vl-")
                 || modelName.contains("-audio-")
                 || modelName.contains("-omni-")
                 || modelName.contains("-image-")
-                || modelName.startsWith("qwen3.5-")
                 || modelName.contains("-asr-")
-                || modelName.contains("-tts-");
+                || modelName.contains("-tts-")
+                // Qwen should be multimodal from version 3.5 onwards.
+                || extractVersion(modelName) >= 3.5f;
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
