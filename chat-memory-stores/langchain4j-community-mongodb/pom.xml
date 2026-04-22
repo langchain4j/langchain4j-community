@@ -13,7 +13,7 @@
     <name>LangChain4j :: Community :: Integration :: MongoDB</name>
 
     <properties>
-        <mongodb-client.version>5.6.0</mongodb-client.version>
+        <mongodb-client.version>5.6.5</mongodb-client.version>
     </properties>
 
     <dependencies>
