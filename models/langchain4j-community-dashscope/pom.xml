@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <dashscope.version>2.22.15</dashscope.version>
+        <dashscope.version>2.22.16</dashscope.version>
     </properties>
 
     <dependencies>

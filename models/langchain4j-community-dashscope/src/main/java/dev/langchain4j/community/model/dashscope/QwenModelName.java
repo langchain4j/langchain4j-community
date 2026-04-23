@@ -60,6 +60,8 @@ public class QwenModelName {
     public static final String QWEN3_MAX = "qwen3-max"; // Qwen max model, stable version (v3)
     public static final String QWEN3_5_PLUS = "qwen3.5-plus"; // Qwen plus model, stable version (v3.5)
     public static final String QWEN3_5_FLASH = "qwen3.5-flash"; // Qwen flash model, stable version (v3.5)
+    public static final String QWEN3_6_PLUS = "qwen3.6-plus"; // Qwen plus model, stable version (v3.5)
+    public static final String QWEN3_6_FLASH = "qwen3.6-flash"; // Qwen flash model, stable version (v3.6)
     public static final String QWEN_VL_PLUS =
             "qwen-vl-plus"; // Qwen multi-modal model, supports image and text information, stable version
     public static final String QWEN_VL_PLUS_LATEST =
@@ -94,6 +96,8 @@ public class QwenModelName {
     public static final String QWEN_IMAGE_EDIT = "qwen-image-edit";
     public static final String QWEN_IMAGE_EDIT_PLUS = "qwen-image-edit-plus";
     public static final String QWEN_IMAGE_EDIT_MAX = "qwen-image-edit-max";
+    public static final String QWEN_IMAGE_2_0 = "qwen-image-2.0"; // Image generation + editing
+    public static final String QWEN_IMAGE_2_0_PRO = "qwen-image-2.0-pro"; // Image generation + editing, more parameters
 
     // Use with QwenEmbeddingModel
     @Deprecated
