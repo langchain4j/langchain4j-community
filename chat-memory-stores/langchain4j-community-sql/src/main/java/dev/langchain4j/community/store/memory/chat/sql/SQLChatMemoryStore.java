@@ -19,9 +19,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation of {@link ChatMemoryStore} backed by SQl.
+ * {@link ChatMemoryStore} implementation backed by any SQL database.
  * <p>
- * It persists chat messages as serialized JSON within a SQL Database.
+ * Chat messages are serialized to JSON and stored in a single table. The table
+ * and column names are configurable via the builder. Auto-creation of the table
+ * is enabled by default.
+ *
+ * @see SQLDialect
  */
 public class SQLChatMemoryStore implements ChatMemoryStore {
 

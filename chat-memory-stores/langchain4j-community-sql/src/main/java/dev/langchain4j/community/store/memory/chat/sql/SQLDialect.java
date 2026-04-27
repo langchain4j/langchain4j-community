@@ -1,7 +1,11 @@
 package dev.langchain4j.community.store.memory.chat.sql;
 
 /**
- * Interface to implement an SQL Dialect.
+ * SQL dialect abstraction for {@link SQLChatMemoryStore}.
+ * <p>
+ * Each implementation provides the SQL statements required to create a table,
+ * upsert, delete, and select chat memory records. Implementations are provided
+ * for PostgreSQL, MySQL, H2, and other common databases.
  */
 public interface SQLDialect {
 
