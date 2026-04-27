@@ -40,6 +40,7 @@
         <module>models/langchain4j-community-qianfan</module>
         <module>models/langchain4j-community-xinference</module>
         <module>models/langchain4j-community-zhipu-ai</module>
+        <module>models/langchain4j-community-cohere</module>
         <module>models/langchain4j-community-model-router</module>
         <module>models/langchain4j-community-model-registry</module>
 

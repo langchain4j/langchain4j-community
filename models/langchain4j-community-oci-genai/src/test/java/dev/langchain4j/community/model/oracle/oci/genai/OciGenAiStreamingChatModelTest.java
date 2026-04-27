@@ -134,6 +134,116 @@ class OciGenAiStreamingChatModelTest {
     }
 
     @Test
+    void doChatUsesConfiguredExecutorServiceForAsyncStreaming() throws Exception {
+        var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
+        var executorService = new TrackingExecutorService("oci-generic-async-executor");
+        var requestThread = new AtomicReference<String>();
+        var callbackThread = new AtomicReference<String>();
+        var completed = new CountDownLatch(1);
+        var error = new AtomicReference<Throwable>();
+
+        doAnswer(invocation -> {
+                    requestThread.set(Thread.currentThread().getName());
+                    return CompletableFuture.completedFuture(ociResponse());
+                })
+                .when(asyncClient)
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class), isNull());
+
+        try {
+            try (var model = OciGenAiStreamingChatModel.builder()
+                    .modelName("test-model")
+                    .compartmentId("test-compartment")
+                    .genAiAsyncClient(asyncClient)
+                    .executorService(executorService)
+                    .build()) {
+
+                model.doChat(chatRequest(), new StreamingChatResponseHandler() {
+                    @Override
+                    public void onPartialResponse(String partialResponse) {
+                        callbackThread.compareAndSet(
+                                null, Thread.currentThread().getName());
+                    }
+
+                    @Override
+                    public void onCompleteResponse(ChatResponse completeResponse) {
+                        completed.countDown();
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        error.set(throwable);
+                        completed.countDown();
+                    }
+                });
+
+                assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                assertNull(error.get());
+            }
+
+            assertTrue(requestThread.get().startsWith("oci-generic-async-executor-"));
+            assertTrue(callbackThread.get().startsWith("oci-generic-async-executor-"));
+            assertFalse(executorService.shutdownWasRequested());
+        } finally {
+            executorService.shutdownDelegateNow();
+        }
+    }
+
+    @Test
+    void doChatUsesConfiguredExecutorServiceForSyncFallback() throws Exception {
+        var syncClient = mock(GenerativeAiInferenceClient.class);
+        var executorService = new TrackingExecutorService("oci-generic-sync-executor");
+        var requestThread = new AtomicReference<String>();
+        var callbackThread = new AtomicReference<String>();
+        var completed = new CountDownLatch(1);
+        var error = new AtomicReference<Throwable>();
+
+        doAnswer(invocation -> {
+                    requestThread.set(Thread.currentThread().getName());
+                    return ociResponse();
+                })
+                .when(syncClient)
+                .chat(any(com.oracle.bmc.generativeaiinference.requests.ChatRequest.class));
+
+        try {
+            try (var model = OciGenAiStreamingChatModel.builder()
+                    .modelName("test-model")
+                    .compartmentId("test-compartment")
+                    .genAiClient(syncClient)
+                    .executorService(executorService)
+                    .build()) {
+
+                model.doChat(chatRequest(), new StreamingChatResponseHandler() {
+                    @Override
+                    public void onPartialResponse(String partialResponse) {
+                        callbackThread.compareAndSet(
+                                null, Thread.currentThread().getName());
+                    }
+
+                    @Override
+                    public void onCompleteResponse(ChatResponse completeResponse) {
+                        completed.countDown();
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        error.set(throwable);
+                        completed.countDown();
+                    }
+                });
+
+                assertTrue(completed.await(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                assertNull(error.get());
+            }
+
+            assertTrue(requestThread.get().startsWith("oci-generic-sync-executor-"));
+            assertTrue(callbackThread.get().startsWith("oci-generic-sync-executor-"));
+            assertFalse(executorService.shutdownWasRequested());
+        } finally {
+            executorService.shutdownDelegateNow();
+        }
+    }
+
+    @Test
     void doChatRoutesAsyncStartupFailuresToHandler() throws Exception {
         var asyncClient = mock(GenerativeAiInferenceAsyncClient.class);
         var failure = new IllegalStateException("boom");

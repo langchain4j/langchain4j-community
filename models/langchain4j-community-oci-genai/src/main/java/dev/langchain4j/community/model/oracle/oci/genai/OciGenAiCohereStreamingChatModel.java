@@ -19,6 +19,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -218,6 +219,19 @@ public class OciGenAiCohereStreamingChatModel extends BaseCohereChatModel<OciGen
 
         public Builder genAiAsyncClient(GenerativeAiInferenceAsyncClient genAiAsyncClient) {
             return super.genAiAsyncClient(genAiAsyncClient);
+        }
+
+        /**
+         * Sets the {@link ExecutorService} to use for asynchronous request startup and stream processing.
+         * If not provided, uses {@link dev.langchain4j.internal.DefaultExecutorProvider#getDefaultExecutorService()}.
+         * <p>
+         * If an executor is provided, it will not be shut down when the model is closed.
+         *
+         * @param executorService the executor service to use
+         * @return {@code this}
+         */
+        public Builder executorService(ExecutorService executorService) {
+            return super.executorService(executorService);
         }
 
         public OciGenAiCohereStreamingChatModel build() {

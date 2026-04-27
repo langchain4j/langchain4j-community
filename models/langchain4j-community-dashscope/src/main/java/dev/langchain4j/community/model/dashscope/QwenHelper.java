@@ -23,7 +23,6 @@ import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationOutput.Choice;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
-import com.alibaba.dashscope.aigc.generation.SearchInfo;
 import com.alibaba.dashscope.aigc.generation.TranslationOptions;
 import com.alibaba.dashscope.aigc.multimodalconversation.AudioParameters;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
@@ -32,6 +31,7 @@ import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationR
 import com.alibaba.dashscope.common.Message;
 import com.alibaba.dashscope.common.MultiModalMessage;
 import com.alibaba.dashscope.common.Role;
+import com.alibaba.dashscope.common.SearchInfo;
 import com.alibaba.dashscope.tools.FunctionDefinition;
 import com.alibaba.dashscope.tools.ToolBase;
 import com.alibaba.dashscope.tools.ToolCallBase;
@@ -835,8 +835,7 @@ class QwenHelper {
         };
     }
 
-    static QwenChatResponseMetadata.SearchInfo convertSearchInfo(
-            com.alibaba.dashscope.aigc.generation.SearchInfo searchInfo) {
+    static QwenChatResponseMetadata.SearchInfo convertSearchInfo(com.alibaba.dashscope.common.SearchInfo searchInfo) {
         List<QwenChatResponseMetadata.SearchResult> searchResults =
                 isNull(searchInfo) || isNullOrEmpty(searchInfo.getSearchResults())
                         ? Collections.emptyList()

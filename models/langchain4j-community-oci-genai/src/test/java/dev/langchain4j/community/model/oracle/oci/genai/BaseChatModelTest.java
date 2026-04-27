@@ -14,6 +14,7 @@ import com.oracle.bmc.auth.BasicAuthenticationDetailsProvider;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceAsyncClient;
 import com.oracle.bmc.generativeaiinference.GenerativeAiInferenceClient;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.internal.DefaultExecutorProvider;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -219,11 +221,35 @@ class BaseChatModelTest {
         verify(asyncClient).close();
     }
 
+    @Test
+    void streamingModelShouldUseDefaultExecutorServiceWhenNotConfigured() {
+        var syncClient = mock(GenerativeAiInferenceClient.class);
+
+        try (var model = OciGenAiStreamingChatModel.builder()
+                .modelName("test-model")
+                .compartmentId("test-compartment")
+                .genAiClient(syncClient)
+                .build()) {
+
+            assertSame(DefaultExecutorProvider.getDefaultExecutorService(), streamingExecutor(model));
+        }
+    }
+
     private static int activeOperations(BaseChatModel<?> model) {
         try {
             var field = BaseChatModel.class.getDeclaredField("activeOperations");
             field.setAccessible(true);
             return field.getInt(model);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static ExecutorService streamingExecutor(BaseChatModel<?> model) {
+        try {
+            var field = BaseChatModel.class.getDeclaredField("streamingExecutor");
+            field.setAccessible(true);
+            return (ExecutorService) field.get(model);
         } catch (ReflectiveOperationException e) {
             throw new AssertionError(e);
         }

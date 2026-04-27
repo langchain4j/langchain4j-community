@@ -14,7 +14,7 @@ import java.sql.SQLException;
  * Instances of SQLFilter can be created with the helper class {@link dev.langchain4j.store.embedding.filter.MetadataFilterBuilder}.
  * </p>
  */
-interface SQLFilter {
+public interface SQLFilter {
 
     /**
      * <p>

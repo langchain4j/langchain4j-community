@@ -1,0 +1,31 @@
+package dev.langchain4j.community.model.cohere.common;
+
+import dev.langchain4j.community.model.CohereStreamingChatModel;
+import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.service.common.AbstractStreamingAiServiceIT;
+import java.util.List;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+
+@EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
+class CohereStreamingAiServiceIT extends AbstractStreamingAiServiceIT {
+
+    private static final StreamingChatModel DEFAULT_STREAMING_CHAT_MODEL = CohereStreamingChatModel.builder()
+            .apiKey(System.getenv("CO_API_KEY"))
+            .modelName("command-r7b-12-2024")
+            .temperature(0.0)
+            .logRequests(true)
+            .logResponses(true)
+            .build();
+
+    @Override
+    protected List<StreamingChatModel> models() {
+        return List.of(DEFAULT_STREAMING_CHAT_MODEL);
+    }
+
+    @Override
+    protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(StreamingChatModel streamingChatModel) {
+        return CohereChatResponseMetadata.class;
+    }
+}

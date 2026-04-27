@@ -8,6 +8,7 @@ import com.oracle.bmc.generativeaiinference.model.BaseChatRequest;
 import com.oracle.bmc.generativeaiinference.model.ChatDetails;
 import com.oracle.bmc.generativeaiinference.model.ServingMode;
 import com.oracle.bmc.http.client.Serializer;
+import dev.langchain4j.internal.DefaultExecutorProvider;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -21,7 +22,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -50,7 +50,7 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
     private final Condition noActiveOperations = lifecycleLock.newCondition();
     private final Lock syncClientLock = new ReentrantLock();
     private final Lock asyncClientLock = new ReentrantLock();
-    private final ExecutorService streamingExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService streamingExecutor;
     private final AtomicBoolean resourcesClosed = new AtomicBoolean();
     private int activeOperations;
     private volatile boolean closed;
@@ -68,6 +68,9 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         this.asyncClient = builder.genAiAsyncClient;
         this.hasSyncClientConfiguration = builder.hasGenAiClient();
         this.hasAsyncClientConfiguration = builder.hasGenAiAsyncClient();
+        this.streamingExecutor = builder.executorService != null
+                ? builder.executorService
+                : DefaultExecutorProvider.getDefaultExecutorService();
     }
 
     @Override
@@ -267,7 +270,6 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         Throwable closeFailure = null;
         closeFailure = closeClient(syncClientLock, () -> client, () -> client = null, closeFailure);
         closeFailure = closeClient(asyncClientLock, () -> asyncClient, () -> asyncClient = null, closeFailure);
-        closeFailure = captureFailure(closeFailure, streamingExecutor::shutdown);
 
         throwUnchecked(closeFailure);
     }
@@ -431,6 +433,7 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
         private List<String> stop;
         private GenerativeAiInferenceClient genAiClient;
         private GenerativeAiInferenceAsyncClient genAiAsyncClient;
+        private ExecutorService executorService;
         private List<ChatModelListener> listeners = List.of();
         private ServingMode.ServingType servingType = ServingMode.ServingType.OnDemand;
         private ChatRequestParameters defaultRequestParameters =
@@ -518,6 +521,11 @@ abstract class BaseChatModel<T extends BaseChatModel<T>> implements AutoCloseabl
          */
         public B genAiAsyncClient(GenerativeAiInferenceAsyncClient genAiAsyncClient) {
             this.genAiAsyncClient = genAiAsyncClient;
+            return self();
+        }
+
+        B executorService(ExecutorService executorService) {
+            this.executorService = executorService;
             return self();
         }
 

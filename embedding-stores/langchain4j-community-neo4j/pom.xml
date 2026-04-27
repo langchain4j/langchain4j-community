@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Integration :: Neo4j</name>
 
     <properties>
-        <neo4j.version>6.0.3</neo4j.version>
+        <neo4j.version>6.0.5</neo4j.version>
         <neo4j.cypher.dsl.version>2025.2.4</neo4j.cypher.dsl.version>
     </properties>
 

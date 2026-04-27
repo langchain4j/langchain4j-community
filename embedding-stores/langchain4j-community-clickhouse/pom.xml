@@ -12,8 +12,8 @@
     <name>LangChain4j :: Community :: Integration :: ClickHouse</name>
 
     <properties>
-        <clickhouse.version>0.9.6</clickhouse.version>
-        <clickhouse-jdbc.version>0.9.6</clickhouse-jdbc.version>
+        <clickhouse.version>0.9.8</clickhouse.version>
+        <clickhouse-jdbc.version>0.9.8</clickhouse-jdbc.version>
     </properties>
 
     <dependencyManagement>
