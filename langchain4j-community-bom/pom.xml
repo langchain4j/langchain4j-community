@@ -352,6 +352,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-cohere-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Code Execution Engines -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
