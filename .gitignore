@@ -32,9 +32,15 @@ build/
 
 ### VS Code ###
 .vscode/
+.metals
+
 
 ### Mac OS ###
 .DS_Store
 
 ### .env files contain local environment variables ###
 .env
+
+##AI
+.kiro
+
