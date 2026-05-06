@@ -81,12 +81,12 @@ public class ValkeyEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCl
     /**
      * Creates an instance of ValkeyEmbeddingStore.
      *
-     * @param client                   Instance of a GlideClient
-     * @param indexName                The name of the index (optional). Default value: "embedding-index".
-     * @param prefix                   The prefix of the key which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
-     * @param dimension                Embedding vector dimension
-     * @param metadataConfig           Metadata config to map metadata key to field info. (optional)
-     * @param operationTimeoutSeconds  Timeout in seconds for each Valkey operation (optional). Default value: 60.
+     * @param client                  Instance of a GlideClient
+     * @param indexName               The name of the index (optional). Default value: "embedding-index".
+     * @param prefix                  The prefix of the key which should end with a colon (e.g., "embedding:") (optional). Default value: "embedding:".
+     * @param dimension               Embedding vector dimension
+     * @param metadataConfig          Metadata config to map metadata key to field info. (optional)
+     * @param operationTimeoutSeconds Timeout in seconds for each Valkey operation (optional). Default value: 60.
      */
     public ValkeyEmbeddingStore(
             GlideClient client,
@@ -115,6 +115,84 @@ public class ValkeyEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCl
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    private static byte[] toByteArray(float[] vector) {
+        ByteBuffer buffer = ByteBuffer.allocate(vector.length * Float.BYTES);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        for (float v : vector) {
+            buffer.putFloat(v);
+        }
+        return buffer.array();
+    }
+
+    /**
+     * Validates that a filter expression does not contain the {@code =>} token, which separates
+     * a filter from a KNN clause in FT.SEARCH. If a metadata value contains {@code =>}, it could
+     * inject a KNN query that bypasses filters.
+     */
+    private static void validateFilterExpression(String filterExpression) {
+        if (filterExpression != null && filterExpression.contains("=>")) {
+            throw new IllegalArgumentException("Filter expression must not contain '=>'");
+        }
+    }
+
+    /**
+     * Converts a Valkey distance value to a relevance score based on the configured metric type.
+     *
+     * <ul>
+     *     <li>COSINE: score = (2 - distance) / 2 (distance range [0, 2] maps to score [1, 0])</li>
+     *     <li>IP: score = 1 - distance (inner product distance is 1 - similarity)</li>
+     *     <li>L2: score = 1 / (1 + distance) (Euclidean distance [0, ∞) maps to score (0, 1])</li>
+     * </ul>
+     */
+    private static double distanceToScore(double distance, MetricType metricType) {
+        return switch (metricType) {
+            case COSINE -> (2 - distance) / 2;
+            case IP -> 1 - distance;
+            case L2 -> 1.0 / (1.0 + distance);
+        };
+    }
+
+    private static Map<String, ValkeyMetadataFilterMapper.FieldType> deriveFieldTypeMap(
+            Map<String, FieldInfo> metadataConfig) {
+        if (metadataConfig == null || metadataConfig.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        Map<String, ValkeyMetadataFilterMapper.FieldType> fieldTypeMap = new HashMap<>();
+        for (Map.Entry<String, FieldInfo> entry : metadataConfig.entrySet()) {
+            String key = entry.getKey();
+            FieldInfo fieldInfo = entry.getValue();
+            ValkeyMetadataFilterMapper.FieldType fieldType = inferFieldType(fieldInfo);
+            fieldTypeMap.put(key, fieldType);
+        }
+        return fieldTypeMap;
+    }
+
+    /**
+     * Infers the field type from a {@link FieldInfo} by inspecting its internal field object type.
+     * Falls back to parsing {@code toArgs()} output if the field type cannot be determined from the object type.
+     */
+    private static ValkeyMetadataFilterMapper.FieldType inferFieldType(FieldInfo fieldInfo) {
+        if (fieldInfo == null) {
+            return ValkeyMetadataFilterMapper.FieldType.TAG;
+        }
+
+        // First, try to determine field type from the FieldInfo's toArgs() output.
+        // This inspects the serialized arguments for known type keywords.
+        GlideString[] args = fieldInfo.toArgs();
+        for (GlideString arg : args) {
+            String argStr = arg.getString();
+            if ("NUMERIC".equals(argStr)) {
+                return ValkeyMetadataFilterMapper.FieldType.NUMERIC;
+            } else if ("TEXT".equals(argStr)) {
+                return ValkeyMetadataFilterMapper.FieldType.TEXT;
+            } else if ("TAG".equals(argStr)) {
+                return ValkeyMetadataFilterMapper.FieldType.TAG;
+            }
+        }
+        return ValkeyMetadataFilterMapper.FieldType.TAG;
     }
 
     @Override
@@ -442,84 +520,6 @@ public class ValkeyEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCl
         }
     }
 
-    private static byte[] toByteArray(float[] vector) {
-        ByteBuffer buffer = ByteBuffer.allocate(vector.length * Float.BYTES);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        for (float v : vector) {
-            buffer.putFloat(v);
-        }
-        return buffer.array();
-    }
-
-    /**
-     * Validates that a filter expression does not contain the {@code =>} token, which separates
-     * a filter from a KNN clause in FT.SEARCH. If a metadata value contains {@code =>}, it could
-     * inject a KNN query that bypasses filters.
-     */
-    private static void validateFilterExpression(String filterExpression) {
-        if (filterExpression != null && filterExpression.contains("=>")) {
-            throw new IllegalArgumentException("Filter expression must not contain '=>'");
-        }
-    }
-
-    /**
-     * Converts a Valkey distance value to a relevance score based on the configured metric type.
-     *
-     * <ul>
-     *     <li>COSINE: score = (2 - distance) / 2 (distance range [0, 2] maps to score [1, 0])</li>
-     *     <li>IP: score = 1 - distance (inner product distance is 1 - similarity)</li>
-     *     <li>L2: score = 1 / (1 + distance) (Euclidean distance [0, ∞) maps to score (0, 1])</li>
-     * </ul>
-     */
-    private static double distanceToScore(double distance, MetricType metricType) {
-        return switch (metricType) {
-            case COSINE -> (2 - distance) / 2;
-            case IP -> 1 - distance;
-            case L2 -> 1.0 / (1.0 + distance);
-        };
-    }
-
-    private static Map<String, ValkeyMetadataFilterMapper.FieldType> deriveFieldTypeMap(
-            Map<String, FieldInfo> metadataConfig) {
-        if (metadataConfig == null || metadataConfig.isEmpty()) {
-            return new HashMap<>();
-        }
-
-        Map<String, ValkeyMetadataFilterMapper.FieldType> fieldTypeMap = new HashMap<>();
-        for (Map.Entry<String, FieldInfo> entry : metadataConfig.entrySet()) {
-            String key = entry.getKey();
-            FieldInfo fieldInfo = entry.getValue();
-            ValkeyMetadataFilterMapper.FieldType fieldType = inferFieldType(fieldInfo);
-            fieldTypeMap.put(key, fieldType);
-        }
-        return fieldTypeMap;
-    }
-
-    /**
-     * Infers the field type from a {@link FieldInfo} by inspecting its internal field object type.
-     * Falls back to parsing {@code toArgs()} output if the field type cannot be determined from the object type.
-     */
-    private static ValkeyMetadataFilterMapper.FieldType inferFieldType(FieldInfo fieldInfo) {
-        if (fieldInfo == null) {
-            return ValkeyMetadataFilterMapper.FieldType.TAG;
-        }
-
-        // First, try to determine field type from the FieldInfo's toArgs() output.
-        // This inspects the serialized arguments for known type keywords.
-        GlideString[] args = fieldInfo.toArgs();
-        for (GlideString arg : args) {
-            String argStr = arg.getString();
-            if ("NUMERIC".equals(argStr)) {
-                return ValkeyMetadataFilterMapper.FieldType.NUMERIC;
-            } else if ("TEXT".equals(argStr)) {
-                return ValkeyMetadataFilterMapper.FieldType.TEXT;
-            } else if ("TAG".equals(argStr)) {
-                return ValkeyMetadataFilterMapper.FieldType.TAG;
-            }
-        }
-        return ValkeyMetadataFilterMapper.FieldType.TAG;
-    }
-
     public static class Builder {
 
         private GlideClient client;
@@ -604,7 +604,8 @@ public class ValkeyEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCl
 
         public ValkeyEmbeddingStore build() {
             ensureNotNull(client, "client");
-            return new ValkeyEmbeddingStore(client, indexName, prefix, dimension, metadataConfig, operationTimeoutSeconds);
+            return new ValkeyEmbeddingStore(
+                    client, indexName, prefix, dimension, metadataConfig, operationTimeoutSeconds);
         }
     }
 }

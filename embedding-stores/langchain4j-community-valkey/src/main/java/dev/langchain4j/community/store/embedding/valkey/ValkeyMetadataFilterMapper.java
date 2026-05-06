@@ -37,6 +37,26 @@ class ValkeyMetadataFilterMapper {
     }
 
     /**
+     * Escapes special characters in tag field values to prevent query injection.
+     * Valkey Search tag syntax uses {@code {, }, |, ,} as delimiters.
+     */
+    private static String escapeTagValue(String value) {
+        return value.replace("\\", "\\\\")
+                .replace("{", "\\{")
+                .replace("}", "\\}")
+                .replace("|", "\\|")
+                .replace(",", "\\,");
+    }
+
+    /**
+     * Escapes special characters in text field values to prevent query injection.
+     * Valkey Search text syntax uses {@code "} as a delimiter.
+     */
+    private static String escapeTextValue(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    /**
      * Maps a {@link Filter} to a Valkey Search filter expression string.
      *
      * @param filter the filter to map, or {@code null} for a wildcard match
@@ -278,11 +298,17 @@ class ValkeyMetadataFilterMapper {
      * Represents the type of a metadata field in the Valkey index schema.
      */
     enum FieldType {
-        /** Numeric field type for range queries. */
+        /**
+         * Numeric field type for range queries.
+         */
         NUMERIC,
-        /** Tag field type for exact match and set membership queries. */
+        /**
+         * Tag field type for exact match and set membership queries.
+         */
         TAG,
-        /** Text field type for full-text search queries. */
+        /**
+         * Text field type for full-text search queries.
+         */
         TEXT
     }
 
@@ -329,27 +355,6 @@ class ValkeyMetadataFilterMapper {
             }
             return INCLUSIVE_FORMAT;
         }
-    }
-
-    /**
-     * Escapes special characters in tag field values to prevent query injection.
-     * Valkey Search tag syntax uses {@code {, }, |, ,} as delimiters.
-     */
-    private static String escapeTagValue(String value) {
-        return value.replace("\\", "\\\\")
-                .replace("{", "\\{")
-                .replace("}", "\\}")
-                .replace("|", "\\|")
-                .replace(",", "\\,");
-    }
-
-    /**
-     * Escapes special characters in text field values to prevent query injection.
-     * Valkey Search text syntax uses {@code "} as a delimiter.
-     */
-    private static String escapeTextValue(String value) {
-        return value.replace("\\", "\\\\")
-                .replace("\"", "\\\"");
     }
 
     /**

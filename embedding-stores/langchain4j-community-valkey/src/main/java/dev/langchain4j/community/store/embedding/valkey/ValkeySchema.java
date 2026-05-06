@@ -50,6 +50,18 @@ public class ValkeySchema {
         this.metadataConfig = builder.metadataConfig;
     }
 
+    private static DistanceMetric toDistanceMetric(MetricType metricType) {
+        return switch (metricType) {
+            case COSINE -> DistanceMetric.COSINE;
+            case IP -> DistanceMetric.IP;
+            case L2 -> DistanceMetric.L2;
+        };
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
     /**
      * Returns the auto-generated score field name used by Valkey for KNN queries.
      * Valkey generates score field names following the pattern {@code __<vector_field_name>_score}.
@@ -90,14 +102,6 @@ public class ValkeySchema {
         return fields.toArray(new FieldInfo[0]);
     }
 
-    private static DistanceMetric toDistanceMetric(MetricType metricType) {
-        return switch (metricType) {
-            case COSINE -> DistanceMetric.COSINE;
-            case IP -> DistanceMetric.IP;
-            case L2 -> DistanceMetric.L2;
-        };
-    }
-
     public String getIndexName() {
         return indexName;
     }
@@ -128,10 +132,6 @@ public class ValkeySchema {
 
     public MetricType getMetricType() {
         return metricType;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static class Builder {

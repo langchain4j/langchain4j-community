@@ -29,6 +29,17 @@ class ValkeyEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     ValkeyEmbeddingStore embeddingStore;
 
+    ValkeyEmbeddingStoreRemovalIT() {
+        embeddingStore = ValkeyEmbeddingStore.builder()
+                .client(client)
+                .indexName(randomUUID())
+                .prefix(randomUUID() + ":")
+                .dimension(embeddingModel.dimension())
+                .metadataConfig(
+                        Map.of("type", new FieldInfo(JSON_PATH_PREFIX + "type", "type", new TagField(',', true))))
+                .build();
+    }
+
     @BeforeAll
     static void beforeAll() throws ExecutionException, InterruptedException {
         valkey.start();
@@ -51,17 +62,6 @@ class ValkeyEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
             }
         }
         valkey.stop();
-    }
-
-    ValkeyEmbeddingStoreRemovalIT() {
-        embeddingStore = ValkeyEmbeddingStore.builder()
-                .client(client)
-                .indexName(randomUUID())
-                .prefix(randomUUID() + ":")
-                .dimension(embeddingModel.dimension())
-                .metadataConfig(
-                        Map.of("type", new FieldInfo(JSON_PATH_PREFIX + "type", "type", new TagField(',', true))))
-                .build();
     }
 
     @Override

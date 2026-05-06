@@ -79,85 +79,6 @@ class ValkeyEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         valkey.stop();
     }
 
-    @Override
-    protected void clearStore() {
-        Map<String, FieldInfo> metadataConfig = new HashMap<>();
-        Map<String, Object> metadatas = createMetadata().toMap();
-
-        List<Class<? extends Number>> numericPrefix =
-                Arrays.asList(Integer.class, Long.class, Float.class, Double.class);
-        Map<String, Class<?>> filterMetadatas = getFilterMetadataConfig();
-        filterMetadatas.forEach((key, value) -> {
-            if (numericPrefix.stream().anyMatch(type -> type.isAssignableFrom(value))) {
-                metadataConfig.put(key, new FieldInfo(JSON_PATH_PREFIX + key, key, new NumericField()));
-            } else {
-                metadataConfig.put(key, new FieldInfo(JSON_PATH_PREFIX + key, key, new TagField(',', true)));
-            }
-        });
-        metadatas.forEach((key, value) -> {
-            if (numericPrefix.stream().anyMatch(type -> type.isAssignableFrom(value.getClass()))) {
-                metadataConfig.put(key, new FieldInfo(JSON_PATH_PREFIX + key, key, new NumericField()));
-            } else {
-                metadataConfig.put(key, new FieldInfo(JSON_PATH_PREFIX + key, key, new TagField(',', true)));
-            }
-        });
-
-        embeddingStore = ValkeyEmbeddingStore.builder()
-                .client(client)
-                .indexName(randomUUID())
-                .prefix(randomUUID() + ":")
-                .dimension(embeddingModel.dimension())
-                .metadataConfig(metadataConfig)
-                .build();
-    }
-
-    @Test
-    void should_return_more_than_10_results() {
-        // given
-        List<Embedding> embeddings = new ArrayList<>();
-        int size = 20;
-        for (int i = 0; i < size; i++) {
-            Embedding embedding = embeddingModel().embed("hello").content();
-            embeddings.add(embedding);
-        }
-        List<String> ids = embeddingStore().addAll(embeddings);
-
-        awaitUntilAsserted(() -> assertThat(getAllEmbeddings()).hasSize(size));
-
-        // when
-        EmbeddingSearchResult<TextSegment> searchResult = embeddingStore()
-                .search(EmbeddingSearchRequest.builder()
-                        .queryEmbedding(embeddingModel().embed("hello").content())
-                        .maxResults(size)
-                        .build());
-        List<EmbeddingMatch<TextSegment>> relevant = searchResult.matches();
-
-        // then
-        assertThat(ids).hasSize(size);
-        assertThat(relevant).hasSize(size);
-        for (EmbeddingMatch<TextSegment> match : relevant) {
-            assertThat(match.score()).isCloseTo(1, percentage());
-            assertThat(match.embedded()).isNull();
-            assertThat(ids).contains(match.embeddingId());
-        }
-    }
-
-    @Override
-    @ParameterizedTest
-    @MethodSource("valkey_should_filter_by_metadata")
-    protected void should_filter_by_metadata(
-            Filter metadataFilter, List<Metadata> matchingMetadatas, List<Metadata> notMatchingMetadatas) {
-        super.should_filter_by_metadata(metadataFilter, matchingMetadatas, notMatchingMetadatas);
-    }
-
-    @Override
-    @ParameterizedTest
-    @MethodSource("valkey_should_filter_by_metadata_not")
-    protected void should_filter_by_metadata_not(
-            Filter metadataFilter, List<Metadata> matchingMetadatas, List<Metadata> notMatchingMetadatas) {
-        super.should_filter_by_metadata_not(metadataFilter, matchingMetadatas, notMatchingMetadatas);
-    }
-
     private static Stream<Arguments> valkey_should_filter_by_metadata() {
         return Stream.<Arguments>builder()
 
@@ -1147,16 +1068,6 @@ class ValkeyEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                 .build();
     }
 
-    @Override
-    protected EmbeddingStore<TextSegment> embeddingStore() {
-        return embeddingStore;
-    }
-
-    @Override
-    protected EmbeddingModel embeddingModel() {
-        return embeddingModel;
-    }
-
     protected static Map<String, Class<?>> getFilterMetadataConfig() {
         return Map.ofEntries(
                 entry("integer_key", Integer.class),
@@ -1178,5 +1089,94 @@ class ValkeyEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                 entry("city", String.class),
                 entry("name", String.class),
                 entry("country", String.class));
+    }
+
+    @Override
+    protected void clearStore() {
+        Map<String, FieldInfo> metadataConfig = new HashMap<>();
+        Map<String, Object> metadatas = createMetadata().toMap();
+
+        List<Class<? extends Number>> numericPrefix =
+                Arrays.asList(Integer.class, Long.class, Float.class, Double.class);
+        Map<String, Class<?>> filterMetadatas = getFilterMetadataConfig();
+        filterMetadatas.forEach((key, value) -> {
+            if (numericPrefix.stream().anyMatch(type -> type.isAssignableFrom(value))) {
+                metadataConfig.put(key, new FieldInfo(JSON_PATH_PREFIX + key, key, new NumericField()));
+            } else {
+                metadataConfig.put(key, new FieldInfo(JSON_PATH_PREFIX + key, key, new TagField(',', true)));
+            }
+        });
+        metadatas.forEach((key, value) -> {
+            if (numericPrefix.stream().anyMatch(type -> type.isAssignableFrom(value.getClass()))) {
+                metadataConfig.put(key, new FieldInfo(JSON_PATH_PREFIX + key, key, new NumericField()));
+            } else {
+                metadataConfig.put(key, new FieldInfo(JSON_PATH_PREFIX + key, key, new TagField(',', true)));
+            }
+        });
+
+        embeddingStore = ValkeyEmbeddingStore.builder()
+                .client(client)
+                .indexName(randomUUID())
+                .prefix(randomUUID() + ":")
+                .dimension(embeddingModel.dimension())
+                .metadataConfig(metadataConfig)
+                .build();
+    }
+
+    @Test
+    void should_return_more_than_10_results() {
+        // given
+        List<Embedding> embeddings = new ArrayList<>();
+        int size = 20;
+        for (int i = 0; i < size; i++) {
+            Embedding embedding = embeddingModel().embed("hello").content();
+            embeddings.add(embedding);
+        }
+        List<String> ids = embeddingStore().addAll(embeddings);
+
+        awaitUntilAsserted(() -> assertThat(getAllEmbeddings()).hasSize(size));
+
+        // when
+        EmbeddingSearchResult<TextSegment> searchResult = embeddingStore()
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embeddingModel().embed("hello").content())
+                        .maxResults(size)
+                        .build());
+        List<EmbeddingMatch<TextSegment>> relevant = searchResult.matches();
+
+        // then
+        assertThat(ids).hasSize(size);
+        assertThat(relevant).hasSize(size);
+        for (EmbeddingMatch<TextSegment> match : relevant) {
+            assertThat(match.score()).isCloseTo(1, percentage());
+            assertThat(match.embedded()).isNull();
+            assertThat(ids).contains(match.embeddingId());
+        }
+    }
+
+    @Override
+    @ParameterizedTest
+    @MethodSource("valkey_should_filter_by_metadata")
+    protected void should_filter_by_metadata(
+            Filter metadataFilter, List<Metadata> matchingMetadatas, List<Metadata> notMatchingMetadatas) {
+        super.should_filter_by_metadata(metadataFilter, matchingMetadatas, notMatchingMetadatas);
+    }
+
+    @Override
+    @ParameterizedTest
+    @MethodSource("valkey_should_filter_by_metadata_not")
+    protected void should_filter_by_metadata_not(
+            Filter metadataFilter, List<Metadata> matchingMetadatas, List<Metadata> notMatchingMetadatas) {
+        super.should_filter_by_metadata_not(metadataFilter, matchingMetadatas, notMatchingMetadatas);
+    }
+
+    @Override
+    protected EmbeddingStore<TextSegment> embeddingStore() {
+        return embeddingStore;
+    }
+
+    @Override
+    protected EmbeddingModel embeddingModel() {
+        return embeddingModel;
     }
 }
