@@ -22,7 +22,7 @@
 
     <properties>
         <neo4j.version>6.0.5</neo4j.version>
-        <neo4j-bolt.version>11.0.1</neo4j-bolt.version>
+        <neo4j-bolt.version>11.0.2</neo4j-bolt.version>
     </properties>
 
     <dependencyManagement>
