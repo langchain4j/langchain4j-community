@@ -5,6 +5,7 @@
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot-starters</artifactId>
         <version>1.15.0-beta25-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>langchain4j-community-valkey-spring-boot-starter</artifactId>

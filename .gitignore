@@ -32,12 +32,9 @@ build/
 
 ### VS Code ###
 .vscode/
-.metals
-.bloop
 
 ### Mac OS ###
 .DS_Store
 
 ### .env files contain local environment variables ###
 .env
-
