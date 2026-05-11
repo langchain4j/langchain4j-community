@@ -9,14 +9,14 @@
     </parent>
 
     <artifactId>langchain4j-community-cohere-spring-boot4-starter</artifactId>
-    <name>Langchain4j :: Community :: Spring Boot 4 starter :: Cohere</name>
+    <name>LangChain4j :: Community :: Spring Boot 4 starter :: Cohere</name>
 
     <licenses>
         <license>
             <name>Apache-2.0</name>
             <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
-            <comments>A bussiness-friendly OSS license</comments>
+            <comments>A business-friendly OSS license</comments>
         </license>
     </licenses>
 

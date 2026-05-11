@@ -1,26 +1,28 @@
-package dev.langchain4j.community.cohere;
+package dev.langchain4j.community.cohere.spring;
 
 import dev.langchain4j.community.model.client.CohereSafetyMode;
 import dev.langchain4j.community.model.client.CohereThinkingType;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = CohereStreamingChatModelProperties.PREFIX)
-public class CohereStreamingChatModelProperties {
+@ConfigurationProperties(prefix = CohereChatModelProperties.PREFIX)
+public class CohereChatModelProperties {
 
-    static final String PREFIX = "langchain4j.community.cohere.streaming-chat-model";
+    static final String PREFIX = "langchain4j.community.cohere.chat-model";
 
-    private String baseUrl;
     private String apiKey;
+    private String baseUrl;
+    private Long timeout;
+    private Integer maxRetries;
     private String modelName;
     private Double temperature;
     private Double topP;
-    private List<String> stopSequences;
-    private Integer maxTokens;
+    private Integer topK;
+    private Double frequencyPenalty;
     private Double presencePenalty;
-    private Double frequencePenalty;
-    private Long timeout;
-    private Integer maxRetries;
+    private Integer maxTokens;
+    private List<String> stopSequences;
+
     private CohereThinkingType thinkingType;
     private Integer thinkingTokenBudget;
     private CohereSafetyMode safetyMode;
@@ -28,8 +30,17 @@ public class CohereStreamingChatModelProperties {
     private Integer seed;
     private Boolean logprobs;
     private Boolean strictTools;
+
     private Boolean logRequests;
     private Boolean logResponses;
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
+    }
 
     public String getBaseUrl() {
         return baseUrl;
@@ -39,12 +50,20 @@ public class CohereStreamingChatModelProperties {
         this.baseUrl = baseUrl;
     }
 
-    public String getApiKey() {
-        return apiKey;
+    public Long getTimeout() {
+        return timeout;
     }
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
+    public void setTimeout(Long timeout) {
+        this.timeout = timeout;
+    }
+
+    public Integer getMaxRetries() {
+        return maxRetries;
+    }
+
+    public void setMaxRetries(Integer maxRetries) {
+        this.maxRetries = maxRetries;
     }
 
     public String getModelName() {
@@ -71,20 +90,20 @@ public class CohereStreamingChatModelProperties {
         this.topP = topP;
     }
 
-    public List<String> getStopSequences() {
-        return stopSequences;
+    public Integer getTopK() {
+        return topK;
     }
 
-    public void setStopSequences(List<String> stopSequences) {
-        this.stopSequences = stopSequences;
+    public void setTopK(Integer topK) {
+        this.topK = topK;
     }
 
-    public Integer getMaxTokens() {
-        return maxTokens;
+    public Double getFrequencyPenalty() {
+        return frequencyPenalty;
     }
 
-    public void setMaxTokens(Integer maxTokens) {
-        this.maxTokens = maxTokens;
+    public void setFrequencyPenalty(Double frequencyPenalty) {
+        this.frequencyPenalty = frequencyPenalty;
     }
 
     public Double getPresencePenalty() {
@@ -95,28 +114,20 @@ public class CohereStreamingChatModelProperties {
         this.presencePenalty = presencePenalty;
     }
 
-    public Double getFrequencePenalty() {
-        return frequencePenalty;
+    public Integer getMaxTokens() {
+        return maxTokens;
     }
 
-    public void setFrequencePenalty(Double frequencePenalty) {
-        this.frequencePenalty = frequencePenalty;
+    public void setMaxTokens(Integer maxTokens) {
+        this.maxTokens = maxTokens;
     }
 
-    public Long getTimeout() {
-        return timeout;
+    public List<String> getStopSequences() {
+        return stopSequences;
     }
 
-    public void setTimeout(Long timeout) {
-        this.timeout = timeout;
-    }
-
-    public Integer getMaxRetries() {
-        return maxRetries;
-    }
-
-    public void setMaxRetries(Integer maxRetries) {
-        this.maxRetries = maxRetries;
+    public void setStopSequences(List<String> stopSequences) {
+        this.stopSequences = stopSequences;
     }
 
     public CohereThinkingType getThinkingType() {

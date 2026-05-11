@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = CohereStreamingChatModelProperties.PREFIX)
 public class CohereStreamingChatModelProperties {
 
-    public static final String PREFIX = "langchain4j.community.cohere.streaming-chat-model";
+    static final String PREFIX = "langchain4j.community.cohere.streaming-chat-model";
 
     private String apiKey;
     private String baseUrl;
@@ -27,7 +27,7 @@ public class CohereStreamingChatModelProperties {
     private CohereSafetyMode safetyMode;
     private Integer priority;
     private Integer seed;
-    private Boolean logProbs;
+    private Boolean logprobs;
     private Boolean strictTools;
 
     private Boolean logRequests;
@@ -161,12 +161,12 @@ public class CohereStreamingChatModelProperties {
         this.seed = seed;
     }
 
-    public Boolean getLogProbs() {
-        return logProbs;
+    public Boolean getLogprobs() {
+        return logprobs;
     }
 
-    public void setLogProbs(Boolean logProbs) {
-        this.logProbs = logProbs;
+    public void setLogprobs(Boolean logprobs) {
+        this.logprobs = logprobs;
     }
 
     public Boolean getStrictTools() {

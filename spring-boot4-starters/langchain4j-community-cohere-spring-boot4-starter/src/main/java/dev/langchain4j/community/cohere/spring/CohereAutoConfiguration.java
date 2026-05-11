@@ -65,7 +65,7 @@ public class CohereAutoConfiguration {
                 .safetyMode(properties.getSafetyMode())
                 .priority(properties.getPriority())
                 .seed(properties.getSeed())
-                .logprobs(properties.getLogProbs())
+                .logprobs(properties.getLogprobs())
                 .strictTools(properties.getStrictTools())
                 .logRequests(properties.getLogRequests())
                 .logResponses(properties.getLogResponses())

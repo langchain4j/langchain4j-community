@@ -16,7 +16,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-@EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = "+.")
+@EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
 class CohereAutoConfigurationIT {
 
     private static final String API_KEY = System.getenv("CO_API_KEY");
@@ -32,9 +32,9 @@ class CohereAutoConfigurationIT {
                 .withPropertyValues(
                         "langchain4j.community.cohere.chat-model.api-key=" + API_KEY,
                         "langchain4j.community.cohere.chat-model.model-name=" + MODEL_NAME,
-                        "langchain4j-community.cohere.chat-model.max-tokens=" + 20,
-                        "langchain4j-community.cohere.chat-model.log-requests=" + true,
-                        "langchain4j-community.cohere.chat-model.log-responses=" + true)
+                        "langchain4j.community.cohere.chat-model.max-tokens=" + 20,
+                        "langchain4j.community.cohere.chat-model.log-requests=" + true,
+                        "langchain4j.community.cohere.chat-model.log-responses=" + true)
                 .run(context -> {
                     ChatModel chatModel = context.getBean(ChatModel.class);
                     assertThat(chatModel).isInstanceOf(CohereChatModel.class);
@@ -56,7 +56,7 @@ class CohereAutoConfigurationIT {
                         "langchain4j.community.cohere.streaming-chat-model.model-name=" + MODEL_NAME,
                         "langchain4j.community.cohere.streaming-chat-model.max-tokens=" + 20,
                         "langchain4j.community.cohere.streaming-chat-model.log-requests=" + true,
-                        "langchain4j.commmunity.cohere.streaming-chat-model.log-responses=" + true)
+                        "langchain4j.community.cohere.streaming-chat-model.log-responses=" + true)
                 .run(context -> {
                     StreamingChatModel streamingChatModel = context.getBean(StreamingChatModel.class);
                     assertThat(streamingChatModel).isInstanceOf(CohereStreamingChatModel.class);

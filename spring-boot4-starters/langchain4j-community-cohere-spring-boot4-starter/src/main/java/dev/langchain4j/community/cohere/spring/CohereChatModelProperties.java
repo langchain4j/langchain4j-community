@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = CohereChatModelProperties.PREFIX)
 public class CohereChatModelProperties {
 
-    public static final String PREFIX = "langchain4j.community.cohere.chat-model";
+    static final String PREFIX = "langchain4j.community.cohere.chat-model";
 
     private String apiKey;
     private String baseUrl;

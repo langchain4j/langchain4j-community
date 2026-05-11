@@ -3,7 +3,6 @@ package dev.langchain4j.community.cohere.spring;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.community.cohere.CohereAutoConfiguration;
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.community.model.CohereStreamingChatModel;
 import dev.langchain4j.model.chat.ChatModel;

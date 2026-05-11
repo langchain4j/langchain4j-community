@@ -1,26 +1,27 @@
-package dev.langchain4j.community.cohere;
+package dev.langchain4j.community.cohere.spring;
 
 import dev.langchain4j.community.model.client.CohereSafetyMode;
 import dev.langchain4j.community.model.client.CohereThinkingType;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = CohereChatModelProperties.PREFIX)
-public class CohereChatModelProperties {
+@ConfigurationProperties(prefix = CohereStreamingChatModelProperties.PREFIX)
+public class CohereStreamingChatModelProperties {
 
-    static final String PREFIX = "langchain4j.community.cohere.chat-model";
+    static final String PREFIX = "langchain4j.community.cohere.streaming-chat-model";
 
-    private String baseUrl;
     private String apiKey;
+    private String baseUrl;
+    private Long timeout;
     private String modelName;
     private Double temperature;
     private Double topP;
-    private List<String> stopSequences;
-    private Integer maxTokens;
+    private Integer topK;
     private Double presencePenalty;
-    private Double frequencePenalty;
-    private Long timeout;
-    private Integer maxRetries;
+    private Double frequencyPenalty;
+    private Integer maxTokens;
+    private List<String> stopSequences;
+
     private CohereThinkingType thinkingType;
     private Integer thinkingTokenBudget;
     private CohereSafetyMode safetyMode;
@@ -28,8 +29,17 @@ public class CohereChatModelProperties {
     private Integer seed;
     private Boolean logprobs;
     private Boolean strictTools;
+
     private Boolean logRequests;
     private Boolean logResponses;
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
+    }
 
     public String getBaseUrl() {
         return baseUrl;
@@ -39,12 +49,12 @@ public class CohereChatModelProperties {
         this.baseUrl = baseUrl;
     }
 
-    public String getApiKey() {
-        return apiKey;
+    public Long getTimeout() {
+        return timeout;
     }
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
+    public void setTimeout(Long timeout) {
+        this.timeout = timeout;
     }
 
     public String getModelName() {
@@ -71,20 +81,12 @@ public class CohereChatModelProperties {
         this.topP = topP;
     }
 
-    public List<String> getStopSequences() {
-        return stopSequences;
+    public Integer getTopK() {
+        return topK;
     }
 
-    public void setStopSequences(List<String> stopSequences) {
-        this.stopSequences = stopSequences;
-    }
-
-    public Integer getMaxTokens() {
-        return maxTokens;
-    }
-
-    public void setMaxTokens(Integer maxTokens) {
-        this.maxTokens = maxTokens;
+    public void setTopK(Integer topK) {
+        this.topK = topK;
     }
 
     public Double getPresencePenalty() {
@@ -95,28 +97,28 @@ public class CohereChatModelProperties {
         this.presencePenalty = presencePenalty;
     }
 
-    public Double getFrequencePenalty() {
-        return frequencePenalty;
+    public Double getFrequencyPenalty() {
+        return frequencyPenalty;
     }
 
-    public void setFrequencePenalty(Double frequencePenalty) {
-        this.frequencePenalty = frequencePenalty;
+    public void setFrequencyPenalty(Double frequencyPenalty) {
+        this.frequencyPenalty = frequencyPenalty;
     }
 
-    public Long getTimeout() {
-        return timeout;
+    public Integer getMaxTokens() {
+        return maxTokens;
     }
 
-    public void setTimeout(Long timeout) {
-        this.timeout = timeout;
+    public void setMaxTokens(Integer maxTokens) {
+        this.maxTokens = maxTokens;
     }
 
-    public Integer getMaxRetries() {
-        return maxRetries;
+    public List<String> getStopSequences() {
+        return stopSequences;
     }
 
-    public void setMaxRetries(Integer maxRetries) {
-        this.maxRetries = maxRetries;
+    public void setStopSequences(List<String> stopSequences) {
+        this.stopSequences = stopSequences;
     }
 
     public CohereThinkingType getThinkingType() {
