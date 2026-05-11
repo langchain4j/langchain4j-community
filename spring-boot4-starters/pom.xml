@@ -30,6 +30,7 @@
         <module>langchain4j-community-oceanbase-spring-boot4-starter</module>
         <module>langchain4j-community-qianfan-spring-boot4-starter</module>
         <module>langchain4j-community-redis-spring-boot4-starter</module>
+        <module>langchain4j-community-valkey-spring-boot4-starter</module>
         <module>langchain4j-community-vearch-spring-boot4-starter</module>
         <module>langchain4j-community-xinference-spring-boot4-starter</module>
         <module>langchain4j-community-zhipu-ai-spring-boot4-starter</module>
