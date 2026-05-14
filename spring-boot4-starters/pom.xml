@@ -44,20 +44,27 @@
     <dependencyManagement>
         <dependencies>
             <!--
-            Override Spring Boot's Jackson version to align with langchain4j-core.
-            langchain4j-parent imports jackson-bom:${jackson.version} (2.21.3),
-            but Spring Boot 4.0.5 BOM manages Jackson to 2.21.2 which is lower
-            than what langchain4j-core requires, causing RequireUpperBoundDeps failures.
+            Override Spring Boot's Jackson/SLF4J versions to align with langchain4j-core.
+            langchain4j-parent imports jackson-bom:${jackson.version} and manages
+            slf4j:${slf4j.version}, but Spring Boot 4.0.5 BOM manages these to lower
+            versions, causing RequireUpperBoundDeps failures.
             -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
             </dependency>
 
             <dependency>
