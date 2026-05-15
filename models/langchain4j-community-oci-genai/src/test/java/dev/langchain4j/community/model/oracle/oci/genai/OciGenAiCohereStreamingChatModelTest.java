@@ -34,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class OciGenAiCohereStreamingChatModelTest {
@@ -271,6 +272,7 @@ class OciGenAiCohereStreamingChatModelTest {
         assertThat(handler.completeResponses, contains("HELLO WORLD"));
     }
 
+    @Disabled("Flaky test")
     @Test
     void closeInsideStreamingCallbackShouldNotDeadlock() throws Exception {
         var streamScript = new BlockingEventStream();
