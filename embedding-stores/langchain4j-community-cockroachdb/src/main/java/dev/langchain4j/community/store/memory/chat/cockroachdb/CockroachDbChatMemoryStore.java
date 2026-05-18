@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
  * {@code created_at} timestamp that preserves chronological order and feeds
  * optional row-level TTL.
  *
- * <p>{@link #updateMessages(Object, List)} replaces the full session — it deletes
+ * <p>{@link #updateMessages(Object, List)} replaces the full session: it deletes
  * existing rows for the memory id and re-inserts the supplied list inside a
  * transaction.
  */

@@ -6,7 +6,7 @@ import java.util.List;
  * Strategy for the vector index created alongside a CockroachDB embedding table.
  *
  * <p>CockroachDB's vector index DDL ({@code CREATE VECTOR INDEX}) is distinct from
- * pgvector — there is no {@code USING}, no opclass, and the distance metric is
+ * pgvector: there is no {@code USING}, no opclass, and the distance metric is
  * selected at query time by the operator rather than bound to the index. Each
  * implementation owns its full DDL string.
  */

@@ -21,7 +21,7 @@ import java.util.List;
  * <p>{@code prefixColumns} go <em>before</em> the embedding column for
  * multi-tenant scoping (e.g. {@code (tenant_id, embedding)}).
  *
- * <p>Note: the distance metric is NOT part of the index — CockroachDB infers it
+ * <p>Note: the distance metric is NOT part of the index. CockroachDB infers it
  * from the operator ({@code <->}, {@code <=>}, {@code <#>}) at query time.
  */
 public class CSpannIndex implements BaseIndex {
