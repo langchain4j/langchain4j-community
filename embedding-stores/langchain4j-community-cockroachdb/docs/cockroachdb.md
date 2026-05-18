@@ -308,10 +308,14 @@ cockroachdb://USER:PASSWORD@HOST:26257/DATABASE?sslmode=verify-full
 
 ## Differences from the Python library
 
-The Python `langchain-cockroachdb` library additionally provides a LangGraph
-checkpointer (`CockroachDBSaver` / `AsyncCockroachDBSaver`). LangChain4j does
-not yet have a LangGraph equivalent, so no Java port of that component is
-included in this module.
+The Python `langchain-cockroachdb` library ships a LangGraph checkpointer
+(`CockroachDBSaver` and `AsyncCockroachDBSaver`) alongside the vector store
+and chat history. The Java port of that component lives in the third-party
+[langgraph4j](https://github.com/langgraph4j/langgraph4j) project as
+`langgraph4j-cockroachdb-saver`, not in this module. langgraph4j's
+checkpoint contract has no async API, so only the sync `CockroachDBSaver`
+is provided; on JDK 21 or later, run it from a virtual thread for
+non-blocking concurrency.
 
 The Python library also ships a `HybridSearchConfig` class for fusing vector
 and FTS scores in application code. The Java module exposes the underlying
