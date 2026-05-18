@@ -61,20 +61,20 @@ class CockroachDbFilterMapper {
             return format("%s is null or %s != %s", key, key, formatValue(f.comparisonValue()));
         }
         if (filter instanceof IsGreaterThan f) {
-            return format("%s > %s", formatKey(f.key(), f.comparisonValue().getClass()),
-                    formatValue(f.comparisonValue()));
+            return format(
+                    "%s > %s", formatKey(f.key(), f.comparisonValue().getClass()), formatValue(f.comparisonValue()));
         }
         if (filter instanceof IsGreaterThanOrEqualTo f) {
-            return format("%s >= %s", formatKey(f.key(), f.comparisonValue().getClass()),
-                    formatValue(f.comparisonValue()));
+            return format(
+                    "%s >= %s", formatKey(f.key(), f.comparisonValue().getClass()), formatValue(f.comparisonValue()));
         }
         if (filter instanceof IsLessThan f) {
-            return format("%s < %s", formatKey(f.key(), f.comparisonValue().getClass()),
-                    formatValue(f.comparisonValue()));
+            return format(
+                    "%s < %s", formatKey(f.key(), f.comparisonValue().getClass()), formatValue(f.comparisonValue()));
         }
         if (filter instanceof IsLessThanOrEqualTo f) {
-            return format("%s <= %s", formatKey(f.key(), f.comparisonValue().getClass()),
-                    formatValue(f.comparisonValue()));
+            return format(
+                    "%s <= %s", formatKey(f.key(), f.comparisonValue().getClass()), formatValue(f.comparisonValue()));
         }
         if (filter instanceof IsIn f) {
             return format("%s in %s", formatKeyAsString(f.key()), formatValues(f.comparisonValues()));
@@ -134,8 +134,8 @@ class CockroachDbFilterMapper {
         }
         String clean = key.trim();
         if (!clean.matches("^[a-zA-Z0-9_.\\-]+$")) {
-            throw new IllegalArgumentException("Invalid filter key '" + clean
-                    + "'. Only alphanumeric, underscore, dot and hyphen are allowed.");
+            throw new IllegalArgumentException(
+                    "Invalid filter key '" + clean + "'. Only alphanumeric, underscore, dot and hyphen are allowed.");
         }
         return clean;
     }

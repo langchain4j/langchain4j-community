@@ -20,13 +20,12 @@ public abstract class CockroachDbTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(CockroachDbTestBase.class);
 
-    public static final DockerImageName IMAGE =
-            DockerImageName.parse("cockroachdb/cockroach:latest-v25.2");
+    public static final DockerImageName IMAGE = DockerImageName.parse("cockroachdb/cockroach:latest-v25.2");
 
     @Container
     @SuppressWarnings("resource")
-    public static final CockroachContainer cockroach = new CockroachContainer(IMAGE)
-            .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(3)));
+    public static final CockroachContainer cockroach =
+            new CockroachContainer(IMAGE).waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(3)));
 
     protected static CockroachDbEngine engine;
 
@@ -40,7 +39,7 @@ public abstract class CockroachDbTestBase {
                 .build();
         // CockroachDB v25.2 hides the C-SPANN vector index behind a cluster setting.
         try (java.sql.Connection c = engine.getConnection();
-             java.sql.Statement st = c.createStatement()) {
+                java.sql.Statement st = c.createStatement()) {
             st.execute("SET CLUSTER SETTING feature.vector_index.enabled = true");
         }
     }

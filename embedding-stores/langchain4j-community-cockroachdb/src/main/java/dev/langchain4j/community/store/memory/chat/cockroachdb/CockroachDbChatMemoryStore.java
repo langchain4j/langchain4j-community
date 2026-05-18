@@ -49,12 +49,14 @@ public class CockroachDbChatMemoryStore implements ChatMemoryStore {
         String sessionId = String.valueOf(memoryId);
         String sql = String.format(
                 "SELECT %s FROM %s WHERE %s = ? ORDER BY %s ASC, %s ASC",
-                schema.getMessageColumn(), schema.getFullTableName(),
+                schema.getMessageColumn(),
+                schema.getFullTableName(),
                 schema.getSessionColumn(),
-                schema.getCreatedAtColumn(), schema.getIdxColumn());
+                schema.getCreatedAtColumn(),
+                schema.getIdxColumn());
 
         try (Connection conn = engine.getConnection();
-             PreparedStatement st = conn.prepareStatement(sql)) {
+                PreparedStatement st = conn.prepareStatement(sql)) {
             st.setString(1, sessionId);
             try (ResultSet rs = st.executeQuery()) {
                 List<ChatMessage> messages = new ArrayList<>();
@@ -71,12 +73,11 @@ public class CockroachDbChatMemoryStore implements ChatMemoryStore {
     @Override
     public void updateMessages(Object memoryId, List<ChatMessage> messages) {
         String sessionId = String.valueOf(memoryId);
-        String deleteSql = String.format(
-                "DELETE FROM %s WHERE %s = ?", schema.getFullTableName(), schema.getSessionColumn());
+        String deleteSql =
+                String.format("DELETE FROM %s WHERE %s = ?", schema.getFullTableName(), schema.getSessionColumn());
         String insertSql = String.format(
                 "INSERT INTO %s (%s, %s, %s) VALUES (?, ?::jsonb, ?)",
-                schema.getFullTableName(),
-                schema.getSessionColumn(), schema.getMessageColumn(), schema.getIdxColumn());
+                schema.getFullTableName(), schema.getSessionColumn(), schema.getMessageColumn(), schema.getIdxColumn());
 
         try (Connection conn = engine.getConnection()) {
             conn.setAutoCommit(false);
@@ -105,10 +106,9 @@ public class CockroachDbChatMemoryStore implements ChatMemoryStore {
     @Override
     public void deleteMessages(Object memoryId) {
         String sessionId = String.valueOf(memoryId);
-        String sql = String.format(
-                "DELETE FROM %s WHERE %s = ?", schema.getFullTableName(), schema.getSessionColumn());
+        String sql = String.format("DELETE FROM %s WHERE %s = ?", schema.getFullTableName(), schema.getSessionColumn());
         try (Connection conn = engine.getConnection();
-             PreparedStatement st = conn.prepareStatement(sql)) {
+                PreparedStatement st = conn.prepareStatement(sql)) {
             st.setString(1, sessionId);
             st.executeUpdate();
         } catch (SQLException e) {
@@ -118,7 +118,7 @@ public class CockroachDbChatMemoryStore implements ChatMemoryStore {
 
     public void createTableIfNotExists() {
         try (Connection conn = engine.getConnection();
-             Statement st = conn.createStatement()) {
+                Statement st = conn.createStatement()) {
             st.execute(schema.getCreateTableSql());
             st.execute(schema.getCreateSessionIndexSql());
             String ttl = schema.getEnableTtlSql();
@@ -133,7 +133,7 @@ public class CockroachDbChatMemoryStore implements ChatMemoryStore {
 
     public void disableTtl() {
         try (Connection conn = engine.getConnection();
-             Statement st = conn.createStatement()) {
+                Statement st = conn.createStatement()) {
             st.execute(schema.getDisableTtlSql());
         } catch (SQLException e) {
             throw new CockroachDbChatMemoryStoreException("Failed to disable TTL", e);

@@ -29,9 +29,7 @@ class CockroachDbChatMemoryStoreIT extends CockroachDbTestBase {
     void roundtrip_messages_for_a_session() {
         String sessionId = UUID.randomUUID().toString();
         List<ChatMessage> messages = Arrays.asList(
-                SystemMessage.from("You are helpful."),
-                UserMessage.from("Hello"),
-                AiMessage.from("Hi there!"));
+                SystemMessage.from("You are helpful."), UserMessage.from("Hello"), AiMessage.from("Hi there!"));
 
         memory.updateMessages(sessionId, messages);
 

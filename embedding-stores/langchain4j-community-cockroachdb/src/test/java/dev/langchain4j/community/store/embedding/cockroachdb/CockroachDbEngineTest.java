@@ -10,8 +10,7 @@ class CockroachDbEngineTest {
 
     @Test
     void rewrites_cockroachdb_scheme_to_jdbc_postgresql() {
-        assertThat(CockroachDbEngine.toJdbcUrl(
-                        "cockroachdb://root@localhost:26257/defaultdb?sslmode=disable"))
+        assertThat(CockroachDbEngine.toJdbcUrl("cockroachdb://root@localhost:26257/defaultdb?sslmode=disable"))
                 .isEqualTo("jdbc:postgresql://root@localhost:26257/defaultdb?sslmode=disable");
     }
 

@@ -139,14 +139,22 @@ public class CockroachDbSchema {
 
     public String getCreateTableSql() {
         StringBuilder sql = new StringBuilder()
-                .append("CREATE TABLE IF NOT EXISTS ").append(getFullTableName()).append(" (")
-                .append(idColumn).append(" UUID PRIMARY KEY DEFAULT gen_random_uuid(), ");
+                .append("CREATE TABLE IF NOT EXISTS ")
+                .append(getFullTableName())
+                .append(" (")
+                .append(idColumn)
+                .append(" UUID PRIMARY KEY DEFAULT gen_random_uuid(), ");
         if (hasNamespace()) {
             sql.append(namespaceColumn).append(" TEXT NOT NULL DEFAULT '', ");
         }
-        sql.append(contentColumn).append(" TEXT, ")
-                .append(embeddingColumn).append(" VECTOR(").append(dimension).append("), ")
-                .append(metadataColumn).append(" JSONB DEFAULT '{}'::jsonb, ")
+        sql.append(contentColumn)
+                .append(" TEXT, ")
+                .append(embeddingColumn)
+                .append(" VECTOR(")
+                .append(dimension)
+                .append("), ")
+                .append(metadataColumn)
+                .append(" JSONB DEFAULT '{}'::jsonb, ")
                 .append("created_at TIMESTAMPTZ DEFAULT now()")
                 .append(")");
         return sql.toString();

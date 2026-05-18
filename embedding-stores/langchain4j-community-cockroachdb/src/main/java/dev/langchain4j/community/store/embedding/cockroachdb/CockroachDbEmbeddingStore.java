@@ -134,12 +134,21 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         String op = schema.getMetricType().operator();
         StringBuilder sql = new StringBuilder()
-                .append("SELECT ").append(schema.getIdColumn()).append(", ")
-                .append(schema.getContentColumn()).append(", ")
-                .append(schema.getMetadataColumn()).append(", ")
-                .append(schema.getEmbeddingColumn()).append(", ")
-                .append(schema.getEmbeddingColumn()).append(" ").append(op).append(" ?::vector AS distance ")
-                .append("FROM ").append(schema.getFullTableName());
+                .append("SELECT ")
+                .append(schema.getIdColumn())
+                .append(", ")
+                .append(schema.getContentColumn())
+                .append(", ")
+                .append(schema.getMetadataColumn())
+                .append(", ")
+                .append(schema.getEmbeddingColumn())
+                .append(", ")
+                .append(schema.getEmbeddingColumn())
+                .append(" ")
+                .append(op)
+                .append(" ?::vector AS distance ")
+                .append("FROM ")
+                .append(schema.getFullTableName());
 
         List<String> wheres = new ArrayList<>();
         if (namespaceClause() != null) wheres.add(namespaceClause());
@@ -148,7 +157,10 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
             sql.append(" WHERE ").append(String.join(" AND ", wheres));
         }
         // Operator + bound vector must be repeated for the C-SPANN index to fire.
-        sql.append(" ORDER BY ").append(schema.getEmbeddingColumn()).append(" ").append(op)
+        sql.append(" ORDER BY ")
+                .append(schema.getEmbeddingColumn())
+                .append(" ")
+                .append(op)
                 .append(" ?::vector LIMIT ?");
 
         String queryVector = toVectorLiteral(query);
@@ -189,7 +201,11 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
                     }
                 } catch (SQLException e) {
                     if (searchBeamSize != null) {
-                        try { conn.rollback(); } catch (SQLException ignore) { /* best-effort */ }
+                        try {
+                            conn.rollback();
+                        } catch (SQLException ignore) {
+                            /* best-effort */
+                        }
                     }
                     throw e;
                 }
@@ -204,12 +220,13 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
         String sql = String.format(
                 "DELETE FROM %s WHERE %s = ?%s",
-                schema.getFullTableName(), schema.getIdColumn(),
+                schema.getFullTableName(),
+                schema.getIdColumn(),
                 namespaceClause() == null ? "" : " AND " + namespaceClause());
 
         RetryUtils.withRetry(() -> {
             try (Connection conn = engine.getConnection();
-                 PreparedStatement st = conn.prepareStatement(sql)) {
+                    PreparedStatement st = conn.prepareStatement(sql)) {
                 for (String id : ids) {
                     st.setObject(1, UUID.fromString(id));
                     st.addBatch();
@@ -225,13 +242,15 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
         if (filter == null) {
             throw new IllegalArgumentException("filter cannot be null");
         }
-        StringBuilder sql = new StringBuilder("DELETE FROM ").append(schema.getFullTableName())
-                .append(" WHERE ").append(filterMapper.map(filter));
+        StringBuilder sql = new StringBuilder("DELETE FROM ")
+                .append(schema.getFullTableName())
+                .append(" WHERE ")
+                .append(filterMapper.map(filter));
         if (namespaceClause() != null) sql.append(" AND ").append(namespaceClause());
 
         RetryUtils.withRetry(() -> {
             try (Connection conn = engine.getConnection();
-                 Statement st = conn.createStatement()) {
+                    Statement st = conn.createStatement()) {
                 st.executeUpdate(sql.toString());
                 return null;
             }
@@ -248,7 +267,7 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
         RetryUtils.withRetry(() -> {
             try (Connection conn = engine.getConnection();
-                 Statement st = conn.createStatement()) {
+                    Statement st = conn.createStatement()) {
                 st.executeUpdate(sql);
                 return null;
             }
@@ -258,7 +277,7 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
     public void createTableIfNotExists() {
         RetryUtils.withRetry(() -> {
             try (Connection conn = engine.getConnection();
-                 Statement st = conn.createStatement()) {
+                    Statement st = conn.createStatement()) {
                 st.execute(schema.getCreateTableSql());
 
                 String nsIdx = schema.getCreateNamespaceIndexSql();
@@ -281,18 +300,18 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     private void addInternal(String id, Embedding embedding, TextSegment segment) {
-        addAllInternal(singletonList(id), singletonList(embedding),
-                segment != null ? singletonList(segment) : null);
+        addAllInternal(singletonList(id), singletonList(embedding), segment != null ? singletonList(segment) : null);
     }
 
     private void addAllInternal(List<String> ids, List<Embedding> embeddings, List<TextSegment> segments) {
         if (ids.isEmpty()) return;
 
-        StringBuilder columns = new StringBuilder()
-                .append(schema.getIdColumn()).append(", ");
+        StringBuilder columns = new StringBuilder().append(schema.getIdColumn()).append(", ");
         if (schema.hasNamespace()) columns.append(schema.getNamespaceColumn()).append(", ");
-        columns.append(schema.getContentColumn()).append(", ")
-                .append(schema.getEmbeddingColumn()).append(", ")
+        columns.append(schema.getContentColumn())
+                .append(", ")
+                .append(schema.getEmbeddingColumn())
+                .append(", ")
                 .append(schema.getMetadataColumn());
 
         StringBuilder placeholders = new StringBuilder("?");
@@ -300,12 +319,23 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
         placeholders.append(", ?, ?::vector, ?::jsonb");
 
         StringBuilder updateSet = new StringBuilder()
-                .append(schema.getContentColumn()).append(" = EXCLUDED.").append(schema.getContentColumn())
-                .append(", ").append(schema.getEmbeddingColumn()).append(" = EXCLUDED.").append(schema.getEmbeddingColumn())
-                .append(", ").append(schema.getMetadataColumn()).append(" = EXCLUDED.").append(schema.getMetadataColumn());
+                .append(schema.getContentColumn())
+                .append(" = EXCLUDED.")
+                .append(schema.getContentColumn())
+                .append(", ")
+                .append(schema.getEmbeddingColumn())
+                .append(" = EXCLUDED.")
+                .append(schema.getEmbeddingColumn())
+                .append(", ")
+                .append(schema.getMetadataColumn())
+                .append(" = EXCLUDED.")
+                .append(schema.getMetadataColumn());
         if (schema.hasNamespace()) {
-            updateSet.append(", ").append(schema.getNamespaceColumn())
-                    .append(" = EXCLUDED.").append(schema.getNamespaceColumn());
+            updateSet
+                    .append(", ")
+                    .append(schema.getNamespaceColumn())
+                    .append(" = EXCLUDED.")
+                    .append(schema.getNamespaceColumn());
         }
 
         String sql = String.format(
@@ -316,7 +346,7 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         RetryUtils.withRetry(() -> {
             try (Connection conn = engine.getConnection();
-                 PreparedStatement st = conn.prepareStatement(sql)) {
+                    PreparedStatement st = conn.prepareStatement(sql)) {
                 for (int i = 0; i < ids.size(); i++) {
                     TextSegment seg = segments != null ? segments.get(i) : null;
                     Metadata metadata = seg != null ? seg.metadata() : new Metadata();

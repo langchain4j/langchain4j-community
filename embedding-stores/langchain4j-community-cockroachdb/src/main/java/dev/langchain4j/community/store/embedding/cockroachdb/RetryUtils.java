@@ -44,9 +44,14 @@ final class RetryUtils {
                     throw new CockroachDbRequestFailedException(
                             "CockroachDB operation failed after " + (attempt + 1) + " attempt(s)", e);
                 }
-                long jittered = (long) (backoff * (0.5 + ThreadLocalRandom.current().nextDouble() * 0.5));
-                logger.debug("Retryable CockroachDB error on attempt {}/{}: {} — sleeping {} ms",
-                        attempt + 1, maxRetries + 1, e.getSQLState(), jittered);
+                long jittered =
+                        (long) (backoff * (0.5 + ThreadLocalRandom.current().nextDouble() * 0.5));
+                logger.debug(
+                        "Retryable CockroachDB error on attempt {}/{}: {}, sleeping {} ms",
+                        attempt + 1,
+                        maxRetries + 1,
+                        e.getSQLState(),
+                        jittered);
                 sleep(jittered);
                 backoff = Math.min((long) (backoff * DEFAULT_BACKOFF_MULTIPLIER), DEFAULT_MAX_BACKOFF_MS);
             }

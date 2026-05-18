@@ -11,10 +11,11 @@ class CSpannIndexTest {
 
     @Test
     void emits_minimal_create_vector_index() {
-        String sql = CSpannIndex.builder().build()
+        String sql = CSpannIndex.builder()
+                .build()
                 .getCreateIndexSql("public.embeddings", "embedding", Collections.emptyList());
-        assertThat(sql).isEqualTo(
-                "CREATE VECTOR INDEX IF NOT EXISTS embeddings_embedding_vector_idx "
+        assertThat(sql)
+                .isEqualTo("CREATE VECTOR INDEX IF NOT EXISTS embeddings_embedding_vector_idx "
                         + "ON public.embeddings (embedding)");
     }
 
@@ -30,14 +31,17 @@ class CSpannIndexTest {
 
     @Test
     void prefix_columns_come_before_embedding_column() {
-        String sql = CSpannIndex.builder().build()
+        String sql = CSpannIndex.builder()
+                .build()
                 .getCreateIndexSql("public.embeddings", "embedding", Arrays.asList("tenant_id"));
         assertThat(sql).contains("(tenant_id, embedding)");
     }
 
     @Test
     void honours_explicit_index_name() {
-        String sql = CSpannIndex.builder().name("my_idx").build()
+        String sql = CSpannIndex.builder()
+                .name("my_idx")
+                .build()
                 .getCreateIndexSql("public.embeddings", "embedding", Collections.emptyList());
         assertThat(sql).startsWith("CREATE VECTOR INDEX IF NOT EXISTS my_idx ");
     }

@@ -70,25 +70,45 @@ public class CockroachDbChatMemorySchema {
         return new Builder();
     }
 
-    public String getTableName() { return tableName; }
+    public String getTableName() {
+        return tableName;
+    }
 
-    public String getSchemaName() { return schemaName; }
+    public String getSchemaName() {
+        return schemaName;
+    }
 
-    public String getIdColumn() { return idColumn; }
+    public String getIdColumn() {
+        return idColumn;
+    }
 
-    public String getSessionColumn() { return sessionColumn; }
+    public String getSessionColumn() {
+        return sessionColumn;
+    }
 
-    public String getMessageColumn() { return messageColumn; }
+    public String getMessageColumn() {
+        return messageColumn;
+    }
 
-    public String getCreatedAtColumn() { return createdAtColumn; }
+    public String getCreatedAtColumn() {
+        return createdAtColumn;
+    }
 
-    public String getIdxColumn() { return idxColumn; }
+    public String getIdxColumn() {
+        return idxColumn;
+    }
 
-    public boolean isCreateTableIfNotExists() { return createTableIfNotExists; }
+    public boolean isCreateTableIfNotExists() {
+        return createTableIfNotExists;
+    }
 
-    public Duration getTtl() { return ttl; }
+    public Duration getTtl() {
+        return ttl;
+    }
 
-    public String getTtlJobCron() { return ttlJobCron; }
+    public String getTtlJobCron() {
+        return ttlJobCron;
+    }
 
     public String getFullTableName() {
         return schemaName != null && !schemaName.trim().isEmpty() ? schemaName + "." + tableName : tableName;
@@ -96,13 +116,12 @@ public class CockroachDbChatMemorySchema {
 
     public String getCreateTableSql() {
         return String.format(
-                "CREATE TABLE IF NOT EXISTS %s (" +
-                        "%s UUID PRIMARY KEY DEFAULT gen_random_uuid(), " +
-                        "%s TEXT NOT NULL, " +
-                        "%s JSONB NOT NULL, " +
-                        "%s INT NOT NULL DEFAULT 0, " +
-                        "%s TIMESTAMPTZ NOT NULL DEFAULT now()" +
-                        ")",
+                "CREATE TABLE IF NOT EXISTS %s (" + "%s UUID PRIMARY KEY DEFAULT gen_random_uuid(), "
+                        + "%s TEXT NOT NULL, "
+                        + "%s JSONB NOT NULL, "
+                        + "%s INT NOT NULL DEFAULT 0, "
+                        + "%s TIMESTAMPTZ NOT NULL DEFAULT now()"
+                        + ")",
                 getFullTableName(), idColumn, sessionColumn, messageColumn, idxColumn, createdAtColumn);
     }
 
@@ -120,10 +139,7 @@ public class CockroachDbChatMemorySchema {
         String interval = formatInterval(ttl);
         // Dollar-quote the expression so the embedded INTERVAL literal doesn't have to be escaped.
         return String.format(
-                "ALTER TABLE %s SET (" +
-                        "ttl_expiration_expression = $$(%s + '%s')$$, " +
-                        "ttl_job_cron = '%s'" +
-                        ")",
+                "ALTER TABLE %s SET (" + "ttl_expiration_expression = $$(%s + '%s')$$, " + "ttl_job_cron = '%s'" + ")",
                 getFullTableName(), createdAtColumn, interval, ttlJobCron);
     }
 
@@ -151,16 +167,55 @@ public class CockroachDbChatMemorySchema {
         private Duration ttl;
         private String ttlJobCron = DEFAULT_TTL_CRON;
 
-        public Builder tableName(String tableName) { this.tableName = tableName; return this; }
-        public Builder schemaName(String schemaName) { this.schemaName = schemaName; return this; }
-        public Builder idColumn(String c) { this.idColumn = c; return this; }
-        public Builder sessionColumn(String c) { this.sessionColumn = c; return this; }
-        public Builder messageColumn(String c) { this.messageColumn = c; return this; }
-        public Builder createdAtColumn(String c) { this.createdAtColumn = c; return this; }
-        public Builder idxColumn(String c) { this.idxColumn = c; return this; }
-        public Builder createTableIfNotExists(boolean v) { this.createTableIfNotExists = v; return this; }
-        public Builder ttl(Duration ttl) { this.ttl = ttl; return this; }
-        public Builder ttlJobCron(String cron) { this.ttlJobCron = cron; return this; }
+        public Builder tableName(String tableName) {
+            this.tableName = tableName;
+            return this;
+        }
+
+        public Builder schemaName(String schemaName) {
+            this.schemaName = schemaName;
+            return this;
+        }
+
+        public Builder idColumn(String c) {
+            this.idColumn = c;
+            return this;
+        }
+
+        public Builder sessionColumn(String c) {
+            this.sessionColumn = c;
+            return this;
+        }
+
+        public Builder messageColumn(String c) {
+            this.messageColumn = c;
+            return this;
+        }
+
+        public Builder createdAtColumn(String c) {
+            this.createdAtColumn = c;
+            return this;
+        }
+
+        public Builder idxColumn(String c) {
+            this.idxColumn = c;
+            return this;
+        }
+
+        public Builder createTableIfNotExists(boolean v) {
+            this.createTableIfNotExists = v;
+            return this;
+        }
+
+        public Builder ttl(Duration ttl) {
+            this.ttl = ttl;
+            return this;
+        }
+
+        public Builder ttlJobCron(String cron) {
+            this.ttlJobCron = cron;
+            return this;
+        }
 
         public CockroachDbChatMemorySchema build() {
             return new CockroachDbChatMemorySchema(this);
