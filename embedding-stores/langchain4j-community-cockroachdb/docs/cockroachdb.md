@@ -44,6 +44,38 @@ SET CLUSTER SETTING feature.vector_index.enabled = true;
 
 If you import the Community BOM, you can omit the version.
 
+## APIs
+
+The module exposes four public classes:
+
+### `CockroachDbEngine`
+
+Wraps a HikariCP `DataSource` and handles connection pooling. Builds from
+individual `host`/`port`/`database`/`username`/`password` fields, from a full
+connection string (the Python-style `cockroachdb://` scheme is rewritten to
+`jdbc:postgresql://` automatically), or from an existing `DataSource` via
+`CockroachDbEngine.from(dataSource)`.
+
+### `CockroachDbSchema`
+
+Encapsulates the embedding table layout: table and column names, vector
+dimension, distance metric, optional namespace column for multi-tenancy, the
+chosen vector index strategy, and an optional generated `tsvector` column for
+future hybrid search.
+
+### `CockroachDbEmbeddingStore`
+
+Implements LangChain4j's `EmbeddingStore<TextSegment>` against the native
+CockroachDB `VECTOR` column. Supports batch insert, JSONB metadata
+filtering, removal by id / by `Filter` / in bulk, optional namespace scoping,
+and optional per-query `vector_search_beam_size` tuning for C-SPANN.
+
+### `CockroachDbChatMemoryStore`
+
+Implements LangChain4j's `ChatMemoryStore`. Persists serialised chat messages
+in a JSONB column ordered by an explicit insertion index, with optional
+row-level TTL.
+
 ## Connecting
 
 `CockroachDbEngine` wraps a `HikariDataSource`. You can build one from a
@@ -306,13 +338,131 @@ typically:
 cockroachdb://USER:PASSWORD@HOST:26257/DATABASE?sslmode=verify-full
 ```
 
-## Differences from the Python library
+## Parameter Summary
 
-The Python `langchain-cockroachdb` library ships a LangGraph checkpointer
-(`CockroachDBSaver` and `AsyncCockroachDBSaver`) alongside the vector store
-and chat history. The Java port of that component lives in the third-party
-[langgraph4j](https://github.com/langgraph4j/langgraph4j) project as
-`langgraph4j-cockroachdb-saver`, not in this module. langgraph4j's
-checkpoint contract has no async API, so only the sync `CockroachDBSaver`
-is provided; on JDK 21 or later, run it from a virtual thread for
-non-blocking concurrency.
+### `CockroachDbEngine` parameters
+
+| Parameter | Description | Default | Required/Optional |
+| --- | --- | --- | --- |
+| `host` | Hostname of the CockroachDB server | `localhost` | Required (if no `connectionString`) |
+| `port` | Port number of the CockroachDB server | `26257` | Required (if no `connectionString`) |
+| `database` | Database to connect to | `defaultdb` | Required (if no `connectionString`) |
+| `username` | Username for authentication | `root` | Required |
+| `password` | Password for authentication | `""` (empty) | Optional |
+| `schema` | Default schema name | `public` | Optional |
+| `sslMode` | SSL mode (`disable`, `require`, `verify-full`, etc.) | `disable` | Optional |
+| `maxPoolSize` | Maximum HikariCP pool size | `10` | Optional |
+| `minPoolSize` | Minimum idle connections | `5` | Optional |
+| `connectionTimeoutMs` | Connection timeout in milliseconds | `10000` | Optional |
+| `idleTimeoutMs` | Idle timeout in milliseconds | `300000` | Optional |
+| `maxLifetimeMs` | Maximum connection lifetime in milliseconds | `3600000` | Optional |
+| `connectionString` | Full URL; overrides individual host/port/db when set | `null` | Optional |
+
+### `CockroachDbEmbeddingStore` parameters
+
+| Parameter | Description | Default | Required/Optional |
+| --- | --- | --- | --- |
+| `engine` | `CockroachDbEngine` instance | None | **Required** |
+| `dimension` | Embedding vector dimension | None | **Required** |
+| `tableName` | Embeddings table name | `embeddings` | Optional |
+| `schemaName` | Database schema name | `public` | Optional |
+| `metricType` | Distance metric: `COSINE`, `EUCLIDEAN`, or `DOT_PRODUCT` | `COSINE` | Optional |
+| `vectorIndex` | `CSpannIndex` or `NoIndex` | `NoIndex` (sequential scan) | Optional |
+| `namespaceColumn` | Tenant column name for multi-tenancy | `null` (disabled) | Optional |
+| `namespace` | Tenant value applied on every read and write | `null` | Optional, requires `namespaceColumn` |
+| `searchBeamSize` | Per-query `vector_search_beam_size` session variable | `null` (CockroachDB default) | Optional |
+| `createTableIfNotExists` | Create the table at build time | `true` | Optional |
+| `createTsvectorColumn` | Add a generated `tsvector` column + GIN index | `false` | Optional |
+
+### `CSpannIndex` parameters (CockroachDB v25.2+)
+
+| Parameter | Description | Default | Required/Optional |
+| --- | --- | --- | --- |
+| `name` | Custom index name | `{table}_{column}_vector_idx` | Optional |
+| `minPartitionSize` | Minimum partition size (emitted via `WITH`) | CockroachDB default | Optional |
+| `maxPartitionSize` | Maximum partition size (emitted via `WITH`) | CockroachDB default | Optional |
+
+### `CockroachDbChatMemoryStore` parameters
+
+| Parameter | Description | Default | Required/Optional |
+| --- | --- | --- | --- |
+| `engine` | `CockroachDbEngine` instance | None | **Required** |
+| `tableName` | Chat history table name | `message_store` | Optional |
+| `schemaName` | Database schema name | `public` | Optional |
+| `ttl` | Row-level TTL duration; enables CockroachDB TTL when set | `null` (disabled) | Optional |
+| `ttlJobCron` | TTL job schedule | `@daily` | Optional, requires `ttl` |
+| `createTableIfNotExists` | Create the table at build time | `true` | Optional |
+
+## Example
+
+A minimal end-to-end RAG demo that boots a CockroachDB Testcontainer,
+indexes two text segments, and runs a similarity search:
+
+```java
+import dev.langchain4j.community.store.embedding.cockroachdb.CockroachDbEmbeddingStore;
+import dev.langchain4j.community.store.embedding.cockroachdb.CockroachDbEngine;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import java.util.List;
+import org.testcontainers.containers.CockroachContainer;
+
+public class CockroachDbEmbeddingStoreExample {
+
+    public static void main(String[] args) {
+        try (CockroachContainer cockroach = new CockroachContainer("cockroachdb/cockroach:latest-v25.2")) {
+            cockroach.start();
+
+            CockroachDbEngine engine = CockroachDbEngine.builder()
+                    .connectionString(cockroach.getJdbcUrl())
+                    .username(cockroach.getUsername())
+                    .password(cockroach.getPassword())
+                    .build();
+
+            EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+
+            EmbeddingStore<TextSegment> embeddingStore = CockroachDbEmbeddingStore.builder()
+                    .engine(engine)
+                    .dimension(embeddingModel.dimension())
+                    .tableName("demo_embeddings")
+                    .build();
+
+            TextSegment segment1 = TextSegment.from("I like football.");
+            Embedding embedding1 = embeddingModel.embed(segment1).content();
+            embeddingStore.add(embedding1, segment1);
+
+            TextSegment segment2 = TextSegment.from("The weather is good today.");
+            Embedding embedding2 = embeddingModel.embed(segment2).content();
+            embeddingStore.add(embedding2, segment2);
+
+            Embedding queryEmbedding = embeddingModel.embed("What is your favourite sport?").content();
+            EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .maxResults(1)
+                    .build();
+
+            List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(request).matches();
+            EmbeddingMatch<TextSegment> match = matches.get(0);
+
+            System.out.println(match.score());           // ~0.81
+            System.out.println(match.embedded().text()); // I like football.
+
+            engine.close();
+        }
+    }
+}
+```
+
+The example uses the default sequential-scan index so it runs on any
+CockroachDB v24.2 or later without extra cluster setup. To switch to the
+C-SPANN distributed ANN index on v25.2 or later, enable the feature flag once
+per cluster and pass `CSpannIndex.builder().build()` to the store via
+`.vectorIndex(...)`:
+
+```sql
+SET CLUSTER SETTING feature.vector_index.enabled = true;
+```
