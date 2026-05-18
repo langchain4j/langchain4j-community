@@ -54,6 +54,7 @@
         <module>embedding-stores/langchain4j-community-cloud-sql-pg</module>
         <module>embedding-stores/langchain4j-community-neo4j</module>
         <module>embedding-stores/langchain4j-community-yugabytedb</module>
+        <module>embedding-stores/langchain4j-community-cockroachdb</module>
         <module>embedding-stores/langchain4j-community-sqlserver</module>
         <module>embedding-stores/langchain4j-community-oceanbase</module>
         <module>embedding-stores/langchain4j-community-jvector</module>
