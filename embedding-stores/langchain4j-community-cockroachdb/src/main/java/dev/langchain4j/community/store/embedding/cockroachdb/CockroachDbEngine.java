@@ -95,7 +95,6 @@ public class CockroachDbEngine {
         private String password = "";
         private String schema = "public";
         private String sslMode = "disable";
-        private String applicationName = "langchain4j-cockroachdb";
         private Integer maxPoolSize = 10;
         private Integer minPoolSize = 5;
         private long connectionTimeoutMs = 10_000L;
@@ -142,11 +141,6 @@ public class CockroachDbEngine {
             return this;
         }
 
-        public Builder applicationName(String applicationName) {
-            this.applicationName = applicationName;
-            return this;
-        }
-
         public Builder maxPoolSize(Integer maxPoolSize) {
             this.maxPoolSize = maxPoolSize;
             return this;
@@ -180,8 +174,8 @@ public class CockroachDbEngine {
                 jdbcUrl = toJdbcUrl(connectionString);
             } else {
                 jdbcUrl = String.format(
-                        "jdbc:postgresql://%s:%d/%s?currentSchema=%s&sslmode=%s&ApplicationName=%s",
-                        host, port, database, schema, sslMode, applicationName);
+                        "jdbc:postgresql://%s:%d/%s?currentSchema=%s&sslmode=%s",
+                        host, port, database, schema, sslMode);
             }
             config.setJdbcUrl(jdbcUrl);
             // Apply credentials regardless of which URL path was used so that callers can

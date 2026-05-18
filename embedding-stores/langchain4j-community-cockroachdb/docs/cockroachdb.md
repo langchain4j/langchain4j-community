@@ -316,7 +316,3 @@ and chat history. The Java port of that component lives in the third-party
 checkpoint contract has no async API, so only the sync `CockroachDBSaver`
 is provided; on JDK 21 or later, run it from a virtual thread for
 non-blocking concurrency.
-
-The Python library also ships a `HybridSearchConfig` class for fusing vector
-and FTS scores in application code. The Java module exposes the underlying
-tsvector column but does not yet ship a hybrid query executor.
