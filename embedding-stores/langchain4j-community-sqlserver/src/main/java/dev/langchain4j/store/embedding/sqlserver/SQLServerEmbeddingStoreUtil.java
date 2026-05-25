@@ -141,7 +141,8 @@ class SQLServerEmbeddingStoreUtil {
     }
 
     public static Vector getVector(Float[] boxedVector, boolean halfPrecision) {
-        return new Vector(boxedVector.length,
+        return new Vector(
+                boxedVector.length,
                 halfPrecision ? Vector.VectorDimensionType.FLOAT16 : Vector.VectorDimensionType.FLOAT32,
                 boxedVector);
     }

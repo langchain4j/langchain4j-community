@@ -39,7 +39,7 @@ public class SQLServerTestsUtil {
         dataSource.setTrustServerCertificate(true);
 
         try (Connection connection = dataSource.getConnection();
-             Statement stmt = connection.createStatement()) {
+                Statement stmt = connection.createStatement()) {
             // Enable preview features for SQL Server 2025
             stmt.execute("CREATE DATABASE TestDB;");
             stmt.execute("USE TestDB; ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON");

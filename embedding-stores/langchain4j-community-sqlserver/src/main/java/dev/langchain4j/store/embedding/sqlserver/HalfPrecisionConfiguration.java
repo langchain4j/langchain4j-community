@@ -22,9 +22,7 @@ package dev.langchain4j.store.embedding.sqlserver;
  *
  */
 public enum HalfPrecisionConfiguration {
-
     AUTO,
     ON,
     OFF;
-
 }
