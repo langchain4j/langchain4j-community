@@ -58,6 +58,7 @@ public class EmbeddingTable {
     private final String metadataColumn;
     private final CreateOption createOption;
     private final Integer dimension;
+    private final boolean halfPrecision;
 
     private EmbeddingTable(Builder builder) {
         SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.catalogName);
@@ -77,6 +78,9 @@ public class EmbeddingTable {
         this.createOption = builder.createOption;
         this.dimension = builder.dimension;
         ensureNotNull(dimension, "dimension");
+
+        this.halfPrecision = (builder.halfPrecision == null || HalfPrecisionConfiguration.AUTO.equals(builder.halfPrecision) ? dimension > 1998 :
+                builder.halfPrecision == HalfPrecisionConfiguration.ON);
     }
 
     /**
@@ -140,6 +144,17 @@ public class EmbeddingTable {
      */
     public Integer dimension() {
         return dimension;
+    }
+
+    /**
+     * Returns whether to use half-precision (float16) for embedding vectors.
+     * When disabled, the embedding store will only be able to store embeddings up to 1998 dimensions.
+     *
+     * @return True if half-precision is enabled, false otherwise.
+     * @see <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type-half-precision-float?view=sql-server-ver17">Microsoft Documentation</a> for more information.
+     */
+    public boolean isHalfPrecision() {
+        return halfPrecision;
     }
 
     /**
@@ -218,15 +233,16 @@ public class EmbeddingTable {
 
     private String getCreateTableStatement(boolean ifNotExists) {
 
+        String vectorType = halfPrecision ? "float16" : "float32";
         String createSql = String.format(
                 """
                     CREATE TABLE %s (
                         %s NVARCHAR(36) PRIMARY KEY,
-                        %s VECTOR(%d),
+                        %s VECTOR(%d, %s),
                         %s NVARCHAR(MAX),
                         %s JSON)
                 """,
-                getQualifiedTableName(), idColumn, embeddingColumn, dimension, textColumn, metadataColumn);
+                getQualifiedTableName(), idColumn, embeddingColumn, dimension, vectorType, textColumn, metadataColumn);
         if (ifNotExists) {
             return String.format(
                     """
@@ -258,6 +274,7 @@ public class EmbeddingTable {
         private String metadataColumn = DEFAULT_METADATA_COLUMN;
         private CreateOption createOption = CreateOption.CREATE_NONE;
         private Integer dimension;
+        private HalfPrecisionConfiguration halfPrecision = HalfPrecisionConfiguration.AUTO;
 
         private Builder() {}
 
@@ -361,6 +378,24 @@ public class EmbeddingTable {
         }
 
         /**
+         * Sets the half-precision configuration for embedding vectors.
+         * If {@link HalfPrecisionConfiguration#ON}, the half-precision (float16) type is used for storing the embeddings.
+         * If {@link HalfPrecisionConfiguration#OFF}, the vectors are stored in full precision (float32). Note that the embedding process would fail with embedding models with more than 1998 dimensions.
+         * If {@link HalfPrecisionConfiguration#AUTO} or {@code null}, the default (float32) type is used unless the configured
+         * dimension is greater than 1998.
+         *
+         * @param halfPrecision The half-precision configuration.
+         * @return This builder.
+         *
+         * @see <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type-half-precision-float?view=sql-server-ver17">Microsoft Documentation</a>
+         * for more information regarding the half-precision vector support.
+         */
+        public Builder halfPrecision(HalfPrecisionConfiguration halfPrecision) {
+            this.halfPrecision = halfPrecision;
+            return this;
+        }
+
+        /**
          * Builds the EmbeddingTable instance.
          *
          * @return The configured EmbeddingTable.
@@ -383,7 +418,9 @@ public class EmbeddingTable {
                     + textColumn + '\'' + ", metadataColumn='"
                     + metadataColumn + '\'' + ", createOption="
                     + createOption + ", dimension="
-                    + dimension + '}';
+                    + dimension + ", halfPrecision"
+                    + halfPrecision
+                    +'}';
         }
     }
 }

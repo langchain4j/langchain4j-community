@@ -114,8 +114,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
 
                 statement.setString(1, id);
                 Float[] boxedVector = SQLServerEmbeddingStoreUtil.boxEmbeddings(embedding.vector());
-                Vector vector =
-                        new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
+                Vector vector = SQLServerEmbeddingStoreUtil.getVector(boxedVector, embeddingTable.isHalfPrecision());
                 statement.setObject(2, vector, microsoft.sql.Types.VECTOR);
 
                 statement.addBatch();
@@ -179,8 +178,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                         SQLServerEmbeddingStoreUtil.ensureIndexNotNull(textSegments, i, "textSegments");
 
                 Float[] boxedVector = SQLServerEmbeddingStoreUtil.boxEmbeddings(embedding.vector());
-                Vector vector =
-                        new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
+                Vector vector = SQLServerEmbeddingStoreUtil.getVector(boxedVector, embeddingTable.isHalfPrecision());
                 statement.setObject(2, vector, microsoft.sql.Types.VECTOR);
 
                 statement.setObject(3, textSegment.text());
@@ -235,8 +233,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
 
             // Set the query embedding vector as the first parameter
             Float[] boxedVector = SQLServerEmbeddingStoreUtil.boxEmbeddings(referenceEmbedding.vector());
-            Vector vector =
-                    new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
+            Vector vector = SQLServerEmbeddingStoreUtil.getVector(boxedVector, embeddingTable.isHalfPrecision());
             statement.setObject(1, vector, microsoft.sql.Types.VECTOR);
 
             // Set filter parameters starting from index 2
@@ -356,8 +353,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                 PreparedStatement statement = connection.prepareStatement(sql)) {
 
             Float[] boxedVector = SQLServerEmbeddingStoreUtil.boxEmbeddings(embedding.vector());
-            Vector vector =
-                    new microsoft.sql.Vector(boxedVector.length, Vector.VectorDimensionType.FLOAT32, boxedVector);
+            Vector vector = SQLServerEmbeddingStoreUtil.getVector(boxedVector, embeddingTable.isHalfPrecision());
             statement.setString(1, id);
             statement.setObject(2, vector, microsoft.sql.Types.VECTOR);
             statement.setString(3, textSegment != null ? textSegment.text() : null);
