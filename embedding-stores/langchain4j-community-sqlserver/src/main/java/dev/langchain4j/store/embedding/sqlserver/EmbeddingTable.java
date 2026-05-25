@@ -79,8 +79,10 @@ public class EmbeddingTable {
         this.dimension = builder.dimension;
         ensureNotNull(dimension, "dimension");
 
-        this.halfPrecision = (builder.halfPrecision == null || HalfPrecisionConfiguration.AUTO.equals(builder.halfPrecision) ? dimension > 1998 :
-                builder.halfPrecision == HalfPrecisionConfiguration.ON);
+        this.halfPrecision =
+                (builder.halfPrecision == null || HalfPrecisionConfiguration.AUTO.equals(builder.halfPrecision)
+                        ? dimension > 1998
+                        : builder.halfPrecision == HalfPrecisionConfiguration.ON);
     }
 
     /**
@@ -244,14 +246,12 @@ public class EmbeddingTable {
                 """,
                 getQualifiedTableName(), idColumn, embeddingColumn, dimension, vectorType, textColumn, metadataColumn);
         if (ifNotExists) {
-            return String.format(
-                    """
+            return String.format("""
                         IF OBJECT_ID(N'%s', N'U') IS NULL
                             BEGIN
                                 %s
                             END;
-                    """,
-                    getQualifiedTableName(), createSql);
+                    """, getQualifiedTableName(), createSql);
         } else {
             return createSql;
         }
@@ -420,7 +420,7 @@ public class EmbeddingTable {
                     + createOption + ", dimension="
                     + dimension + ", halfPrecision"
                     + halfPrecision
-                    +'}';
+                    + '}';
         }
     }
 }
