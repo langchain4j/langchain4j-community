@@ -20,15 +20,9 @@ import org.slf4j.LoggerFactory;
  * {@code jdbc:postgresql://}. {@code postgresql://} and {@code postgres://} are
  * also accepted and rewritten. JDBC-prefixed URLs are passed through unchanged.
  */
-public class CockroachDbEngine {
+public record CockroachDbEngine(DataSource dataSource) {
 
     private static final Logger logger = LoggerFactory.getLogger(CockroachDbEngine.class);
-
-    private final DataSource dataSource;
-
-    public CockroachDbEngine(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
 
     public static Builder builder() {
         return new Builder();
@@ -40,24 +34,6 @@ public class CockroachDbEngine {
 
     public static CockroachDbEngine fromConnectionString(String connectionString) {
         return new Builder().connectionString(connectionString).build();
-    }
-
-    public Connection getConnection() {
-        try {
-            return dataSource.getConnection();
-        } catch (SQLException e) {
-            throw new CockroachDbRequestFailedException("Failed to get CockroachDB connection", e);
-        }
-    }
-
-    public DataSource getDataSource() {
-        return dataSource;
-    }
-
-    public void close() {
-        if (dataSource instanceof HikariDataSource hikari) {
-            hikari.close();
-        }
     }
 
     /**
@@ -84,6 +60,20 @@ public class CockroachDbEngine {
             return "jdbc:postgresql://" + url.substring("postgres://".length());
         }
         throw new IllegalArgumentException("Unsupported connection-string scheme: " + url);
+    }
+
+    public Connection getConnection() {
+        try {
+            return dataSource.getConnection();
+        } catch (SQLException e) {
+            throw new CockroachDbRequestFailedException("Failed to get CockroachDB connection", e);
+        }
+    }
+
+    public void close() {
+        if (dataSource instanceof HikariDataSource hikari) {
+            hikari.close();
+        }
     }
 
     public static class Builder {

@@ -40,6 +40,11 @@ public class CSpannIndex implements BaseIndex {
         return new Builder();
     }
 
+    private static String stripSchema(String fqn) {
+        int dot = fqn.indexOf('.');
+        return dot >= 0 ? fqn.substring(dot + 1) : fqn;
+    }
+
     @Override
     public String getCreateIndexSql(String fullyQualifiedTable, String embeddingColumn, List<String> prefixColumns) {
         String resolvedName = getName(stripSchema(fullyQualifiedTable), embeddingColumn);
@@ -84,11 +89,6 @@ public class CSpannIndex implements BaseIndex {
 
     public Integer getMaxPartitionSize() {
         return maxPartitionSize;
-    }
-
-    private static String stripSchema(String fqn) {
-        int dot = fqn.indexOf('.');
-        return dot >= 0 ? fqn.substring(dot + 1) : fqn;
     }
 
     public static class Builder {

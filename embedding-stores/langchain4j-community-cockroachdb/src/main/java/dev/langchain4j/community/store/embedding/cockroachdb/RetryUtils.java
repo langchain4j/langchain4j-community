@@ -14,19 +14,13 @@ import org.slf4j.LoggerFactory;
  */
 final class RetryUtils {
 
-    private static final Logger logger = LoggerFactory.getLogger(RetryUtils.class);
-
     static final int DEFAULT_MAX_RETRIES = 5;
     static final long DEFAULT_INITIAL_BACKOFF_MS = 100L;
     static final long DEFAULT_MAX_BACKOFF_MS = 10_000L;
     static final double DEFAULT_BACKOFF_MULTIPLIER = 2.0;
+    private static final Logger logger = LoggerFactory.getLogger(RetryUtils.class);
 
     private RetryUtils() {}
-
-    @FunctionalInterface
-    interface SqlAction<T> {
-        T run() throws SQLException;
-    }
 
     static <T> T withRetry(SqlAction<T> action) {
         return withRetry(action, DEFAULT_MAX_RETRIES);
@@ -77,5 +71,10 @@ final class RetryUtils {
             Thread.currentThread().interrupt();
             throw new CockroachDbRequestFailedException("Interrupted during CockroachDB retry backoff", ie);
         }
+    }
+
+    @FunctionalInterface
+    interface SqlAction<T> {
+        T run() throws SQLException;
     }
 }

@@ -22,6 +22,22 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnProperty(prefix = PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
 public class CockroachDbEmbeddingStoreAutoConfiguration {
 
+    private static BaseIndex resolveIndex(CockroachDbEmbeddingStoreProperties properties) {
+        String type = properties.getIndexType();
+        if (type == null) return null;
+        switch (type.toLowerCase()) {
+            case "cspann":
+                CSpannIndex.Builder b = CSpannIndex.builder();
+                if (properties.getMinPartitionSize() != null) b.minPartitionSize(properties.getMinPartitionSize());
+                if (properties.getMaxPartitionSize() != null) b.maxPartitionSize(properties.getMaxPartitionSize());
+                return b.build();
+            case "none":
+                return new NoIndex();
+            default:
+                throw new IllegalArgumentException("Unknown indexType '" + type + "', expected one of: cspann, none");
+        }
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public CockroachDbEngine cockroachDbEngine(CockroachDbEmbeddingStoreProperties properties) {
@@ -64,21 +80,5 @@ public class CockroachDbEmbeddingStoreAutoConfiguration {
         if (index != null) builder.vectorIndex(index);
 
         return builder.build();
-    }
-
-    private static BaseIndex resolveIndex(CockroachDbEmbeddingStoreProperties properties) {
-        String type = properties.getIndexType();
-        if (type == null) return null;
-        switch (type.toLowerCase()) {
-            case "cspann":
-                CSpannIndex.Builder b = CSpannIndex.builder();
-                if (properties.getMinPartitionSize() != null) b.minPartitionSize(properties.getMinPartitionSize());
-                if (properties.getMaxPartitionSize() != null) b.maxPartitionSize(properties.getMaxPartitionSize());
-                return b.build();
-            case "none":
-                return new NoIndex();
-            default:
-                throw new IllegalArgumentException("Unknown indexType '" + type + "', expected one of: cspann, none");
-        }
     }
 }

@@ -3,8 +3,8 @@ package dev.langchain4j.community.store.embedding.cockroachdb;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.community.store.embedding.cockroachdb.index.CSpannIndex;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class CSpannIndexTest {
@@ -31,9 +31,8 @@ class CSpannIndexTest {
 
     @Test
     void prefix_columns_come_before_embedding_column() {
-        String sql = CSpannIndex.builder()
-                .build()
-                .getCreateIndexSql("public.embeddings", "embedding", Arrays.asList("tenant_id"));
+        String sql =
+                CSpannIndex.builder().build().getCreateIndexSql("public.embeddings", "embedding", List.of("tenant_id"));
         assertThat(sql).contains("(tenant_id, embedding)");
     }
 

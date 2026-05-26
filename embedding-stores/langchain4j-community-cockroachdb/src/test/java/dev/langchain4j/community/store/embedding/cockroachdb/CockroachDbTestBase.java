@@ -18,8 +18,6 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public abstract class CockroachDbTestBase {
 
-    private static final Logger logger = LoggerFactory.getLogger(CockroachDbTestBase.class);
-
     public static final DockerImageName IMAGE = DockerImageName.parse("cockroachdb/cockroach:latest-v25.2");
 
     @Container
@@ -27,6 +25,7 @@ public abstract class CockroachDbTestBase {
     public static final CockroachContainer cockroach =
             new CockroachContainer(IMAGE).waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(3)));
 
+    private static final Logger logger = LoggerFactory.getLogger(CockroachDbTestBase.class);
     protected static CockroachDbEngine engine;
 
     @BeforeAll

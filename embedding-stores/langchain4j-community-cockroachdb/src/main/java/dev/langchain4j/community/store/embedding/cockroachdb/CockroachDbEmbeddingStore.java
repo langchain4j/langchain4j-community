@@ -81,6 +81,52 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
         return new Builder();
     }
 
+    /**
+     * Serialize the embedding to CockroachDB's text form: {@code "[v1,v2,...]"}.
+     * <p>CockroachDB's pgwire layer does not accept the binary format for the VECTOR
+     * type, so all vectors are sent as text and cast to {@code ?::vector} in SQL.
+     */
+    private static String toVectorLiteral(Embedding embedding) {
+        List<Float> list = embedding.vectorAsList();
+        StringBuilder sb = new StringBuilder(list.size() * 12).append('[');
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(',');
+            sb.append(list.get(i).floatValue());
+        }
+        return sb.append(']').toString();
+    }
+
+    private static Embedding extractEmbedding(ResultSet rs, String column) throws SQLException {
+        Object o = rs.getObject(column);
+        if (o == null) return null;
+        String s = o.toString().trim();
+        if (s.startsWith("[") && s.endsWith("]")) s = s.substring(1, s.length() - 1);
+        String[] parts = s.split(",");
+        float[] arr = new float[parts.length];
+        for (int i = 0; i < parts.length; i++) arr[i] = Float.parseFloat(parts[i].trim());
+        return Embedding.from(arr);
+    }
+
+    private static String toJson(Metadata metadata) {
+        Map<String, Object> map = metadata == null ? new HashMap<>() : new HashMap<>(metadata.toMap());
+        try {
+            return JSON.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            throw new CockroachDbRequestFailedException("Failed to serialize metadata", e);
+        }
+    }
+
+    private static Metadata readMetadata(ResultSet rs, String column) throws SQLException {
+        String raw = rs.getString(column);
+        if (raw == null || raw.isEmpty()) return new Metadata();
+        try {
+            Map<String, Object> map = JSON.readValue(raw, Map.class);
+            return Metadata.from(map);
+        } catch (JsonProcessingException e) {
+            throw new CockroachDbRequestFailedException("Failed to deserialize metadata: " + raw, e);
+        }
+    }
+
     @Override
     public String add(Embedding embedding) {
         String id = randomUUID();
@@ -369,52 +415,6 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
     private String namespaceClause() {
         if (namespace == null || !schema.hasNamespace()) return null;
         return schema.getNamespaceColumn() + " = '" + namespace.replace("'", "''") + "'";
-    }
-
-    /**
-     * Serialize the embedding to CockroachDB's text form: {@code "[v1,v2,...]"}.
-     * <p>CockroachDB's pgwire layer does not accept the binary format for the VECTOR
-     * type, so all vectors are sent as text and cast to {@code ?::vector} in SQL.
-     */
-    private static String toVectorLiteral(Embedding embedding) {
-        List<Float> list = embedding.vectorAsList();
-        StringBuilder sb = new StringBuilder(list.size() * 12).append('[');
-        for (int i = 0; i < list.size(); i++) {
-            if (i > 0) sb.append(',');
-            sb.append(list.get(i).floatValue());
-        }
-        return sb.append(']').toString();
-    }
-
-    private static Embedding extractEmbedding(ResultSet rs, String column) throws SQLException {
-        Object o = rs.getObject(column);
-        if (o == null) return null;
-        String s = o.toString().trim();
-        if (s.startsWith("[") && s.endsWith("]")) s = s.substring(1, s.length() - 1);
-        String[] parts = s.split(",");
-        float[] arr = new float[parts.length];
-        for (int i = 0; i < parts.length; i++) arr[i] = Float.parseFloat(parts[i].trim());
-        return Embedding.from(arr);
-    }
-
-    private static String toJson(Metadata metadata) {
-        Map<String, Object> map = metadata == null ? new HashMap<>() : new HashMap<>(metadata.toMap());
-        try {
-            return JSON.writeValueAsString(map);
-        } catch (JsonProcessingException e) {
-            throw new CockroachDbRequestFailedException("Failed to serialize metadata", e);
-        }
-    }
-
-    private static Metadata readMetadata(ResultSet rs, String column) throws SQLException {
-        String raw = rs.getString(column);
-        if (raw == null || raw.isEmpty()) return new Metadata();
-        try {
-            Map<String, Object> map = JSON.readValue(raw, Map.class);
-            return Metadata.from(map);
-        } catch (JsonProcessingException e) {
-            throw new CockroachDbRequestFailedException("Failed to deserialize metadata: " + raw, e);
-        }
     }
 
     private double scoreFromDistance(double distance) {

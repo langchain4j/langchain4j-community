@@ -70,6 +70,14 @@ public class CockroachDbChatMemorySchema {
         return new Builder();
     }
 
+    private static String formatInterval(Duration d) {
+        long seconds = d.toSeconds();
+        if (seconds % 86_400 == 0) return (seconds / 86_400) + " days";
+        if (seconds % 3_600 == 0) return (seconds / 3_600) + " hours";
+        if (seconds % 60 == 0) return (seconds / 60) + " minutes";
+        return seconds + " seconds";
+    }
+
     public String getTableName() {
         return tableName;
     }
@@ -145,14 +153,6 @@ public class CockroachDbChatMemorySchema {
 
     public String getDisableTtlSql() {
         return String.format("ALTER TABLE %s RESET (ttl)", getFullTableName());
-    }
-
-    private static String formatInterval(Duration d) {
-        long seconds = d.toSeconds();
-        if (seconds % 86_400 == 0) return (seconds / 86_400) + " days";
-        if (seconds % 3_600 == 0) return (seconds / 3_600) + " hours";
-        if (seconds % 60 == 0) return (seconds / 60) + " minutes";
-        return seconds + " seconds";
     }
 
     public static class Builder {

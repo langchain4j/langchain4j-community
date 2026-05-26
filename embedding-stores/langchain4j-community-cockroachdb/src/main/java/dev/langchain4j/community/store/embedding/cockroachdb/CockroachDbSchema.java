@@ -232,7 +232,9 @@ public class CockroachDbSchema {
             return this;
         }
 
-        /** Pass non-null to scope rows by tenant; pass {@link #DEFAULT_NAMESPACE_COLUMN} for the conventional name. */
+        /**
+         * Pass non-null to scope rows by tenant; pass {@link #DEFAULT_NAMESPACE_COLUMN} for the conventional name.
+         */
         public Builder namespaceColumn(String namespaceColumn) {
             this.namespaceColumn = namespaceColumn;
             return this;
@@ -258,7 +260,9 @@ public class CockroachDbSchema {
             return this;
         }
 
-        /** Adds a generated TSVECTOR column + GIN index for future hybrid search. */
+        /**
+         * Adds a generated TSVECTOR column + GIN index for future hybrid search.
+         */
         public Builder createTsvectorColumn(boolean createTsvectorColumn) {
             this.createTsvectorColumn = createTsvectorColumn;
             return this;

@@ -51,6 +51,18 @@ class CockroachDbFilterMapper {
         this.metadataColumn = metadataColumn.trim();
     }
 
+    private static String sanitize(String key) {
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("filter key must not be empty");
+        }
+        String clean = key.trim();
+        if (!clean.matches("^[a-zA-Z0-9_.\\-]+$")) {
+            throw new IllegalArgumentException(
+                    "Invalid filter key '" + clean + "'. Only alphanumeric, underscore, dot and hyphen are allowed.");
+        }
+        return clean;
+    }
+
     String map(Filter filter) {
         if (filter instanceof IsEqualTo f) {
             String key = formatKey(f.key(), f.comparisonValue().getClass());
@@ -126,17 +138,5 @@ class CockroachDbFilterMapper {
                         .map(v -> "'" + String.valueOf(v).replace("'", "''") + "'")
                         .collect(Collectors.joining(","))
                 + ")";
-    }
-
-    private static String sanitize(String key) {
-        if (key == null || key.trim().isEmpty()) {
-            throw new IllegalArgumentException("filter key must not be empty");
-        }
-        String clean = key.trim();
-        if (!clean.matches("^[a-zA-Z0-9_.\\-]+$")) {
-            throw new IllegalArgumentException(
-                    "Invalid filter key '" + clean + "'. Only alphanumeric, underscore, dot and hyphen are allowed.");
-        }
-        return clean;
     }
 }

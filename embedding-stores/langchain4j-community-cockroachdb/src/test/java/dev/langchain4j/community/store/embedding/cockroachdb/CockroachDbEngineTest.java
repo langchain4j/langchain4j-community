@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
-/** Unit tests that do not require a running CockroachDB. */
+/**
+ * Unit tests that do not require a running CockroachDB.
+ */
 class CockroachDbEngineTest {
 
     @Test

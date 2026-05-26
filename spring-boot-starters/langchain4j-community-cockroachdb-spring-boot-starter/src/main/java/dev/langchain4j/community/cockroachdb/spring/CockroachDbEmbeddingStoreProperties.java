@@ -16,7 +16,9 @@ public class CockroachDbEmbeddingStoreProperties {
 
     static final String PREFIX = "langchain4j.community.cockroachdb";
 
-    /** {@code cockroachdb://}, {@code postgresql://}, or {@code jdbc:postgresql://} URL. */
+    /**
+     * {@code cockroachdb://}, {@code postgresql://}, or {@code jdbc:postgresql://} URL.
+     */
     private String connectionString;
 
     private String host;
@@ -26,28 +28,44 @@ public class CockroachDbEmbeddingStoreProperties {
     private String password;
     private String sslMode;
 
-    /** Table name for embeddings. Defaults to {@code embeddings}. */
+    /**
+     * Table name for embeddings. Defaults to {@code embeddings}.
+     */
     private String tableName;
 
-    /** Database schema. Defaults to {@code public}. */
+    /**
+     * Database schema. Defaults to {@code public}.
+     */
     private String schemaName;
 
-    /** Embedding vector dimension. Inferred from the {@code EmbeddingModel} bean when available. */
+    /**
+     * Embedding vector dimension. Inferred from the {@code EmbeddingModel} bean when available.
+     */
     private Integer dimension;
 
-    /** Distance metric: {@code COSINE} (default), {@code EUCLIDEAN}, or {@code DOT_PRODUCT}. */
+    /**
+     * Distance metric: {@code COSINE} (default), {@code EUCLIDEAN}, or {@code DOT_PRODUCT}.
+     */
     private String metricType;
 
-    /** Optional namespace column for multi-tenancy. */
+    /**
+     * Optional namespace column for multi-tenancy.
+     */
     private String namespaceColumn;
 
-    /** Optional namespace value scoping reads and writes through this store. */
+    /**
+     * Optional namespace value scoping reads and writes through this store.
+     */
     private String namespace;
 
-    /** Per-query {@code vector_search_beam_size} override (C-SPANN only). */
+    /**
+     * Per-query {@code vector_search_beam_size} override (C-SPANN only).
+     */
     private Integer searchBeamSize;
 
-    /** Vector index to create: {@code cspann} or {@code none}. Defaults to {@code none}. */
+    /**
+     * Vector index to create: {@code cspann} or {@code none}. Defaults to {@code none}.
+     */
     private String indexType;
 
     private Integer minPartitionSize;

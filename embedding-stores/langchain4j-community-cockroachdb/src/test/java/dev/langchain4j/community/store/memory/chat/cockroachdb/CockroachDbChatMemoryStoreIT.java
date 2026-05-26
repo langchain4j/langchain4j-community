@@ -44,7 +44,7 @@ class CockroachDbChatMemoryStoreIT extends CockroachDbTestBase {
     void update_replaces_existing_history() {
         String sessionId = UUID.randomUUID().toString();
         memory.updateMessages(sessionId, Arrays.asList(UserMessage.from("a"), AiMessage.from("b")));
-        memory.updateMessages(sessionId, Arrays.asList(UserMessage.from("c")));
+        memory.updateMessages(sessionId, List.of(UserMessage.from("c")));
 
         List<ChatMessage> loaded = memory.getMessages(sessionId);
         assertThat(loaded).hasSize(1);
@@ -54,7 +54,7 @@ class CockroachDbChatMemoryStoreIT extends CockroachDbTestBase {
     @Test
     void delete_clears_session() {
         String sessionId = UUID.randomUUID().toString();
-        memory.updateMessages(sessionId, Arrays.asList(UserMessage.from("a")));
+        memory.updateMessages(sessionId, List.of(UserMessage.from("a")));
         memory.deleteMessages(sessionId);
         assertThat(memory.getMessages(sessionId)).isEmpty();
     }
@@ -63,8 +63,8 @@ class CockroachDbChatMemoryStoreIT extends CockroachDbTestBase {
     void sessions_are_isolated() {
         String s1 = UUID.randomUUID().toString();
         String s2 = UUID.randomUUID().toString();
-        memory.updateMessages(s1, Arrays.asList(UserMessage.from("one")));
-        memory.updateMessages(s2, Arrays.asList(UserMessage.from("two")));
+        memory.updateMessages(s1, List.of(UserMessage.from("one")));
+        memory.updateMessages(s2, List.of(UserMessage.from("two")));
 
         assertThat(memory.getMessages(s1)).hasSize(1);
         assertThat(memory.getMessages(s2)).hasSize(1);
