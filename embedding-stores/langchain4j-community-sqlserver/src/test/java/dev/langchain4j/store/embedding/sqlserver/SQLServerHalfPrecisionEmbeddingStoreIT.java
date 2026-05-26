@@ -2,6 +2,7 @@ package dev.langchain4j.store.embedding.sqlserver;
 
 import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
 import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.DEFAULT_CONTAINER;
+import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.getLocalSqlServerDataSource;
 import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.getSqlServerDataSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Percentage.withPercentage;
@@ -33,7 +34,7 @@ class SQLServerHalfPrecisionEmbeddingStoreIT extends EmbeddingStoreWithFiltering
     static String tableName = "test_" + nextInt(1000, 2000);
     static EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
     static EmbeddingStore<TextSegment> embeddingStore = SQLServerEmbeddingStore.dataSourceBuilder()
-            .dataSource(getSqlServerDataSource())
+            .dataSource(getLocalSqlServerDataSource())
             .embeddingTable(EmbeddingTable.builder()
                     .name(tableName)
                     .createOption(CreateOption.CREATE_OR_REPLACE)

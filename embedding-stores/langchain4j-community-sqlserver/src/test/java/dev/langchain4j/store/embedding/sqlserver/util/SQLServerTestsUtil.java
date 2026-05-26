@@ -22,6 +22,19 @@ public class SQLServerTestsUtil {
         return getSqlServerDataSource(DEFAULT_CONTAINER);
     }
 
+    public static @NonNull SQLServerDataSource getLocalSqlServerDataSource() {
+        SQLServerDataSource dataSource = new SQLServerDataSource();
+        dataSource.setServerName("localhost");
+        dataSource.setPortNumber(1433);
+        dataSource.setUser("sa");
+        dataSource.setPassword("StrongPassword2026!");
+        dataSource.setEncrypt("false");
+        dataSource.setTrustServerCertificate(true);
+        dataSource.setDatabaseName("test_vector");
+        dataSource.setVectorTypeSupport("v2");
+        return dataSource;
+    }
+
     public static @NonNull SQLServerDataSource getSqlServerDataSource(JdbcDatabaseContainer sqlServerContainer) {
         sqlServerContainer.start();
 
