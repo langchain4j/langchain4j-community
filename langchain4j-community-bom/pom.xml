@@ -376,6 +376,18 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-cockroachdb-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-cockroachdb-spring-boot4-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Code Execution Engines -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
