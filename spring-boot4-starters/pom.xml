@@ -35,6 +35,7 @@
         <module>langchain4j-community-xinference-spring-boot4-starter</module>
         <module>langchain4j-community-zhipu-ai-spring-boot4-starter</module>
         <module>langchain4j-community-cohere-spring-boot4-starter</module>
+        <module>langchain4j-community-cockroachdb-spring-boot4-starter</module>
     </modules>
 
     <properties>
