@@ -1,5 +1,7 @@
 package dev.langchain4j.community.model.client;
 
+import static dev.langchain4j.community.model.util.CohereAudioUtils.mapAudioFileName;
+import static dev.langchain4j.community.model.util.CohereAudioUtils.toAudioByteContent;
 import static dev.langchain4j.http.client.HttpMethod.POST;
 import static dev.langchain4j.internal.Json.fromJson;
 import static dev.langchain4j.internal.Json.toJson;
@@ -9,6 +11,8 @@ import dev.langchain4j.Internal;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.community.model.client.chat.streaming.CohereServerSentEventListener;
+import dev.langchain4j.community.model.client.transcription.CohereTranscriptionRequest;
+import dev.langchain4j.community.model.client.transcription.CohereTranscriptionResponse;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
@@ -66,6 +70,33 @@ public class CohereClient {
                 .addHeader("Authorization", "bearer " + apiKey)
                 .body(toJson(cohereChatRequest))
                 .build();
+    }
+
+    public CohereTranscriptionResponse createTranscription(CohereTranscriptionRequest transcriptionRequest) {
+        SuccessfulHttpResponse rawResponse = this.httpClient.execute(toHttpRequest(transcriptionRequest));
+        return fromJson(rawResponse.body(), CohereTranscriptionResponse.class);
+    }
+
+    private HttpRequest toHttpRequest(CohereTranscriptionRequest request) {
+        HttpRequest.Builder httpRequestBuilder = HttpRequest.builder()
+                .url(baseUrl, "/audio/transcriptions")
+                .addHeader("Authorization", "bearer " + apiKey)
+                .addHeader("Content-Type", "multipart/form-data; boundary=----LangChain4j")
+                .method(POST)
+                .addFormDataField("model", request.getModel())
+                .addFormDataField("language", request.getLanguage())
+                .addFormDataFile(
+                        "file",
+                        mapAudioFileName(request.getAudio()),
+                        request.getAudio().mimeType(),
+                        toAudioByteContent(request.getAudio()));
+
+        if (request.getTemperature() != null) {
+            httpRequestBuilder.addFormDataField(
+                    "temperature", request.getTemperature().toString());
+        }
+
+        return httpRequestBuilder.build();
     }
 
     public static Builder builder() {
