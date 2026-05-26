@@ -21,7 +21,7 @@ class CohereAudioTranscriptionModelIT {
 
     private final AudioTranscriptionModel audioTranscriptionModel = CohereAudioTranscriptionModel.builder()
             .apiKey(System.getenv("CO_API_KEY"))
-            .model("cohere-transcribe-03-2026")
+            .modelName("cohere-transcribe-03-2026")
             .language("en")
             .logRequests(true)
             .logResponses(true)
@@ -113,10 +113,9 @@ class CohereAudioTranscriptionModelIT {
     }
 
     @Test
-    void should_throw_on_null_requests() {
+    void should_throw_on_null_audio_transcription_requests() {
 
         // given - when - then
-        assertThatThrownBy(() -> audioTranscriptionModel.transcribeToText(null))
-                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> audioTranscriptionModel.transcribe(null)).isInstanceOf(IllegalArgumentException.class);
     }
 }

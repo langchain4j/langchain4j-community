@@ -4,7 +4,7 @@ import static dev.langchain4j.community.model.util.CohereAudioUtils.validate;
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
 import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptions;
 import static dev.langchain4j.internal.Utils.getOrDefault;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import dev.langchain4j.Experimental;
 import dev.langchain4j.community.model.client.CohereClient;
@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 /**
  * Represents a Cohere model with a speech-to-text interface
  * <p>
- * This implementation is based on Cohere's on Cohere V2's transcription API
+ * This implementation is based on Cohere V2's transcription API
  *
  * @see <a href="https://docs.cohere.com/reference/create-audio-transcription">Cohere V2's transcription API specification</a>
  * @since 1.15.0
@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 public class CohereAudioTranscriptionModel implements AudioTranscriptionModel {
 
     private final CohereClient cohereClient;
-    private final String model;
+    private final String modelName;
     private final String language;
     private final Double temperature;
     private final Integer maxRetries;
@@ -43,7 +43,7 @@ public class CohereAudioTranscriptionModel implements AudioTranscriptionModel {
                 .logResponses(builder.logResponses)
                 .build();
 
-        this.model = ensureNotNull(builder.model, "model name");
+        this.modelName = ensureNotBlank(builder.modelName, "model name");
         this.language = builder.language;
         this.temperature = builder.temperature;
         this.maxRetries = getOrDefault(builder.maxRetries, 3);
@@ -57,7 +57,7 @@ public class CohereAudioTranscriptionModel implements AudioTranscriptionModel {
         }
 
         CohereTranscriptionRequest request = CohereTranscriptionRequest.builder()
-                .model(model)
+                .model(modelName)
                 .language(getOrDefault(audioTranscriptionRequest.language(), language))
                 .temperature(getOrDefault(audioTranscriptionRequest.temperature(), temperature))
                 .audio(audioTranscriptionRequest.audio())
@@ -79,7 +79,7 @@ public class CohereAudioTranscriptionModel implements AudioTranscriptionModel {
 
         private String baseUrl;
         private String apiKey;
-        private String model;
+        private String modelName;
         private String language;
         private Double temperature;
         private Duration timeout;
@@ -108,14 +108,14 @@ public class CohereAudioTranscriptionModel implements AudioTranscriptionModel {
         /**
          * The ID of the model to use.
          */
-        public Builder model(String model) {
-            this.model = model;
+        public Builder modelName(String model) {
+            this.modelName = model;
             return this;
         }
 
         /**
          * The language of the input audio, supplied in
-         * <a href="https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes">ISO-639-I</a> format
+         * <a href="https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes">ISO-639-1</a> format
          * (for example, {@code en}).
          * Must be specified if not defined in {@link AudioTranscriptionRequest}.
          */
