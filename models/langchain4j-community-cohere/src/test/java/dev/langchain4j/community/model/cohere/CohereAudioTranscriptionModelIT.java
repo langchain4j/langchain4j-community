@@ -6,6 +6,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import dev.langchain4j.community.model.CohereAudioTranscriptionModel;
 import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.model.audio.AudioTranscriptionModel;
+import dev.langchain4j.model.audio.AudioTranscriptionRequest;
+import dev.langchain4j.model.audio.AudioTranscriptionResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
@@ -54,6 +56,35 @@ class CohereAudioTranscriptionModelIT {
 
         // then
         assertThat(transcription).containsIgnoringCase("Hello");
+    }
+
+    @Test
+    void should_handle_transcriptions_when_language_is_not_defined_at_model_level() throws Exception {
+
+        // given
+        AudioTranscriptionModel transcriptionModel = CohereAudioTranscriptionModel.builder()
+                .modelName("cohere-transcribe-03-2026")
+                .apiKey(System.getenv("CO_API_KEY"))
+                .logRequests(true)
+                .logResponses(true)
+                .build();
+
+        Path audioPath =
+                Path.of(getClass().getClassLoader().getResource("mandarin.mp3").toURI());
+
+        Audio audio = Audio.builder()
+                .binaryData(Files.readAllBytes(audioPath))
+                .mimeType("audio/mpeg")
+                .build();
+
+        AudioTranscriptionRequest request =
+                AudioTranscriptionRequest.builder().audio(audio).language("zh").build();
+
+        // when
+        AudioTranscriptionResponse transcription = transcriptionModel.transcribe(request);
+
+        // then
+        assertThat(transcription.text()).containsIgnoringCase("你好");
     }
 
     @ParameterizedTest
