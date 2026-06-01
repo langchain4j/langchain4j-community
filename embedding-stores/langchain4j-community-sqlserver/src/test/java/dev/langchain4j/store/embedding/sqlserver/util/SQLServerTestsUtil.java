@@ -22,15 +22,22 @@ public class SQLServerTestsUtil {
         return getSqlServerDataSource(DEFAULT_CONTAINER);
     }
 
-    public static @NonNull SQLServerDataSource getLocalSqlServerDataSource() {
+    public static @NonNull SQLServerDataSource getAzureSqlServerDataSource() {
         SQLServerDataSource dataSource = new SQLServerDataSource();
-        dataSource.setServerName("localhost");
-        dataSource.setPortNumber(1433);
-        dataSource.setUser("sa");
-        dataSource.setPassword("StrongPassword2026!");
-        dataSource.setEncrypt("false");
+        dataSource.setServerName(System.getenv("AZURE_SQL_SERVER_NAME"));
+        String portNumber = System.getenv("AZURE_SQL_PORT");
+        if (portNumber != null) {
+            dataSource.setPortNumber(Integer.parseInt(portNumber));
+        }
+        dataSource.setDatabaseName(System.getenv("AZURE_SQL_DATABASE_NAME"));
+
+        dataSource.setUser(System.getenv("AZURE_SQL_USER"));
+        dataSource.setPassword(System.getenv("AZURE_SQL_PASSWORD"));
+
+        dataSource.setEncrypt("true");
         dataSource.setTrustServerCertificate(true);
-        dataSource.setDatabaseName("test_vector");
+        dataSource.setHostNameInCertificate("*.database.windows.net");
+
         dataSource.setVectorTypeSupport("v2");
         return dataSource;
     }
