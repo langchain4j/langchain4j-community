@@ -379,10 +379,12 @@ public class EmbeddingTable {
 
         /**
          * Sets the half-precision configuration for embedding vectors.
-         * If {@link HalfPrecisionConfiguration#ON}, the half-precision (float16) type is used for storing the embeddings.
-         * If {@link HalfPrecisionConfiguration#OFF}, the vectors are stored in full precision (float32). Note that the embedding process would fail with embedding models with more than 1998 dimensions.
-         * If {@link HalfPrecisionConfiguration#AUTO} or {@code null}, the default (float32) type is used unless the configured
-         * dimension is greater than 1998.
+         * <ul>
+         * <li>If {@link HalfPrecisionConfiguration#ON}, the half-precision (float16) type is used for storing the embeddings.</li>
+         * <li>If {@link HalfPrecisionConfiguration#OFF}, the vectors are stored in full precision (float32). Note that the embedding process would fail with embedding models with more than 1998 dimensions.</li>
+         * <li>If {@link HalfPrecisionConfiguration#AUTO} or {@code null}, the default (float32) type is used unless the configured dimension is greater than 1998.</li>
+         * </ul>
+         * This feature is only available for <strong>Azure SQL databases</strong>.
          *
          * @param halfPrecision The half-precision configuration.
          * @return This builder.
