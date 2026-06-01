@@ -46,7 +46,7 @@
         <dependency>
             <groupId>io.github.jbellis</groupId>
             <artifactId>jvector</artifactId>
-            <version>4.0.0-rc.7</version>
+            <version>4.0.0-rc.8</version>
         </dependency>
 
         <dependency>
