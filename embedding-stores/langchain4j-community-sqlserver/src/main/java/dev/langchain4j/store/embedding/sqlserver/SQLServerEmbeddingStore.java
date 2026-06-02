@@ -27,7 +27,18 @@ import org.slf4j.LoggerFactory;
  * SQL Server implementation of {@link EmbeddingStore}.
  * <p>
  * This implementation uses SQL Server database to store embeddings along with their associated text segments and metadata.
- * It leverages SQL Server 2025+'s native VECTOR data type and VECTOR_DISTANCE function for efficient similarity calculations.
+ * It leverages SQL Server 2025+'s native {@code VECTOR} data type and {@code VECTOR_DISTANCE} function for efficient similarity calculations.
+ * </p>
+ * <p>
+ * Standard SQL Server vectors can only handle 1998 dimensions when using the {@code float32} precision.
+ * For larger dimensions, <string>Azure SQL</string> Database supports half-precision ({@code float16}) vectors.
+ * However, this is a preview feature and requires enabling it in the database.
+ * For more details, see the <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type-half-precision-float?view=sql-server-ver17">Microsoft documentation</a>.
+ * </p>
+ * <p>
+ * When using half-precision support, you must configure the JDBC connection property {@code vectorTypeSupport=v2}.
+ * See the <a href="https://learn.microsoft.com/en-us/sql/connect/jdbc/use-vector-data-type?view=sql-server-ver17#use-vector-float16-data-type">Microsoft JDBC driver documentation</a>
+ * for more details.
  * </p>
  */
 public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
@@ -68,7 +79,7 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
     }
 
     /**
-     * Creates a builder for configuring a SQLServerEmbeddingStore with a java.sql.DataSource.
+     * Creates a builder for configuring a {@code SQLServerEmbeddingStore} using the connection details.
      *
      * @return A new builder instance.
      */
