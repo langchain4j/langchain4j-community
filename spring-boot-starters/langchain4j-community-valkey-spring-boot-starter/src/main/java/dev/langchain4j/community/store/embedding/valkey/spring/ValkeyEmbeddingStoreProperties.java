@@ -14,7 +14,7 @@ public class ValkeyEmbeddingStoreProperties {
     private String password;
     private Boolean useTls;
     private Integer requestTimeout;
-    private String clientName;
+    private String clientName = "langchain4j_embedding_store_client";
     private String indexName;
     private String prefix;
     private Integer dimension;
