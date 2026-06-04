@@ -27,28 +27,28 @@ import org.junit.jupiter.params.provider.Arguments;
 class QwenTestHelper {
 
     public static Stream<Arguments> languageModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX), Arguments.of(QwenModelName.QWEN3_6_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX), Arguments.of(QwenModelName.QWEN3_7_PLUS));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX), Arguments.of(QwenModelName.QWEN3_6_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX), Arguments.of(QwenModelName.QWEN3_7_PLUS));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX), Arguments.of(QwenModelName.QWEN3_6_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX), Arguments.of(QwenModelName.QWEN3_7_PLUS));
     }
 
     public static Stream<Arguments> searchingChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX));
     }
 
     public static Stream<Arguments> multimodalChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_VL_FLASH), Arguments.of(QwenModelName.QWEN3_6_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_VL_FLASH), Arguments.of(QwenModelName.QWEN3_7_PLUS));
     }
 
     public static Stream<Arguments> mtChatModelNameProvider() {
@@ -69,11 +69,11 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> imageModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_2_0_PRO));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_2_0));
     }
 
     public static Stream<Arguments> imageEditModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_2_0_PRO));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_2_0));
     }
 
     public static String apiKey() {
