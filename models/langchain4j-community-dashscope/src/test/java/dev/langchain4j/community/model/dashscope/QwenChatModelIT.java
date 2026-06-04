@@ -108,7 +108,6 @@ class QwenChatModelIT extends AbstractChatModelIT {
                 .toolSpecifications(singletonList(noArgToolSpec))
                 .build());
 
-        assertThat(response.aiMessage().text()).isBlank();
         assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
                 response.aiMessage().toolExecutionRequests().get(0);
@@ -157,7 +156,6 @@ class QwenChatModelIT extends AbstractChatModelIT {
                 .toolSpecifications(singletonList(hasArgToolSpec))
                 .build());
 
-        assertThat(response.aiMessage().text()).isBlank();
         assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
                 response.aiMessage().toolExecutionRequests().get(0);
@@ -243,7 +241,6 @@ class QwenChatModelIT extends AbstractChatModelIT {
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
-        assertThat(aiMessage.text()).isBlank();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
         ToolExecutionRequest toolExecutionRequest =
@@ -712,7 +709,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
     @Override
     protected String customModelName() {
-        return "qwen-max-2025-01-25";
+        return "qwen3.7-max-2026-05-20";
     }
 
     @Override

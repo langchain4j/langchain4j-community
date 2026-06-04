@@ -9,7 +9,6 @@ import static dev.langchain4j.data.message.ChatMessageType.USER;
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.model.chat.request.ToolChoice.REQUIRED;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
@@ -176,7 +175,7 @@ class QwenHelper {
                                 .map(QwenHelper::toMultiModalContent)
                                 .collect(toList());
             case AI ->
-                isNullOrBlank(((AiMessage) message).text())
+                isNullOrEmpty(((AiMessage) message).text())
                         ? Collections.emptyList()
                         : Collections.singletonList(Collections.singletonMap("text", ((AiMessage) message).text()));
             case SYSTEM ->
@@ -454,14 +453,23 @@ class QwenHelper {
 
     public static boolean isMultimodalModelName(String modelName) {
         // rough judgment
-        return modelName.contains("-vl-")
+        // known multimodal models
+        if (modelName.contains("-vl-")
                 || modelName.contains("-audio-")
                 || modelName.contains("-omni-")
                 || modelName.contains("-image-")
                 || modelName.contains("-asr-")
-                || modelName.contains("-tts-")
-                // Qwen should be multimodal from version 3.5 onwards.
-                || extractVersion(modelName) >= 3.5f;
+                || modelName.contains("-tts-")) {
+            return true;
+        }
+
+        // known text-only models
+        if (modelName.startsWith("qwen3.7-max")) {
+            return false;
+        }
+
+        // others should be multimodal from version 3.5 onwards
+        return extractVersion(modelName) >= 3.5f;
     }
 
     static boolean isSupportingIncrementalOutputModelName(String modelName) {
@@ -541,11 +549,11 @@ class QwenHelper {
         String reasoningContentFrom = reasoningContentFrom(result);
         AiMessage.Builder aiMessageBuilder = AiMessage.builder()
                 .text(text)
-                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
+                .thinking(isNullOrEmpty(reasoningContentFrom) ? null : reasoningContentFrom)
                 .attributes(Map.of());
         if (isFunctionToolCalls(result)) {
             aiMessageBuilder = aiMessageBuilder.toolExecutionRequests(toolExecutionRequestsFrom(result));
-            if (text.isBlank()) {
+            if (text.isEmpty()) {
                 aiMessageBuilder.text(null);
             }
         }
@@ -642,11 +650,11 @@ class QwenHelper {
         }
         AiMessage.Builder aiMessageBuilder = AiMessage.builder()
                 .text(text)
-                .thinking(isNullOrBlank(reasoningContentFrom) ? null : reasoningContentFrom)
+                .thinking(isNullOrEmpty(reasoningContentFrom) ? null : reasoningContentFrom)
                 .attributes(attributes);
         if (isFunctionToolCalls(result)) {
             aiMessageBuilder = aiMessageBuilder.toolExecutionRequests(toolExecutionRequestsFrom(result));
-            if (text.isBlank()) {
+            if (text.isEmpty()) {
                 aiMessageBuilder.text(null);
             }
         }
