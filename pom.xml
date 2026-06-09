@@ -62,6 +62,7 @@
         <module>embedding-stores/langchain4j-community-valkey</module>
 
         <!-- Integration of chat memory stores -->
+        <module>chat-memory-stores/langchain4j-community-hazelcast</module>
         <module>chat-memory-stores/langchain4j-community-mongodb</module>
         <module>chat-memory-stores/langchain4j-community-sql</module>
 
