@@ -39,7 +39,7 @@
     </modules>
 
     <properties>
-        <spring-boot.version>3.5.13</spring-boot.version>
+        <spring-boot.version>3.5.15</spring-boot.version>
         <logback.version>1.5.32</logback.version>
     </properties>
 
