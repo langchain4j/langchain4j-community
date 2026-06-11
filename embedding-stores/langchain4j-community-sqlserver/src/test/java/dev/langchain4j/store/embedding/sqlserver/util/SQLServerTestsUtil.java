@@ -3,6 +3,9 @@ package dev.langchain4j.store.embedding.sqlserver.util;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Map;
 import org.jspecify.annotations.NonNull;
 import org.testcontainers.containers.JdbcDatabaseContainer;
@@ -12,10 +15,31 @@ public class SQLServerTestsUtil {
 
     public static final MSSQLServerContainer DEFAULT_CONTAINER =
             (MSSQLServerContainer) new MSSQLServerContainer("mcr.microsoft.com/mssql/server:2025-latest")
+                    .withPassword("Str0ng_P@ssw0rd_2026!")
                     .withEnv("MSSQL_COLLATION", "SQL_Latin1_General_CP1_CS_AS");
 
     public static @NonNull SQLServerDataSource getSqlServerDataSource() {
         return getSqlServerDataSource(DEFAULT_CONTAINER);
+    }
+
+    public static @NonNull SQLServerDataSource getAzureSqlServerDataSource() {
+        SQLServerDataSource dataSource = new SQLServerDataSource();
+        dataSource.setServerName(System.getenv("AZURE_SQL_SERVER_NAME"));
+        String portNumber = System.getenv("AZURE_SQL_PORT");
+        if (portNumber != null) {
+            dataSource.setPortNumber(Integer.parseInt(portNumber));
+        }
+        dataSource.setDatabaseName(System.getenv("AZURE_SQL_DATABASE_NAME"));
+
+        dataSource.setUser(System.getenv("AZURE_SQL_USER"));
+        dataSource.setPassword(System.getenv("AZURE_SQL_PASSWORD"));
+
+        dataSource.setEncrypt("true");
+        dataSource.setTrustServerCertificate(true);
+        dataSource.setHostNameInCertificate("*.database.windows.net");
+
+        dataSource.setVectorTypeSupport("v2");
+        return dataSource;
     }
 
     public static @NonNull SQLServerDataSource getSqlServerDataSource(JdbcDatabaseContainer sqlServerContainer) {
@@ -33,6 +57,17 @@ public class SQLServerTestsUtil {
         dataSource.setPassword(password);
         dataSource.setEncrypt("false");
         dataSource.setTrustServerCertificate(true);
+
+        try (Connection connection = dataSource.getConnection();
+                Statement stmt = connection.createStatement()) {
+            // Enable preview features for SQL Server 2025
+            stmt.execute("CREATE DATABASE TestDB;");
+            stmt.execute("USE TestDB; ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        dataSource.setDatabaseName("TestDB");
         return dataSource;
     }
 
