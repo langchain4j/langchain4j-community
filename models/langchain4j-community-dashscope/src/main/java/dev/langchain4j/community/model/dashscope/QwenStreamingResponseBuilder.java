@@ -10,7 +10,6 @@ import static dev.langchain4j.community.model.dashscope.QwenHelper.toolCallFunct
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
@@ -117,7 +116,7 @@ public class QwenStreamingResponseBuilder {
         return QwenPartialResponse.builder()
                 .delta(partialContent)
                 .partialThinking(
-                        isNullOrBlank(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
+                        isNullOrEmpty(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
                 .partialToolCalls(partialToolCalls)
                 .completeToolCalls(completeToolCalls)
                 .build();
@@ -188,7 +187,7 @@ public class QwenStreamingResponseBuilder {
         return QwenPartialResponse.builder()
                 .delta(partialContent)
                 .partialThinking(
-                        isNullOrBlank(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
+                        isNullOrEmpty(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
                 .partialToolCalls(partialToolCalls)
                 .completeToolCalls(completeToolCalls)
                 .build();

@@ -8,7 +8,7 @@ This module provides a SQL-backed implementation of `ChatMemoryStore` for persis
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j-community-sql</artifactId>
-    <version>1.16.0-beta26-SNAPSHOT</version>
+    <version>1.17.0-beta27-SNAPSHOT</version>
 </dependency>
 ```
 

@@ -60,8 +60,10 @@ public class QwenModelName {
     public static final String QWEN3_MAX = "qwen3-max"; // Qwen max model, stable version (v3)
     public static final String QWEN3_5_PLUS = "qwen3.5-plus"; // Qwen plus model, stable version (v3.5)
     public static final String QWEN3_5_FLASH = "qwen3.5-flash"; // Qwen flash model, stable version (v3.5)
-    public static final String QWEN3_6_PLUS = "qwen3.6-plus"; // Qwen plus model, stable version (v3.5)
+    public static final String QWEN3_6_PLUS = "qwen3.6-plus"; // Qwen plus model, stable version (v3.6)
     public static final String QWEN3_6_FLASH = "qwen3.6-flash"; // Qwen flash model, stable version (v3.6)
+    public static final String QWEN3_7_PLUS = "qwen3.7-plus"; // Qwen plus model, stable version (v3.7)
+    public static final String QWEN3_7_MAX = "qwen3.7-max"; // Qwen max model, stable version (v3.7)
     public static final String QWEN_VL_PLUS =
             "qwen-vl-plus"; // Qwen multi-modal model, supports image and text information, stable version
     public static final String QWEN_VL_PLUS_LATEST =

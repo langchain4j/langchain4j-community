@@ -30,6 +30,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -134,7 +135,6 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 handler);
         ChatResponse response = handler.get();
 
-        assertThat(response.aiMessage().text()).isNull();
         assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
                 response.aiMessage().toolExecutionRequests().get(0);
@@ -193,7 +193,6 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 handler);
         ChatResponse response = handler.get();
 
-        assertThat(response.aiMessage().text()).isNull();
         assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
                 response.aiMessage().toolExecutionRequests().get(0);
@@ -295,7 +294,6 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         ChatResponse response = handler.get();
 
         AiMessage aiMessage = response.aiMessage();
-        assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
         ToolExecutionRequest toolExecutionRequest =
@@ -884,7 +882,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
     @Override
     protected String customModelName() {
-        return "qwen-max-2025-01-25";
+        return "qwen3.7-max-2026-05-20";
     }
 
     @Override
@@ -892,6 +890,15 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         return QwenChatRequestParameters.builder()
                 .maxOutputTokens(maxOutputTokens)
                 .build();
+    }
+
+    @Override
+    protected void verifyToolCallbacks(
+            StreamingChatResponseHandler handler, InOrder io, String id, StreamingChatModel model) {
+        // Qwen may return text content before tool calls (e.g. "I'll check the weather for you")
+        io.verify(handler, atLeast(0)).onPartialResponse(any());
+        io.verify(handler, atLeast(0)).onPartialResponse(any(), any());
+        verifyToolCallbacks(handler, io, id);
     }
 
     @Override
@@ -904,6 +911,15 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                     && request.name().equals("getWeather")
                     && request.arguments().replace(" ", "").equals("{\"city\":\"Munich\"}");
         }));
+    }
+
+    @Override
+    protected void verifyToolCallbacks(
+            StreamingChatResponseHandler handler, InOrder io, String id1, String id2, StreamingChatModel model) {
+        // Qwen may return text content before tool calls (e.g. "I'll check the weather for you")
+        io.verify(handler, atLeast(0)).onPartialResponse(any());
+        io.verify(handler, atLeast(0)).onPartialResponse(any(), any());
+        verifyToolCallbacks(handler, io, id1, id2);
     }
 
     @Override
