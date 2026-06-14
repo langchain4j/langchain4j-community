@@ -47,6 +47,7 @@
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
         <module>embedding-stores/langchain4j-community-duckdb</module>
+        <module>embedding-stores/langchain4j-community-hazelcast-enterprise</module>
         <module>embedding-stores/langchain4j-community-memfile</module>
         <module>embedding-stores/langchain4j-community-redis</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
@@ -62,6 +63,7 @@
         <module>embedding-stores/langchain4j-community-valkey</module>
 
         <!-- Integration of chat memory stores -->
+        <module>chat-memory-stores/langchain4j-community-hazelcast</module>
         <module>chat-memory-stores/langchain4j-community-mongodb</module>
         <module>chat-memory-stores/langchain4j-community-sql</module>
 
@@ -131,6 +133,20 @@
             <id>central-portal-snapshots</id>
             <name>Central Portal Snapshots</name>
             <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        </repository>
+        <!-- Hazelcast Enterprise repository (com.hazelcast:hazelcast-enterprise is not on Maven
+             Central). Declared at the root so the license-maven-plugin compliance check, which
+             ignores module-level <repositories>, can resolve the artifact's POM. -->
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>hazelcast-release</id>
+            <name>Hazelcast Release Repository</name>
+            <url>https://repository.hazelcast.com/release/</url>
         </repository>
     </repositories>
 
