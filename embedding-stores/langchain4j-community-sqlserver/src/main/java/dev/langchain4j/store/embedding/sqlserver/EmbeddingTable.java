@@ -80,7 +80,7 @@ public class EmbeddingTable {
         ensureNotNull(dimension, "dimension");
 
         this.halfPrecision =
-                (builder.halfPrecision == null || HalfPrecisionConfiguration.AUTO.equals(builder.halfPrecision)
+                (builder.halfPrecision == null || HalfPrecisionConfiguration.AUTO == builder.halfPrecision
                         ? dimension > 1998
                         : builder.halfPrecision == HalfPrecisionConfiguration.ON);
     }
