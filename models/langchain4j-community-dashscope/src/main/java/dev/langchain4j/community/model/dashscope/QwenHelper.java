@@ -1118,23 +1118,26 @@ class QwenHelper {
                             + rootElement.getClass());
         }
 
-        QwenJsonSchema qwenJsonSchema = QwenJsonSchema.builder()
-                .name(jsonSchema.name())
-                .description(rootElement.description())
-                .strict(jsonSchemaStrict)
-                .schema(JsonSchemaElementUtils.toMap(jsonSchema.rootElement(), strict))
-                .build();
+        com.alibaba.dashscope.common.ResponseFormat.JsonSchemaFormat jsonSchemaFormat =
+                com.alibaba.dashscope.common.ResponseFormat.JsonSchemaFormat.builder()
+                        .name(jsonSchema.name())
+                        .strict(jsonSchemaStrict)
+                        .schema(JsonUtils.toJsonObject(JsonSchemaElementUtils.toMap(jsonSchema.rootElement(), strict)))
+                        .build();
 
-        return QwenJsonSchemaResponseFormat.builder().jsonSchema(qwenJsonSchema).build();
+        return com.alibaba.dashscope.common.ResponseFormat.builder()
+                .type(com.alibaba.dashscope.common.ResponseFormat.JSON_SCHEMA)
+                .jsonSchema(jsonSchemaFormat)
+                .build();
     }
 
-    static com.alibaba.dashscope.aigc.generation.SearchOptions toQwenSearchOptions(
+    static com.alibaba.dashscope.common.SearchOptions toQwenSearchOptions(
             QwenChatRequestParameters.SearchOptions searchOptions) {
         if (searchOptions == null) {
             return null;
         }
 
-        return com.alibaba.dashscope.aigc.generation.SearchOptions.builder()
+        return com.alibaba.dashscope.common.SearchOptions.builder()
                 .citationFormat(searchOptions.citationFormat())
                 .enableCitation(searchOptions.enableCitation())
                 .enableSource(searchOptions.enableSource())

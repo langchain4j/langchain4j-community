@@ -1,0 +1,20 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.removed",
+          "old": "class dev.langchain4j.community.model.dashscope.QwenJsonSchema",
+          "justification": "Removed in favor of using dashscope SDK 2.22.22's ResponseFormat.JsonSchemaFormat directly, as the SDK now provides built-in JSON schema support"
+        },
+        {
+          "code": "java.class.removed",
+          "old": "class dev.langchain4j.community.model.dashscope.QwenJsonSchemaResponseFormat",
+          "justification": "Removed in favor of using dashscope SDK 2.22.22's ResponseFormat directly with its built-in jsonSchema field"
+        }
+      ]
+    }
+  }
+]
