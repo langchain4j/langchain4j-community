@@ -23,7 +23,9 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+@EnabledIfEnvironmentVariable(named = "AZURE_SQL_SERVER_NAME", matches = ".+")
 class SQLServerHalfPrecisionEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
     static String tableName = "test_" + nextInt(1000, 2000);

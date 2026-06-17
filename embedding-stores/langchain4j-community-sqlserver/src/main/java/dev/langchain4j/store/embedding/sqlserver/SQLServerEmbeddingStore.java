@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  * <p>
  * Standard SQL Server vectors can only handle 1998 dimensions when using the {@code float32} precision.
- * For larger dimensions, <string>Azure SQL</string> Database supports half-precision ({@code float16}) vectors.
+ * For larger dimensions, <strong>Azure SQL</strong> Database supports half-precision ({@code float16}) vectors.
  * However, this is a preview feature and requires enabling it in the database.
  * For more details, see the <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type-half-precision-float?view=sql-server-ver17">Microsoft documentation</a>.
  * </p>

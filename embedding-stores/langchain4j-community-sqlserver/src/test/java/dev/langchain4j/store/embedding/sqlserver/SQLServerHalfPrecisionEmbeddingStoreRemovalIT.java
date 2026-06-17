@@ -12,7 +12,9 @@ import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+@EnabledIfEnvironmentVariable(named = "AZURE_SQL_SERVER_NAME", matches = ".+")
 class SQLServerHalfPrecisionEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
     static String tableName = "test_remove_" + nextInt(1000, 2000);
@@ -23,6 +25,7 @@ class SQLServerHalfPrecisionEmbeddingStoreRemovalIT extends EmbeddingStoreWithRe
                     .name(tableName)
                     .createOption(CreateOption.CREATE_OR_REPLACE)
                     .dimension(embeddingModel.dimension())
+                    .halfPrecision(HalfPrecisionConfiguration.ON)
                     .build())
             .build();
 

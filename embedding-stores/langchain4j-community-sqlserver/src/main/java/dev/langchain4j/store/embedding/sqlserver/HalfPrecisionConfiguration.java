@@ -1,13 +1,3 @@
-/*
- * Copyright (c) 2026. DENODO Technologies.
- * http://www.denodo.com
- * All rights reserved.
- *
- * This software is the confidential and proprietary information of DENODO
- * Technologies ("Confidential Information"). You shall not disclose such
- * Confidential Information and shall use it only in accordance with the terms
- * of the license agreement you entered into with DENODO.
- */
 package dev.langchain4j.store.embedding.sqlserver;
 
 /**
@@ -22,7 +12,16 @@ package dev.langchain4j.store.embedding.sqlserver;
  *
  */
 public enum HalfPrecisionConfiguration {
+    /**
+     * Automatic determination of whether to use half-precision based on the dimensions.
+     */
     AUTO,
+    /**
+     * Explicitly enables the use of half-precision.
+     */
     ON,
+    /**
+     * Explicitly disables the use of half-precision. This mode can make the embedding store fail when the embedding dimension is too large for full precision.
+     */
     OFF;
 }

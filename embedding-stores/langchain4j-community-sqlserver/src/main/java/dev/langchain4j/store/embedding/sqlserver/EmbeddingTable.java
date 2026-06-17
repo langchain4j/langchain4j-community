@@ -15,6 +15,15 @@ import javax.sql.DataSource;
 public class EmbeddingTable {
 
     /**
+     * SQL Server can only store vectors with 1998 dimensions due to its page size limit of 8KB
+     * When the embedding model exceeds this value, the Embedding Store would fail if it tries to store float32 vectors.
+     * With {@code HalfPrecisionConfiguration.AUTO}, the embedding store will automatically switch to using half-precision (float16) vectors.
+     *
+     * @see <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type?view=sql-server-ver17&tabs=csharp#dimensions">SQL Server Vector documentation</a>
+     */
+    public static final int SQLSERVER_VECTOR_PRECISION_LIMIT = 1998;
+
+    /**
      * The default catalog for the embedding table.
      */
     public static final String DEFAULT_CATALOG_NAME = null;
@@ -79,10 +88,9 @@ public class EmbeddingTable {
         this.dimension = builder.dimension;
         ensureNotNull(dimension, "dimension");
 
-        this.halfPrecision =
-                (builder.halfPrecision == null || HalfPrecisionConfiguration.AUTO == builder.halfPrecision
-                        ? dimension > 1998
-                        : builder.halfPrecision == HalfPrecisionConfiguration.ON);
+        this.halfPrecision = (builder.halfPrecision == null || HalfPrecisionConfiguration.AUTO == builder.halfPrecision
+                ? dimension > SQLSERVER_VECTOR_PRECISION_LIMIT
+                : builder.halfPrecision == HalfPrecisionConfiguration.ON);
     }
 
     /**
@@ -428,7 +436,7 @@ public class EmbeddingTable {
                     + textColumn + '\'' + ", metadataColumn='"
                     + metadataColumn + '\'' + ", createOption="
                     + createOption + ", dimension="
-                    + dimension + ", halfPrecision"
+                    + dimension + ", halfPrecision="
                     + halfPrecision
                     + '}';
         }
