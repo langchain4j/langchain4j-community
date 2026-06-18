@@ -68,6 +68,10 @@ class QwenTestHelper {
         return Stream.of(Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
     }
 
+    public static Stream<Arguments> scoringModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.GTE_RERANK_V2), Arguments.of(QwenModelName.QWEN3_RERANK));
+    }
+
     public static Stream<Arguments> imageModelNameProvider() {
         return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_2_0));
     }

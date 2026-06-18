@@ -13,6 +13,11 @@
           "code": "java.class.removed",
           "old": "class dev.langchain4j.community.model.dashscope.QwenJsonSchemaResponseFormat",
           "justification": "Removed in favor of using dashscope SDK 2.22.22's ResponseFormat directly with its built-in jsonSchema field"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class com.alibaba.dashscope.rerank.TextReRankParam.TextReRankParamBuilder",
+          "justification": "Exposed intentionally by QwenScoringModel.setTextReRankParamCustomizer to allow customization of the dashscope SDK's TextReRankParam, consistent with the customizer setters on the other Qwen models"
         }
       ]
     }
