@@ -32,17 +32,15 @@ public class QwenScoringModel implements ScoringModel {
     private final String apiKey;
     private final String modelName;
     private final Integer topN;
-    private final Boolean returnDocuments;
     private final String instruct;
     private final TextReRank textReRank;
     private Consumer<TextReRankParam.TextReRankParamBuilder<?, ?>> textReRankParamCustomizer = p -> {};
 
-    public QwenScoringModel(String baseUrl, String apiKey, String modelName, Integer topN, Boolean returnDocuments) {
-        this(baseUrl, apiKey, modelName, topN, returnDocuments, null);
+    public QwenScoringModel(String baseUrl, String apiKey, String modelName, Integer topN) {
+        this(baseUrl, apiKey, modelName, topN, null);
     }
 
-    public QwenScoringModel(
-            String baseUrl, String apiKey, String modelName, Integer topN, Boolean returnDocuments, String instruct) {
+    public QwenScoringModel(String baseUrl, String apiKey, String modelName, Integer topN, String instruct) {
         if (isNullOrBlank(apiKey)) {
             throw new IllegalArgumentException(
                     "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
@@ -50,7 +48,6 @@ public class QwenScoringModel implements ScoringModel {
         this.apiKey = apiKey;
         this.modelName = isNullOrBlank(modelName) ? GTE_RERANK_V2 : modelName;
         this.topN = topN;
-        this.returnDocuments = returnDocuments;
         this.instruct = instruct;
         this.textReRank = isNullOrBlank(baseUrl) ? new TextReRank() : new TextReRank(Protocol.HTTP.getValue(), baseUrl);
     }
@@ -65,9 +62,6 @@ public class QwenScoringModel implements ScoringModel {
 
         if (topN != null) {
             builder.topN(topN);
-        }
-        if (returnDocuments != null) {
-            builder.returnDocuments(returnDocuments);
         }
         if (instruct != null) {
             builder.instruct(instruct);
@@ -115,7 +109,6 @@ public class QwenScoringModel implements ScoringModel {
         private String apiKey;
         private String modelName;
         private Integer topN;
-        private Boolean returnDocuments;
         private String instruct;
 
         public QwenScoringModelBuilder() {
@@ -138,13 +131,18 @@ public class QwenScoringModel implements ScoringModel {
             return this;
         }
 
+        /**
+         * The number of most relevant documents to return. If not specified, the reranking results of all documents will be returned.
+         *
+         * <p>Note: when set, {@link QwenScoringModel#scoreAll(List, String)} returns only the top
+         * {@code topN} scores (not one per input {@link dev.langchain4j.data.segment.TextSegment}),
+         * which deviates from the 1:1 mapping described in
+         * {@link dev.langchain4j.model.scoring.ScoringModel#scoreAll}.
+         *
+         * @param topN the number of most relevant documents to return
+         */
         public QwenScoringModelBuilder topN(Integer topN) {
             this.topN = topN;
-            return this;
-        }
-
-        public QwenScoringModelBuilder returnDocuments(Boolean returnDocuments) {
-            this.returnDocuments = returnDocuments;
             return this;
         }
 
@@ -154,7 +152,7 @@ public class QwenScoringModel implements ScoringModel {
         }
 
         public QwenScoringModel build() {
-            return new QwenScoringModel(baseUrl, apiKey, modelName, topN, returnDocuments, instruct);
+            return new QwenScoringModel(baseUrl, apiKey, modelName, topN, instruct);
         }
     }
 }
