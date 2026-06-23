@@ -110,4 +110,11 @@ public class QwenModelName {
             "text-embedding-v2"; // Support: en, zh, es, fr, pt, id, ja, ko, de, ru
 
     public static final String TEXT_EMBEDDING_V3 = "text-embedding-v3"; // Support 50+ languages
+
+    // Use with QwenScoringModel
+    public static final String GTE_RERANK_V2 =
+            "gte-rerank-v2"; // gte-rerank-v2, large-scale text reranking (up to 30k documents)
+    public static final String QWEN3_RERANK = "qwen3-rerank"; // qwen3-rerank, text semantics / RAG, many languages
+    public static final String QWEN3_VL_RERANK =
+            "qwen3-vl-rerank"; // qwen3-vl-rerank, multimodal (image/video) cross-modal reranking
 }
