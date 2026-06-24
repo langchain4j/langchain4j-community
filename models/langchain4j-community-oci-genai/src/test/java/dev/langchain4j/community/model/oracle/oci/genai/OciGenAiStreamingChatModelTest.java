@@ -34,14 +34,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 class OciGenAiStreamingChatModelTest {
 
-    private static final long WAIT_TIMEOUT_SECONDS = 10;
+    private static final long WAIT_TIMEOUT_SECONDS = 30;
 
     private static final String STREAMED_DATA = """
             data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"HELLO"}]}}
@@ -423,7 +422,6 @@ class OciGenAiStreamingChatModelTest {
         assertThat(handler.partialResponses, contains("HELLO", " WORLD"));
     }
 
-    @Disabled("Flaky test")
     @Test
     void closeInsideStreamingCallbackShouldNotDeadlock() throws Exception {
         var streamScript = new BlockingEventStream();
