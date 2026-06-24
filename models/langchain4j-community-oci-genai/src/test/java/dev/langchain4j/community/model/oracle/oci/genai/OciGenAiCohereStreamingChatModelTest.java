@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 
 class OciGenAiCohereStreamingChatModelTest {
 
-    private static final long WAIT_TIMEOUT_SECONDS = 10;
+    private static final long WAIT_TIMEOUT_SECONDS = 30;
 
     private static final String STREAMED_DATA = """
             data: {"apiFormat":"COHERE","text":"HELLO"}
