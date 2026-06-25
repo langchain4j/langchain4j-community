@@ -140,6 +140,15 @@ class SQLServerEmbeddingStoreUtil {
         }
     }
 
+    /**
+     * Creates a {@link Vector} instance from the given boxed float array, using either half-precision (float16)
+     * or full-precision (float32) based on the {@code halfPrecision} flag.
+     *
+     * @param boxedVector the embedding vector as an array of {@link Float} objects
+     * @param halfPrecision if {@code true}, the vector uses {@link Vector.VectorDimensionType#FLOAT16};
+     *                      otherwise, it uses {@link Vector.VectorDimensionType#FLOAT32}
+     * @return a new {@link Vector} instance with the specified precision
+     */
     public static Vector getVector(Float[] boxedVector, boolean halfPrecision) {
         return new Vector(
                 boxedVector.length,

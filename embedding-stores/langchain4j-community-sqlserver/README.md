@@ -147,9 +147,9 @@ EmbeddingStore<TextSegment> embeddingStore = SQLServerEmbeddingStore.dataSourceB
 ```
 
 The `halfPrecision` parameter accepts the following options:
-- `HalfPrecisionConfiguration.AUTO` (Default): Uses `float32` by default, but automatically switches to `float16` if the configured dimension is greater than 1998.
+- `HalfPrecisionConfiguration.OFF` (Default): Uses `float32` vectors. Note that the table creation will fail if the dimension is greater than 1998.
 - `HalfPrecisionConfiguration.ON`: Forces the use of `float16` vectors.
-- `HalfPrecisionConfiguration.OFF`: Forces the use of `float32` vectors. Note that the table creation will fail if the dimension is greater than 1998.
+- `HalfPrecisionConfiguration.AUTO`: Uses `float32` by default, but automatically switches to `float16` if the configured dimension is greater than 1998.
 
 ### Embeddings table schema
 

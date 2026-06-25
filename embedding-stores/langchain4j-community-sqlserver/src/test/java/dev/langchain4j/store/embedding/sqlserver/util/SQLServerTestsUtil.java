@@ -57,18 +57,26 @@ public class SQLServerTestsUtil {
         dataSource.setPassword(password);
         dataSource.setEncrypt("false");
         dataSource.setTrustServerCertificate(true);
+        return dataSource;
+    }
 
+    /**
+     * Enables preview features on the given SQL Server data source by creating a dedicated database
+     * and setting {@code PREVIEW_FEATURES = ON}. This is required for half-precision (float16) vector support.
+     *
+     * @param dataSource the data source to configure; must already be connected
+     * @param databaseName the name of the database to create and use
+     */
+    public static void enablePreviewFeatures(SQLServerDataSource dataSource, String databaseName) {
         try (Connection connection = dataSource.getConnection();
                 Statement stmt = connection.createStatement()) {
-            // Enable preview features for SQL Server 2025
-            stmt.execute("CREATE DATABASE TestDB;");
-            stmt.execute("USE TestDB; ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON");
+            stmt.execute(String.format("IF DB_ID(N'%s') IS NULL CREATE DATABASE [%s];", databaseName, databaseName));
+            stmt.execute(String.format(
+                    "USE [%s]; ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON", databaseName));
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
-        dataSource.setDatabaseName("TestDB");
-        return dataSource;
+        dataSource.setDatabaseName(databaseName);
     }
 
     /**
