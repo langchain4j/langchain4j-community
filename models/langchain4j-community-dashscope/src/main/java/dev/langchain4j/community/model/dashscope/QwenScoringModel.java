@@ -20,7 +20,9 @@ import dev.langchain4j.model.output.Response;
 import dev.langchain4j.model.output.TokenUsage;
 import dev.langchain4j.model.scoring.ScoringModel;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -32,24 +34,24 @@ public class QwenScoringModel implements ScoringModel {
     private final String apiKey;
     private final String modelName;
     private final Integer topN;
+    private final Boolean returnDocuments;
     private final String instruct;
     private final TextReRank textReRank;
     private Consumer<TextReRankParam.TextReRankParamBuilder<?, ?>> textReRankParamCustomizer = p -> {};
 
-    public QwenScoringModel(String baseUrl, String apiKey, String modelName, Integer topN) {
-        this(baseUrl, apiKey, modelName, topN, null);
-    }
-
-    public QwenScoringModel(String baseUrl, String apiKey, String modelName, Integer topN, String instruct) {
-        if (isNullOrBlank(apiKey)) {
+    public QwenScoringModel(QwenScoringModelBuilder builder) {
+        if (isNullOrBlank(builder.apiKey)) {
             throw new IllegalArgumentException(
                     "DashScope api key must be defined. Reference: https://www.alibabacloud.com/help/en/model-studio/get-api-key");
         }
-        this.apiKey = apiKey;
-        this.modelName = isNullOrBlank(modelName) ? GTE_RERANK_V2 : modelName;
-        this.topN = topN;
-        this.instruct = instruct;
-        this.textReRank = isNullOrBlank(baseUrl) ? new TextReRank() : new TextReRank(Protocol.HTTP.getValue(), baseUrl);
+        this.apiKey = builder.apiKey;
+        this.modelName = isNullOrBlank(builder.modelName) ? GTE_RERANK_V2 : builder.modelName;
+        this.topN = builder.topN;
+        this.returnDocuments = builder.returnDocuments;
+        this.instruct = builder.instruct;
+        this.textReRank = isNullOrBlank(builder.baseUrl)
+                ? new TextReRank()
+                : new TextReRank(Protocol.HTTP.getValue(), builder.baseUrl);
     }
 
     @Override
@@ -62,6 +64,9 @@ public class QwenScoringModel implements ScoringModel {
 
         if (topN != null) {
             builder.topN(topN);
+        }
+        if (returnDocuments != null) {
+            builder.returnDocuments(returnDocuments);
         }
         if (instruct != null) {
             builder.instruct(instruct);
@@ -78,7 +83,9 @@ public class QwenScoringModel implements ScoringModel {
             throw new RuntimeException(e);
         }
 
-        List<Double> scores = result.getOutput().getResults().stream()
+        List<TextReRankOutput.Result> rerankResults = result.getOutput().getResults();
+
+        List<Double> scores = rerankResults.stream()
                 .sorted(Comparator.comparing(TextReRankOutput.Result::getIndex))
                 .map(TextReRankOutput.Result::getRelevanceScore)
                 .collect(toList());
@@ -88,7 +95,34 @@ public class QwenScoringModel implements ScoringModel {
             tokenUsage = new TokenUsage(result.getUsage().getTotalTokens());
         }
 
-        return Response.from(scores, tokenUsage);
+        // Always expose the original request_id and output.results via metadata,
+        // regardless of whether returnDocuments was requested.
+        List<QwenScoringResponseMetadata.Result> metadataResults = rerankResults.stream()
+                .map(rerankResult -> new QwenScoringResponseMetadata.Result(
+                        toDocumentMap(rerankResult.getDocument()),
+                        rerankResult.getIndex(),
+                        rerankResult.getRelevanceScore()))
+                .collect(toList());
+        QwenScoringResponseMetadata scoringMetadata = QwenScoringResponseMetadata.builder()
+                .requestId(result.getRequestId())
+                .results(metadataResults)
+                .build();
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put(QwenScoringResponseMetadata.DASHSCOPE_RESPONSE, scoringMetadata);
+
+        return Response.from(scores, tokenUsage, null, metadata);
+    }
+
+    private static Map<String, String> toDocumentMap(TextReRankOutput.Document document) {
+        if (document == null) {
+            return null;
+        }
+        Map<String, String> map = new HashMap<>();
+        if (document.getText() != null) {
+            map.put("text", document.getText());
+        }
+        return map;
     }
 
     public void setTextReRankParamCustomizer(
@@ -109,6 +143,7 @@ public class QwenScoringModel implements ScoringModel {
         private String apiKey;
         private String modelName;
         private Integer topN;
+        private Boolean returnDocuments;
         private String instruct;
 
         public QwenScoringModelBuilder() {
@@ -146,13 +181,29 @@ public class QwenScoringModel implements ScoringModel {
             return this;
         }
 
+        /**
+         * Whether the original document text should be returned with each result. Defaults to {@code false} (not returned).
+         *
+         * <p>When enabled, the document text is available via
+         * {@link QwenScoringResponseMetadata.Result#document()} on the metadata exposed under
+         * {@link QwenScoringResponseMetadata#DASHSCOPE_RESPONSE} in
+         * {@link dev.langchain4j.model.output.Response#metadata()}.
+         * The metadata itself is always populated, regardless of this setting.
+         *
+         * @param returnDocuments whether to return the original document text
+         */
+        public QwenScoringModelBuilder returnDocuments(Boolean returnDocuments) {
+            this.returnDocuments = returnDocuments;
+            return this;
+        }
+
         public QwenScoringModelBuilder instruct(String instruct) {
             this.instruct = instruct;
             return this;
         }
 
         public QwenScoringModel build() {
-            return new QwenScoringModel(baseUrl, apiKey, modelName, topN, instruct);
+            return new QwenScoringModel(this);
         }
     }
 }
