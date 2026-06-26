@@ -61,6 +61,7 @@
         <module>embedding-stores/langchain4j-community-jvector</module>
         <module>embedding-stores/langchain4j-community-s3-vectors</module>
         <module>embedding-stores/langchain4j-community-valkey</module>
+        <module>embedding-stores/langchain4j-community-lancedb</module>
 
         <!-- Integration of chat memory stores -->
         <module>chat-memory-stores/langchain4j-community-hazelcast</module>
