@@ -136,7 +136,10 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
 
     static ToolExecutionRequest map(FunctionCall functionCall) {
         return ToolExecutionRequest.builder()
-                .id(Utils.isNullOrBlank(functionCall.getId()) ?  UUID.randomUUID().toString() : functionCall.getId())
+                .id(
+                        Utils.isNullOrBlank(functionCall.getId())
+                                ? UUID.randomUUID().toString()
+                                : functionCall.getId())
                 .arguments(functionCall.getArguments())
                 .name(functionCall.getName())
                 .build();

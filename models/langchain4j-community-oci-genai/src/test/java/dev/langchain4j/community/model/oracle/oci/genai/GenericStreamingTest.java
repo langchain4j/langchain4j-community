@@ -34,8 +34,7 @@ public class GenericStreamingTest {
 
     @Test
     void streamedText() {
-        String data =
-                """
+        String data = """
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"THE"}]},"pad":"aaaaaaaa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" SUM"}]},"pad":"aa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" OF"}]},"pad":"aaaaa"}
@@ -63,8 +62,7 @@ public class GenericStreamingTest {
 
     @Test
     void streamedText1() {
-        String data =
-                """
+        String data = """
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"Hello"}]},"pad":"aa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" "}]},"pad":"aaaaaa"}
@@ -83,8 +81,7 @@ public class GenericStreamingTest {
 
     @Test
     void streamedText2() {
-        String data =
-                """
+        String data = """
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaaaaa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaaaa"}
                         data: {"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"Hello "}]},"finishReason":"stop","pad":"a"}
@@ -102,8 +99,7 @@ public class GenericStreamingTest {
 
     @Test
     void multiToolSingleArg() {
-        String data =
-                """
+        String data = """
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_69943055","name":"LIST_PACKAGE_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"aa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_53265426","name":"LIST_PROCEDURE_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"a"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_53405288","name":"LIST_FUNCTION_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"aaaaaaaaaa"}
@@ -129,8 +125,7 @@ public class GenericStreamingTest {
 
     @Test
     void multiToolMultiArgs() {
-        String data =
-                """
+        String data = """
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_83516431","name":"sqrt","arguments":"{\\"arg0\\":16}"}]},"pad":"aaaaaa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_26154935","name":"extractMagicalNumber","arguments":"{\\"arg1\\":778,\\"arg0\\":556}"}]},"pad":"a"}
                         data: {"finishReason":"tool_calls","pad":"aa"}
@@ -149,8 +144,7 @@ public class GenericStreamingTest {
 
     @Test
     void singleChunkedTool() {
-        String data =
-                """
+        String data = """
                         data: {"index":0,"message":{"role":"ASSISTANT",  "content":[{"type":"TEXT",    "text":""                                                          }]},"pad":"aa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"chatcmpl-tool-e78c012be89a4742a6ba7e4b0a05b0f2","name":"sqrt"}]},"pad":"aaaaaa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg0\\": \\""                                     }]},"pad":"aaaaaa"}
@@ -172,8 +166,7 @@ public class GenericStreamingTest {
 
     @Test
     void multiChunkedTool() {
-        String data =
-                """
+        String data = """
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"chatcmpl-tool-e5f86a029","name":"sqrt"}]},"pad":"aaaaaa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg0\\": \\""}]},"pad":"aaa"}
@@ -230,8 +223,7 @@ public class GenericStreamingTest {
 
     @Test
     void missingToolCallId() {
-        String data =
-                """
+        String data = """
                         data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","name":"sqrt"}]},"pad":"aaaaaa"}
                         data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg0\\": \\""}]},"pad":"aaaaaa"}
@@ -254,9 +246,7 @@ public class GenericStreamingTest {
         java.util.UUID.fromString(firstToolExecReq.id());
         // onCompleteToolCall must fire (parallel execution path requires it)
         assertThat(handler.completeToolCalls.size(), is(1));
-        assertThat(
-                handler.completeToolCalls.get(0).toolExecutionRequest().id(),
-                is(firstToolExecReq.id()));
+        assertThat(handler.completeToolCalls.get(0).toolExecutionRequest().id(), is(firstToolExecReq.id()));
         assertThat(handler.completeResponses, contains((String) null));
     }
 
