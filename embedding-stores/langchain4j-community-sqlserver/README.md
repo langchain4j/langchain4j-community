@@ -15,7 +15,7 @@ Java >= 17
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j-community-sqlserver</artifactId>
-    <version>1.17.0-beta27-SNAPSHOT</version>
+    <version>1.18.0-beta28-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -122,6 +122,35 @@ SQLServerEmbeddingStore.connectionBuilder()
     .build();
 ```
 
+### Half-Precision (float16) Support
+
+For scenarios requiring large embedding vectors, such as OpenAI's `text-embedding-3-large` (which can have up to 3072 dimensions), 
+you can configure the store to use half-precision (float16) vectors. 
+See the [Microsoft documentation](https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type-half-precision-float?view=sql-server-ver17) for more details.
+
+**Note:** This feature is currently only available when connecting to **Azure SQL databases**.
+
+Standard `float32` vectors in SQL Server are limited to 1998 dimensions. Enabling `halfPrecision` allows you to exceed this limit.
+
+**Important:** To use `halfPrecision` support, you must configure the JDBC driver property `vectorTypeSupport` to `v2`. 
+See the [Microsoft JDBC driver documentation](https://learn.microsoft.com/en-us/sql/connect/jdbc/use-vector-data-type?view=sql-server-ver17#use-vector-float16-data-type) for more details.
+
+```java
+EmbeddingStore<TextSegment> embeddingStore = SQLServerEmbeddingStore.dataSourceBuilder()
+   .dataSource(myDataSource)
+   .embeddingTable(EmbeddingTable.builder()
+           .name("my_large_embedding_table")
+           .dimension(3072) // Example: text-embedding-3-large
+           .halfPrecision(HalfPrecisionConfiguration.ON)
+           .build())
+   .build();
+```
+
+The `halfPrecision` parameter accepts the following options:
+- `HalfPrecisionConfiguration.OFF` (Default): Uses `float32` vectors. Note that the table creation will fail if the dimension is greater than 1998.
+- `HalfPrecisionConfiguration.ON`: Forces the use of `float16` vectors.
+- `HalfPrecisionConfiguration.AUTO`: Uses `float32` by default, but automatically switches to `float16` if the configured dimension is greater than 1998.
+
 ### Embeddings table schema
 
 By default, the embedding table will have the following columns:
@@ -129,7 +158,7 @@ By default, the embedding table will have the following columns:
 | Name | Type              | Description |
 | ---- |-------------------| ----------- |
 | id | NVARCHAR(36)      | Primary key. Used to store UUID strings which are generated when the embedding store |
-| embedding | VECTOR(dimension) | Stores the embedding using SQL Server 2025 native vector type |
+| embedding | VECTOR(dimension) | Stores the embedding using SQL Server 2025 native vector type. Can be `float32` or `float16` (see Half-Precision support). |
 | text | NVARCHAR(MAX)     | Stores the text segment |
 | metadata | JSON              | Stores the metadata using SQL Server 2025 native JSON data type |
 
