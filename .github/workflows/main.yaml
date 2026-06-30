@@ -76,6 +76,7 @@ jobs:
             -DskipXinferenceITs \
             -DskipSearXNGITs \
             -DskipVearchITs \
+            -DskipLanceDbITs=false \
             -Dgib.disable=false -Dgib.referenceBranch=__branch_before \
             ${{ matrix.mvn_opts }}
 

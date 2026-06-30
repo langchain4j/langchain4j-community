@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.17.0-beta27-SNAPSHOT</version>
+        <version>1.18.0-beta28-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -114,124 +114,6 @@
                         <!-- re-exported on purpose so Enterprise consumers get the IMap chat store -->
                         <dependency>dev.langchain4j:langchain4j-community-hazelcast</dependency>
                     </usedDependencies>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.revapi</groupId>
-                <artifactId>revapi-maven-plugin</artifactId>
-                <configuration>
-                    <analysisConfiguration>
-                        <revapi.differences>
-                            <differences>
-                                <!--
-                                    Hazelcast Enterprise types are an intentionally provided dependency,
-                                    and langchain4j-core types are part of the public EmbeddingStore /
-                                    ChatMemoryStore API by design.
-                                -->
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class com.hazelcast.core.HazelcastInstance</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class com.hazelcast.core.HazelcastInstance</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class com.hazelcast.cp.CPMap</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class com.hazelcast.cp.CPMap</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class com.hazelcast.vector.VectorCollection</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class com.hazelcast.vector.VectorCollection</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class com.hazelcast.config.vector.Metric</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class com.hazelcast.config.vector.Metric</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class dev.langchain4j.data.message.ChatMessage</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class dev.langchain4j.data.message.ChatMessage</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class dev.langchain4j.data.embedding.Embedding</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class dev.langchain4j.data.embedding.Embedding</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class dev.langchain4j.data.segment.TextSegment</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class dev.langchain4j.data.segment.TextSegment</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class dev.langchain4j.store.embedding.EmbeddingSearchRequest</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class dev.langchain4j.store.embedding.EmbeddingSearchRequest</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class dev.langchain4j.store.embedding.EmbeddingSearchResult</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class dev.langchain4j.store.embedding.EmbeddingSearchResult</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class dev.langchain4j.store.embedding.filter.Filter</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class dev.langchain4j.store.embedding.filter.Filter</new>
-                                </item>
-                            </differences>
-                        </revapi.differences>
-                    </analysisConfiguration>
                 </configuration>
             </plugin>
         </plugins>

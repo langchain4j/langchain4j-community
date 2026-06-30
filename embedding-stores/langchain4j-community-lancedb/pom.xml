@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.17.0-beta27-SNAPSHOT</version>
+        <version>1.18.0-beta28-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -14,6 +14,7 @@
     <properties>
         <lancedb.version>0.31.0-beta.3</lancedb.version>
         <arrow.version>18.3.0</arrow.version>
+        <skipLanceDbITs>true</skipLanceDbITs>
     </properties>
 
     <dependencyManagement>
@@ -107,6 +108,15 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} --add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
+                    <skipITs>${skipLanceDbITs}</skipITs>
+                    <failIfNoTests>false</failIfNoTests>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.revapi</groupId>
                 <artifactId>revapi-maven-plugin</artifactId>

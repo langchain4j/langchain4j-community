@@ -1,5 +1,19 @@
 package dev.langchain4j.store.embedding.lancedb;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.RelevanceScore;
+import dev.langchain4j.store.embedding.filter.Filter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -8,12 +22,13 @@ import java.nio.channels.Channels;
 import java.nio.channels.SeekableByteChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
+import java.util.stream.Collectors;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.Float4Vector;
@@ -36,23 +51,24 @@ import org.lance.namespace.model.QueryTableRequest;
 import org.lance.namespace.model.QueryTableRequestColumns;
 import org.lance.namespace.model.QueryTableRequestVector;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingMatch;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.RelevanceScore;
-
 public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final String ID_COLUMN = "id";
     private static final String VECTOR_COLUMN = "vector";
     private static final String TEXT_COLUMN = "text";
     private static final String METADATA_COLUMN = "metadata";
+
+    /**
+     * The metadata column is stored as a single opaque {@code Binary} blob (see {@link #createSchema}), since
+     * embedding metadata keys are arbitrary and not known upfront. Lance/DataFusion can only push filter
+     * predicates down into a query for Struct, Map or Null typed columns, not Binary, so {@link Filter}s cannot
+     * be translated into a native LanceDB filter expression. Instead, when a filter is present, a wide,
+     * unfiltered similarity scan is requested and the {@link Filter} is evaluated client-side in
+     * {@link #parseQueryResult} against each row's deserialized metadata, after which results are truncated to
+     * {@code maxResults}. This is correct as long as the number of matching rows within {@link #FILTER_SCAN_LIMIT}
+     * nearest neighbors is representative; rows beyond that scan limit are never considered.
+     */
+    private static final int FILTER_SCAN_LIMIT = 10_000;
 
     private final LanceNamespace namespace;
     private final String tableName;
@@ -92,27 +108,27 @@ public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
     @Override
     public String add(Embedding embedding, TextSegment textSegment) {
         String id = generateId();
-        addInternal(List.of(id), List.of(embedding),
-                textSegment != null ? List.of(textSegment) : List.of());
+        addInternal(List.of(id), List.of(embedding), textSegment != null ? List.of(textSegment) : List.of());
         return id;
     }
 
     @Override
     public List<String> addAll(List<Embedding> embeddings) {
-        List<String> ids = embeddings.stream()
-                .map(e -> generateId())
-                .toList();
+        List<String> ids = embeddings.stream().map(e -> generateId()).toList();
         addInternal(ids, embeddings, List.of());
         return ids;
     }
 
     @Override
     public List<String> addAll(List<Embedding> embeddings, List<TextSegment> textSegments) {
-        List<String> ids = embeddings.stream()
-                .map(e -> generateId())
-                .toList();
+        List<String> ids = embeddings.stream().map(e -> generateId()).toList();
         addInternal(ids, embeddings, textSegments != null ? textSegments : List.of());
         return ids;
+    }
+
+    @Override
+    public void addAll(List<String> ids, List<Embedding> embeddings, List<TextSegment> textSegments) {
+        addInternal(ids, embeddings, textSegments != null ? textSegments : List.of());
     }
 
     @Override
@@ -121,7 +137,6 @@ public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         QueryTableRequest query = new QueryTableRequest();
         query.setId(Arrays.asList(tableName));
-        query.setK(request.maxResults());
         query.setVectorColumn(VECTOR_COLUMN);
 
         List<Float> queryVector = toFloatList(request.queryEmbedding().vector());
@@ -129,13 +144,8 @@ public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
         vector.setSingleVector(queryVector);
         query.setVector(vector);
 
-        if (request.filter() != null) {
-            String filterString = filterMapper.map(request.filter());
-            if (filterString != null) {
-                query.setFilter(filterString);
-                query.setPrefilter(true);
-            }
-        }
+        Filter filter = request.filter();
+        query.setK(filter != null ? FILTER_SCAN_LIMIT : request.maxResults());
 
         QueryTableRequestColumns columns = new QueryTableRequestColumns();
         columns.setColumnNames(Arrays.asList(ID_COLUMN, VECTOR_COLUMN, TEXT_COLUMN, METADATA_COLUMN));
@@ -143,7 +153,10 @@ public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         try {
             byte[] resultBytes = namespace.queryTable(query);
-            List<EmbeddingMatch<TextSegment>> matches = parseQueryResult(resultBytes, request.minScore());
+            List<EmbeddingMatch<TextSegment>> matches = parseQueryResult(resultBytes, request.minScore(), filter);
+            if (matches.size() > request.maxResults()) {
+                matches = matches.subList(0, request.maxResults());
+            }
             return new EmbeddingSearchResult<>(matches);
         } catch (Exception e) {
             throw new RuntimeException("Failed to search LanceDB", e);
@@ -152,11 +165,56 @@ public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void remove(String id) {
+        ensureNotBlank(id, "id");
         ensureTableCreated();
         try {
             DeleteFromTableRequest request = new DeleteFromTableRequest();
             request.setId(Arrays.asList(tableName));
             request.setPredicate(ID_COLUMN + " = '" + id + "'");
+            namespace.deleteFromTable(request);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to remove from LanceDB", e);
+        }
+    }
+
+    @Override
+    public void removeAll(Collection<String> ids) {
+        ensureNotEmpty(ids, "ids");
+        ensureTableCreated();
+        try {
+            String predicate = ID_COLUMN + " IN ("
+                    + ids.stream().map(id -> "'" + id + "'").collect(Collectors.joining(", ")) + ")";
+            DeleteFromTableRequest request = new DeleteFromTableRequest();
+            request.setId(Arrays.asList(tableName));
+            request.setPredicate(predicate);
+            namespace.deleteFromTable(request);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to remove from LanceDB", e);
+        }
+    }
+
+    @Override
+    public void removeAll(Filter filter) {
+        ensureNotNull(filter, "filter");
+        ensureTableCreated();
+        String filterString = filterMapper.map(filter);
+        try {
+            DeleteFromTableRequest request = new DeleteFromTableRequest();
+            request.setId(Arrays.asList(tableName));
+            request.setPredicate(filterString);
+            namespace.deleteFromTable(request);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to remove from LanceDB", e);
+        }
+    }
+
+    @Override
+    public void removeAll() {
+        ensureTableCreated();
+        try {
+            DeleteFromTableRequest request = new DeleteFromTableRequest();
+            request.setId(Arrays.asList(tableName));
+            request.setPredicate("true");
             namespace.deleteFromTable(request);
         } catch (Exception e) {
             throw new RuntimeException("Failed to remove from LanceDB", e);
@@ -205,16 +263,19 @@ public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
             }
         }
         String lowerMessage = message.toLowerCase();
-        return lowerMessage.contains("already exists") || lowerMessage.contains("duplicate")
+        return lowerMessage.contains("already exists")
+                || lowerMessage.contains("duplicate")
                 || lowerMessage.contains("conflict");
     }
 
     private Schema createSchema(int dim) {
         return new Schema(Arrays.asList(
                 new Field(ID_COLUMN, FieldType.nullable(new ArrowType.Utf8()), null),
-                new Field(VECTOR_COLUMN,
+                new Field(
+                        VECTOR_COLUMN,
                         FieldType.nullable(new ArrowType.FixedSizeList(dim)),
-                        Arrays.asList(new Field("item",
+                        Arrays.asList(new Field(
+                                "item",
                                 FieldType.nullable(new ArrowType.FloatingPoint(FloatingPointPrecision.SINGLE)),
                                 null))),
                 new Field(TEXT_COLUMN, FieldType.nullable(new ArrowType.Utf8()), null),
@@ -288,11 +349,11 @@ public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
         return out.toByteArray();
     }
 
-    private List<EmbeddingMatch<TextSegment>> parseQueryResult(byte[] resultBytes, double minScore) {
+    private List<EmbeddingMatch<TextSegment>> parseQueryResult(byte[] resultBytes, double minScore, Filter filter) {
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
         try (BufferAllocator allocator = new RootAllocator();
-                ArrowFileReader reader = new ArrowFileReader(
-                        new ByteArraySeekableByteChannel(resultBytes), allocator)) {
+                ArrowFileReader reader =
+                        new ArrowFileReader(new ByteArraySeekableByteChannel(resultBytes), allocator)) {
 
             for (int i = 0; i < reader.getRecordBlocks().size(); i++) {
                 reader.loadRecordBatch(reader.getRecordBlocks().get(i));
@@ -333,7 +394,8 @@ public class LanceDbEmbeddingStore implements EmbeddingStore<TextSegment> {
                         score = 1.0;
                     }
 
-                    if (score >= minScore) {
+                    if (score >= minScore
+                            && (filter == null || (textSegment != null && filter.test(textSegment.metadata())))) {
                         matches.add(new EmbeddingMatch<>(score, id, new Embedding(embedding), textSegment));
                     }
                 }

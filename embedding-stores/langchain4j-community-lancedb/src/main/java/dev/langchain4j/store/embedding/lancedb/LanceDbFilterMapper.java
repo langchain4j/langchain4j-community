@@ -1,8 +1,5 @@
 package dev.langchain4j.store.embedding.lancedb;
 
-import java.util.Collection;
-import java.util.stream.Collectors;
-
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
@@ -15,6 +12,8 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class LanceDbFilterMapper {
 
@@ -49,7 +48,8 @@ public class LanceDbFilterMapper {
         } else if (filter instanceof Not f) {
             return mapNot(f);
         }
-        throw new UnsupportedOperationException("Unsupported filter type: " + filter.getClass().getName());
+        throw new UnsupportedOperationException(
+                "Unsupported filter type: " + filter.getClass().getName());
     }
 
     private String mapEqual(IsEqualTo filter) {
@@ -108,9 +108,7 @@ public class LanceDbFilterMapper {
     }
 
     static String formatCollection(Collection<?> values) {
-        return values.stream()
-                .map(LanceDbFilterMapper::formatValue)
-                .collect(Collectors.joining(", "));
+        return values.stream().map(LanceDbFilterMapper::formatValue).collect(Collectors.joining(", "));
     }
 
     private static String escapeString(String value) {
