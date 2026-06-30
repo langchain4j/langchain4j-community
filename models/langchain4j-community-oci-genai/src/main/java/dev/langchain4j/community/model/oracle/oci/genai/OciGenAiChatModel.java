@@ -17,6 +17,7 @@ import com.oracle.bmc.generativeaiinference.model.TextContent;
 import com.oracle.bmc.generativeaiinference.model.Usage;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.internal.Utils;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -27,6 +28,7 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,7 +136,10 @@ public class OciGenAiChatModel extends BaseGenericChatModel<OciGenAiChatModel> i
 
     static ToolExecutionRequest map(FunctionCall functionCall) {
         return ToolExecutionRequest.builder()
-                .id(functionCall.getId())
+                .id(
+                        Utils.isNullOrBlank(functionCall.getId())
+                                ? UUID.randomUUID().toString()
+                                : functionCall.getId())
                 .arguments(functionCall.getArguments())
                 .name(functionCall.getName())
                 .build();

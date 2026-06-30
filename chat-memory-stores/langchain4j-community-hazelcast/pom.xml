@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.17.0-beta27-SNAPSHOT</version>
+        <version>1.18.0-beta28-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -69,53 +69,6 @@
                     <systemProperties>
                         <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
                     </systemProperties>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.revapi</groupId>
-                <artifactId>revapi-maven-plugin</artifactId>
-                <configuration>
-                    <analysisConfiguration>
-                        <revapi.differences>
-                            <differences>
-                                <!--
-                                    Hazelcast types are an intentionally provided dependency, and
-                                    ChatMessage is part of the ChatMemoryStore API by design.
-                                -->
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class com.hazelcast.core.HazelcastInstance</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class com.hazelcast.core.HazelcastInstance</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class com.hazelcast.map.IMap</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class com.hazelcast.map.IMap</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.missing.newClass</code>
-                                    <new>missing-class dev.langchain4j.data.message.ChatMessage</new>
-                                </item>
-                                <item>
-                                    <ignore>true</ignore>
-                                    <code>java.class.externalClassExposedInAPI</code>
-                                    <new>missing-class dev.langchain4j.data.message.ChatMessage</new>
-                                </item>
-                            </differences>
-                        </revapi.differences>
-                    </analysisConfiguration>
                 </configuration>
             </plugin>
         </plugins>

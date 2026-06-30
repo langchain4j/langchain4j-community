@@ -34,20 +34,19 @@ public class GenericStreamingTest {
 
     @Test
     void streamedText() {
-        String data =
-                """
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"THE"}]},"pad":"aaaaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" SUM"}]},"pad":"aa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" OF"}]},"pad":"aaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" THE"}]},"pad":"aaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" RESULTS"}]},"pad":"aaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" IS"}]},"pad":"aaaaaaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" "}]},"pad":"aaaaaaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"62"}]},"pad":"a"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"."}]},"pad":"aaaaaaaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"0"}]},"pad":"aaaaa"}
-                data: {"finishReason":"stop","pad":"aaaaaa"}
-                """;
+        String data = """
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"THE"}]},"pad":"aaaaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" SUM"}]},"pad":"aa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" OF"}]},"pad":"aaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" THE"}]},"pad":"aaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" RESULTS"}]},"pad":"aaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" IS"}]},"pad":"aaaaaaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" "}]},"pad":"aaaaaaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"62"}]},"pad":"a"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"."}]},"pad":"aaaaaaaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"0"}]},"pad":"aaaaa"}
+                        data: {"finishReason":"stop","pad":"aaaaaa"}
+                        """;
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
@@ -63,13 +62,12 @@ public class GenericStreamingTest {
 
     @Test
     void streamedText1() {
-        String data =
-                """
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"Hello"}]},"pad":"aa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" "}]},"pad":"aaaaaa"}
-                data: {"message":{"role":"ASSISTANT"},"finishReason":"stop","pad":"aaa"}
-                """;
+        String data = """
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"Hello"}]},"pad":"aa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":" "}]},"pad":"aaaaaa"}
+                        data: {"message":{"role":"ASSISTANT"},"finishReason":"stop","pad":"aaa"}
+                        """;
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
@@ -83,12 +81,11 @@ public class GenericStreamingTest {
 
     @Test
     void streamedText2() {
-        String data =
-                """
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaaaa"}
-                data: {"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"Hello "}]},"finishReason":"stop","pad":"a"}
-                """;
+        String data = """
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaaaa"}
+                        data: {"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":"Hello "}]},"finishReason":"stop","pad":"a"}
+                        """;
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
@@ -102,14 +99,13 @@ public class GenericStreamingTest {
 
     @Test
     void multiToolSingleArg() {
-        String data =
-                """
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_69943055","name":"LIST_PACKAGE_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"aa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_53265426","name":"LIST_PROCEDURE_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"a"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_53405288","name":"LIST_FUNCTION_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"aaaaaaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_19110181","name":"LIST_TYPE_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"a"}
-                data: {"finishReason":"tool_calls","pad":"aaaaaaaaa"}
-                """;
+        String data = """
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_69943055","name":"LIST_PACKAGE_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"aa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_53265426","name":"LIST_PROCEDURE_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"a"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_53405288","name":"LIST_FUNCTION_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"aaaaaaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_19110181","name":"LIST_TYPE_NAMES","arguments":"{\\"arg0\\":\\"HR\\"}"}]},"pad":"a"}
+                        data: {"finishReason":"tool_calls","pad":"aaaaaaaaa"}
+                        """;
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
@@ -129,12 +125,11 @@ public class GenericStreamingTest {
 
     @Test
     void multiToolMultiArgs() {
-        String data =
-                """
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_83516431","name":"sqrt","arguments":"{\\"arg0\\":16}"}]},"pad":"aaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_26154935","name":"extractMagicalNumber","arguments":"{\\"arg1\\":778,\\"arg0\\":556}"}]},"pad":"a"}
-                data: {"finishReason":"tool_calls","pad":"aa"}
-                """;
+        String data = """
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_83516431","name":"sqrt","arguments":"{\\"arg0\\":16}"}]},"pad":"aaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"call_26154935","name":"extractMagicalNumber","arguments":"{\\"arg1\\":778,\\"arg0\\":556}"}]},"pad":"a"}
+                        data: {"finishReason":"tool_calls","pad":"aa"}
+                        """;
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
@@ -149,14 +144,13 @@ public class GenericStreamingTest {
 
     @Test
     void singleChunkedTool() {
-        String data =
-                """
-                data: {"index":0,"message":{"role":"ASSISTANT",  "content":[{"type":"TEXT",    "text":""                                                          }]},"pad":"aa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"chatcmpl-tool-e78c012be89a4742a6ba7e4b0a05b0f2","name":"sqrt"}]},"pad":"aaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg0\\": \\""                                     }]},"pad":"aaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"16\\"}"                                               }]},"pad":"aaaaaaaaa"}
-                data: {          "message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""                                                     }]},"finishReason":"tool_calls","pad":"aaa"}
-                """;
+        String data = """
+                        data: {"index":0,"message":{"role":"ASSISTANT",  "content":[{"type":"TEXT",    "text":""                                                          }]},"pad":"aa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"chatcmpl-tool-e78c012be89a4742a6ba7e4b0a05b0f2","name":"sqrt"}]},"pad":"aaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg0\\": \\""                                     }]},"pad":"aaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"16\\"}"                                               }]},"pad":"aaaaaaaaa"}
+                        data: {          "message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""                                                     }]},"finishReason":"tool_calls","pad":"aaa"}
+                        """;
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
@@ -172,21 +166,20 @@ public class GenericStreamingTest {
 
     @Test
     void multiChunkedTool() {
-        String data =
-                """
-                data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"chatcmpl-tool-e5f86a029","name":"sqrt"}]},"pad":"aaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg0\\": \\""}]},"pad":"aaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"16\\"}"}]},"pad":"aaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""}]},"pad":"aaaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""}]},"pad":"aa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"chatcmpl-tool-13ee961b3","name":"extractMagicalNumber"}]},"pad":"aaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg1\\": \\""}]},"pad":"aaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"778\\""}]},"pad":"aaaaaaaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":", \\"arg0\\": \\""}]},"pad":"aaaa"}
-                data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"556\\"}"}]},"pad":"a"}
-                data: {"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""}]},"finishReason":"tool_calls","pad":"aaaaaaaaa"}
-                """;
+        String data = """
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"chatcmpl-tool-e5f86a029","name":"sqrt"}]},"pad":"aaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg0\\": \\""}]},"pad":"aaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"16\\"}"}]},"pad":"aaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""}]},"pad":"aaaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""}]},"pad":"aa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","id":"chatcmpl-tool-13ee961b3","name":"extractMagicalNumber"}]},"pad":"aaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg1\\": \\""}]},"pad":"aaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"778\\""}]},"pad":"aaaaaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":", \\"arg0\\": \\""}]},"pad":"aaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"556\\"}"}]},"pad":"a"}
+                        data: {"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""}]},"finishReason":"tool_calls","pad":"aaaaaaaaa"}
+                        """;
         var b = new GenericStreamingResponseBuilder("test", handler);
         Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
         var chatResponse = b.build();
@@ -225,6 +218,35 @@ public class GenericStreamingTest {
                         .toList(),
                 contains("{\"arg0\": \"16\"}", "{\"arg1\": \"778\", \"arg0\": \"556\"}"));
 
+        assertThat(handler.completeResponses, contains((String) null));
+    }
+
+    @Test
+    void missingToolCallId() {
+        String data = """
+                        data: {"index":0,"message":{"role":"ASSISTANT","content":[{"type":"TEXT","text":""}]},"pad":"aa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","name":"sqrt"}]},"pad":"aaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"{\\"arg0\\": \\""}]},"pad":"aaaaaa"}
+                        data: {"index":0,"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":"16\\"}"}]},"pad":"aaaaaaaaa"}
+                        data: {"message":{"role":"ASSISTANT","toolCalls":[{"type":"FUNCTION","arguments":""}]},"finishReason":"tool_calls","pad":"aaa"}
+                        """;
+        var b = new GenericStreamingResponseBuilder("test", handler);
+        Arrays.stream(data.split("\n")).forEach(b::parseAndAdd);
+        var chatResponse = b.build();
+        assertThat(chatResponse.finishReason(), is(FinishReason.TOOL_EXECUTION));
+        assertThat(chatResponse.aiMessage().hasToolExecutionRequests(), is(true));
+        var toolExecutionRequests = chatResponse.aiMessage().toolExecutionRequests();
+        assertThat(toolExecutionRequests.size(), is(1));
+        var firstToolExecReq = toolExecutionRequests.get(0);
+        assertThat(firstToolExecReq.arguments(), is("{\"arg0\": \"16\"}"));
+        assertThat(firstToolExecReq.name(), is("sqrt"));
+        assertThat(firstToolExecReq.id() != null, is(true));
+        assertThat(firstToolExecReq.id().isEmpty(), is(false));
+        // Verify it is a valid UUID
+        java.util.UUID.fromString(firstToolExecReq.id());
+        // onCompleteToolCall must fire (parallel execution path requires it)
+        assertThat(handler.completeToolCalls.size(), is(1));
+        assertThat(handler.completeToolCalls.get(0).toolExecutionRequest().id(), is(firstToolExecReq.id()));
         assertThat(handler.completeResponses, contains((String) null));
     }
 

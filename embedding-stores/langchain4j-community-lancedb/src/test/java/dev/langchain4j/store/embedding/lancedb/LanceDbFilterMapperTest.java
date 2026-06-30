@@ -3,10 +3,6 @@ package dev.langchain4j.store.embedding.lancedb;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Arrays;
-
-import org.junit.jupiter.api.Test;
-
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.filter.comparison.IsGreaterThan;
@@ -19,6 +15,8 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotIn;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
+import java.util.Arrays;
+import org.junit.jupiter.api.Test;
 
 class LanceDbFilterMapperTest {
 
@@ -92,8 +90,7 @@ class LanceDbFilterMapperTest {
 
     @Test
     void testIntegerIn() {
-        assertThat(mapper.map(new IsIn("status", Arrays.asList(1, 2, 3))))
-                .isEqualTo("metadata.status IN (1, 2, 3)");
+        assertThat(mapper.map(new IsIn("status", Arrays.asList(1, 2, 3)))).isEqualTo("metadata.status IN (1, 2, 3)");
     }
 
     @Test
@@ -104,8 +101,7 @@ class LanceDbFilterMapperTest {
 
     @Test
     void testIntegerNotIn() {
-        assertThat(mapper.map(new IsNotIn("status", Arrays.asList(0, 9))))
-                .isEqualTo("metadata.status NOT IN (0, 9)");
+        assertThat(mapper.map(new IsNotIn("status", Arrays.asList(0, 9)))).isEqualTo("metadata.status NOT IN (0, 9)");
     }
 
     @Test
@@ -129,15 +125,14 @@ class LanceDbFilterMapperTest {
     @Test
     void testComplexNestedFilter() {
         assertThat(mapper.map(new And(
-                new IsEqualTo("category", "book"),
-                new Or(new IsGreaterThan("price", 10.0), new IsLessThan("price", 5.0)))))
+                        new IsEqualTo("category", "book"),
+                        new Or(new IsGreaterThan("price", 10.0), new IsLessThan("price", 5.0)))))
                 .isEqualTo("(metadata.category = 'book' AND (metadata.price > 10.0 OR metadata.price < 5.0))");
     }
 
     @Test
     void testStringEscaping() {
-        assertThat(mapper.map(new IsEqualTo("name", "O'Brien")))
-                .isEqualTo("metadata.name = 'O\\'Brien'");
+        assertThat(mapper.map(new IsEqualTo("name", "O'Brien"))).isEqualTo("metadata.name = 'O\\'Brien'");
     }
 
     @Test

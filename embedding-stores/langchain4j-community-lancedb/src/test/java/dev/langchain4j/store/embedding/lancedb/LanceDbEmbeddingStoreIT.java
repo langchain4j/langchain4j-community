@@ -29,7 +29,8 @@ class LanceDbEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     static void beforeAll() throws IOException {
         tempDir = Files.createTempDirectory("lancedb-it");
         Map<String, String> config = new HashMap<>();
-        config.put("uri", tempDir.toString());
+        config.put("root", tempDir.toAbsolutePath().toString());
+        config.put("uri", tempDir.toUri().toString());
         namespace = LanceNamespace.connect("dir", config, new RootAllocator());
     }
 
@@ -84,13 +85,11 @@ class LanceDbEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         if (path == null || !Files.exists(path)) {
             return;
         }
-        Files.walk(path)
-                .sorted(java.util.Comparator.reverseOrder())
-                .forEach(p -> {
-                    try {
-                        Files.delete(p);
-                    } catch (IOException ignored) {
-                    }
-                });
+        Files.walk(path).sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+            try {
+                Files.delete(p);
+            } catch (IOException ignored) {
+            }
+        });
     }
 }
