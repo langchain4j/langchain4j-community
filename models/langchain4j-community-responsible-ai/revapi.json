@@ -1,0 +1,14 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "justification": "New module using langchain4j-core and slf4j-api types as public API - these are external dependency types (ModerationModel, ModerationRequest, ModerationResponse, ModelProvider, ModerationModelListener, HttpClientBuilder, Logger), not this module's own API surface"
+        }
+      ]
+    }
+  }
+]
