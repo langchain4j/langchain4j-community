@@ -7,6 +7,7 @@ import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenChatRequestParameters;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.community.model.dashscope.QwenLanguageModel;
+import dev.langchain4j.community.model.dashscope.QwenScoringModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenTokenCountEstimator;
@@ -259,6 +260,20 @@ public class DashScopeAutoConfiguration {
                 .apiKey(embeddingModelProperties.getApiKey())
                 .modelName(embeddingModelProperties.getModelName())
                 .dimension(embeddingModelProperties.getDimension())
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(DashScopeProperties.PREFIX + ".scoring-model.api-key")
+    QwenScoringModel qwenScoringModel(DashScopeProperties properties) {
+        DashScopeScoringModelProperties scoringModelProperties = properties.getScoringModel();
+        return QwenScoringModel.builder()
+                .baseUrl(scoringModelProperties.getBaseUrl())
+                .apiKey(scoringModelProperties.getApiKey())
+                .modelName(scoringModelProperties.getModelName())
+                .topN(scoringModelProperties.getTopN())
+                .returnDocuments(scoringModelProperties.getReturnDocuments())
+                .instruct(scoringModelProperties.getInstruct())
                 .build();
     }
 
