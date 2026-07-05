@@ -111,6 +111,8 @@ public class QwenModelName {
 
     public static final String TEXT_EMBEDDING_V3 = "text-embedding-v3"; // Support 50+ languages
 
+    public static final String TEXT_EMBEDDING_V4 = "text-embedding-v4";
+
     // Use with QwenScoringModel
     public static final String GTE_RERANK_V2 =
             "gte-rerank-v2"; // gte-rerank-v2, large-scale text reranking (up to 30k documents)
