@@ -9,8 +9,11 @@ import dev.langchain4j.community.model.dashscope.QwenChatRequestParameters;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.community.model.dashscope.QwenLanguageModel;
 import dev.langchain4j.community.model.dashscope.QwenModelName;
+import dev.langchain4j.community.model.dashscope.QwenScoringModel;
+import dev.langchain4j.community.model.dashscope.QwenScoringResponseMetadata;
 import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.community.model.dashscope.QwenStreamingLanguageModel;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -23,6 +26,8 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.scoring.ScoringModel;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -155,6 +160,43 @@ class DashScopeAutoConfigurationIT {
                     assertThat(embeddingModel.embed("hi").content().dimension()).isEqualTo(512);
 
                     assertThat(context.getBean(QwenEmbeddingModel.class)).isSameAs(embeddingModel);
+                });
+    }
+
+    @Test
+    void should_provide_scoring_model() {
+        contextRunner
+                .withPropertyValues(
+                        "langchain4j.community.dashscope.scoring-model.api-key=" + API_KEY,
+                        "langchain4j.community.dashscope.scoring-model.model-name=" + QwenModelName.QWEN3_RERANK,
+                        "langchain4j.community.dashscope.scoring-model.return-documents=true")
+                .run(context -> {
+                    ScoringModel scoringModel = context.getBean(ScoringModel.class);
+                    assertThat(scoringModel).isInstanceOf(QwenScoringModel.class);
+
+                    TextSegment catSegment = TextSegment.from("The Maine Coon is a large domesticated cat breed.");
+                    TextSegment dogSegment = TextSegment.from(
+                            "The sweet-faced, lovable Labrador Retriever is one of America's most popular dog breeds, year after year.");
+                    Response<List<Double>> response =
+                            scoringModel.scoreAll(List.of(catSegment, dogSegment), "tell me about dogs");
+
+                    assertThat(response.content()).hasSize(2);
+                    assertThat(response.content().get(0))
+                            .isLessThan(response.content().get(1));
+
+                    QwenScoringResponseMetadata metadata = (QwenScoringResponseMetadata)
+                            response.metadata().get(QwenScoringResponseMetadata.DASHSCOPE_RESPONSE);
+                    assertThat(metadata).isNotNull();
+                    assertThat(metadata.requestId()).isNotBlank();
+                    assertThat(metadata.results()).hasSize(2);
+                    assertThat(metadata.results()).allSatisfy(result -> {
+                        assertThat(result.document()).isNotNull();
+                        assertThat(result.document()).containsKey("text");
+                        assertThat(result.index()).isNotNull();
+                        assertThat(result.relevanceScore()).isNotNull();
+                    });
+
+                    assertThat(context.getBean(QwenScoringModel.class)).isSameAs(scoringModel);
                 });
     }
 

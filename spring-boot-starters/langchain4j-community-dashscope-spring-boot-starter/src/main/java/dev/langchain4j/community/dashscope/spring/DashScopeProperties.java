@@ -24,6 +24,9 @@ public class DashScopeProperties {
     private DashScopeEmbeddingModelProperties embeddingModel;
 
     @NestedConfigurationProperty
+    private DashScopeScoringModelProperties scoringModel;
+
+    @NestedConfigurationProperty
     private DashScopeTokenizerProperties tokenizer;
 
     public DashScopeChatModelProperties getChatModel() {
@@ -64,6 +67,14 @@ public class DashScopeProperties {
 
     public void setEmbeddingModel(DashScopeEmbeddingModelProperties embeddingModel) {
         this.embeddingModel = embeddingModel;
+    }
+
+    public DashScopeScoringModelProperties getScoringModel() {
+        return scoringModel;
+    }
+
+    public void setScoringModel(DashScopeScoringModelProperties scoringModel) {
+        this.scoringModel = scoringModel;
     }
 
     public DashScopeTokenizerProperties getTokenizer() {
