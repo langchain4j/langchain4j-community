@@ -44,7 +44,8 @@ class RedisEmbeddingStoreTest {
                 .indexName(INDEX_NAME)
                 .prefix(PREFIX)
                 .dimension(384)
-                .metadataConfig(Map.of("type", TagField.of(JSON_PATH_PREFIX + "type").as("type")))
+                .metadataConfig(
+                        Map.of("type", TagField.of(JSON_PATH_PREFIX + "type").as("type")))
                 .build();
     }
 

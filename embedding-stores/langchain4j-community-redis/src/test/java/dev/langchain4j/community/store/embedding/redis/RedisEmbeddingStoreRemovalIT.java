@@ -4,6 +4,9 @@ import static com.redis.testcontainers.RedisStackContainer.DEFAULT_IMAGE_NAME;
 import static com.redis.testcontainers.RedisStackContainer.DEFAULT_TAG;
 import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_PATH_PREFIX;
 import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.redis.testcontainers.RedisContainer;
 import dev.langchain4j.data.embedding.Embedding;
@@ -20,10 +23,6 @@ import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.search.schemafields.TagField;
-
-import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
-import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
-import static org.assertj.core.api.Assertions.assertThat;
 
 class RedisEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
 
