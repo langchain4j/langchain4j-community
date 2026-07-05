@@ -70,6 +70,6 @@ class RedisEmbeddingStoreTest {
 
         store.removeAll(metadataKey("type").isEqualTo("a"));
 
-        verify(client).del(PREFIX + "doc-1");
+        verify(client).del(new String[] {PREFIX + "doc-1"});
     }
 }
