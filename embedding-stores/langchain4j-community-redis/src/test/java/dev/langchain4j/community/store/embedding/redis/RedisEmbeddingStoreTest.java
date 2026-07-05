@@ -3,7 +3,6 @@ package dev.langchain4j.community.store.embedding.redis;
 import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_PATH_PREFIX;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -21,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.search.Document;
-import redis.clients.jedis.search.Query;
 import redis.clients.jedis.search.SearchResult;
 import redis.clients.jedis.search.schemafields.TagField;
 
@@ -53,7 +51,7 @@ class RedisEmbeddingStoreTest {
     void should_not_call_del_when_remove_all_by_filter_matches_nothing() {
         SearchResult searchResult = mock(SearchResult.class);
         when(searchResult.getDocuments()).thenReturn(List.of());
-        when(client.ftSearch(eq(INDEX_NAME), any(Query.class))).thenReturn(searchResult);
+        when(client.ftSearch(eq(INDEX_NAME), anyString())).thenReturn(searchResult);
 
         assertThatCode(() -> store.removeAll(metadataKey("type").isEqualTo("nonexistent")))
                 .doesNotThrowAnyException();
@@ -68,7 +66,7 @@ class RedisEmbeddingStoreTest {
 
         SearchResult searchResult = mock(SearchResult.class);
         when(searchResult.getDocuments()).thenReturn(List.of(document));
-        when(client.ftSearch(eq(INDEX_NAME), any(Query.class))).thenReturn(searchResult);
+        when(client.ftSearch(eq(INDEX_NAME), anyString())).thenReturn(searchResult);
 
         store.removeAll(metadataKey("type").isEqualTo("a"));
 
