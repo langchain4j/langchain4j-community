@@ -44,6 +44,7 @@
         <module>models/langchain4j-community-twelvelabs</module>
         <module>models/langchain4j-community-model-router</module>
         <module>models/langchain4j-community-model-registry</module>
+        <module>models/langchain4j-community-responsible-ai</module>
 
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
