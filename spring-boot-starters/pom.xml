@@ -36,6 +36,7 @@
         <module>langchain4j-community-zhipu-ai-spring-boot-starter</module>
         <module>langchain4j-community-cohere-spring-boot-starter</module>
         <module>langchain4j-community-cockroachdb-spring-boot-starter</module>
+        <module>langchain4j-community-s3-vectors-spring-boot-starter</module>
     </modules>
 
     <properties>
