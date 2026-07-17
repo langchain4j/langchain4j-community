@@ -1,5 +1,15 @@
 package dev.langchain4j.community.model.zhipu.image;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
+@JsonInclude(NON_NULL)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ImageRequest {
     private String prompt;
     private String model;
@@ -44,8 +54,7 @@ public class ImageRequest {
         private String model;
         private String userId;
 
-        ImageRequestBuilder() {
-        }
+        ImageRequestBuilder() {}
 
         public ImageRequestBuilder prompt(String prompt) {
             this.prompt = prompt;
@@ -67,7 +76,8 @@ public class ImageRequest {
         }
 
         public String toString() {
-            return "ImageRequest.ImageRequestBuilder(prompt=" + this.prompt + ", model=" + this.model + ", userId=" + this.userId + ")";
+            return "ImageRequest.ImageRequestBuilder(prompt=" + this.prompt + ", model=" + this.model + ", userId="
+                    + this.userId + ")";
         }
     }
 }

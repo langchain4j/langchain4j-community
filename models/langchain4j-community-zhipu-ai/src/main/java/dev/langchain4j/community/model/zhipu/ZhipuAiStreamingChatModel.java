@@ -1,8 +1,9 @@
 package dev.langchain4j.community.model.zhipu;
 
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toToolChoice;
 import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toTools;
 import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toZhipuAiMessages;
-import static dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode.AUTO;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toZhipuResponseFormat;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
@@ -12,12 +13,14 @@ import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
+import dev.langchain4j.community.model.zhipu.chat.Thinking;
 import dev.langchain4j.community.model.zhipu.spi.ZhipuAiStreamingChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.time.Duration;
 import java.util.List;
@@ -26,7 +29,7 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
 
     private final ZhipuAiClient client;
     private final List<ChatModelListener> listeners;
-    private final ChatRequestParameters defaultRequestParameters;
+    private final ZhipuAiChatRequestParameters defaultRequestParameters;
 
     public ZhipuAiStreamingChatModel(
             String baseUrl,
@@ -34,16 +37,21 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
             Double temperature,
             Double topP,
             List<String> stops,
+            ResponseFormat responseFormat,
             String model,
             Integer maxToken,
             Boolean logRequests,
             Boolean logResponses,
             List<ChatModelListener> listeners,
+            Boolean doSample,
+            Boolean toolStream,
+            Thinking thinking,
             Duration callTimeout,
             Duration connectTimeout,
             Duration readTimeout,
             Duration writeTimeout) {
         this.listeners = copy(listeners);
+
         this.client = ZhipuAiClient.builder()
                 .baseUrl(getOrDefault(baseUrl, "https://open.bigmodel.cn/"))
                 .apiKey(apiKey)
@@ -54,17 +62,22 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
                 .logRequests(getOrDefault(logRequests, false))
                 .logResponses(getOrDefault(logResponses, false))
                 .build();
-        this.defaultRequestParameters = ChatRequestParameters.builder()
+
+        this.defaultRequestParameters = ZhipuAiChatRequestParameters.builder()
+                .modelName(ensureNotNull(model, "model"))
                 .temperature(temperature)
                 .topP(topP)
                 .stopSequences(stops)
-                .modelName(ensureNotNull(model, "model"))
-                .maxOutputTokens(getOrDefault(maxToken, 512))
+                .responseFormat(responseFormat)
+                .maxOutputTokens(maxToken)
+                .doSample(doSample)
+                .toolStream(toolStream)
+                .thinking(thinking)
                 .build();
     }
 
     @Override
-    public ChatRequestParameters defaultRequestParameters() {
+    public ZhipuAiChatRequestParameters defaultRequestParameters() {
         return defaultRequestParameters;
     }
 
@@ -84,13 +97,20 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
                 .messages(toZhipuAiMessages(messages))
                 .maxTokens(parameters.maxOutputTokens())
                 .stop(parameters.stopSequences())
+                .responseFormat(toZhipuResponseFormat(request.responseFormat()))
                 .stream(true)
                 .temperature(parameters.temperature())
-                .topP(parameters.topP())
-                .toolChoice(AUTO);
+                .topP(parameters.topP());
+
+        if (parameters instanceof ZhipuAiChatRequestParameters zp) {
+            requestBuilder.doSample(zp.doSample());
+            requestBuilder.toolStream(zp.toolStream());
+            requestBuilder.thinking(zp.thinking());
+        }
 
         if (!isNullOrEmpty(toolSpecifications)) {
             requestBuilder.tools(toTools(toolSpecifications));
+            requestBuilder.toolChoice(toToolChoice(parameters.toolChoice()));
         }
 
         ChatCompletionRequest completionRequest = requestBuilder.build();
@@ -113,11 +133,15 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
         private Double temperature;
         private Double topP;
         private List<String> stops;
+        private ResponseFormat responseFormat;
         private String model;
         private Integer maxToken;
         private Boolean logRequests;
         private Boolean logResponses;
         private List<ChatModelListener> listeners;
+        private Boolean doSample;
+        private Boolean toolStream;
+        private Thinking thinking;
         private Duration callTimeout;
         private Duration connectTimeout;
         private Duration readTimeout;
@@ -158,6 +182,11 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
+        public ZhipuAiStreamingChatModelBuilder responseFormat(ResponseFormat responseFormat) {
+            this.responseFormat = responseFormat;
+            return this;
+        }
+
         public ZhipuAiStreamingChatModelBuilder maxToken(Integer maxToken) {
             this.maxToken = maxToken;
             return this;
@@ -175,6 +204,21 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
 
         public ZhipuAiStreamingChatModelBuilder listeners(List<ChatModelListener> listeners) {
             this.listeners = listeners;
+            return this;
+        }
+
+        public ZhipuAiStreamingChatModelBuilder doSample(Boolean doSample) {
+            this.doSample = doSample;
+            return this;
+        }
+
+        public ZhipuAiStreamingChatModelBuilder toolStream(Boolean toolStream) {
+            this.toolStream = toolStream;
+            return this;
+        }
+
+        public ZhipuAiStreamingChatModelBuilder thinking(Thinking thinking) {
+            this.thinking = thinking;
             return this;
         }
 
@@ -213,11 +257,15 @@ public class ZhipuAiStreamingChatModel implements StreamingChatModel {
                     this.temperature,
                     this.topP,
                     this.stops,
+                    this.responseFormat,
                     this.model,
                     this.maxToken,
                     this.logRequests,
                     this.logResponses,
                     this.listeners,
+                    this.doSample,
+                    this.toolStream,
+                    this.thinking,
                     this.callTimeout,
                     this.connectTimeout,
                     this.readTimeout,

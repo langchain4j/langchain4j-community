@@ -2,6 +2,7 @@ package dev.langchain4j.community.model.zhipu;
 
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
@@ -20,8 +21,10 @@ import dev.langchain4j.community.model.zhipu.chat.Function;
 import dev.langchain4j.community.model.zhipu.chat.FunctionCall;
 import dev.langchain4j.community.model.zhipu.chat.Message;
 import dev.langchain4j.community.model.zhipu.chat.Parameters;
+import dev.langchain4j.community.model.zhipu.chat.ResponseFormat;
 import dev.langchain4j.community.model.zhipu.chat.Tool;
 import dev.langchain4j.community.model.zhipu.chat.ToolCall;
+import dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode;
 import dev.langchain4j.community.model.zhipu.chat.ToolMessage;
 import dev.langchain4j.community.model.zhipu.chat.ToolType;
 import dev.langchain4j.community.model.zhipu.embedding.EmbeddingResponse;
@@ -37,12 +40,13 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.exception.HttpException;
+import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.internal.Utils;
+import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -88,6 +92,32 @@ class InternalZhipuAiHelper {
         return messages.stream().map(InternalZhipuAiHelper::toZhipuAiMessage).collect(Collectors.toList());
     }
 
+    static ResponseFormat toZhipuResponseFormat(dev.langchain4j.model.chat.request.ResponseFormat responseFormat) {
+        if (responseFormat == null) {
+            return null;
+        }
+
+        if (responseFormat.jsonSchema() != null) {
+            throw new UnsupportedFeatureException("JSON response format with json schema does not support.");
+        }
+
+        return ResponseFormat.builder()
+                .type(responseFormat.type().toString().toLowerCase())
+                .build();
+    }
+
+    static ToolChoiceMode toToolChoice(ToolChoice toolChoice) {
+        if (toolChoice == null) {
+            return null;
+        }
+
+        if (ToolChoice.AUTO != toolChoice) {
+            throw new UnsupportedFeatureException("ToolChoice." + toolChoice.name() + " does not support");
+        }
+
+        return ToolChoiceMode.AUTO;
+    }
+
     private static Message toZhipuAiMessage(ChatMessage message) {
 
         if (message instanceof SystemMessage systemMessage) {
@@ -107,8 +137,8 @@ class InternalZhipuAiHelper {
                             .text(textContent.text())
                             .build());
                 }
-                if (content instanceof ImageContent) {
-                    Image image = ((ImageContent) content).image();
+                if (content instanceof ImageContent imageContent) {
+                    Image image = imageContent.image();
                     contents.add(dev.langchain4j.community.model.zhipu.chat.ImageContent.builder()
                             .imageUrl(dev.langchain4j.community.model.zhipu.chat.Image.builder()
                                     .url(image.url() != null ? image.url().toString() : image.base64Data())
@@ -121,7 +151,10 @@ class InternalZhipuAiHelper {
 
         if (message instanceof AiMessage aiMessage) {
             if (!aiMessage.hasToolExecutionRequests()) {
-                return AssistantMessage.builder().content(aiMessage.text()).build();
+                return AssistantMessage.builder()
+                        .content(aiMessage.text())
+                        .reasoningContent(aiMessage.thinking())
+                        .build();
             }
             List<ToolCall> toolCallArrayList = new ArrayList<>();
             for (ToolExecutionRequest executionRequest : aiMessage.toolExecutionRequests()) {
@@ -136,12 +169,38 @@ class InternalZhipuAiHelper {
             }
             return AssistantMessage.builder()
                     .content(aiMessage.text())
+                    .reasoningContent(aiMessage.thinking())
                     .toolCalls(toolCallArrayList)
                     .build();
         }
 
         if (message instanceof ToolExecutionResultMessage resultMessage) {
-            return ToolMessage.builder().content(resultMessage.text()).build();
+            if (resultMessage.hasSingleText()) {
+                return ToolMessage.builder()
+                        .toolCallId(resultMessage.id())
+                        .content(resultMessage.text())
+                        .build();
+            }
+            // ZhipuAI does not support multi-modal content (e.g., image) in tool results
+            boolean hasNonTextContent = resultMessage.contents().stream().anyMatch(c -> !(c instanceof TextContent));
+            if (hasNonTextContent) {
+                throw new UnsupportedFeatureException(
+                        "ZhipuAI does not support non-text content in tool execution results. "
+                                + "Tool '" + resultMessage.toolName() + "' returned content types: "
+                                + resultMessage.contents().stream()
+                                        .map(c -> c.getClass().getSimpleName())
+                                        .toList());
+            }
+            // Multi-text content without images - extract text content
+            String textContent = resultMessage.contents().stream()
+                    .filter(c -> c instanceof TextContent)
+                    .map(c -> ((TextContent) c).text())
+                    .findFirst()
+                    .orElse(null);
+            return ToolMessage.builder()
+                    .toolCallId(resultMessage.id())
+                    .content(textContent)
+                    .build();
         }
 
         throw illegalArgument("Unknown message type: " + message.type());
@@ -149,11 +208,20 @@ class InternalZhipuAiHelper {
 
     static AiMessage aiMessageFrom(ChatCompletionResponse response) {
         AssistantMessage message = response.getChoices().get(0).getMessage();
+        String text = message.getContent();
+        String reasoningContent = message.getReasoningContent();
+
+        AiMessage.Builder aiMessageBuilder = AiMessage.builder()
+                .text(isNullOrBlank(text) ? null : text)
+                .thinking(isNullOrBlank(reasoningContent) ? null : reasoningContent);
+
         if (isNullOrEmpty(message.getToolCalls())) {
-            return AiMessage.from(message.getContent());
+            return aiMessageBuilder.build();
         }
 
-        return AiMessage.from(specificationsFrom(message.getToolCalls()));
+        return aiMessageBuilder
+                .toolExecutionRequests(specificationsFrom(message.getToolCalls()))
+                .build();
     }
 
     static List<ToolExecutionRequest> specificationsFrom(List<ToolCall> toolCalls) {
@@ -187,13 +255,6 @@ class InternalZhipuAiHelper {
         }
         return new TokenUsage(
                 zhipuUsage.getPromptTokens(), zhipuUsage.getCompletionTokens(), zhipuUsage.getTotalTokens());
-    }
-
-    static ChatCompletionResponse toChatErrorResponse(Throwable throwable) {
-        return ChatCompletionResponse.builder()
-                .choices(Collections.singletonList(toChatErrorChoice(throwable)))
-                .usage(Usage.builder().build())
-                .build();
     }
 
     /**
@@ -236,16 +297,12 @@ class InternalZhipuAiHelper {
     }
 
     static String getFinishReason(Object o) {
-        if (o instanceof String) {
+        if (o instanceof String errCode && "1301".equals(errCode)) {
             // 1301: 系统检测到输入或生成内容可能包含不安全或敏感内容，请您避免输入易产生敏感内容的提示语，感谢您的配合
-            if ("1301".equals(o)) {
-                return FINISH_REASON_SENSITIVE;
-            }
+            return FINISH_REASON_SENSITIVE;
         }
-        if (o instanceof ZhipuAiException exception) {
-            if ("1301".equals(exception.getCode())) {
-                return FINISH_REASON_SENSITIVE;
-            }
+        if (o instanceof ZhipuAiException exception && "1301".equals(exception.getCode())) {
+            return FINISH_REASON_SENSITIVE;
         }
         return FINISH_REASON_OTHER;
     }

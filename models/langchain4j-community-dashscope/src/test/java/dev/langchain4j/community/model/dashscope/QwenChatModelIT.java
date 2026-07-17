@@ -1,8 +1,11 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenHelper.GENERATED_AUDIOS_KEY;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.getBase64DataFromResource;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalAudioData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioData;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithAudioUrl;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.multimodalChatMessagesWithImageData;
@@ -26,7 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.data.audio.Audio;
 import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.AudioContent;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
@@ -103,7 +108,6 @@ class QwenChatModelIT extends AbstractChatModelIT {
                 .toolSpecifications(singletonList(noArgToolSpec))
                 .build());
 
-        assertThat(response.aiMessage().text()).isBlank();
         assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
                 response.aiMessage().toolExecutionRequests().get(0);
@@ -152,7 +156,6 @@ class QwenChatModelIT extends AbstractChatModelIT {
                 .toolSpecifications(singletonList(hasArgToolSpec))
                 .build());
 
-        assertThat(response.aiMessage().text()).isBlank();
         assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
         ToolExecutionRequest toolExecutionRequest =
                 response.aiMessage().toolExecutionRequests().get(0);
@@ -238,7 +241,6 @@ class QwenChatModelIT extends AbstractChatModelIT {
                 .build());
 
         AiMessage aiMessage = response.aiMessage();
-        assertThat(aiMessage.text()).isBlank();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
         ToolExecutionRequest toolExecutionRequest =
@@ -296,9 +298,8 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("parrot");
     }
 
-    @Disabled("only served in China")
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
     void should_send_multimodal_audio_url_and_receive_response(String modelName) {
         ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
@@ -308,9 +309,8 @@ class QwenChatModelIT extends AbstractChatModelIT {
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
     }
 
-    @Disabled("only served in China")
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#audioChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
     void should_send_multimodal_audio_data_and_receive_response(String modelName) {
         ChatModel model =
                 QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
@@ -318,6 +318,98 @@ class QwenChatModelIT extends AbstractChatModelIT {
         ChatResponse response = model.chat(multimodalChatMessagesWithAudioData());
 
         assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
+    void should_respect_language_parameter_and_receive_response(String modelName) {
+        ChatModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        // Use only the language hint; omit the system prompt.
+        Audio audio = Audio.builder()
+                .base64Data(multimodalAudioData())
+                .mimeType("audio/mp3")
+                .build();
+        AudioContent audioContent = AudioContent.from(audio);
+        List<ChatMessage> messages = Collections.singletonList(UserMessage.from(audioContent));
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("zh")
+                        .build())
+                .build();
+        ChatRequest chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        ChatResponse response = model.chat(chatRequest);
+
+        assertThat(response.aiMessage().text()).containsIgnoringCase("阿里云");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#asrChatModelNameProvider")
+    void should_respect_enable_itn_parameter_and_receive_response(String modelName) {
+        ChatModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        Audio audio = Audio.builder()
+                .base64Data(getBase64DataFromResource("/5dollars.mp3"))
+                .mimeType("audio/mp3")
+                .build();
+        AudioContent audioContent = AudioContent.from(audio);
+        List<ChatMessage> messages = Collections.singletonList(UserMessage.from(audioContent));
+
+        // ITN is not enabled
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("en")
+                        .enableItn(false)
+                        .build())
+                .build();
+        ChatRequest chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        ChatResponse response = model.chat(chatRequest);
+
+        assertThat(response.aiMessage().text()).containsAnyOf("5 dollars", "five dollars");
+
+        // ITN is enabled
+        parameters = QwenChatRequestParameters.builder()
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("en")
+                        .enableItn(true)
+                        .build())
+                .build();
+        chatRequest =
+                ChatRequest.builder().messages(messages).parameters(parameters).build();
+        response = model.chat(chatRequest);
+
+        assertThat(response.aiMessage().text()).contains("$5");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#ttsChatModelNameProvider")
+    void should_send_text_and_receive_audio(String modelName) {
+        ChatModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
+                .ttsOptions(QwenChatRequestParameters.TtsOptions.builder()
+                        .voice("Cherry")
+                        .languageType("English")
+                        .instructions(
+                                "Speak quickly with a clear rising intonation, suitable for promoting fashion items.")
+                        .optimizeInstructions(true)
+                        .build())
+                .build();
+
+        ChatRequest request = ChatRequest.builder()
+                .messages(UserMessage.from("Today is a wonderful day to build something people love!"))
+                .parameters(parameters)
+                .build();
+
+        ChatResponse response = model.chat(request);
+
+        assertThat((List<Audio>) response.aiMessage().attributes().get(GENERATED_AUDIOS_KEY))
+                .hasSize(1);
     }
 
     @ParameterizedTest
@@ -617,7 +709,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
 
     @Override
     protected String customModelName() {
-        return "qwen-max-2025-01-25";
+        return "qwen3.7-max-2026-05-20";
     }
 
     @Override

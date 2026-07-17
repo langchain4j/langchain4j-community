@@ -169,6 +169,9 @@ public class RedisEmbeddingStore implements EmbeddingStore<TextSegment> {
         SearchResult results = client.ftSearch(schema.getIndexName(), filterMapper.mapToFilter(filter));
         String[] keys = results.getDocuments().stream().map(Document::getId).toArray(String[]::new);
 
+        if (keys.length == 0) {
+            return;
+        }
         client.del(keys);
     }
 

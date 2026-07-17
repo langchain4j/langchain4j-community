@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-community</artifactId>
+        <version>1.18.0-beta28-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>langchain4j-community-hazelcast-enterprise</artifactId>
+    <name>LangChain4j :: Community :: Integration :: Hazelcast Enterprise</name>
+    <description>Hazelcast Enterprise integration: an EmbeddingStore backed by a VectorCollection and a
+        ChatMemoryStore backed by a CPMap. Also re-exports langchain4j-community-hazelcast so the
+        IMap-based HazelcastChatMemoryStore is available from this single dependency.
+        Requires the Hazelcast Enterprise repository and a valid license key.</description>
+
+    <properties>
+        <hazelcast.version>5.7.0</hazelcast.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
+            <version>${langchain4j.core.version}</version>
+        </dependency>
+
+        <!-- Re-exported so Enterprise users also get the IMap-based HazelcastChatMemoryStore -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-hazelcast</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast-enterprise</artifactId>
+            <version>${hazelcast.version}</version>
+        </dependency>
+
+        <!-- test dependencies -->
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
+            <version>${langchain4j.core.version}</version>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2-q</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- junit-jupiter-params is used by parameterized tests inherited from EmbeddingStore*IT -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <repositories>
+        <!-- Hazelcast Enterprise repository (required for com.hazelcast:hazelcast-enterprise) -->
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>hazelcast-release</id>
+            <name>Hazelcast Release Repository</name>
+            <url>https://repository.hazelcast.com/release/</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <systemProperties>
+                        <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <configuration>
+                    <usedDependencies>
+                        <!-- re-exported on purpose so Enterprise consumers get the IMap chat store -->
+                        <dependency>dev.langchain4j:langchain4j-community-hazelcast</dependency>
+                    </usedDependencies>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

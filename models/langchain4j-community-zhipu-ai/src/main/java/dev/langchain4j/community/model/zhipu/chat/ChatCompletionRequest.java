@@ -1,18 +1,16 @@
 package dev.langchain4j.community.model.zhipu.chat;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel.GLM_4_FLASH;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.ArrayList;
+import java.util.List;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
@@ -21,7 +19,7 @@ public final class ChatCompletionRequest {
     private final String model;
     private final List<Message> messages;
     private final String requestId;
-    private final String doSample;
+    private final Boolean doSample;
     private final Boolean stream;
     private final Double temperature;
     private final Double topP;
@@ -29,6 +27,9 @@ public final class ChatCompletionRequest {
     private final List<String> stop;
     private final List<Tool> tools;
     private final Object toolChoice;
+    private final Object responseFormat;
+    private final Boolean toolStream;
+    private final Thinking thinking;
 
     private ChatCompletionRequest(Builder builder) {
         this.model = builder.model;
@@ -42,6 +43,9 @@ public final class ChatCompletionRequest {
         this.doSample = builder.doSample;
         this.tools = builder.tools;
         this.toolChoice = builder.toolChoice;
+        this.responseFormat = builder.responseFormat;
+        this.toolStream = builder.toolStream;
+        this.thinking = builder.thinking;
     }
 
     public static Builder builder() {
@@ -60,7 +64,7 @@ public final class ChatCompletionRequest {
         return requestId;
     }
 
-    public String getDoSample() {
+    public Boolean getDoSample() {
         return doSample;
     }
 
@@ -92,6 +96,18 @@ public final class ChatCompletionRequest {
         return toolChoice;
     }
 
+    public Object getResponseFormat() {
+        return responseFormat;
+    }
+
+    public Boolean getToolStream() {
+        return toolStream;
+    }
+
+    public Thinking getThinking() {
+        return thinking;
+    }
+
     public static final class Builder {
 
         private String model = GLM_4_FLASH.toString();
@@ -102,27 +118,14 @@ public final class ChatCompletionRequest {
         private Boolean stream;
         private List<String> stop;
         private Integer maxTokens;
-        private String doSample;
+        private Boolean doSample;
         private List<Tool> tools;
+        private Object responseFormat;
         private Object toolChoice;
+        private Boolean toolStream;
+        private Thinking thinking;
 
-        private Builder() {
-        }
-
-        public Builder from(ChatCompletionRequest instance) {
-            model(instance.model);
-            messages(instance.messages);
-            temperature(instance.temperature);
-            topP(instance.topP);
-            requestId(instance.requestId);
-            stream(instance.stream);
-            stop(instance.stop);
-            maxTokens(instance.maxTokens);
-            doSample(instance.doSample);
-            tools(instance.tools);
-            toolChoice(instance.toolChoice);
-            return this;
-        }
+        private Builder() {}
 
         public Builder model(ChatCompletionModel model) {
             return model(model.toString());
@@ -212,7 +215,7 @@ public final class ChatCompletionRequest {
             return this;
         }
 
-        public Builder doSample(String doSample) {
+        public Builder doSample(Boolean doSample) {
             this.doSample = doSample;
             return this;
         }
@@ -239,6 +242,32 @@ public final class ChatCompletionRequest {
 
         public Builder toolChoice(Object toolChoice) {
             this.toolChoice = toolChoice;
+            return this;
+        }
+
+        public Builder responseFormat(String responseFormat) {
+            // Only for text response format
+            if (!"text".equals(responseFormat)) {
+                throw new RuntimeException(
+                        "ResponseFormat only supports 'text' string. Please use '{'type': 'other_value'}' for other values");
+            }
+
+            this.responseFormat = responseFormat;
+            return this;
+        }
+
+        public Builder responseFormat(ResponseFormat responseFormat) {
+            this.responseFormat = responseFormat;
+            return this;
+        }
+
+        public Builder toolStream(Boolean toolStream) {
+            this.toolStream = toolStream;
+            return this;
+        }
+
+        public Builder thinking(Thinking thinking) {
+            this.thinking = thinking;
             return this;
         }
 

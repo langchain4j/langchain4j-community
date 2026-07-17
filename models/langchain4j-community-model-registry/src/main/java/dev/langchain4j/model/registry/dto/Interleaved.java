@@ -1,0 +1,52 @@
+package dev.langchain4j.model.registry.dto;
+
+import java.util.Objects;
+
+/**
+ * Represents interleaved reasoning configuration for a model.
+ */
+public class Interleaved {
+    private String field;
+
+    public Interleaved() {}
+
+    public Interleaved(String field) {
+        this.field = field;
+    }
+
+    /**
+     * Gets the field name for interleaved reasoning configuration.
+     *
+     * @return the field name
+     */
+    public String getField() {
+        return field;
+    }
+
+    /**
+     * Sets the field name for interleaved reasoning configuration.
+     *
+     * @param field the field name to set
+     */
+    public void setField(String field) {
+        this.field = field;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Interleaved that = (Interleaved) o;
+        return Objects.equals(field, that.field);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(field);
+    }
+
+    @Override
+    public String toString() {
+        return "Interleaved{" + "field='" + field + '\'' + '}';
+    }
+}

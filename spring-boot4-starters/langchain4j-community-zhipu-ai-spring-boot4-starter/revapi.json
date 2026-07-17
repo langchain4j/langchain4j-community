@@ -1,0 +1,24 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "justification": "Using langchain4j core types (Thinking, ResponseFormat) as configuration properties - these are external dependency types, not this module's own API surface"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "class": "dev.langchain4j.community.model.zhipu.chat.Thinking",
+          "justification": "Thinking type is used in ZhipuAiChatRequestParameters which is part of internal implementation"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "class": "dev.langchain4j.model.chat.request.ResponseFormat",
+          "justification": "ResponseFormat type is used for response format configuration in chat model properties"
+        }
+      ]
+    }
+  }
+]

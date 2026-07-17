@@ -15,7 +15,7 @@ public class ZhipuAiStreamingChatModelListenerIT extends AbstractStreamingChatMo
     @Override
     protected StreamingChatModel createModel(ChatModelListener listener) {
         return ZhipuAiStreamingChatModel.builder()
-                .model(ChatCompletionModel.GLM_4_FLASH)
+                .model(modelName())
                 .apiKey(System.getenv("ZHIPU_API_KEY"))
                 .logRequests(true)
                 .logResponses(true)
@@ -28,7 +28,7 @@ public class ZhipuAiStreamingChatModelListenerIT extends AbstractStreamingChatMo
 
     @Override
     protected String modelName() {
-        return ChatCompletionModel.GLM_4_FLASH.toString();
+        return ChatCompletionModel.GLM_4_7.toString();
     }
 
     @Override

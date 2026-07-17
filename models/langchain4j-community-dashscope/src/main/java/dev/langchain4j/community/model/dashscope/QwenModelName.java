@@ -60,6 +60,10 @@ public class QwenModelName {
     public static final String QWEN3_MAX = "qwen3-max"; // Qwen max model, stable version (v3)
     public static final String QWEN3_5_PLUS = "qwen3.5-plus"; // Qwen plus model, stable version (v3.5)
     public static final String QWEN3_5_FLASH = "qwen3.5-flash"; // Qwen flash model, stable version (v3.5)
+    public static final String QWEN3_6_PLUS = "qwen3.6-plus"; // Qwen plus model, stable version (v3.6)
+    public static final String QWEN3_6_FLASH = "qwen3.6-flash"; // Qwen flash model, stable version (v3.6)
+    public static final String QWEN3_7_PLUS = "qwen3.7-plus"; // Qwen plus model, stable version (v3.7)
+    public static final String QWEN3_7_MAX = "qwen3.7-max"; // Qwen max model, stable version (v3.7)
     public static final String QWEN_VL_PLUS =
             "qwen-vl-plus"; // Qwen multi-modal model, supports image and text information, stable version
     public static final String QWEN_VL_PLUS_LATEST =
@@ -70,9 +74,18 @@ public class QwenModelName {
             "qwen-vl-max-latest"; // Qwen multi-modal model, offers optimal performance, stable version
     public static final String QWEN3_VL_PLUS = "qwen3-vl-plus"; // Qwen3 multi-modal model v3 (plus)
     public static final String QWEN3_VL_FLASH = "qwen3-vl-flash"; // Qwen3 multi-modal model v3 (flash)
+
+    @Deprecated
     public static final String QWEN_AUDIO_TURBO = "qwen-audio-turbo"; // Qwen audio understanding model, stable version
+
+    @Deprecated
     public static final String QWEN_AUDIO_TURBO_LATEST =
             "qwen-audio-turbo-latest"; // Qwen audio understanding model, latest version
+
+    public static final String QWEN3_ASR_FLASH = "qwen3-asr-flash"; // Qwen3 ASR model (flash)
+    public static final String QWEN3_TTS_FLASH = "qwen3-tts-flash"; // Qwen3 TTS model (flash)
+    public static final String QWEN3_TTS_INSTRUCT_FLASH =
+            "qwen3-tts-instruct-flash"; // Qwen3 TTS instruction model (flash)
     public static final String QWEN_MT_TURBO = "qwen-mt-turbo"; // Qwen turbo model for translation (deprecated)
     public static final String QWEN_MT_PLUS = "qwen-mt-plus"; // Qwen plus model for translation
     public static final String QWEN_MT_FLASH = "qwen-mt-flash"; // Qwen flash model (2b) for translation
@@ -85,6 +98,8 @@ public class QwenModelName {
     public static final String QWEN_IMAGE_EDIT = "qwen-image-edit";
     public static final String QWEN_IMAGE_EDIT_PLUS = "qwen-image-edit-plus";
     public static final String QWEN_IMAGE_EDIT_MAX = "qwen-image-edit-max";
+    public static final String QWEN_IMAGE_2_0 = "qwen-image-2.0"; // Image generation + editing
+    public static final String QWEN_IMAGE_2_0_PRO = "qwen-image-2.0-pro"; // Image generation + editing, more parameters
 
     // Use with QwenEmbeddingModel
     @Deprecated
@@ -95,4 +110,13 @@ public class QwenModelName {
             "text-embedding-v2"; // Support: en, zh, es, fr, pt, id, ja, ko, de, ru
 
     public static final String TEXT_EMBEDDING_V3 = "text-embedding-v3"; // Support 50+ languages
+
+    public static final String TEXT_EMBEDDING_V4 = "text-embedding-v4";
+
+    // Use with QwenScoringModel
+    public static final String GTE_RERANK_V2 =
+            "gte-rerank-v2"; // gte-rerank-v2, large-scale text reranking (up to 30k documents)
+    public static final String QWEN3_RERANK = "qwen3-rerank"; // qwen3-rerank, text semantics / RAG, many languages
+    public static final String QWEN3_VL_RERANK =
+            "qwen3-vl-rerank"; // qwen3-vl-rerank, multimodal (image/video) cross-modal reranking
 }

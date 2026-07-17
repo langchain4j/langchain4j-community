@@ -15,7 +15,7 @@ public class ZhipuAiStreamingAiServicesIT extends AbstractStreamingAiServiceIT {
     protected List<StreamingChatModel> models() {
         return Collections.singletonList(ZhipuAiStreamingChatModel.builder()
                 .apiKey(System.getenv("ZHIPU_API_KEY"))
-                .model(ChatCompletionModel.GLM_4_FLASH)
+                .model(ChatCompletionModel.GLM_4_7)
                 .temperature(0.0)
                 .logRequests(true)
                 .logResponses(true)

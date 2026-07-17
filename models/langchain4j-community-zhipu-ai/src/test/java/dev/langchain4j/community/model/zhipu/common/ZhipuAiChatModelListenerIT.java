@@ -29,7 +29,7 @@ public class ZhipuAiChatModelListenerIT extends AbstractChatModelListenerIT {
 
     @Override
     protected String modelName() {
-        return ChatCompletionModel.GLM_4_FLASH.toString();
+        return ChatCompletionModel.GLM_4_7.toString();
     }
 
     @Override

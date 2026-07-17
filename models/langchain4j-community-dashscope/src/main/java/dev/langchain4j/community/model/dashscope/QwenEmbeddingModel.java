@@ -39,8 +39,6 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
     public static final String TYPE_QUERY = "query";
     public static final String TYPE_DOCUMENT = "document";
     private static final int BATCH_SIZE = 10;
-    // https://www.alibabacloud.com/help/en/model-studio/text-embedding-synchronous-api#853dfeccb97cd
-    private static final List<Integer> SUPPORTED_DIMENSIONS = List.of(1024, 768, 512);
 
     private final String apiKey;
     private final String modelName;
@@ -170,9 +168,7 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
         if (dimension == null) {
             return null;
         }
-        if (TEXT_EMBEDDING_V1.equals(modelName)
-                || TEXT_EMBEDDING_V2.equals(modelName)
-                || !SUPPORTED_DIMENSIONS.contains(dimension)) {
+        if (TEXT_EMBEDDING_V1.equals(modelName) || TEXT_EMBEDDING_V2.equals(modelName)) {
             throw new IllegalArgumentException("dimension '" + dimension + "' is not supported by " + modelName);
         }
         return dimension;

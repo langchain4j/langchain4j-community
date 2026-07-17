@@ -5,6 +5,7 @@ import static dev.langchain4j.community.model.dashscope.QwenEmbeddingModel.TYPE_
 import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V1;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V2;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V3;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V4;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.data.segment.TextSegment.textSegment;
 import static java.util.Arrays.asList;
@@ -18,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -144,12 +146,28 @@ class QwenEmbeddingModelIT {
     void should_embed_one_text_by_customized_dimension() {
         assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V1, 512)).isExactlyInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V2, 512)).isExactlyInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V3, 510)).isExactlyInstanceOf(IllegalArgumentException.class);
 
         QwenEmbeddingModel model = getModel(TEXT_EMBEDDING_V3, 512);
         assertThat(model.dimension()).isEqualTo(512);
 
         Embedding embedding = model.embed("hello").content();
         assertThat(embedding.dimension()).isEqualTo(512);
+    }
+
+    @Test
+    void should_embed_with_2048_dimension_for_v4() {
+        QwenEmbeddingModel model = getModel(TEXT_EMBEDDING_V4, 2048);
+        assertThat(model.dimension()).isEqualTo(2048);
+
+        Embedding embedding = model.embed("hello").content();
+        assertThat(embedding.dimension()).isEqualTo(2048);
+    }
+
+    @AfterEach
+    void afterEach() throws InterruptedException {
+        String ciDelaySeconds = System.getenv("CI_DELAY_SECONDS_DASHSCOPE");
+        if (ciDelaySeconds != null) {
+            Thread.sleep(Integer.parseInt(ciDelaySeconds) * 1000L);
+        }
     }
 }

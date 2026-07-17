@@ -4,8 +4,12 @@ import static com.redis.testcontainers.RedisStackContainer.DEFAULT_IMAGE_NAME;
 import static com.redis.testcontainers.RedisStackContainer.DEFAULT_TAG;
 import static dev.langchain4j.community.store.embedding.redis.RedisSchema.JSON_PATH_PREFIX;
 import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.store.embedding.TestUtils.awaitUntilAsserted;
+import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.redis.testcontainers.RedisContainer;
+import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
@@ -14,6 +18,7 @@ import dev.langchain4j.store.embedding.EmbeddingStoreWithRemovalIT;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.UnifiedJedis;
@@ -37,6 +42,21 @@ class RedisEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
             .metadataConfig(
                     Map.of("type", TagField.of(JSON_PATH_PREFIX + "type").as("type")))
             .build();
+
+    @Test
+    void should_not_fail_when_remove_all_by_filter_matches_nothing() {
+
+        // given
+        Embedding embedding = embeddingModel().embed("test").content();
+        embeddingStore().add(embedding);
+
+        awaitUntilAsserted(() -> assertThat(getAllEmbeddings()).hasSize(1));
+
+        // when / then — filter matches zero documents; must not call DEL with zero keys
+        embeddingStore().removeAll(metadataKey("type").isEqualTo("nonexistent"));
+
+        awaitUntilAsserted(() -> assertThat(getAllEmbeddings()).hasSize(1));
+    }
 
     @BeforeAll
     static void beforeAll() {

@@ -1,0 +1,14 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "justification": "AutoConfiguration module uses langchain4j core, community, and Spring types as public API - these are external dependency types, not this module's own API surface"
+        }
+      ]
+    }
+  }
+]

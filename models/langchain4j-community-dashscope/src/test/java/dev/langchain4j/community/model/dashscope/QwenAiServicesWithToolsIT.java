@@ -1,9 +1,11 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_MAX;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_6_PLUS;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
+import static dev.langchain4j.internal.Utils.readBytes;
 import static java.util.Collections.singletonList;
 
+import dev.langchain4j.data.image.Image;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.service.common.AbstractAiServiceWithToolsIT;
@@ -24,7 +26,7 @@ class QwenAiServicesWithToolsIT extends AbstractAiServiceWithToolsIT {
 
         return singletonList(QwenChatModel.builder()
                 .apiKey(apiKey())
-                .modelName(QWEN3_MAX)
+                .modelName(QWEN3_6_PLUS)
                 .defaultRequestParameters(parameters)
                 .build());
     }
@@ -42,10 +44,24 @@ class QwenAiServicesWithToolsIT extends AbstractAiServiceWithToolsIT {
 
         ChatModel qwenModel = QwenChatModel.builder()
                 .apiKey(apiKey())
-                .modelName(QWEN3_MAX)
+                .modelName(QWEN3_6_PLUS)
                 .defaultRequestParameters(parameters)
                 .build();
 
         super.should_execute_immediate_tool_with_primitive_parameters(qwenModel);
+    }
+
+    @Override
+    protected boolean supportsMultimodalToolResults() {
+        return true;
+    }
+
+    @Override
+    protected Image catImage() {
+        String base64Data = java.util.Base64.getEncoder()
+                .encodeToString(
+                        readBytes(
+                                "https://cdn.wanx.aliyuncs.com/upload/commons/Felis_silvestris_silvestris_small_gradual_decrease_of_quality.png"));
+        return Image.builder().base64Data(base64Data).mimeType("image/png").build();
     }
 }

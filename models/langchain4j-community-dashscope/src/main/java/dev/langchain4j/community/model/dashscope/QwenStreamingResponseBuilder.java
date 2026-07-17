@@ -10,14 +10,12 @@ import static dev.langchain4j.community.model.dashscope.QwenHelper.toolCallFunct
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.generation.GenerationUsage;
-import com.alibaba.dashscope.aigc.generation.SearchInfo;
 import com.alibaba.dashscope.aigc.multimodalconversation.AudioResult;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
@@ -27,6 +25,7 @@ import com.alibaba.dashscope.common.Message;
 import com.alibaba.dashscope.common.MessageContentBase;
 import com.alibaba.dashscope.common.MultiModalMessage;
 import com.alibaba.dashscope.common.Role;
+import com.alibaba.dashscope.common.SearchInfo;
 import com.alibaba.dashscope.tools.ToolCallBase;
 import com.alibaba.dashscope.tools.ToolCallFunction;
 import com.alibaba.dashscope.tools.codeinterpretertool.ToolCallCodeInterpreter;
@@ -117,7 +116,7 @@ public class QwenStreamingResponseBuilder {
         return QwenPartialResponse.builder()
                 .delta(partialContent)
                 .partialThinking(
-                        isNullOrBlank(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
+                        isNullOrEmpty(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
                 .partialToolCalls(partialToolCalls)
                 .completeToolCalls(completeToolCalls)
                 .build();
@@ -138,6 +137,10 @@ public class QwenStreamingResponseBuilder {
                 String generatedContent = answerFrom(accumulatedMultiModalConversationResult);
                 partialContent = partialContent.substring(generatedContent.length());
             }
+        } else if (partialResponse.getOutput().getAudio() != null
+                && partialResponse.getOutput().getAudio().getData() != null) {
+            // The tts models will incrementally return base64-encoded PCM data.
+            partialContent = partialResponse.getOutput().getAudio().getData();
         }
         if (hasReasoningContent(partialResponse)) {
             partialReasoningContent = reasoningContentFrom(partialResponse);
@@ -184,7 +187,7 @@ public class QwenStreamingResponseBuilder {
         return QwenPartialResponse.builder()
                 .delta(partialContent)
                 .partialThinking(
-                        isNullOrBlank(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
+                        isNullOrEmpty(partialReasoningContent) ? null : new PartialThinking(partialReasoningContent))
                 .partialToolCalls(partialToolCalls)
                 .completeToolCalls(completeToolCalls)
                 .build();
@@ -657,13 +660,6 @@ public class QwenStreamingResponseBuilder {
     }
 
     private static Long merge(Long previous, Long current) {
-        if (previous == null) {
-            return current;
-        }
-        if (current == null) {
-            return previous;
-        }
-        String resultStr = merge(String.valueOf(previous), String.valueOf(current));
-        return Long.parseLong(resultStr);
+        return current == null ? previous : current;
     }
 }

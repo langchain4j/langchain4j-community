@@ -1,15 +1,14 @@
 package dev.langchain4j.community.model.zhipu.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableList;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.List;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableList;
 
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
@@ -18,6 +17,7 @@ public final class AssistantMessage implements Message {
 
     private final Role role;
     private String content;
+    private String reasoningContent;
     private String name;
     private List<ToolCall> toolCalls;
 
@@ -35,14 +35,13 @@ public final class AssistantMessage implements Message {
     private AssistantMessage(Builder builder) {
         this.role = Role.ASSISTANT;
         this.content = builder.content;
+        this.reasoningContent = builder.reasoningContent;
         this.name = builder.name;
         this.toolCalls = builder.toolCalls;
     }
 
     public static AssistantMessage from(String content) {
-        return AssistantMessage.builder()
-                .content(content)
-                .build();
+        return AssistantMessage.builder().content(content).build();
     }
 
     public static Builder builder() {
@@ -60,6 +59,14 @@ public final class AssistantMessage implements Message {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getReasoningContent() {
+        return reasoningContent;
+    }
+
+    public void setReasoningContent(String reasoningContent) {
+        this.reasoningContent = reasoningContent;
     }
 
     public String getName() {
@@ -81,11 +88,17 @@ public final class AssistantMessage implements Message {
     public static final class Builder {
 
         private String content;
+        private String reasoningContent;
         private String name;
         private List<ToolCall> toolCalls;
 
         public Builder content(String content) {
             this.content = content;
+            return this;
+        }
+
+        public Builder reasoningContent(String reasoningContent) {
+            this.reasoningContent = reasoningContent;
             return this;
         }
 

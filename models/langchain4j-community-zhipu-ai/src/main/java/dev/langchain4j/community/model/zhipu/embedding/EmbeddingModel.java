@@ -1,9 +1,9 @@
 package dev.langchain4j.community.model.zhipu.embedding;
 
 public enum EmbeddingModel {
-
     EMBEDDING_2("embedding-2"),
     EMBEDDING_3("embedding-3"),
+    @Deprecated
     TEXT_EMBEDDING("text_embedding"),
     ;
 

@@ -3,10 +3,11 @@ package dev.langchain4j.community.model.zhipu;
 import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.aiMessageFrom;
 import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.isSuccessFinishReason;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toToolChoice;
 import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toTools;
 import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toZhipuAiMessages;
+import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.toZhipuResponseFormat;
 import static dev.langchain4j.community.model.zhipu.InternalZhipuAiHelper.tokenUsageFrom;
-import static dev.langchain4j.community.model.zhipu.chat.ToolChoiceMode.AUTO;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
@@ -18,12 +19,14 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionModel;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionRequest;
 import dev.langchain4j.community.model.zhipu.chat.ChatCompletionResponse;
+import dev.langchain4j.community.model.zhipu.chat.Thinking;
 import dev.langchain4j.community.model.zhipu.spi.ZhipuAiChatModelBuilderFactory;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import java.time.Duration;
@@ -39,7 +42,7 @@ public class ZhipuAiChatModel implements ChatModel {
     private final List<ChatModelListener> listeners;
     private final Integer maxRetries;
 
-    private final ChatRequestParameters defaultRequestParameters;
+    private final ZhipuAiChatRequestParameters defaultRequestParameters;
 
     public ZhipuAiChatModel(
             String baseUrl,
@@ -48,17 +51,21 @@ public class ZhipuAiChatModel implements ChatModel {
             Double topP,
             String model,
             List<String> stops,
+            ResponseFormat responseFormat,
             Integer maxRetries,
             Integer maxToken,
             Boolean logRequests,
             Boolean logResponses,
             List<ChatModelListener> listeners,
+            Boolean doSample,
+            Thinking thinking,
             Duration callTimeout,
             Duration connectTimeout,
             Duration readTimeout,
             Duration writeTimeout) {
         this.maxRetries = getOrDefault(maxRetries, 3);
         this.listeners = copy(listeners);
+
         this.client = ZhipuAiClient.builder()
                 .baseUrl(getOrDefault(baseUrl, "https://open.bigmodel.cn/"))
                 .apiKey(apiKey)
@@ -69,17 +76,21 @@ public class ZhipuAiChatModel implements ChatModel {
                 .logRequests(getOrDefault(logRequests, false))
                 .logResponses(getOrDefault(logResponses, false))
                 .build();
-        this.defaultRequestParameters = ChatRequestParameters.builder()
+
+        this.defaultRequestParameters = ZhipuAiChatRequestParameters.builder()
+                .modelName(ensureNotNull(model, "model"))
                 .temperature(temperature)
                 .topP(topP)
                 .stopSequences(stops)
-                .modelName(ensureNotNull(model, "model"))
-                .maxOutputTokens(getOrDefault(maxToken, 512))
+                .responseFormat(responseFormat)
+                .maxOutputTokens(maxToken)
+                .doSample(doSample)
+                .thinking(thinking)
                 .build();
     }
 
     @Override
-    public ChatRequestParameters defaultRequestParameters() {
+    public ZhipuAiChatRequestParameters defaultRequestParameters() {
         return defaultRequestParameters;
     }
 
@@ -98,13 +109,19 @@ public class ZhipuAiChatModel implements ChatModel {
                 .messages(toZhipuAiMessages(messages))
                 .maxTokens(parameters.maxOutputTokens())
                 .stop(parameters.stopSequences())
+                .responseFormat(toZhipuResponseFormat(request.responseFormat()))
                 .stream(false)
                 .temperature(parameters.temperature())
-                .topP(parameters.topP())
-                .toolChoice(AUTO);
+                .topP(parameters.topP());
+
+        if (parameters instanceof ZhipuAiChatRequestParameters zp) {
+            requestBuilder.doSample(zp.doSample());
+            requestBuilder.thinking(zp.thinking());
+        }
 
         if (!isNullOrEmpty(toolSpecifications)) {
             requestBuilder.tools(toTools(toolSpecifications));
+            requestBuilder.toolChoice(toToolChoice(parameters.toolChoice()));
         }
 
         ChatCompletionRequest completionRequest = requestBuilder.build();
@@ -144,17 +161,18 @@ public class ZhipuAiChatModel implements ChatModel {
         private Double topP;
         private String model;
         private List<String> stops;
+        private ResponseFormat responseFormat;
         private Integer maxRetries;
         private Integer maxToken;
         private Boolean logRequests;
         private Boolean logResponses;
         private List<ChatModelListener> listeners;
+        private Boolean doSample;
+        private Thinking thinking;
         private Duration callTimeout;
         private Duration connectTimeout;
         private Duration readTimeout;
         private Duration writeTimeout;
-
-        public ZhipuAiChatModelBuilder() {}
 
         public ZhipuAiChatModelBuilder model(ChatCompletionModel model) {
             this.model = model.toString();
@@ -191,6 +209,11 @@ public class ZhipuAiChatModel implements ChatModel {
             return this;
         }
 
+        public ZhipuAiChatModelBuilder responseFormat(ResponseFormat responseFormat) {
+            this.responseFormat = responseFormat;
+            return this;
+        }
+
         public ZhipuAiChatModelBuilder maxRetries(Integer maxRetries) {
             this.maxRetries = maxRetries;
             return this;
@@ -213,6 +236,16 @@ public class ZhipuAiChatModel implements ChatModel {
 
         public ZhipuAiChatModelBuilder listeners(List<ChatModelListener> listeners) {
             this.listeners = listeners;
+            return this;
+        }
+
+        public ZhipuAiChatModelBuilder doSample(Boolean doSample) {
+            this.doSample = doSample;
+            return this;
+        }
+
+        public ZhipuAiChatModelBuilder thinking(Thinking thinking) {
+            this.thinking = thinking;
             return this;
         }
 
@@ -252,11 +285,14 @@ public class ZhipuAiChatModel implements ChatModel {
                     this.topP,
                     this.model,
                     this.stops,
+                    this.responseFormat,
                     this.maxRetries,
                     this.maxToken,
                     this.logRequests,
                     this.logResponses,
                     this.listeners,
+                    this.doSample,
+                    this.thinking,
                     this.callTimeout,
                     this.connectTimeout,
                     this.readTimeout,

@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.13.0-beta22-SNAPSHOT</version>
+        <version>1.18.0-beta28-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -28,15 +28,20 @@
         <module>langchain4j-community-dashscope-spring-boot-starter</module>
         <module>langchain4j-community-qianfan-spring-boot-starter</module>
         <module>langchain4j-community-redis-spring-boot-starter</module>
+        <module>langchain4j-community-valkey-spring-boot-starter</module>
         <module>langchain4j-community-vearch-spring-boot-starter</module>
         <module>langchain4j-community-xinference-spring-boot-starter</module>
         <module>langchain4j-community-neo4j-spring-boot-starter</module>
         <module>langchain4j-community-oceanbase-spring-boot-starter</module>
+        <module>langchain4j-community-zhipu-ai-spring-boot-starter</module>
+        <module>langchain4j-community-cohere-spring-boot-starter</module>
+        <module>langchain4j-community-cockroachdb-spring-boot-starter</module>
+        <module>langchain4j-community-s3-vectors-spring-boot-starter</module>
     </modules>
 
     <properties>
-        <spring-boot.version>3.5.11</spring-boot.version>
-        <logback.version>1.5.22</logback.version>
+        <spring-boot.version>3.5.13</spring-boot.version>
+        <logback.version>1.5.32</logback.version>
     </properties>
 
     <!-- Introducing this pom.xml in order to manage Spring Boot dependencies -->
@@ -94,6 +99,13 @@
                 </configuration>
             </plugin>
         </plugins>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.1</version>
+            </extension>
+        </extensions>
     </build>
 
 </project>

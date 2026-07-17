@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -112,13 +113,14 @@ class GenericStreamingResponseBuilder {
                     if (toolCall instanceof FunctionCall functionCall) {
                         String id = functionCall.getId();
                         ChunkedToolCallBuilder toolCallBuilder;
-                        if (id != null) {
+                        if (id != null || functionCall.getName() != null) {
                             moveState(TOOL_CALL_INIT);
                             // starting new tool call, finish previous one
                             if (lastToolCallId != null) {
                                 completeToolCall(toolCallMap.get(lastToolCallId).toCompleteToolCall());
                             }
-                            lastToolCallId = id;
+                            // generate a UUID when the API omits the id field
+                            lastToolCallId = id != null ? id : UUID.randomUUID().toString();
                         } else {
                             moveState(TOOL_CALL_CONTINUE);
                         }
