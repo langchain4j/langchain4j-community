@@ -252,11 +252,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 }
             });
         } else {
-            String idList =
-                    ids.stream().map(id -> "'" + escapeString(id) + "'").collect(Collectors.joining(", "));
+            String idList = ids.stream().map(id -> "'" + escapeString(id) + "'").collect(Collectors.joining(", "));
             remoteDatabase.command(
                     "sql", String.format("DELETE FROM `%s` WHERE %s IN [%s]", typeName, ID_PROPERTY, idList));
-            rebuildRemoteIndex();
         }
     }
 
@@ -266,13 +264,15 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         if (embeddedMode) {
             removeAllByFilterEmbedded(filter);
         } else {
-            log.info("Number of embeddings before delete: {}", findAllRemote(1000).size());
+            log.info(
+                    "Number of embeddings before delete: {}",
+                    findAllRemote(1000).size());
             String whereClause = filterMapper.map(filter);
             String sql = String.format("DELETE FROM `%s` WHERE %s", typeName, whereClause);
             log.debug("Removing with filter: {}", sql);
             remoteDatabase.command("sql", sql);
-            log.info("Number of embeddings after delete: {}", findAllRemote(1000).size());
-            rebuildRemoteIndex();
+            log.info(
+                    "Number of embeddings after delete: {}", findAllRemote(1000).size());
         }
     }
 
@@ -284,8 +284,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             // REBUILD INDEX alone does not reset the entry point, so subsequent insertions of
             // identical vectors can result in a disconnected graph that findNeighborsFromVector
             // cannot fully traverse. Dropping and recreating the index ensures a fresh graph state.
-            embeddedDatabase.transaction(() -> embeddedDatabase.command(
-                    "sql", "DELETE FROM " + quotedTypeName));
+            embeddedDatabase.transaction(() -> embeddedDatabase.command("sql", "DELETE FROM " + quotedTypeName));
             String indexName = typeName + "[" + EMBEDDED_EMBEDDING + "]";
             embeddedDatabase.transaction(() -> embeddedDatabase.getSchema().dropIndex(indexName));
             embeddedDatabase.transaction(() -> embeddedDatabase
@@ -302,7 +301,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             activeVertexCount.set(0);
         } else {
             remoteDatabase.command("sql", String.format("DELETE FROM `%s`", typeName));
-            rebuildRemoteIndex();
         }
     }
 
@@ -329,7 +327,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         for (int i = 0; i < ids.size(); i++) {
             StringBuilder sql = new StringBuilder();
             sql.append("INSERT INTO `").append(typeName).append("` SET ");
-            sql.append(ID_PROPERTY).append(" = '").append(escapeString(ids.get(i))).append("'");
+            sql.append(ID_PROPERTY)
+                    .append(" = '")
+                    .append(escapeString(ids.get(i)))
+                    .append("'");
             sql.append(", ").append(EMBEDDING_PROPERTY).append(" = ").append(embeddingToSql(embeddings.get(i)));
 
             if (embedded != null && embedded.get(i) != null) {
@@ -341,7 +342,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                             .append(escapeString(segment.text()))
                             .append("'");
                 }
-                for (Map.Entry<String, Object> entry : segment.metadata().toMap().entrySet()) {
+                for (Map.Entry<String, Object> entry :
+                        segment.metadata().toMap().entrySet()) {
                     sql.append(", ")
                             .append(metadataPrefix)
                             .append(entry.getKey())
@@ -365,20 +367,27 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             validateFilter(filter);
         }
 
-        // Fetch extra candidates to account for in-memory filtering reducing the result set.
-        int fetchCount = filter != null ? maxResults * 5 : maxResults;
+        boolean isHybrid = request.query() != null && !request.query().trim().isEmpty();
 
-        String vectorSql = embeddingToSql(queryEmbedding);
-        String indexName = typeName + "[" + EMBEDDING_PROPERTY + "]";
-        String query = String.format(
-                "SELECT *, `vector.neighbors`('%s', %s, %d) AS neighbors FROM `%s`",
-                indexName, vectorSql, fetchCount, typeName);
+        String query;
+        if (isHybrid) {
+            int hybridFetchCount = filter != null ? maxResults * 10 : maxResults * 2;
+            query = buildHybridSearchQuery(
+                    queryEmbedding, request.query(), EMBEDDING_PROPERTY, TEXT_PROPERTY, hybridFetchCount, false);
+        } else {
+            int fetchCount = filter != null ? maxResults * 5 : maxResults;
+            String vectorSql = embeddingToSql(queryEmbedding);
+            String indexName = typeName + "[" + EMBEDDING_PROPERTY + "]";
+            query = String.format(
+                    "SELECT *, `vector.neighbors`('%s', %s, %d) AS neighbors FROM `%s`",
+                    indexName, vectorSql, fetchCount, typeName);
+        }
 
         ResultSet resultSet;
         try {
             resultSet = remoteDatabase.query("sql", query);
         } catch (Exception e) {
-            log.debug("Vector search returned error (index may be empty): {}", e.getMessage());
+            log.warn("Vector search returned error: {}", e.getMessage(), e);
             return new EmbeddingSearchResult<>(List.of());
         }
 
@@ -389,8 +398,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             if (docId == null) continue;
             Embedding embedding = resultToEmbedding(doc.getProperty(EMBEDDING_PROPERTY));
             if (embedding == null) continue;
-            double score =
-                    RelevanceScore.fromCosineSimilarity(CosineSimilarity.between(queryEmbedding, embedding));
+            double score = RelevanceScore.fromCosineSimilarity(CosineSimilarity.between(queryEmbedding, embedding));
             if (score < minScore) continue;
             String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
             Map<String, Object> metadataMap = extractMetadataFromResult(doc);
@@ -398,12 +406,12 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             matches.add(new EmbeddingMatch<>(score, docId, embedding, buildTextSegment(text, metadataMap)));
         }
 
-        matches.sort((a, b) -> Double.compare(b.score(), a.score()));
+        // vector.fuse() has already ordered hybrid results by their fused RRF score. Re-sorting
+        // by cosine similarity would discard the lexical contribution to that ranking.
+        if (!isHybrid) {
+            matches.sort((a, b) -> Double.compare(b.score(), a.score()));
+        }
         return new EmbeddingSearchResult<>(matches);
-    }
-
-    private void rebuildRemoteIndex() {
-        remoteDatabase.command("sql", "REBUILD INDEX *");
     }
 
     /**
@@ -428,8 +436,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return matches;
     }
 
-    private void initRemoteSchema(
-            int dimension, String similarityFunction, int maxConnections, int beamWidth) {
+    private void initRemoteSchema(int dimension, String similarityFunction, int maxConnections, int beamWidth) {
         String script = String.format(
                 """
                 CREATE VERTEX TYPE `%s` IF NOT EXISTS;
@@ -443,13 +450,23 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     "maxConnections": %d,
                     "beamWidth": %d
                   };
+                CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) FULL_TEXT;
                 """,
                 typeName,
-                typeName, ID_PROPERTY,
-                typeName, EMBEDDING_PROPERTY,
-                typeName, TEXT_PROPERTY,
-                typeName, EMBEDDING_PROPERTY,
-                dimension, similarityFunction, maxConnections, beamWidth);
+                typeName,
+                ID_PROPERTY,
+                typeName,
+                EMBEDDING_PROPERTY,
+                typeName,
+                TEXT_PROPERTY,
+                typeName,
+                EMBEDDING_PROPERTY,
+                dimension,
+                similarityFunction,
+                maxConnections,
+                beamWidth,
+                typeName,
+                TEXT_PROPERTY);
         log.debug("Initializing ArcadeDB schema (remote mode)");
         remoteDatabase.command("sqlscript", script);
     }
@@ -514,6 +531,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         double minScore = request.minScore();
         Filter filter = request.filter();
 
+        boolean isHybrid = request.query() != null && !request.query().trim().isEmpty();
+        if (isHybrid) {
+            return searchEmbeddedHybrid(request);
+        }
+
         int fetchSize = Math.max(maxResults * 4, maxResults + 100);
         List<Pair<RID, Float>> neighbors = vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
 
@@ -526,7 +548,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             hnswRids.add(rid);
             if (matches.size() >= maxResults) continue;
             double rawDistance = neighbor.getSecond().doubleValue();
-            double score = 1.0 - rawDistance;
+            double score = 1.0 - rawDistance / 2.0;
             if (score < minScore) continue;
             try {
                 Vertex vertex = rid.getRecord(true).asVertex();
@@ -555,6 +577,69 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return new EmbeddingSearchResult<>(matches);
     }
 
+    private EmbeddingSearchResult<TextSegment> searchEmbeddedHybrid(EmbeddingSearchRequest request) {
+        Embedding queryEmbedding = request.queryEmbedding();
+        int maxResults = request.maxResults();
+        double minScore = request.minScore();
+        Filter filter = request.filter();
+
+        int hybridFetchCount = filter != null ? maxResults * 10 : maxResults * 2;
+        String query = buildHybridSearchQuery(
+                queryEmbedding, request.query(), EMBEDDED_EMBEDDING, EMBEDDED_TEXT, hybridFetchCount, true);
+
+        List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
+        try (ResultSet rs = embeddedDatabase.query("sql", query)) {
+            while (rs.hasNext() && matches.size() < maxResults) {
+                Result result = rs.next();
+                Vertex vertex = null;
+                if (result.isVertex()) {
+                    vertex = result.getVertex().get();
+                } else if (result.hasProperty("record")) {
+                    Object rec = result.getProperty("record");
+                    if (rec instanceof Vertex v) {
+                        vertex = v;
+                    } else if (rec instanceof com.arcadedb.database.Identifiable id) {
+                        vertex = (Vertex) embeddedDatabase.lookupByRID(id.getIdentity(), true);
+                    }
+                } else if (result.hasProperty("@rid")) {
+                    Object ridProp = result.getProperty("@rid");
+                    if (ridProp instanceof com.arcadedb.database.RID r) {
+                        vertex = (Vertex) embeddedDatabase.lookupByRID(r, true);
+                    } else if (ridProp instanceof com.arcadedb.database.Identifiable id) {
+                        vertex = (Vertex) embeddedDatabase.lookupByRID(id.getIdentity(), true);
+                    }
+                }
+
+                if (vertex == null) {
+                    continue;
+                }
+
+                if (Boolean.TRUE.equals(vertex.get(PROPERTY_DELETED))) {
+                    continue;
+                }
+                if (filter != null) {
+                    Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
+                    if (!matchesFilter(filter, metadata)) {
+                        continue;
+                    }
+                }
+                Embedding embedding = resultToEmbedding(vertex.get(EMBEDDED_EMBEDDING));
+                if (embedding == null) {
+                    continue;
+                }
+                double score = RelevanceScore.fromCosineSimilarity(CosineSimilarity.between(queryEmbedding, embedding));
+                if (score >= minScore) {
+                    matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Hybrid search returned error (indices may be empty): {}", e.getMessage());
+            return new EmbeddingSearchResult<>(List.of());
+        }
+
+        return new EmbeddingSearchResult<>(matches);
+    }
+
     private void supplementFromMissedVertices(
             Embedding queryEmbedding,
             Set<RID> hnswRids,
@@ -563,8 +648,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             List<EmbeddingMatch<TextSegment>> matches,
             int maxResults) {
         String quotedTypeName = "`" + typeName + "`";
-        String sql = "SELECT FROM " + quotedTypeName + " WHERE ("
-                + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED + " != true)";
+        String sql = "SELECT FROM " + quotedTypeName + " WHERE (" + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED
+                + " != true)";
         try (ResultSet rs = embeddedDatabase.query("sql", sql)) {
             while (rs.hasNext()) {
                 if (matches.size() >= maxResults) break;
@@ -595,8 +680,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         embeddedDatabase.transaction(() -> {
             try (ResultSet rs = embeddedDatabase.query(
                     "sql",
-                    "SELECT FROM " + quotedTypeName + " WHERE (" + PROPERTY_DELETED + " IS NULL OR "
-                            + PROPERTY_DELETED + " != true)")) {
+                    "SELECT FROM " + quotedTypeName + " WHERE (" + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED
+                            + " != true)")) {
                 while (rs.hasNext()) {
                     Result result = rs.next();
                     result.getVertex().ifPresent(v -> {
@@ -638,6 +723,12 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             if (vertexType.getPolymorphicIndexByProperties(EMBEDDED_ID) == null) {
                 schema.createTypeIndex(Schema.INDEX_TYPE.LSM_TREE, true, typeName, EMBEDDED_ID);
             }
+
+            // Create full-text index on text property
+            String ftIndexName = typeName + "[" + EMBEDDED_TEXT + "]";
+            if (!schema.existsIndex(ftIndexName)) {
+                schema.createTypeIndex(Schema.INDEX_TYPE.FULL_TEXT, false, typeName, EMBEDDED_TEXT);
+            }
         });
 
         // Check if vector index already exists
@@ -664,8 +755,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     }
 
     private long queryActiveVertexCount() {
-        String sql = "SELECT count(*) as total FROM `" + typeName + "` WHERE ("
-                + PROPERTY_DELETED + " IS NULL OR " + PROPERTY_DELETED + " != true)";
+        String sql = "SELECT count(*) as total FROM `" + typeName + "` WHERE (" + PROPERTY_DELETED + " IS NULL OR "
+                + PROPERTY_DELETED + " != true)";
         try (ResultSet rs = embeddedDatabase.query("sql", sql)) {
             if (rs.hasNext()) {
                 Object val = rs.next().getProperty("total");
@@ -714,7 +805,43 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     // ===== Shared helpers =====
 
+    private String buildHybridSearchQuery(
+            Embedding queryEmbedding,
+            String queryText,
+            String embeddingProperty,
+            String textProperty,
+            int fetchCount,
+            boolean excludeSoftDeleted) {
+        String denseIndexName = typeName + "[" + embeddingProperty + "]";
+        String fullTextIndexName = typeName + "[" + textProperty + "]";
+        String fullTextQuery;
+        if (excludeSoftDeleted) {
+            fullTextQuery = String.format(
+                    "SEARCH_INDEX('%s', '%s') = true AND (`%s` IS NULL OR `%s` != true)",
+                    fullTextIndexName, escapeString(queryText), PROPERTY_DELETED, PROPERTY_DELETED);
+        } else {
+            fullTextQuery =
+                    String.format("SEARCH_INDEX('%s', '%s') = true", fullTextIndexName, escapeString(queryText));
+        }
+        return String.format(
+                "SELECT expand(`vector.fuse`(" + "`vector.neighbors`('%s', %s, %d),"
+                        + "(SELECT @rid AS rid FROM `%s` WHERE %s),"
+                        + "{ fusion: 'RRF', limit: %d }"
+                        + "))",
+                denseIndexName, embeddingToSql(queryEmbedding), fetchCount, typeName, fullTextQuery, fetchCount);
+    }
+
     private static Embedding resultToEmbedding(Object embObj) {
+        if (embObj instanceof float[] vector) {
+            return new Embedding(vector);
+        }
+        if (embObj instanceof double[] doubleVector) {
+            float[] vector = new float[doubleVector.length];
+            for (int j = 0; j < doubleVector.length; j++) {
+                vector[j] = (float) doubleVector[j];
+            }
+            return new Embedding(vector);
+        }
         if (embObj instanceof List<?> embList) {
             float[] vector = new float[embList.size()];
             for (int j = 0; j < embList.size(); j++) {
@@ -814,7 +941,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
      */
     private static boolean valueEquals(Object a, Object b) {
         if (a instanceof Number && b instanceof Number) {
-            if (b instanceof Float) {
+            if (a instanceof Float || b instanceof Float) {
                 return Float.compare(((Number) a).floatValue(), ((Number) b).floatValue()) == 0;
             }
             return Double.compare(((Number) a).doubleValue(), ((Number) b).doubleValue()) == 0;
@@ -824,7 +951,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     private static int compareValues(Object a, Object b) {
         if (a instanceof Number && b instanceof Number) {
-            if (b instanceof Float) {
+            if (a instanceof Float || b instanceof Float) {
                 return Float.compare(((Number) a).floatValue(), ((Number) b).floatValue());
             }
             return Double.compare(((Number) a).doubleValue(), ((Number) b).doubleValue());

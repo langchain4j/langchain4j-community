@@ -24,7 +24,7 @@ public class ArcadeDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT
         int port;
 
         if (DockerClientFactory.instance().isDockerAvailable()) {
-            arcadedb = new GenericContainer<>("arcadedata/arcadedb:latest")
+            arcadedb = new GenericContainer<>("arcadedata/arcadedb:26.7.2")
                     .withExposedPorts(ARCADE_HTTP_PORT)
                     .withEnv("JAVA_OPTS", "-Darcadedb.server.rootPassword=playwithdata")
                     .waitingFor(Wait.forHttp("/api/v1/ready")

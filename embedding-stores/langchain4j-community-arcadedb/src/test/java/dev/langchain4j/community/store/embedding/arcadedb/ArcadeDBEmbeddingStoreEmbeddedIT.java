@@ -1,5 +1,7 @@
 package dev.langchain4j.community.store.embedding.arcadedb;
 
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingStoreHybridSearchTestHelper.assertHybridSearch;
+
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
@@ -25,8 +27,8 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     protected EmbeddingStore<TextSegment> embeddingStore() {
         if (embeddingStore == null) {
             embeddingStore = ArcadeDBEmbeddingStore.embeddedBuilder()
-                    .databasePath(
-                            tempDir.resolve("test-db-" + COUNTER.incrementAndGet()).toString())
+                    .databasePath(tempDir.resolve("test-db-" + COUNTER.incrementAndGet())
+                            .toString())
                     .dimension(DIMENSION)
                     .maxConnections(16)
                     .beamWidth(200)
@@ -56,5 +58,10 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     @Override
     protected boolean supportsContains() {
         return true;
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_perform_hybrid_search() {
+        assertHybridSearch(embeddingStore(), embeddingModel());
     }
 }
