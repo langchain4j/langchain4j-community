@@ -171,8 +171,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             this.embeddedDatabase = builder.database;
         } else {
             ensureNotBlank(builder.databasePath, "databasePath");
-            DatabaseFactory factory = new DatabaseFactory(builder.databasePath);
-            this.embeddedDatabase = factory.exists() ? factory.open() : factory.create();
+            try (DatabaseFactory factory = new DatabaseFactory(builder.databasePath)) {
+                this.embeddedDatabase = factory.exists() ? factory.open() : factory.create();
+            }
         }
         initEmbeddedSchema(builder);
         this.activeVertexCount = new AtomicLong(queryActiveVertexCount());
@@ -704,7 +705,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             // Create or get the vertex type
             VertexType vertexType = schema.existsType(typeName)
                     ? (VertexType) schema.getType(typeName)
-                    : schema.createVertexType(typeName, 1);
+                    : schema.createVertexType(typeName);
 
             if (!vertexType.existsProperty(EMBEDDED_ID)) {
                 vertexType.createProperty(EMBEDDED_ID, Type.STRING);
