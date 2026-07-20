@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.18.0-beta28-SNAPSHOT</version>
+        <version>1.19.0-beta29-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -44,6 +44,7 @@
         <module>models/langchain4j-community-twelvelabs</module>
         <module>models/langchain4j-community-model-router</module>
         <module>models/langchain4j-community-model-registry</module>
+        <module>models/langchain4j-community-responsible-ai</module>
 
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
@@ -117,10 +118,10 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.18.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.18.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.18.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.18.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.19.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.19.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.19.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.19.0-SNAPSHOT</langchain4j.open-ai.version>
         <project.build.outputTimestamp>2026-04-30T10:00:00Z</project.build.outputTimestamp>
     </properties>
 

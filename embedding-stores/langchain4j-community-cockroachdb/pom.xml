@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.18.0-beta28-SNAPSHOT</version>
+        <version>1.19.0-beta29-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -23,7 +23,7 @@
     </licenses>
 
     <properties>
-        <postgresql.version>42.7.11</postgresql.version>
+        <postgresql.version>42.7.13</postgresql.version>
         <hikaricp.version>7.0.2</hikaricp.version>
         <pgvector.version>0.1.6</pgvector.version>
     </properties>

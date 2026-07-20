@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.18.0-beta28-SNAPSHOT</version>
+        <version>1.19.0-beta29-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -36,6 +36,7 @@
         <module>langchain4j-community-zhipu-ai-spring-boot-starter</module>
         <module>langchain4j-community-cohere-spring-boot-starter</module>
         <module>langchain4j-community-cockroachdb-spring-boot-starter</module>
+        <module>langchain4j-community-s3-vectors-spring-boot-starter</module>
     </modules>
 
     <properties>

@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.18.0-beta28-SNAPSHOT</version>
+        <version>1.19.0-beta29-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -36,6 +36,7 @@
         <module>langchain4j-community-zhipu-ai-spring-boot4-starter</module>
         <module>langchain4j-community-cohere-spring-boot4-starter</module>
         <module>langchain4j-community-cockroachdb-spring-boot4-starter</module>
+        <module>langchain4j-community-s3-vectors-spring-boot4-starter</module>
     </modules>
 
     <properties>
@@ -50,6 +51,12 @@
             slf4j:${slf4j.version}, but Spring Boot 4.0.5 BOM manages these to lower
             versions, causing RequireUpperBoundDeps failures.
             -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>2.22</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>

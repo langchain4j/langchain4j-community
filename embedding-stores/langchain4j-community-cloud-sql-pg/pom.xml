@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.18.0-beta28-SNAPSHOT</version>
+        <version>1.19.0-beta29-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -24,8 +24,8 @@
 
     <properties>
         <pgvector-java.version>0.1.6</pgvector-java.version>
-        <postgres.version>42.7.11</postgres.version>
-        <pg-socket.version>1.28.4</pg-socket.version>
+        <postgres.version>42.7.13</postgres.version>
+        <pg-socket.version>1.28.6</pg-socket.version>
         <jdbc-socket.version>1.28.3</jdbc-socket.version>
         <hikaricp.version>7.0.2</hikaricp.version>
         <google.oauth.client.version>1.39.0</google.oauth.client.version>
