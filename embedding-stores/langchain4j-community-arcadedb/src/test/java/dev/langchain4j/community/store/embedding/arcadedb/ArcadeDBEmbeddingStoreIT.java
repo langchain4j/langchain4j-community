@@ -1,5 +1,7 @@
 package dev.langchain4j.community.store.embedding.arcadedb;
 
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingStoreHybridSearchTestHelper.assertHybridSearch;
+
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
@@ -23,7 +25,7 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         int port;
 
         if (DockerClientFactory.instance().isDockerAvailable()) {
-            arcadedb = new GenericContainer<>("arcadedata/arcadedb:latest")
+            arcadedb = new GenericContainer<>("arcadedata/arcadedb:26.7.2")
                     .withExposedPorts(ARCADE_HTTP_PORT)
                     .withEnv("JAVA_OPTS", "-Darcadedb.server.rootPassword=playwithdata")
                     .waitingFor(Wait.forHttp("/api/v1/ready")
@@ -89,5 +91,10 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     @Override
     protected boolean supportsContains() {
         return true;
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_perform_hybrid_search() {
+        assertHybridSearch(embeddingStore(), embeddingModel);
     }
 }
