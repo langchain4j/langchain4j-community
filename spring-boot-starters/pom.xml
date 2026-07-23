@@ -41,7 +41,7 @@
 
     <properties>
         <spring-boot.version>3.5.13</spring-boot.version>
-        <logback.version>1.5.32</logback.version>
+        <logback.version>1.6.0</logback.version>
     </properties>
 
     <!-- Introducing this pom.xml in order to manage Spring Boot dependencies -->
