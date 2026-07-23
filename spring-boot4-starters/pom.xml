@@ -40,7 +40,7 @@
     </modules>
 
     <properties>
-        <spring-boot4.version>4.0.5</spring-boot4.version>
+        <spring-boot4.version>4.1.0</spring-boot4.version>
     </properties>
 
     <dependencyManagement>
