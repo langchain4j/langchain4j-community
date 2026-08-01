@@ -92,7 +92,8 @@ class ZhipuAiChatRequestParametersTest {
                 .modelName("receiver-model")
                 .doSample(true)
                 .toolStream(true)
-                .thinking(Thinking.builder().type("enabled").clearThinking(false).build())
+                .thinking(
+                        Thinking.builder().type("enabled").clearThinking(false).build())
                 .build();
         ChatRequestParameters defaults = DefaultChatRequestParameters.builder()
                 .modelName("default-model")
@@ -128,7 +129,8 @@ class ZhipuAiChatRequestParametersTest {
                 .maxOutputTokens(512)
                 .doSample(true)
                 .toolStream(true)
-                .thinking(Thinking.builder().type("enabled").clearThinking(false).build())
+                .thinking(
+                        Thinking.builder().type("enabled").clearThinking(false).build())
                 .build();
 
         // when
