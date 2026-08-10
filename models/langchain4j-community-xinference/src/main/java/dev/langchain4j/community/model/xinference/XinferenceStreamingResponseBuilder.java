@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class XinferenceStreamingResponseBuilder {
 
     private final StringBuffer contentBuilder = new StringBuffer();
+    private final StringBuffer reasoningContentBuilder = new StringBuffer();
     private final AtomicReference<String> responseId = new AtomicReference<>();
     private final AtomicReference<String> responseModel = new AtomicReference<>();
     private volatile TokenUsage tokenUsage;
@@ -69,7 +70,11 @@ public class XinferenceStreamingResponseBuilder {
         String content = delta.getContent();
         if (content != null) {
             contentBuilder.append(content);
-            return;
+        }
+
+        String reasoningContent = delta.getReasoningContent();
+        if (reasoningContent != null) {
+            reasoningContentBuilder.append(reasoningContent);
         }
         if (!isNullOrEmpty(delta.getToolCalls())) {
             toolExecutionRequestList = delta.getToolCalls().stream()
@@ -119,37 +124,33 @@ public class XinferenceStreamingResponseBuilder {
 
     public ChatResponse build() {
         String text = contentBuilder.toString();
-        if (!isNullOrEmpty(toolExecutionRequestList)) {
-            List<ToolExecutionRequest> list = toolExecutionRequestList.stream()
-                    .map(it -> ToolExecutionRequest.builder()
-                            .id(it.idBuilder.toString())
-                            .name(it.nameBuilder.toString())
-                            .arguments(it.argumentsBuilder.toString())
-                            .build())
-                    .toList();
-            AiMessage aiMessage = isNullOrBlank(text) ? AiMessage.from(list) : AiMessage.from(text, list);
-            return ChatResponse.builder()
-                    .aiMessage(aiMessage)
-                    .metadata(ChatResponseMetadata.builder()
-                            .id(getResponseId())
-                            .modelName(getResponseModel())
-                            .finishReason(finishReason)
-                            .tokenUsage(tokenUsage)
-                            .build())
-                    .build();
-        }
-        if (!isNullOrBlank(text)) {
-            return ChatResponse.builder()
-                    .aiMessage(AiMessage.from(text))
-                    .metadata(ChatResponseMetadata.builder()
-                            .id(getResponseId())
-                            .modelName(getResponseModel())
-                            .finishReason(finishReason)
-                            .tokenUsage(tokenUsage)
-                            .build())
-                    .build();
-        }
-        return null;
+        String reasoningContent = reasoningContentBuilder.toString();
+
+        List<ToolExecutionRequest> toolExecutionRequests = isNullOrEmpty(toolExecutionRequestList)
+                ? null
+                : toolExecutionRequestList.stream()
+                        .map(requestBuilder -> ToolExecutionRequest.builder()
+                                .id(requestBuilder.idBuilder.toString())
+                                .name(requestBuilder.nameBuilder.toString())
+                                .arguments(requestBuilder.argumentsBuilder.toString())
+                                .build())
+                        .toList();
+
+        AiMessage aiMessage = AiMessage.builder()
+                .text(isNullOrBlank(text) ? null : text)
+                .toolExecutionRequests(toolExecutionRequests)
+                .thinking(isNullOrBlank(reasoningContent) ? null : reasoningContent)
+                .build();
+
+        return ChatResponse.builder()
+                .aiMessage(aiMessage)
+                .metadata(ChatResponseMetadata.builder()
+                        .id(getResponseId())
+                        .modelName(getResponseModel())
+                        .finishReason(finishReason)
+                        .tokenUsage(tokenUsage)
+                        .build())
+                .build();
     }
 
     public String getResponseId() {
