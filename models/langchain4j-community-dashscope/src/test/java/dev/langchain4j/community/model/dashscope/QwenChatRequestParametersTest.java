@@ -3,6 +3,7 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.ToolChoice;
@@ -162,5 +163,201 @@ class QwenChatRequestParametersTest {
         assertThat(qwenResult.translationOptions().tmList()).hasSize(1);
         assertThat(qwenResult.translationOptions().tmList().get(0).source()).isEqualTo("memory");
         assertThat(qwenResult.translationOptions().tmList().get(0).target()).isEqualTo("内存");
+    }
+
+    @Test
+    void shouldPreserveQwenSpecificFieldsWhenDefaultedBy() {
+        QwenChatRequestParameters current = QwenChatRequestParameters.builder()
+                .modelName("qwen-plus")
+                .temperature(0.8)
+                .topP(0.9)
+                .maxOutputTokens(4096)
+                .frequencyPenalty(0.5)
+                .presencePenalty(0.3)
+                .stopSequences(List.of("stop1", "stop2"))
+                .toolSpecifications(List.of(ToolSpecification.builder()
+                        .name("testTool")
+                        .description("test tool")
+                        .build()))
+                .toolChoice(ToolChoice.REQUIRED)
+                .responseFormat(ResponseFormat.JSON)
+                // qwen
+                .seed(12345)
+                .enableSearch(true)
+                .vlHighResolutionImages(true)
+                .isMultimodalModel(true)
+                .supportIncrementalOutput(true)
+                .enableThinking(true)
+                .thinkingBudget(2048)
+                .enableSanitizeMessages(false)
+                .n(3)
+                .size("1024*1024")
+                .promptExtend(true)
+                .negativePrompt("blurry, low quality")
+                .parallelToolCalls(true)
+                .enableCodeInterpreter(true)
+                .strictJsonSchema(true)
+                .custom(Map.of("customKey", "customValue"))
+                .searchOptions(QwenChatRequestParameters.SearchOptions.builder()
+                        .searchStrategy("standard")
+                        .build())
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("zh")
+                        .build())
+                .ttsOptions(QwenChatRequestParameters.TtsOptions.builder()
+                        .voice("Cherry")
+                        .languageType("Chinese")
+                        .instructions("Speak slowly")
+                        .optimizeInstructions(true)
+                        .build())
+                .translationOptions(QwenChatRequestParameters.TranslationOptions.builder()
+                        .sourceLang("English")
+                        .targetLang("Chinese")
+                        .domains("The sentence is from Ali Cloud IT domain.")
+                        .terms(List.of(
+                                QwenChatRequestParameters.TranslationOptionTerm.builder()
+                                        .source("商品")
+                                        .target("product")
+                                        .build()
+                        ))
+                        .tmLists(List.of(
+                                QwenChatRequestParameters.TranslationOptionTerm.builder()
+                                        .source("下单")
+                                        .target("place order")
+                                        .build()
+                        ))
+                        .build())
+                .build();
+
+        // default parameter
+        QwenChatRequestParameters defaults = QwenChatRequestParameters.builder()
+                .modelName("qwen-turbo-latest")
+                .temperature(0.2)
+                .topP(0.3)
+                .maxOutputTokens(8192)
+                .frequencyPenalty(0.8)
+                .presencePenalty(0.6)
+                .stopSequences(List.of("defaultStop", "end", "finish"))
+                .toolSpecifications(List.of(
+                        ToolSpecification.builder()
+                                .name("defaultTool")
+                                .description("default tool for testing")
+                                .build(),
+                        ToolSpecification.builder()
+                                .name("fallbackTool")
+                                .description("fallback tool")
+                                .build()
+                ))
+                .toolChoice(ToolChoice.AUTO)
+                .responseFormat(ResponseFormat.TEXT)
+                // qwen
+                .seed(88888)
+                .enableSearch(false)
+                .vlHighResolutionImages(false)
+                .isMultimodalModel(false)
+                .supportIncrementalOutput(false)
+                .enableThinking(false)
+                .thinkingBudget(4096)
+                .enableSanitizeMessages(true)
+                .n(5)
+                .size("2048*2048")
+                .promptExtend(false)
+                .negativePrompt("low resolution, error, worst quality, disfigured")
+                .parallelToolCalls(false)
+                .enableCodeInterpreter(false)
+                .strictJsonSchema(false)
+                .custom(Map.of(
+                        "defaultKey1", "defaultValue1",
+                        "defaultKey2", "defaultValue2"
+                ))
+                .searchOptions(QwenChatRequestParameters.SearchOptions.builder()
+                        .searchStrategy("advanced")
+                        .enableCitation(true)
+                        .build())
+                .asrOptions(QwenChatRequestParameters.AsrOptions.builder()
+                        .language("en")
+                        .enableItn(true)
+                        .build())
+                .ttsOptions(QwenChatRequestParameters.TtsOptions.builder()
+                        .voice("Emily")
+                        .languageType("English")
+                        .instructions("Speak naturally")
+                        .optimizeInstructions(false)
+                        .build())
+                .translationOptions(QwenChatRequestParameters.TranslationOptions.builder()
+                        .sourceLang("Chinese")
+                        .targetLang("English")
+                        .domains("The sentence is from e-commerce domain.")
+
+                        .terms(List.of(QwenChatRequestParameters.TranslationOptionTerm.builder()
+                                .source("memory")
+                                .target("内存")
+                                .build()))
+                        .tmLists(List.of(QwenChatRequestParameters.TranslationOptionTerm.builder()
+                                .source("memory")
+                                .target("内存")
+                                .build()))
+                        .build())
+                .build();
+
+        // execute defaultedBy
+        ChatRequestParameters merged = current.defaultedBy(defaults);
+
+        // assert class is QwenChatRequestParameters
+        assertThat(merged).isInstanceOf(QwenChatRequestParameters.class);
+        QwenChatRequestParameters qwenMerged = (QwenChatRequestParameters) merged;
+
+        // assert value of Default-fields
+        assertThat(qwenMerged.modelName()).isEqualTo("qwen-plus");
+        assertThat(qwenMerged.temperature()).isEqualTo(0.8);
+        assertThat(qwenMerged.topP()).isEqualTo(0.9);
+        assertThat(qwenMerged.maxOutputTokens()).isEqualTo(4096);
+        assertThat(qwenMerged.frequencyPenalty()).isEqualTo(0.5);
+        assertThat(qwenMerged.presencePenalty()).isEqualTo(0.3);
+        assertThat(qwenMerged.stopSequences()).containsExactly("stop1", "stop2");
+        assertThat(qwenMerged.toolSpecifications()).hasSize(1);
+        assertThat(qwenMerged.toolSpecifications().get(0).name()).isEqualTo("testTool");
+        assertThat(qwenMerged.toolSpecifications().get(0).description()).isEqualTo("test tool");
+        assertThat(qwenMerged.toolChoice()).isEqualTo(ToolChoice.REQUIRED);
+        assertThat(qwenMerged.responseFormat()).isEqualTo(ResponseFormat.JSON);
+
+        // assert value of Qwen-special fields
+        assertThat(qwenMerged.seed()).isEqualTo(12345);
+        assertThat(qwenMerged.enableSearch()).isTrue();
+        assertThat(qwenMerged.vlHighResolutionImages()).isTrue();
+        assertThat(qwenMerged.isMultimodalModel()).isTrue();
+        assertThat(qwenMerged.supportIncrementalOutput()).isTrue();
+        assertThat(qwenMerged.enableThinking()).isTrue();
+        assertThat(qwenMerged.thinkingBudget()).isEqualTo(2048);
+        assertThat(qwenMerged.enableSanitizeMessages()).isFalse();
+        assertThat(qwenMerged.n()).isEqualTo(3);
+        assertThat(qwenMerged.size()).isEqualTo("1024*1024");
+        assertThat(qwenMerged.promptExtend()).isTrue();
+        assertThat(qwenMerged.negativePrompt()).isEqualTo("blurry, low quality");
+        assertThat(qwenMerged.parallelToolCalls()).isTrue();
+        assertThat(qwenMerged.enableCodeInterpreter()).isTrue();
+        assertThat(qwenMerged.strictJsonSchema()).isTrue();
+        assertThat(qwenMerged.custom()).containsEntry("customKey", "customValue");
+
+        assertThat(qwenMerged.searchOptions()).isNotNull();
+        assertThat(qwenMerged.searchOptions().searchStrategy()).isEqualTo("standard");
+
+        assertThat(qwenMerged.asrOptions()).isNotNull();
+        assertThat(qwenMerged.asrOptions().language()).isEqualTo("zh");
+
+        assertThat(qwenMerged.ttsOptions()).isNotNull();
+        assertThat(qwenMerged.ttsOptions().voice()).isEqualTo("Cherry");
+        assertThat(qwenMerged.ttsOptions().languageType()).isEqualTo("Chinese");
+        assertThat(qwenMerged.ttsOptions().instructions()).isEqualTo("Speak slowly");
+        assertThat(qwenMerged.ttsOptions().optimizeInstructions()).isTrue();
+
+        assertThat(qwenMerged.translationOptions()).isNotNull();
+        assertThat(qwenMerged.translationOptions().sourceLang()).isEqualTo("English");
+        assertThat(qwenMerged.translationOptions().targetLang()).isEqualTo("Chinese");
+        assertThat(qwenMerged.translationOptions().domains()).isEqualTo("The sentence is from Ali Cloud IT domain.");
+        assertThat(qwenMerged.translationOptions().terms().get(0).source()).isEqualTo("商品");
+        assertThat(qwenMerged.translationOptions().terms().get(0).target()).isEqualTo("product");
+        assertThat(qwenMerged.translationOptions().tmList().get(0).source()).isEqualTo("下单");
+        assertThat(qwenMerged.translationOptions().tmList().get(0).target()).isEqualTo("place order");
     }
 }
