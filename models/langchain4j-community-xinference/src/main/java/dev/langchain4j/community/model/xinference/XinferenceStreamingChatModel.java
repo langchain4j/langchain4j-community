@@ -21,6 +21,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
+import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.net.Proxy;
 import java.time.Duration;
@@ -43,7 +44,45 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
     private final String user;
     private final Object toolChoice;
     private final Boolean parallelToolCalls;
+    private final Boolean enableThinking;
 
+    private XinferenceStreamingChatModel(XinferenceStreamingChatModelBuilder builder) {
+        Duration timeout = getOrDefault(builder.timeout, Duration.ofSeconds(60));
+        this.listeners = copy(builder.listeners);
+
+        this.client = XinferenceClient.builder()
+                .baseUrl(builder.baseUrl)
+                .apiKey(builder.apiKey)
+                .callTimeout(timeout)
+                .connectTimeout(timeout)
+                .readTimeout(timeout)
+                .writeTimeout(timeout)
+                .proxy(builder.proxy)
+                .logRequests(builder.logRequests)
+                .logStreamingResponses(builder.logResponses)
+                .customHeaders(builder.customHeaders)
+                .build();
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .modelName(ensureNotBlank(builder.modelName, "modelName"))
+                .temperature(builder.temperature)
+                .topP(builder.topP)
+                .stopSequences(builder.stop)
+                .maxOutputTokens(builder.maxTokens)
+                .presencePenalty(builder.presencePenalty)
+                .frequencyPenalty(builder.frequencyPenalty)
+                .build();
+
+        this.seed = builder.seed;
+        this.user = builder.user;
+        this.toolChoice = builder.toolChoice;
+        this.parallelToolCalls = builder.parallelToolCalls;
+        this.enableThinking = builder.enableThinking;
+    }
+
+    /**
+     * @deprecated please use {@link #builder()} instead.
+     */
+    @Deprecated(forRemoval = true)
     public XinferenceStreamingChatModel(
             String baseUrl,
             String apiKey,
@@ -64,35 +103,26 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
             Boolean logResponses,
             Map<String, String> customHeaders,
             List<ChatModelListener> listeners) {
-        timeout = getOrDefault(timeout, Duration.ofSeconds(60));
-        this.listeners = copy(listeners);
-
-        this.client = XinferenceClient.builder()
+        this(new XinferenceStreamingChatModelBuilder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout)
-                .proxy(proxy)
-                .logRequests(logRequests)
-                .logStreamingResponses(logResponses)
-                .customHeaders(customHeaders)
-                .build();
-        this.defaultRequestParameters = ChatRequestParameters.builder()
-                .modelName(ensureNotBlank(modelName, "modelName"))
+                .modelName(modelName)
                 .temperature(temperature)
                 .topP(topP)
-                .stopSequences(stop)
-                .maxOutputTokens(maxTokens)
+                .stop(stop)
+                .maxTokens(maxTokens)
                 .presencePenalty(presencePenalty)
                 .frequencyPenalty(frequencyPenalty)
-                .build();
-
-        this.seed = seed;
-        this.user = user;
-        this.toolChoice = toolChoice;
-        this.parallelToolCalls = parallelToolCalls;
+                .seed(seed)
+                .user(user)
+                .toolChoice(toolChoice)
+                .parallelToolCalls(parallelToolCalls)
+                .timeout(timeout)
+                .proxy(proxy)
+                .logRequests(logRequests)
+                .logResponses(logResponses)
+                .customHeaders(customHeaders)
+                .listeners(listeners));
     }
 
     public static XinferenceStreamingChatModelBuilder builder() {
@@ -131,7 +161,8 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
                 .user(user)
                 .seed(seed)
                 .toolChoice(toolChoice)
-                .parallelToolCalls(parallelToolCalls);
+                .parallelToolCalls(parallelToolCalls)
+                .enableThinking(enableThinking);
 
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.tools(toTools(toolSpecifications));
@@ -151,6 +182,11 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
                         String content = delta.getContent();
                         if (isNotNullOrEmpty(content)) {
                             handler.onPartialResponse(content);
+                        }
+
+                        String reasoningContent = delta.getReasoningContent();
+                        if (isNotNullOrEmpty(reasoningContent)) {
+                            handler.onPartialThinking(new PartialThinking(reasoningContent));
                         }
                     }
                 })
@@ -174,6 +210,7 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
         private String user;
         private Object toolChoice;
         private Boolean parallelToolCalls;
+        private Boolean enableThinking;
         private Duration timeout;
         private Proxy proxy;
         private Boolean logRequests;
@@ -246,6 +283,11 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
             return this;
         }
 
+        public XinferenceStreamingChatModelBuilder enableThinking(Boolean enableThinking) {
+            this.enableThinking = enableThinking;
+            return this;
+        }
+
         public XinferenceStreamingChatModelBuilder timeout(Duration timeout) {
             this.timeout = timeout;
             return this;
@@ -277,26 +319,7 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
         }
 
         public XinferenceStreamingChatModel build() {
-            return new XinferenceStreamingChatModel(
-                    this.baseUrl,
-                    this.apiKey,
-                    this.modelName,
-                    this.temperature,
-                    this.topP,
-                    this.stop,
-                    this.maxTokens,
-                    this.presencePenalty,
-                    this.frequencyPenalty,
-                    this.seed,
-                    this.user,
-                    this.toolChoice,
-                    this.parallelToolCalls,
-                    this.timeout,
-                    this.proxy,
-                    this.logRequests,
-                    this.logResponses,
-                    this.customHeaders,
-                    this.listeners);
+            return new XinferenceStreamingChatModel(this);
         }
     }
 }

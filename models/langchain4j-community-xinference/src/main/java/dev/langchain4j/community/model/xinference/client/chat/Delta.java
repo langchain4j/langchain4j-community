@@ -15,11 +15,13 @@ import java.util.List;
 public final class Delta {
     private final Role role;
     private final String content;
+    private final String reasoningContent;
     private final List<ToolCall> toolCalls;
 
     private Delta(Builder builder) {
         role = builder.role;
         content = builder.content;
+        reasoningContent = builder.reasoningContent;
         toolCalls = builder.toolCalls;
     }
 
@@ -35,6 +37,10 @@ public final class Delta {
         return content;
     }
 
+    public String getReasoningContent() {
+        return reasoningContent;
+    }
+
     public List<ToolCall> getToolCalls() {
         return toolCalls;
     }
@@ -45,6 +51,7 @@ public final class Delta {
     public static final class Builder {
         private Role role;
         private String content;
+        private String reasoningContent;
         private List<ToolCall> toolCalls;
 
         private Builder() {}
@@ -56,6 +63,11 @@ public final class Delta {
 
         public Builder content(String val) {
             content = val;
+            return this;
+        }
+
+        public Builder reasoningContent(String val) {
+            reasoningContent = val;
             return this;
         }
 

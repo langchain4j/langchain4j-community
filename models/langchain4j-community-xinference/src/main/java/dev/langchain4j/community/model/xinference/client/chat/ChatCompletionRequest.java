@@ -30,6 +30,7 @@ public final class ChatCompletionRequest {
     private final List<Tool> tools;
     private final Object toolChoice;
     private final Boolean parallelToolCalls;
+    private final Boolean enableThinking;
 
     private ChatCompletionRequest(Builder builder) {
         model = builder.model;
@@ -48,6 +49,7 @@ public final class ChatCompletionRequest {
         tools = builder.tools;
         toolChoice = builder.toolChoice;
         parallelToolCalls = builder.parallelToolCalls;
+        enableThinking = builder.enableThinking;
     }
 
     public static Builder builder() {
@@ -118,6 +120,10 @@ public final class ChatCompletionRequest {
         return parallelToolCalls;
     }
 
+    public Boolean getEnableThinking() {
+        return enableThinking;
+    }
+
     @JsonPOJOBuilder(withPrefix = "")
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -138,6 +144,7 @@ public final class ChatCompletionRequest {
         private List<Tool> tools;
         private Object toolChoice;
         private Boolean parallelToolCalls;
+        private Boolean enableThinking;
 
         private Builder() {}
 
@@ -158,6 +165,7 @@ public final class ChatCompletionRequest {
             this.tools(request.getTools());
             this.toolChoice(request.getToolChoice());
             this.parallelToolCalls(request.getParallelToolCalls());
+            this.enableThinking(request.getEnableThinking());
             return this;
         }
 
@@ -238,6 +246,11 @@ public final class ChatCompletionRequest {
 
         public Builder parallelToolCalls(Boolean val) {
             parallelToolCalls = val;
+            return this;
+        }
+
+        public Builder enableThinking(Boolean val) {
+            enableThinking = val;
             return this;
         }
 

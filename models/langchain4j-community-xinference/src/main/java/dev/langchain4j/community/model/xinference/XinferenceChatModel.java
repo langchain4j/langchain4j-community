@@ -46,7 +46,46 @@ public class XinferenceChatModel implements ChatModel {
     private final String user;
     private final Object toolChoice;
     private final Boolean parallelToolCalls;
+    private final Boolean enableThinking;
 
+    private XinferenceChatModel(XinferenceChatModelBuilder builder) {
+        Duration timeout = getOrDefault(builder.timeout, Duration.ofSeconds(60));
+        this.maxRetries = getOrDefault(builder.maxRetries, 3);
+        this.listeners = copy(builder.listeners);
+
+        this.client = XinferenceClient.builder()
+                .baseUrl(builder.baseUrl)
+                .apiKey(builder.apiKey)
+                .callTimeout(timeout)
+                .connectTimeout(timeout)
+                .readTimeout(timeout)
+                .writeTimeout(timeout)
+                .proxy(builder.proxy)
+                .logRequests(builder.logRequests)
+                .logResponses(builder.logResponses)
+                .customHeaders(builder.customHeaders)
+                .build();
+        this.defaultRequestParameters = ChatRequestParameters.builder()
+                .modelName(ensureNotBlank(builder.modelName, "modelName"))
+                .temperature(builder.temperature)
+                .topP(builder.topP)
+                .stopSequences(builder.stop)
+                .maxOutputTokens(builder.maxTokens)
+                .presencePenalty(builder.presencePenalty)
+                .frequencyPenalty(builder.frequencyPenalty)
+                .build();
+
+        this.seed = builder.seed;
+        this.user = builder.user;
+        this.toolChoice = builder.toolChoice;
+        this.parallelToolCalls = builder.parallelToolCalls;
+        this.enableThinking = builder.enableThinking;
+    }
+
+    /**
+     * @deprecated please use {@link #builder()} instead.
+     */
+    @Deprecated(forRemoval = true)
     public XinferenceChatModel(
             String baseUrl,
             String apiKey,
@@ -68,36 +107,27 @@ public class XinferenceChatModel implements ChatModel {
             Boolean logResponses,
             Map<String, String> customHeaders,
             List<ChatModelListener> listeners) {
-        timeout = getOrDefault(timeout, Duration.ofSeconds(60));
-        this.maxRetries = getOrDefault(maxRetries, 3);
-        this.listeners = copy(listeners);
-
-        this.client = XinferenceClient.builder()
+        this(new XinferenceChatModelBuilder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
-                .callTimeout(timeout)
-                .connectTimeout(timeout)
-                .readTimeout(timeout)
-                .writeTimeout(timeout)
+                .modelName(modelName)
+                .temperature(temperature)
+                .topP(topP)
+                .stop(stop)
+                .maxTokens(maxTokens)
+                .presencePenalty(presencePenalty)
+                .frequencyPenalty(frequencyPenalty)
+                .seed(seed)
+                .user(user)
+                .toolChoice(toolChoice)
+                .parallelToolCalls(parallelToolCalls)
+                .maxRetries(maxRetries)
+                .timeout(timeout)
                 .proxy(proxy)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .customHeaders(customHeaders)
-                .build();
-        this.defaultRequestParameters = ChatRequestParameters.builder()
-                .modelName(ensureNotBlank(modelName, "modelName"))
-                .temperature(temperature)
-                .topP(topP)
-                .stopSequences(stop)
-                .maxOutputTokens(maxTokens)
-                .presencePenalty(presencePenalty)
-                .frequencyPenalty(frequencyPenalty)
-                .build();
-
-        this.seed = seed;
-        this.user = user;
-        this.toolChoice = toolChoice;
-        this.parallelToolCalls = parallelToolCalls;
+                .listeners(listeners));
     }
 
     public static XinferenceChatModelBuilder builder() {
@@ -134,7 +164,8 @@ public class XinferenceChatModel implements ChatModel {
                 .user(user)
                 .seed(seed)
                 .toolChoice(toolChoice)
-                .parallelToolCalls(parallelToolCalls);
+                .parallelToolCalls(parallelToolCalls)
+                .enableThinking(enableThinking);
 
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.tools(toTools(toolSpecifications));
@@ -175,6 +206,7 @@ public class XinferenceChatModel implements ChatModel {
         private String user;
         private Object toolChoice;
         private Boolean parallelToolCalls;
+        private Boolean enableThinking;
         private Integer maxRetries;
         private Duration timeout;
         private Proxy proxy;
@@ -248,6 +280,11 @@ public class XinferenceChatModel implements ChatModel {
             return this;
         }
 
+        public XinferenceChatModelBuilder enableThinking(Boolean enableThinking) {
+            this.enableThinking = enableThinking;
+            return this;
+        }
+
         public XinferenceChatModelBuilder maxRetries(Integer maxRetries) {
             this.maxRetries = maxRetries;
             return this;
@@ -284,27 +321,7 @@ public class XinferenceChatModel implements ChatModel {
         }
 
         public XinferenceChatModel build() {
-            return new XinferenceChatModel(
-                    this.baseUrl,
-                    this.apiKey,
-                    this.modelName,
-                    this.temperature,
-                    this.topP,
-                    this.stop,
-                    this.maxTokens,
-                    this.presencePenalty,
-                    this.frequencyPenalty,
-                    this.seed,
-                    this.user,
-                    this.toolChoice,
-                    this.parallelToolCalls,
-                    this.maxRetries,
-                    this.timeout,
-                    this.proxy,
-                    this.logRequests,
-                    this.logResponses,
-                    this.customHeaders,
-                    this.listeners);
+            return new XinferenceChatModel(this);
         }
     }
 }
