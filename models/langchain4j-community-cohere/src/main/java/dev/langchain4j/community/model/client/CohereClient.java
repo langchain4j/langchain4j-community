@@ -11,6 +11,8 @@ import dev.langchain4j.Internal;
 import dev.langchain4j.community.model.client.chat.CohereChatRequest;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponse;
 import dev.langchain4j.community.model.client.chat.streaming.CohereServerSentEventListener;
+import dev.langchain4j.community.model.client.tokenize.CohereTokenizeRequest;
+import dev.langchain4j.community.model.client.tokenize.CohereTokenizeResponse;
 import dev.langchain4j.community.model.client.transcription.CohereTranscriptionRequest;
 import dev.langchain4j.community.model.client.transcription.CohereTranscriptionResponse;
 import dev.langchain4j.http.client.HttpClient;
@@ -97,6 +99,21 @@ public class CohereClient {
         }
 
         return httpRequestBuilder.build();
+    }
+
+    public CohereTokenizeResponse tokenize(CohereTokenizeRequest request) {
+        SuccessfulHttpResponse rawResponse = this.httpClient.execute(toHttpRequest(request));
+        return fromJson(rawResponse.body(), CohereTokenizeResponse.class);
+    }
+
+    private HttpRequest toHttpRequest(CohereTokenizeRequest request) {
+        return HttpRequest.builder()
+                .url(baseUrl, "/tokenize")
+                .addHeader("Authorization", "bearer " + apiKey)
+                .addHeader("Content-Type", "application/json")
+                .method(POST)
+                .body(toJson(request))
+                .build();
     }
 
     public static Builder builder() {
