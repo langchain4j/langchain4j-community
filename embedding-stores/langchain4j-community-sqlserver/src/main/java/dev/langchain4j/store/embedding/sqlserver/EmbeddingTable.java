@@ -7,12 +7,25 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents a database table that stores embeddings, text segments, and metadata.
  * This class handles the creation and management of the table schema for SQL Server.
  */
 public class EmbeddingTable {
+
+    private static final Logger logger = LoggerFactory.getLogger(EmbeddingTable.class);
+
+    /**
+     * SQL Server can only store vectors with 1998 dimensions due to its page size limit of 8KB
+     * When the embedding model exceeds this value, the Embedding Store would fail if it tries to store float32 vectors.
+     * With {@code HalfPrecisionConfiguration.AUTO}, the embedding store will automatically switch to using half-precision (float16) vectors.
+     *
+     * @see <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type?view=sql-server-ver17&tabs=csharp#dimensions">SQL Server Vector documentation</a>
+     */
+    public static final int SQLSERVER_VECTOR_PRECISION_LIMIT = 1998;
 
     /**
      * The default catalog for the embedding table.
@@ -58,6 +71,7 @@ public class EmbeddingTable {
     private final String metadataColumn;
     private final CreateOption createOption;
     private final Integer dimension;
+    private final boolean halfPrecision;
 
     private EmbeddingTable(Builder builder) {
         SQLServerEmbeddingStoreUtil.checkSQLInjection(builder.catalogName);
@@ -77,6 +91,19 @@ public class EmbeddingTable {
         this.createOption = builder.createOption;
         this.dimension = builder.dimension;
         ensureNotNull(dimension, "dimension");
+
+        if (HalfPrecisionConfiguration.AUTO == builder.halfPrecision) {
+            this.halfPrecision = dimension > SQLSERVER_VECTOR_PRECISION_LIMIT;
+            if (this.halfPrecision) {
+                logger.warn(
+                        "Dimension {} exceeds the float32 limit of {}. Automatically switching to half-precision (float16). "
+                                + "This requires an Azure SQL database with preview features enabled and the JDBC property vectorTypeSupport=v2.",
+                        dimension,
+                        SQLSERVER_VECTOR_PRECISION_LIMIT);
+            }
+        } else {
+            this.halfPrecision = builder.halfPrecision == HalfPrecisionConfiguration.ON;
+        }
     }
 
     /**
@@ -140,6 +167,17 @@ public class EmbeddingTable {
      */
     public Integer dimension() {
         return dimension;
+    }
+
+    /**
+     * Returns whether to use half-precision (float16) for embedding vectors.
+     * When disabled, the embedding store will only be able to store embeddings up to 1998 dimensions.
+     *
+     * @return True if half-precision is enabled, false otherwise.
+     * @see <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type-half-precision-float?view=sql-server-ver17">Microsoft Documentation</a> for more information.
+     */
+    public boolean isHalfPrecision() {
+        return halfPrecision;
     }
 
     /**
@@ -218,24 +256,23 @@ public class EmbeddingTable {
 
     private String getCreateTableStatement(boolean ifNotExists) {
 
+        String vectorType = halfPrecision ? "float16" : "float32";
         String createSql = String.format(
                 """
                     CREATE TABLE %s (
                         %s NVARCHAR(36) PRIMARY KEY,
-                        %s VECTOR(%d),
+                        %s VECTOR(%d, %s),
                         %s NVARCHAR(MAX),
                         %s JSON)
                 """,
-                getQualifiedTableName(), idColumn, embeddingColumn, dimension, textColumn, metadataColumn);
+                getQualifiedTableName(), idColumn, embeddingColumn, dimension, vectorType, textColumn, metadataColumn);
         if (ifNotExists) {
-            return String.format(
-                    """
+            return String.format("""
                         IF OBJECT_ID(N'%s', N'U') IS NULL
                             BEGIN
                                 %s
                             END;
-                    """,
-                    getQualifiedTableName(), createSql);
+                    """, getQualifiedTableName(), createSql);
         } else {
             return createSql;
         }
@@ -258,6 +295,7 @@ public class EmbeddingTable {
         private String metadataColumn = DEFAULT_METADATA_COLUMN;
         private CreateOption createOption = CreateOption.CREATE_NONE;
         private Integer dimension;
+        private HalfPrecisionConfiguration halfPrecision = HalfPrecisionConfiguration.OFF;
 
         private Builder() {}
 
@@ -361,6 +399,35 @@ public class EmbeddingTable {
         }
 
         /**
+         * Sets the half-precision configuration for embedding vectors. This feature is only available for <strong>Azure SQL databases</strong> with preview features enabled.
+         * <ul>
+         * <li>If {@link HalfPrecisionConfiguration#ON}, the half-precision (float16) type is used for storing the embeddings.</li>
+         * <li>If {@link HalfPrecisionConfiguration#OFF}, the vectors are stored in full precision (float32). Note that the embedding process would fail with embedding models with more than 1998 dimensions.</li>
+         * <li>If {@link HalfPrecisionConfiguration#AUTO}, the default (float32) type is used unless the configured dimension is greater than 1998, in which case half-precision (float16) is used automatically.</li>
+         * <li>If {@code null}, treated as {@link HalfPrecisionConfiguration#OFF}.</li>
+         * </ul>
+         * <p>
+         * When enabling the half-precision support, you must configure the JDBC connection property {@code vectorTypeSupport=v2}.
+         * See the <a href="https://learn.microsoft.com/en-us/sql/connect/jdbc/use-vector-data-type?view=sql-server-ver17#use-vector-float16-data-type">Microsoft JDBC driver documentation</a>
+         * for more details.
+         * </p>
+         * <p>
+         * For more information, see {@link SQLServerEmbeddingStore}.
+         * </p>
+         *
+         * @param halfPrecision The half-precision configuration.
+         * @return This builder.
+         *
+         * @see <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type-half-precision-float?view=sql-server-ver17">Microsoft Documentation</a>
+         * for more information regarding the half-precision vector support.
+         * @see SQLServerEmbeddingStore
+         */
+        public Builder halfPrecision(HalfPrecisionConfiguration halfPrecision) {
+            this.halfPrecision = halfPrecision;
+            return this;
+        }
+
+        /**
          * Builds the EmbeddingTable instance.
          *
          * @return The configured EmbeddingTable.
@@ -383,7 +450,9 @@ public class EmbeddingTable {
                     + textColumn + '\'' + ", metadataColumn='"
                     + metadataColumn + '\'' + ", createOption="
                     + createOption + ", dimension="
-                    + dimension + '}';
+                    + dimension + ", halfPrecision="
+                    + halfPrecision
+                    + '}';
         }
     }
 }

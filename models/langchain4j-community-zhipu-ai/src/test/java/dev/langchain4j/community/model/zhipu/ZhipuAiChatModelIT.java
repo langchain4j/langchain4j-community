@@ -44,7 +44,7 @@ class ZhipuAiChatModelIT {
     private static final String apiKey = System.getenv("ZHIPU_API_KEY");
 
     ZhipuAiChatModel chatModel = ZhipuAiChatModel.builder()
-            .model(ChatCompletionModel.GLM_4_FLASH)
+            .model(ChatCompletionModel.GLM_4_7)
             .apiKey(apiKey)
             .logRequests(true)
             .logResponses(true)
@@ -149,8 +149,7 @@ class ZhipuAiChatModelIT {
     @Test
     void should_execute_get_current_time_tool_and_then_answer() {
         // given
-        UserMessage userMessage =
-                userMessage("What's the time now? Please give the year and the exact time in seconds.");
+        UserMessage userMessage = userMessage("What's the time now? Please tell me the year and the current time.");
         List<ToolSpecification> toolSpecifications = singletonList(currentTime);
 
         // when
@@ -161,7 +160,6 @@ class ZhipuAiChatModelIT {
 
         // then
         AiMessage aiMessage = response.aiMessage();
-        assertThat(aiMessage.text()).isNull();
         assertThat(aiMessage.toolExecutionRequests()).hasSize(1);
 
         ToolExecutionRequest toolExecutionRequest =

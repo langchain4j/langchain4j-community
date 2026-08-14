@@ -3,10 +3,11 @@ package dev.langchain4j.store.embedding.sqlserver.util;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.sqlserver.SQLServerEmbeddingStore;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Map;
-import java.util.Properties;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.MSSQLServerContainer;
 
@@ -14,13 +15,34 @@ public class SQLServerTestsUtil {
 
     public static final MSSQLServerContainer DEFAULT_CONTAINER =
             (MSSQLServerContainer) new MSSQLServerContainer("mcr.microsoft.com/mssql/server:2025-latest")
+                    .withPassword("Str0ng_P@ssw0rd_2026!")
                     .withEnv("MSSQL_COLLATION", "SQL_Latin1_General_CP1_CS_AS");
 
-    public static @NotNull SQLServerDataSource getSqlServerDataSource() {
+    public static @NonNull SQLServerDataSource getSqlServerDataSource() {
         return getSqlServerDataSource(DEFAULT_CONTAINER);
     }
 
-    public static @NotNull SQLServerDataSource getSqlServerDataSource(JdbcDatabaseContainer sqlServerContainer) {
+    public static @NonNull SQLServerDataSource getAzureSqlServerDataSource() {
+        SQLServerDataSource dataSource = new SQLServerDataSource();
+        dataSource.setServerName(System.getenv("AZURE_SQL_SERVER_NAME"));
+        String portNumber = System.getenv("AZURE_SQL_PORT");
+        if (portNumber != null) {
+            dataSource.setPortNumber(Integer.parseInt(portNumber));
+        }
+        dataSource.setDatabaseName(System.getenv("AZURE_SQL_DATABASE_NAME"));
+
+        dataSource.setUser(System.getenv("AZURE_SQL_USER"));
+        dataSource.setPassword(System.getenv("AZURE_SQL_PASSWORD"));
+
+        dataSource.setEncrypt("true");
+        dataSource.setTrustServerCertificate(true);
+        dataSource.setHostNameInCertificate("*.database.windows.net");
+
+        dataSource.setVectorTypeSupport("v2");
+        return dataSource;
+    }
+
+    public static @NonNull SQLServerDataSource getSqlServerDataSource(JdbcDatabaseContainer sqlServerContainer) {
         sqlServerContainer.start();
 
         String host = sqlServerContainer.getHost();
@@ -38,29 +60,23 @@ public class SQLServerTestsUtil {
         return dataSource;
     }
 
-    public static @NotNull SQLServerEmbeddingStore.SQLServerEmbeddingStoreConnectionBuilder getConnectionBuilder() {
-        Properties connectionProperties = new Properties();
-        connectionProperties.setProperty("encrypt", "false");
-        connectionProperties.setProperty("trustServerCertificate", "true");
-        connectionProperties.setProperty("loginTimeout", "30");
-        connectionProperties.setProperty("connectTimeout", "5000");
-        connectionProperties.setProperty("applicationName", "LangChain4j SQLServer EmbeddingStore");
-
-        String host = DEFAULT_CONTAINER.getHost();
-        Integer port = DEFAULT_CONTAINER.getMappedPort(1433);
-        String username = DEFAULT_CONTAINER.getUsername();
-        String password = DEFAULT_CONTAINER.getPassword();
-        String database = DEFAULT_CONTAINER.getDatabaseName();
-
-        SQLServerEmbeddingStore.SQLServerEmbeddingStoreConnectionBuilder builder =
-                SQLServerEmbeddingStore.connectionBuilder();
-        builder.host(host);
-        builder.port(port);
-        builder.userName(username);
-        builder.password(password);
-        builder.database(database);
-        builder.connectionProperties(connectionProperties);
-        return builder;
+    /**
+     * Enables preview features on the given SQL Server data source by creating a dedicated database
+     * and setting {@code PREVIEW_FEATURES = ON}. This is required for half-precision (float16) vector support.
+     *
+     * @param dataSource the data source to configure; must already be connected
+     * @param databaseName the name of the database to create and use
+     */
+    public static void enablePreviewFeatures(SQLServerDataSource dataSource, String databaseName) {
+        try (Connection connection = dataSource.getConnection();
+                Statement stmt = connection.createStatement()) {
+            stmt.execute(String.format("IF DB_ID(N'%s') IS NULL CREATE DATABASE [%s];", databaseName, databaseName));
+            stmt.execute(String.format(
+                    "USE [%s]; ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON", databaseName));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        dataSource.setDatabaseName(databaseName);
     }
 
     /**
@@ -69,7 +85,7 @@ public class SQLServerTestsUtil {
      * of the dish in both Japanese and English.
      *
      * @return an array of {@code TextSegment} objects, each representing a Japanese dish with
-     *         associated text and metadata.
+     * associated text and metadata.
      */
     public static TextSegment[] japaneseSampling() {
         return new TextSegment[] {

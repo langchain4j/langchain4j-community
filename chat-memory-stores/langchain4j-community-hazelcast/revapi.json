@@ -1,0 +1,55 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class com.hazelcast.core.HazelcastInstance",
+          "justification": "Hazelcast is a provided dependency; its classes are intentionally exposed in the ChatMemoryStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class com.hazelcast.core.HazelcastInstance",
+          "justification": "Hazelcast is a provided dependency; its classes are intentionally exposed in the ChatMemoryStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class com.hazelcast.core.HazelcastInstance",
+          "justification": "Hazelcast is a provided dependency; its classes are intentionally exposed in the ChatMemoryStore API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class com.hazelcast.map.IMap",
+          "justification": "Hazelcast is a provided dependency; its classes are intentionally exposed in the ChatMemoryStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class com.hazelcast.map.IMap",
+          "justification": "Hazelcast is a provided dependency; its classes are intentionally exposed in the ChatMemoryStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class com.hazelcast.map.IMap",
+          "justification": "Hazelcast is a provided dependency; its classes are intentionally exposed in the ChatMemoryStore API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class dev.langchain4j.data.message.ChatMessage",
+          "justification": "ChatMessage is part of the ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.data.message.ChatMessage",
+          "justification": "ChatMessage is part of the ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.data.message.ChatMessage",
+          "justification": "ChatMessage is part of the ChatMemoryStore API by design"
+        }
+      ]
+    }
+  }
+]

@@ -2,44 +2,28 @@ package dev.langchain4j.community.model.dashscope;
 
 import static dev.langchain4j.internal.Utils.quoted;
 
-import dev.langchain4j.Experimental;
-import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-@Experimental
 public class QwenChatResponseMetadata extends ChatResponseMetadata {
+
     private final SearchInfo searchInfo;
-    /**
-     * @deprecated Please use {@link AiMessage#thinking} instead.
-     */
-    @Deprecated(since = "1.2.0", forRemoval = true)
-    private final String reasoningContent;
 
     protected QwenChatResponseMetadata(Builder builder) {
         super(builder);
         this.searchInfo = builder.searchInfo;
-        this.reasoningContent = builder.reasoningContent;
     }
 
     public SearchInfo searchInfo() {
         return searchInfo;
     }
 
-    /**
-     * @deprecated Please use {@link AiMessage#thinking()} instead.
-     */
-    @Deprecated(since = "1.2.0", forRemoval = true)
-    public String reasoningContent() {
-        return reasoningContent;
-    }
-
     @Override
     public Builder toBuilder() {
-        return ((Builder) super.toBuilder(builder())).searchInfo(searchInfo).reasoningContent(reasoningContent);
+        return ((Builder) super.toBuilder(builder())).searchInfo(searchInfo);
     }
 
     public Map<String, Object> toMap() {
@@ -59,9 +43,6 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
         if (searchInfo != null) {
             map.put("searchInfo", searchInfo);
         }
-        if (reasoningContent != null) {
-            map.put("reasoningContent", reasoningContent);
-        }
         return map;
     }
 
@@ -70,12 +51,12 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
         if (this == o) return true;
         if (!(o instanceof QwenChatResponseMetadata that)) return false;
         if (!super.equals(o)) return false;
-        return Objects.equals(searchInfo, that.searchInfo) && Objects.equals(reasoningContent, that.reasoningContent);
+        return Objects.equals(searchInfo, that.searchInfo);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), searchInfo, reasoningContent);
+        return Objects.hash(super.hashCode(), searchInfo);
     }
 
     @Override
@@ -85,8 +66,7 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
                 + quoted(modelName()) + ", tokenUsage="
                 + tokenUsage() + ", finishReason="
                 + finishReason() + ", searchInfo="
-                + searchInfo + ", reasoningContent="
-                + reasoningContent + '}';
+                + searchInfo + '}';
     }
 
     public static Builder builder() {
@@ -94,20 +74,11 @@ public class QwenChatResponseMetadata extends ChatResponseMetadata {
     }
 
     public static class Builder extends ChatResponseMetadata.Builder<Builder> {
+
         private SearchInfo searchInfo;
-        private String reasoningContent;
 
         public Builder searchInfo(SearchInfo searchInfo) {
             this.searchInfo = searchInfo;
-            return this;
-        }
-
-        /**
-         * @deprecated Please use {@link AiMessage#thinking()} instead.
-         */
-        @Deprecated(since = "1.2.0", forRemoval = true)
-        public Builder reasoningContent(String reasoningContent) {
-            this.reasoningContent = reasoningContent;
             return this;
         }
 

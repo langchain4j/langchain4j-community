@@ -144,28 +144,53 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
-    void getMessages_memoryId_null() {
+    void should_set_messages_with_storeType_into_redis() {
+        RedisChatMemoryStore storeTypeStore = RedisChatMemoryStore.builder()
+                .port(redis.getFirstMappedPort())
+                .host(redis.getHost())
+                .storeType(StoreType.STRING)
+                .build();
+
+        // given
+        List<ChatMessage> messages = storeTypeStore.getMessages(userId);
+        assertThat(messages).isEmpty();
+
+        // when
+        List<ChatMessage> chatMessages = new ArrayList<>();
+        chatMessages.add(new SystemMessage("You are a large language model working with Langchain4j"));
+        List<Content> userMsgContents = new ArrayList<>();
+        userMsgContents.add(new ImageContent("someCatImageUrl"));
+        chatMessages.add(new UserMessage("What do you see in this image?", userMsgContents));
+        storeTypeStore.updateMessages(userId, chatMessages);
+
+        // then
+        messages = storeTypeStore.getMessages(userId);
+        assertThat(messages).hasSize(2);
+    }
+
+    @Test
+    void getMessages_should_throw_exception_when_memoryId_null() {
         assertThatThrownBy(() -> memoryStore.getMessages(null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("memoryId cannot be null or empty");
     }
 
     @Test
-    void getMessages_memoryId_empty() {
+    void getMessages_should_throw_exception_when_memoryId_empty() {
         assertThatThrownBy(() -> memoryStore.getMessages("   "))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("memoryId cannot be null or empty");
     }
 
     @Test
-    void updateMessages_messages_null() {
+    void updateMessages_should_throw_exception_when_messages_null() {
         assertThatThrownBy(() -> memoryStore.updateMessages(userId, null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("messages cannot be null or empty");
     }
 
     @Test
-    void updateMessages_messages_empty() {
+    void updateMessages_should_throw_exception_when_messages_empty() {
         List<ChatMessage> chatMessages = new ArrayList<>();
         assertThatThrownBy(() -> memoryStore.updateMessages(userId, chatMessages))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -173,7 +198,7 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
-    void updateMessages_memoryId_null() {
+    void updateMessages_should_throw_exception_when_memoryId_null() {
         List<ChatMessage> chatMessages = new ArrayList<>();
         chatMessages.add(new SystemMessage("You are a large language model working with Langchain4j"));
         assertThatThrownBy(() -> memoryStore.updateMessages(null, chatMessages))
@@ -191,14 +216,14 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
-    void deleteMessages_memoryId_null() {
+    void deleteMessages_should_throw_exception_when_memoryId_null() {
         assertThatThrownBy(() -> memoryStore.deleteMessages(null))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("memoryId cannot be null or empty");
     }
 
     @Test
-    void deleteMessages_memoryId_empty() {
+    void deleteMessages_should_throw_exception_when_memoryId_empty() {
         assertThatThrownBy(() -> memoryStore.deleteMessages("   "))
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("memoryId cannot be null or empty");
@@ -290,5 +315,16 @@ class RedisChatMemoryStoreIT {
                         .build())
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("password cannot be null or blank");
+    }
+
+    @Test
+    void constructor_storeType_null() {
+        assertThatThrownBy(() -> RedisChatMemoryStore.builder()
+                        .port(redis.getFirstMappedPort())
+                        .host(redis.getHost())
+                        .storeType(null)
+                        .build())
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("storeType cannot be null");
     }
 }

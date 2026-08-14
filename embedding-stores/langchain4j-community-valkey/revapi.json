@@ -1,0 +1,14 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "justification": "New module using valkey-glide types as public API - these are external dependency types used in the builder configuration"
+        }
+      ]
+    }
+  }
+]

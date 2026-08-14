@@ -1,28 +1,27 @@
 package dev.langchain4j.community.model.zhipu.chat;
 
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.util.Collections;
 import java.util.List;
-
-import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-
 
 @JsonInclude(NON_NULL)
 @JsonNaming(SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class Delta {
     private String content;
+    private String reasoningContent;
     private List<ToolCall> toolCalls;
 
-    public Delta() {
-    }
+    public Delta() {}
 
     private Delta(Builder builder) {
         this.content = builder.content;
+        this.reasoningContent = builder.reasoningContent;
         this.toolCalls = builder.toolCalls;
     }
 
@@ -38,6 +37,14 @@ public final class Delta {
         this.content = content;
     }
 
+    public String getReasoningContent() {
+        return reasoningContent;
+    }
+
+    public void setReasoningContent(String reasoningContent) {
+        this.reasoningContent = reasoningContent;
+    }
+
     public List<ToolCall> getToolCalls() {
         return toolCalls;
     }
@@ -48,13 +55,18 @@ public final class Delta {
 
     public static final class Builder {
         private String content;
+        private String reasoningContent;
         private List<ToolCall> toolCalls;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder content(String content) {
             this.content = content;
+            return this;
+        }
+
+        public Builder reasoningContent(String reasoningContent) {
+            this.reasoningContent = reasoningContent;
             return this;
         }
 

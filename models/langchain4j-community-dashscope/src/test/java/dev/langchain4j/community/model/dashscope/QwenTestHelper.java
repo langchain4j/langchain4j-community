@@ -27,45 +27,57 @@ import org.junit.jupiter.params.provider.Arguments;
 class QwenTestHelper {
 
     public static Stream<Arguments> languageModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN_TURBO),
-                Arguments.of(QwenModelName.QWEN_PLUS),
-                Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_LONG));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN_TURBO),
-                Arguments.of(QwenModelName.QWEN_PLUS),
-                Arguments.of(QwenModelName.QWEN_MAX),
-                Arguments.of(QwenModelName.QWEN_LONG),
-                Arguments.of(QwenModelName.QWEN3_32B));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX), Arguments.of(QwenModelName.QWEN3_7_PLUS));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
-        return Stream.of(Arguments.of(QwenModelName.QWEN3_32B), Arguments.of(QwenModelName.QWEN3_235B_A22B));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX), Arguments.of(QwenModelName.QWEN3_7_PLUS));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_MAX));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX), Arguments.of(QwenModelName.QWEN3_7_PLUS));
     }
 
-    public static Stream<Arguments> vlChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_VL_MAX));
+    public static Stream<Arguments> searchingChatModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX));
+    }
+
+    public static Stream<Arguments> multimodalChatModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_VL_FLASH), Arguments.of(QwenModelName.QWEN3_7_PLUS));
     }
 
     public static Stream<Arguments> mtChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_MT_TURBO), Arguments.of(QwenModelName.QWEN_MT_PLUS));
+        return Stream.of(Arguments.of(QwenModelName.QWEN_MT_FLASH));
     }
 
-    public static Stream<Arguments> audioChatModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.QWEN_AUDIO_TURBO_LATEST));
+    public static Stream<Arguments> asrChatModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_ASR_FLASH));
+    }
+
+    public static Stream<Arguments> ttsChatModelNameProvider() {
+        return Stream.of(
+                Arguments.of(QwenModelName.QWEN3_TTS_FLASH), Arguments.of(QwenModelName.QWEN3_TTS_INSTRUCT_FLASH));
     }
 
     public static Stream<Arguments> embeddingModelNameProvider() {
-        return Stream.of(Arguments.of(QwenModelName.TEXT_EMBEDDING_V3));
+        return Stream.of(Arguments.of(QwenModelName.TEXT_EMBEDDING_V3), Arguments.of(QwenModelName.TEXT_EMBEDDING_V4));
+    }
+
+    public static Stream<Arguments> scoringModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.GTE_RERANK_V2), Arguments.of(QwenModelName.QWEN3_RERANK));
+    }
+
+    public static Stream<Arguments> imageModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_2_0));
+    }
+
+    public static Stream<Arguments> imageEditModelNameProvider() {
+        return Stream.of(Arguments.of(QwenModelName.QWEN_IMAGE_2_0));
     }
 
     public static String apiKey() {
@@ -111,9 +123,9 @@ class QwenTestHelper {
                 .url("https://dashscope.oss-cn-beijing.aliyuncs.com/audios/welcome.mp3")
                 .build();
         AudioContent audioContent = AudioContent.from(audio);
-        TextContent textContent =
-                TextContent.from("What is this audio saying? Please note that the audio language is Chinese.");
-        return Collections.singletonList(UserMessage.from(audioContent, textContent));
+        SystemMessage systemMessage =
+                SystemMessage.from("What is this audio saying? Please note that the audio language is Chinese.");
+        return List.of(systemMessage, UserMessage.from(audioContent));
     }
 
     public static List<ChatMessage> multimodalChatMessagesWithAudioData() {
@@ -122,9 +134,9 @@ class QwenTestHelper {
                 .mimeType("audio/mp3")
                 .build();
         AudioContent audioContent = AudioContent.from(audio);
-        TextContent textContent =
-                TextContent.from("What is this audio saying? Please note that the audio language is Chinese.");
-        return Collections.singletonList(UserMessage.from(audioContent, textContent));
+        SystemMessage systemMessage =
+                SystemMessage.from("What is this audio saying? Please note that the audio language is Chinese.");
+        return List.of(systemMessage, UserMessage.from(audioContent));
     }
 
     public static String multimodalAudioData() {
@@ -154,7 +166,7 @@ class QwenTestHelper {
         return getBase64DataFromResource("/parrot.mp4");
     }
 
-    private static String getBase64DataFromResource(String path) {
+    static String getBase64DataFromResource(String path) {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try (InputStream in = QwenTestHelper.class.getResourceAsStream(path)) {
             assertThat(in).isNotNull();
@@ -168,5 +180,19 @@ class QwenTestHelper {
         }
 
         return Base64.getEncoder().encodeToString(buffer.toByteArray());
+    }
+
+    public static List<ChatMessage> textToImageChatMessages() {
+        TextContent textContent = TextContent.from("Draw a parrot.");
+        return Collections.singletonList(UserMessage.from(textContent));
+    }
+
+    public static List<ChatMessage> textToImageChatMessagesWithImageUrl() {
+        Image image = Image.builder()
+                .url("https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg")
+                .build();
+        ImageContent imageContent = ImageContent.from(image);
+        TextContent textContent = TextContent.from("Change the background.");
+        return Collections.singletonList(UserMessage.from(imageContent, textContent));
     }
 }

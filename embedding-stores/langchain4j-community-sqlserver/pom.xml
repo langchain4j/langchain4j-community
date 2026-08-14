@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.9.0-beta16-SNAPSHOT</version>
+        <version>1.19.0-beta29-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -14,7 +14,7 @@
     <description>SQL Server Database Embedding Store</description>
 
     <properties>
-        <mssql.jdbc.version>13.2.1.jre11</mssql.jdbc.version>
+        <mssql.jdbc.version>13.4.0.jre11</mssql.jdbc.version>
     </properties>
 
     <dependencies>
@@ -68,18 +68,14 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
+            <groupId>org.tinylog</groupId>
+            <artifactId>slf4j-tinylog</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j2-impl</artifactId>
+            <groupId>org.tinylog</groupId>
+            <artifactId>tinylog-impl</artifactId>
             <scope>test</scope>
         </dependency>
 

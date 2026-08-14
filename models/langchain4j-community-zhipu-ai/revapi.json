@@ -1,0 +1,34 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "justification": "New module using langchain4j core types as public API - these are external dependency types, not this module's own API surface"
+        },
+        {
+          "code": "java.method.numberOfParametersChanged",
+          "justification": "Added doSample parameter to ZhipuAiChatModel and ZhipuAiStreamingChatModel constructors as part of ZhipuAiChatRequestParameters integration"
+        },
+        {
+          "code": "java.method.returnTypeChanged",
+          "justification": "defaultRequestParameters() return type changed from ChatRequestParameters to ZhipuAiChatRequestParameters as part of ZhipuAiChatRequestParameters integration"
+        },
+        {
+          "code": "java.method.parameterTypeChanged",
+          "justification": "ChatCompletionRequest.doSample changed from String to Boolean type for type safety"
+        },
+        {
+          "code": "java.method.removed",
+          "justification": "ChatCompletionRequest.Builder.from() signature removed due to unuse"
+        },
+        {
+          "code": "java.annotation.added",
+          "justification": "ImageRequest and ImageResponse classes annotated with Jackson annotations for serialization compatibility"
+        }
+      ]
+    }
+  }
+]

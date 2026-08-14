@@ -35,6 +35,11 @@ import java.util.Map;
 @JsonPropertyOrder({"type", "properties", "required"})
 public class ToolFunctionParameters {
 
+    /**
+     * Creates default function-parameter schema holder.
+     */
+    public ToolFunctionParameters() {}
+
     @JsonProperty("type")
     private String type = "object";
 

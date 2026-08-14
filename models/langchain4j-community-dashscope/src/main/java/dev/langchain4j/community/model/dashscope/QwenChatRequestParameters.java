@@ -3,7 +3,6 @@ package dev.langchain4j.community.model.dashscope;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.quoted;
 
-import dev.langchain4j.Experimental;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import java.util.List;
@@ -13,7 +12,6 @@ import java.util.Objects;
 /**
  * Parameter details are available <a href="https://www.alibabacloud.com/help/en/model-studio/use-qwen-by-calling-api#2ed5ee7377fum">here</a>.
  */
-@Experimental
 public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     /**
      * If specified, it will make a best effort to sample deterministically, such that
@@ -31,6 +29,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      */
     private final SearchOptions searchOptions;
     /**
+     * Parameters for automatic speech recognition (ASR).
+     * See <a href="https://modelstudio.console.alibabacloud.com/ap-southeast-1/?tab=api#/api/?type=model&url=2986952">Qwen-ASR API reference</a> for more details.
+     */
+    private final AsrOptions asrOptions;
+    /**
+     * Parameters for text-to-speech (TTS).
+     * See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-tts">Speech synthesis - Qwen</a> for more details.
+     */
+    private final TtsOptions ttsOptions;
+    /**
      * The translation parameters you need to configure when you use the translation
      * models.
      */
@@ -38,7 +46,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     /**
      * Whether to increase the default token limit for input images. The default token
      * limit for input images is 1280. When configured to true, the token limit for input
-     * images is 16384. Default value is false.
+     * images is 16384. Defaults to false.
      */
     private final Boolean vlHighResolutionImages;
     /**
@@ -56,7 +64,7 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     private final Boolean supportIncrementalOutput;
     /**
      * Specifies whether to use the reasoning mode. Applicable for Qwen3 models.
-     * Default value is false.
+     * Defaults to false.
      */
     private final Boolean enableThinking;
     /**
@@ -66,9 +74,48 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     private final Integer thinkingBudget;
     /**
      * Specifies whether to sanitize messages before sending to llm provider.
-     * Default value is true.
+     * Defaults to true.
      */
     private final Boolean enableSanitizeMessages;
+    /**
+     * The number of images to generate.
+     */
+    private final Integer n;
+    /**
+     * Specifies the resolution of the output image in the width*height format, such as "1024*1536".
+     * The width and height values must be in the range of [512, 2048] pixels.
+     */
+    private final String size;
+    /**
+     * Specifies whether to enable prompt rewriting, which is on by default (true).
+     * When enabled, the model optimizes the positive prompt (text).
+     * This feature significantly improves results when prompts lack detail.
+     */
+    private final Boolean promptExtend;
+    /**
+     * The negative prompt, describing content you do not want in the generated image.
+     * This parameter supports Chinese and English with a maximum length of 500 characters.
+     * Each Chinese character or English letter counts as one character. Content that exceeds the limit is automatically truncated.
+     * Example: low resolution, error, worst quality, low quality, disfigured, extra fingers, bad proportions.
+     */
+    private final String negativePrompt;
+    /**
+     * Specifies whether to enable parallel tool calling.
+     * Defaults to false.
+     */
+    private final Boolean parallelToolCalls;
+    /**
+     * Specifies whether to enable the code interpreter feature.
+     * Defaults to false.
+     * See <a href="https://www.alibabacloud.com/help/en/model-studio/code-interpreter">Code Interpreter</a> for more information.
+     */
+    private final Boolean enableCodeInterpreter;
+    /**
+     * Controls whether the model must strictly adhere to all constraints of the json schema.
+     * Defaults to false.
+     * See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-structured-output#29f804ad39r5g">Structured Output</a> for more information.
+     */
+    private final Boolean strictJsonSchema;
     /**
      * User-defined parameters. They may have special effects on some special models.
      */
@@ -79,6 +126,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.seed = builder.seed;
         this.enableSearch = builder.enableSearch;
         this.searchOptions = builder.searchOptions;
+        this.asrOptions = builder.asrOptions;
+        this.ttsOptions = builder.ttsOptions;
         this.translationOptions = builder.translationOptions;
         this.vlHighResolutionImages = builder.vlHighResolutionImages;
         this.isMultimodalModel = builder.isMultimodalModel;
@@ -86,6 +135,13 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         this.enableThinking = getOrDefault(builder.enableThinking, Boolean.FALSE);
         this.thinkingBudget = builder.thinkingBudget;
         this.enableSanitizeMessages = getOrDefault(builder.enableSanitizeMessages, Boolean.TRUE);
+        this.n = builder.n;
+        this.size = builder.size;
+        this.promptExtend = builder.promptExtend;
+        this.negativePrompt = builder.negativePrompt;
+        this.parallelToolCalls = builder.parallelToolCalls;
+        this.enableCodeInterpreter = builder.enableCodeInterpreter;
+        this.strictJsonSchema = builder.strictJsonSchema;
         this.custom = builder.custom;
     }
 
@@ -99,6 +155,14 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
     public SearchOptions searchOptions() {
         return searchOptions;
+    }
+
+    public AsrOptions asrOptions() {
+        return asrOptions;
+    }
+
+    public TtsOptions ttsOptions() {
+        return ttsOptions;
     }
 
     public TranslationOptions translationOptions() {
@@ -129,6 +193,34 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         return enableSanitizeMessages;
     }
 
+    public Integer n() {
+        return n;
+    }
+
+    public String size() {
+        return size;
+    }
+
+    public Boolean promptExtend() {
+        return promptExtend;
+    }
+
+    public String negativePrompt() {
+        return negativePrompt;
+    }
+
+    public Boolean parallelToolCalls() {
+        return parallelToolCalls;
+    }
+
+    public Boolean enableCodeInterpreter() {
+        return enableCodeInterpreter;
+    }
+
+    public Boolean strictJsonSchema() {
+        return strictJsonSchema;
+    }
+
     public Map<String, Object> custom() {
         return custom;
     }
@@ -153,8 +245,22 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         return Objects.equals(seed, that.seed)
                 && Objects.equals(enableSearch, that.enableSearch)
                 && Objects.equals(searchOptions, that.searchOptions)
+                && Objects.equals(asrOptions, that.asrOptions)
+                && Objects.equals(ttsOptions, that.ttsOptions)
                 && Objects.equals(translationOptions, that.translationOptions)
                 && Objects.equals(vlHighResolutionImages, that.vlHighResolutionImages)
+                && Objects.equals(isMultimodalModel, that.isMultimodalModel)
+                && Objects.equals(supportIncrementalOutput, that.supportIncrementalOutput)
+                && Objects.equals(enableThinking, that.enableThinking)
+                && Objects.equals(thinkingBudget, that.thinkingBudget)
+                && Objects.equals(enableSanitizeMessages, that.enableSanitizeMessages)
+                && Objects.equals(n, that.n)
+                && Objects.equals(size, that.size)
+                && Objects.equals(promptExtend, that.promptExtend)
+                && Objects.equals(negativePrompt, that.negativePrompt)
+                && Objects.equals(parallelToolCalls, that.parallelToolCalls)
+                && Objects.equals(enableCodeInterpreter, that.enableCodeInterpreter)
+                && Objects.equals(strictJsonSchema, that.strictJsonSchema)
                 && Objects.equals(custom, that.custom);
     }
 
@@ -165,8 +271,22 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 seed,
                 enableSearch,
                 searchOptions,
+                asrOptions,
+                ttsOptions,
                 translationOptions,
                 vlHighResolutionImages,
+                isMultimodalModel,
+                supportIncrementalOutput,
+                enableThinking,
+                thinkingBudget,
+                enableSanitizeMessages,
+                n,
+                size,
+                promptExtend,
+                negativePrompt,
+                parallelToolCalls,
+                enableCodeInterpreter,
+                strictJsonSchema,
                 custom);
     }
 
@@ -186,9 +306,23 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 + responseFormat() + ", seed="
                 + seed + ", enableSearch="
                 + enableSearch + ", searchOptions="
-                + searchOptions + ", translationOptions="
+                + searchOptions + ", asrOptions="
+                + asrOptions + ", ttsOptions="
+                + ttsOptions + ", translationOptions="
                 + translationOptions + ", vlHighResolutionImages="
-                + vlHighResolutionImages + ", custom="
+                + vlHighResolutionImages + ", isMultimodalModel="
+                + isMultimodalModel + ", supportIncrementalOutput="
+                + supportIncrementalOutput + ", enableThinking="
+                + enableThinking + ", thinkingBudget="
+                + thinkingBudget + ", enableSanitizeMessages="
+                + enableSanitizeMessages + ", n="
+                + n + ", size="
+                + quoted(size) + ", promptExtend="
+                + promptExtend + ", negativePrompt="
+                + quoted(negativePrompt) + ", parallelToolCalls="
+                + parallelToolCalls + ", enableCodeInterpreter="
+                + enableCodeInterpreter + ", strictJsonSchema="
+                + strictJsonSchema + ", custom="
                 + custom + '}';
     }
 
@@ -196,6 +330,8 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private Integer seed;
         private Boolean enableSearch;
         private SearchOptions searchOptions;
+        private AsrOptions asrOptions;
+        private TtsOptions ttsOptions;
         private TranslationOptions translationOptions;
         private Boolean vlHighResolutionImages;
         private Boolean isMultimodalModel;
@@ -203,6 +339,13 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
         private Boolean enableThinking;
         private Integer thinkingBudget;
         private Boolean enableSanitizeMessages;
+        private Integer n;
+        private String size;
+        private Boolean promptExtend;
+        private String negativePrompt;
+        private Boolean parallelToolCalls;
+        private Boolean enableCodeInterpreter;
+        private Boolean strictJsonSchema;
         private Map<String, Object> custom;
 
         @Override
@@ -212,11 +355,20 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
                 seed(getOrDefault(qwenParameters.seed(), seed));
                 enableSearch(getOrDefault(qwenParameters.enableSearch(), enableSearch));
                 searchOptions(getOrDefault(qwenParameters.searchOptions(), searchOptions));
+                asrOptions(getOrDefault(qwenParameters.asrOptions(), asrOptions));
+                ttsOptions(getOrDefault(qwenParameters.ttsOptions(), ttsOptions));
                 translationOptions(getOrDefault(qwenParameters.translationOptions(), translationOptions));
                 vlHighResolutionImages(getOrDefault(qwenParameters.vlHighResolutionImages(), vlHighResolutionImages));
                 enableThinking(getOrDefault(qwenParameters.enableThinking(), enableThinking));
                 thinkingBudget(getOrDefault(qwenParameters.thinkingBudget(), thinkingBudget));
                 enableSanitizeMessages(getOrDefault(qwenParameters.enableSanitizeMessages(), enableSanitizeMessages));
+                n(getOrDefault(qwenParameters.n(), n));
+                size(getOrDefault(qwenParameters.size(), size));
+                promptExtend(getOrDefault(qwenParameters.promptExtend(), promptExtend));
+                negativePrompt(getOrDefault(qwenParameters.negativePrompt(), negativePrompt));
+                parallelToolCalls(getOrDefault(qwenParameters.parallelToolCalls(), parallelToolCalls));
+                enableCodeInterpreter(getOrDefault(qwenParameters.enableCodeInterpreter(), enableCodeInterpreter));
+                strictJsonSchema(getOrDefault(qwenParameters.strictJsonSchema(), strictJsonSchema));
                 custom(getOrDefault(qwenParameters.custom(), custom));
                 isMultimodalModel(getOrDefault(qwenParameters.isMultimodalModel(), isMultimodalModel));
                 supportIncrementalOutput(
@@ -237,6 +389,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
         public Builder searchOptions(SearchOptions searchOptions) {
             this.searchOptions = searchOptions;
+            return this;
+        }
+
+        public Builder asrOptions(AsrOptions asrOptions) {
+            this.asrOptions = asrOptions;
+            return this;
+        }
+
+        public Builder ttsOptions(TtsOptions ttsOptions) {
+            this.ttsOptions = ttsOptions;
             return this;
         }
 
@@ -275,6 +437,41 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
             return this;
         }
 
+        public Builder n(Integer n) {
+            this.n = n;
+            return this;
+        }
+
+        public Builder size(String size) {
+            this.size = size;
+            return this;
+        }
+
+        public Builder promptExtend(Boolean promptExtend) {
+            this.promptExtend = promptExtend;
+            return this;
+        }
+
+        public Builder negativePrompt(String negativePrompt) {
+            this.negativePrompt = negativePrompt;
+            return this;
+        }
+
+        public Builder parallelToolCalls(Boolean parallelToolCalls) {
+            this.parallelToolCalls = parallelToolCalls;
+            return this;
+        }
+
+        public Builder enableCodeInterpreter(Boolean enableCodeInterpreter) {
+            this.enableCodeInterpreter = enableCodeInterpreter;
+            return this;
+        }
+
+        public Builder strictJsonSchema(Boolean strictJsonSchema) {
+            this.strictJsonSchema = strictJsonSchema;
+            return this;
+        }
+
         public Builder custom(Map<String, Object> custom) {
             this.custom = custom;
             return this;
@@ -289,16 +486,16 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     /**
      * The strategy for network search.
      *
-     * @param enableSource Whether to display the searched information in the returned
-     * results. Default value is false.
+     * @param enableSource   Whether to display the searched information in the returned
+     *                       results. Default value is false.
      * @param enableCitation Whether to enable the [1] or [ref_1] style superscript
-     * annotation function. This function takes effect only when enable_source is true.
-     * Default value is false.
+     *                       annotation function. This function takes effect only when enable_source is true.
+     *                       Default value is false.
      * @param citationFormat Subscript style. Only available when enable_citation is true.
-     * Supported styles: “[1]” and “[ref_1]”. Default value is “[1]”.
-     * @param forcedSearch Whether to force search to start.
+     *                       Supported styles: “[1]” and “[ref_1]”. Default value is “[1]”.
+     * @param forcedSearch   Whether to force search to start.
      * @param searchStrategy The amount of Internet information searched. Supported
-     * values: “standard” and “pro”. Default value is “standard”.
+     *                       values: “standard” and “pro”. Default value is “standard”.
      */
     public record SearchOptions(
             Boolean enableSource,
@@ -353,20 +550,20 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
      * models.
      *
      * @param sourceLang The full English name of the source language.For more
-     * information, see <a href=
-     * "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
-     * Languages</a>. You can set source_lang to "auto" and the model will automatically
-     * determine the language of the input text.
+     *                   information, see <a href=
+     *                   "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
+     *                   Languages</a>. You can set source_lang to "auto" and the model will automatically
+     *                   determine the language of the input text.
      * @param targetLang The full English name of the target language.For more
-     * information, see <a href=
-     * "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
-     * Languages</a>.
-     * @param terms An array of terms that needs to be set when using the
-     * term-intervention-translation feature.
-     * @param tmList The translation memory array that needs to be set when using the
-     * translation-memory feature.
-     * @param domains The domain prompt statement needs to be set when using the
-     * domain-prompt feature.
+     *                   information, see <a href=
+     *                   "https://www.alibabacloud.com/help/en/model-studio/machine-translation">Supported
+     *                   Languages</a>.
+     * @param terms      An array of terms that needs to be set when using the
+     *                   term-intervention-translation feature.
+     * @param tmList     The translation memory array that needs to be set when using the
+     *                   translation-memory feature.
+     * @param domains    The domain prompt statement needs to be set when using the
+     *                   domain-prompt feature.
      */
     public record TranslationOptions(
             String sourceLang,
@@ -443,6 +640,90 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
 
             public TranslationOptionTerm build() {
                 return new TranslationOptionTerm(source, target);
+            }
+        }
+    }
+
+    /**
+     * Automatic speech recognition (ASR) parameters.
+     *
+     * @param language  Audio language hint.
+     *                  See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-asr-api-reference?h2-5234e940#h2-5234e940">Supported languages</a> for more details.
+     * @param enableItn Enable Inverse Text Normalization (ITN). Chinese and English only.
+     *                  Defaults to false.
+     */
+    public record AsrOptions(String language, Boolean enableItn) {
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static class Builder {
+            private String language;
+            private Boolean enableItn;
+
+            public Builder language(String language) {
+                this.language = language;
+                return this;
+            }
+
+            public Builder enableItn(Boolean enableItn) {
+                this.enableItn = enableItn;
+                return this;
+            }
+
+            public AsrOptions build() {
+                return new AsrOptions(language, enableItn);
+            }
+        }
+    }
+
+    /**
+     * Text-to-speech (TTS) parameters.
+     *
+     * @param voice                (Required) The voice to use.
+     *                             See <a href="https://www.alibabacloud.com/help/en/model-studio/qwen-tts#bac280ddf5a1u">Supported system voices</a> for details.
+     * @param languageType         Specify the language of the synthesized audio. The default value is Auto.
+     *                             Auto: Use when text language is uncertain or contains multiple languages. The model automatically matches pronunciation for different language segments, but accuracy is not guaranteed.
+     *                             Specify language: Use when the text is in a single language. Specifying the exact language significantly improves synthesis quality and usually outperforms Auto. Supported values include the following (for now): Chinese, English, German, Italian, Portuguese, Spanish, Japanese, Korean, French, Russian
+     * @param instructions         Provide instructions to guide speech synthesis. Only supported by instruction models.
+     * @param optimizeInstructions Optimize instructions to improve speech naturalness and expressiveness. Defaults to false.
+     *                             Behavior: When true, the system semantically enhances and rewrites instructions to generate internal instructions better suited for speech synthesis.
+     *                             Scenarios: Enable for high-quality, fine-grained speech expression.
+     *                             Dependency: Requires instructions parameter. Has no effect if the instructions parameter is empty.
+     */
+    public record TtsOptions(String voice, String languageType, String instructions, Boolean optimizeInstructions) {
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static class Builder {
+            private String voice;
+            private String languageType;
+            private String instructions;
+            private Boolean optimizeInstructions;
+
+            public Builder voice(String voice) {
+                this.voice = voice;
+                return this;
+            }
+
+            public Builder languageType(String languageType) {
+                this.languageType = languageType;
+                return this;
+            }
+
+            public Builder instructions(String instructions) {
+                this.instructions = instructions;
+                return this;
+            }
+
+            public Builder optimizeInstructions(Boolean optimizeInstructions) {
+                this.optimizeInstructions = optimizeInstructions;
+                return this;
+            }
+
+            public TtsOptions build() {
+                return new TtsOptions(voice, languageType, instructions, optimizeInstructions);
             }
         }
     }

@@ -78,6 +78,7 @@ public class OciGenAiCohereChatModel extends BaseCohereChatModel<OciGenAiCohereC
 
         @Override
         public OciGenAiCohereChatModel build() {
+            validateSyncClientConfiguration();
             return new OciGenAiCohereChatModel(this);
         }
     }

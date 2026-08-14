@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.9.0-beta16-SNAPSHOT</version>
+        <version>1.19.0-beta29-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -28,6 +28,7 @@
     <modules>
 
         <module>langchain4j-community-core</module>
+        <module>langchain4j-community-prompt-repetition</module>
 
         <!-- LangChain4j Community Bill of Materials POM -->
         <module>langchain4j-community-bom</module>
@@ -39,10 +40,16 @@
         <module>models/langchain4j-community-qianfan</module>
         <module>models/langchain4j-community-xinference</module>
         <module>models/langchain4j-community-zhipu-ai</module>
+        <module>models/langchain4j-community-cohere</module>
+        <module>models/langchain4j-community-twelvelabs</module>
+        <module>models/langchain4j-community-model-router</module>
+        <module>models/langchain4j-community-model-registry</module>
+        <module>models/langchain4j-community-responsible-ai</module>
 
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
         <module>embedding-stores/langchain4j-community-duckdb</module>
+        <module>embedding-stores/langchain4j-community-hazelcast-enterprise</module>
         <module>embedding-stores/langchain4j-community-memfile</module>
         <module>embedding-stores/langchain4j-community-redis</module>
         <module>embedding-stores/langchain4j-community-vearch</module>
@@ -50,7 +57,18 @@
         <module>embedding-stores/langchain4j-community-cloud-sql-pg</module>
         <module>embedding-stores/langchain4j-community-neo4j</module>
         <module>embedding-stores/langchain4j-community-yugabytedb</module>
+        <module>embedding-stores/langchain4j-community-cockroachdb</module>
         <module>embedding-stores/langchain4j-community-sqlserver</module>
+        <module>embedding-stores/langchain4j-community-oceanbase</module>
+        <module>embedding-stores/langchain4j-community-jvector</module>
+        <module>embedding-stores/langchain4j-community-s3-vectors</module>
+        <module>embedding-stores/langchain4j-community-valkey</module>
+        <module>embedding-stores/langchain4j-community-lancedb</module>
+
+        <!-- Integration of chat memory stores -->
+        <module>chat-memory-stores/langchain4j-community-hazelcast</module>
+        <module>chat-memory-stores/langchain4j-community-mongodb</module>
+        <module>chat-memory-stores/langchain4j-community-sql</module>
 
         <!-- Integration of content retrievers -->
         <module>content-retrievers/langchain4j-community-lucene</module>
@@ -60,14 +78,35 @@
         <module>web-search-engines/langchain4j-community-web-search-engine-searxng</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-duckduckgo</module>
 
+        <!-- Integration of document loaders -->
+        <module>document-loaders/langchain4j-community-document-loader-confluence</module>
+        <module>document-loaders/langchain4j-community-document-loader-exa</module>
+        <module>document-loaders/langchain4j-community-document-loader-gitlab</module>
+
         <!-- Integration of document parsers -->
         <module>document-parsers/langchain4j-community-document-parser-llamaparse</module>
 
         <!-- Integration of document transformers -->
         <module>document-transformers/langchain4j-community-llm-graph-transformer</module>
 
+        <!-- Integration of code execution engines -->
+        <module>code-execution-engines/langchain4j-community-code-execution-engine-local</module>
+        <module>code-execution-engines/langchain4j-community-code-execution-engine-docker</module>
+
+        <!-- Integration of browser execution engines -->
+        <module>browser-execution-engines/langchain4j-community-browser-execution-engine-playwright</module>
+
+        <!-- MCP -->
+        <module>mcp/langchain4j-community-mcp-server</module>
+
+        <!-- Tool integrations -->
+        <module>tools/langchain4j-community-tool-jira</module>
+        <module>tools/langchain4j-community-tool-web-scraper</module>
+        <module>tools/langchain4j-community-tool-browser-use</module>
+
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
+        <module>spring-boot4-starters</module>
 
     </modules>
 
@@ -79,10 +118,11 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.9.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.9.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.9.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.open-ai.version>1.9.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.core.version>1.19.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.19.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.19.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.open-ai.version>1.19.0-SNAPSHOT</langchain4j.open-ai.version>
+        <project.build.outputTimestamp>2026-04-30T10:00:00Z</project.build.outputTimestamp>
     </properties>
 
     <repositories>
@@ -97,6 +137,20 @@
             <name>Central Portal Snapshots</name>
             <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         </repository>
+        <!-- Hazelcast Enterprise repository (com.hazelcast:hazelcast-enterprise is not on Maven
+             Central). Declared at the root so the license-maven-plugin compliance check, which
+             ignores module-level <repositories>, can resolve the artifact's POM. -->
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>hazelcast-release</id>
+            <name>Hazelcast Release Repository</name>
+            <url>https://repository.hazelcast.com/release/</url>
+        </repository>
     </repositories>
 
     <build>
@@ -108,6 +162,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.12.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -201,7 +256,7 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.9.0</version>
+                <version>0.10.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <publishingServerId>central</publishingServerId>
@@ -281,6 +336,16 @@
 
     <profiles>
         <profile>
+            <id>jdk21-modules</id>
+            <activation>
+                <jdk>[21,)</jdk>
+            </activation>
+            <modules>
+                <module>embedding-stores/langchain4j-community-arcadedb</module>
+            </modules>
+        </profile>
+
+        <profile>
             <id>openrewrite</id>
             <!-- `mvn -P openrewrite org.openrewrite.maven:rewrite-maven-plugin:run` -->
             <build>
@@ -288,7 +353,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>6.23.0</version>
+                        <version>6.28.1</version>
                         <configuration>
                             <activeRecipes>
                                 <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
@@ -301,12 +366,12 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>3.21.2</version>
+                                <version>3.25.0</version>
                             </dependency>
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-migrate-java</artifactId>
-                                <version>3.21.1</version>
+                                <version>3.25.0</version>
                             </dependency>
                         </dependencies>
                     </plugin>

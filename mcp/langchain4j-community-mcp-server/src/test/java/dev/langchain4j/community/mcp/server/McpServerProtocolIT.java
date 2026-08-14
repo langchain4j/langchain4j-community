@@ -1,0 +1,304 @@
+package dev.langchain4j.community.mcp.server;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.community.mcp.server.transport.StdioMcpServerTransport;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.io.PrintWriter;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
+import org.junit.jupiter.api.Test;
+
+class McpServerProtocolIT {
+
+    private static final int PIPE_BUFFER_SIZE = 10_240;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    @Test
+    void should_allow_call_before_initialize() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            String request = jsonRequest(
+                    1L, "tools/call", Map.of("name", "echo", "arguments", Map.of("input", "hello", "arg0", "hello")));
+            harness.client().send(request);
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isOne();
+            assertThat(response.has("error")).isFalse();
+            assertThat(response.get("result").get("content").get(0).get("text").asText())
+                    .isEqualTo("hello");
+        }
+    }
+
+    @Test
+    void should_not_respond_to_notifications() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client().send("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}");
+
+            String request = jsonRequest(2L, "tools/list", Map.of());
+            harness.client().send(request);
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(2L);
+            assertThat(response.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_return_invalid_request_error_for_missing_method() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client().send("{\"jsonrpc\":\"2.0\",\"id\":3}");
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(3L);
+            assertThat(response.get("error").get("code").asInt()).isEqualTo(-32600);
+            assertThat(response.get("error").get("message").asText()).contains("Invalid Request");
+        }
+    }
+
+    @Test
+    void should_return_invalid_params_error_for_non_object_params() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client()
+                    .send("{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":\"not-an-object\"}");
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(4L);
+            assertThat(response.get("error").get("code").asInt()).isEqualTo(-32602);
+        }
+    }
+
+    @Test
+    void should_ignore_malformed_json_and_continue() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client().send("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\"");
+
+            String request = jsonRequest(2L, "tools/list", Map.of());
+            harness.client().send(request);
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(2L);
+            assertThat(response.has("error")).isFalse();
+
+            List<String> toolNames = StreamSupport.stream(
+                            response.get("result").get("tools").spliterator(), false)
+                    .map(tool -> tool.get("name").asText())
+                    .toList();
+            assertThat(toolNames).contains("echo");
+        }
+    }
+
+    @Test
+    void should_ignore_non_numeric_id_and_continue() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client().send("{\"jsonrpc\":\"2.0\",\"id\":\"string-id\",\"method\":\"tools/list\"}");
+
+            String request = jsonRequest(10L, "tools/list", Map.of());
+            harness.client().send(request);
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(10L);
+            assertThat(response.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_continue_after_method_not_found_error() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            String request = jsonRequest(11L, "does/not/exist", Map.of());
+            harness.client().send(request);
+
+            JsonNode errorResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(errorResponse.get("id").asLong()).isEqualTo(11L);
+            assertThat(errorResponse.get("error").get("code").asInt()).isEqualTo(-32601);
+
+            String okRequest = jsonRequest(12L, "tools/list", Map.of());
+            harness.client().send(okRequest);
+
+            JsonNode okResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(okResponse.get("id").asLong()).isEqualTo(12L);
+            assertThat(okResponse.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_continue_after_blank_method_error() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            String request = jsonRequest(13L, "   ", Map.of());
+            harness.client().send(request);
+
+            JsonNode errorResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(errorResponse.get("id").asLong()).isEqualTo(13L);
+            assertThat(errorResponse.get("error").get("code").asInt()).isEqualTo(-32600);
+
+            String okRequest = jsonRequest(14L, "tools/list", Map.of());
+            harness.client().send(okRequest);
+
+            JsonNode okResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(okResponse.get("id").asLong()).isEqualTo(14L);
+            assertThat(okResponse.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_continue_after_missing_tool_name_error() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            harness.client()
+                    .send("{\"jsonrpc\":\"2.0\",\"id\":15,\"method\":\"tools/call\",\"params\":{\"arguments\":{}}}");
+
+            JsonNode errorResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(errorResponse.get("id").asLong()).isEqualTo(15L);
+            assertThat(errorResponse.get("error").get("code").asInt()).isEqualTo(-32602);
+
+            String okRequest = jsonRequest(16L, "tools/list", Map.of());
+            harness.client().send(okRequest);
+
+            JsonNode okResponse = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(okResponse.get("id").asLong()).isEqualTo(16L);
+            assertThat(okResponse.has("error")).isFalse();
+        }
+    }
+
+    @Test
+    void should_return_initialize_response() throws Exception {
+        try (ServerHarness harness = new ServerHarness(new McpServer(List.of(new EchoTool())))) {
+            String request = jsonRequest(3L, "initialize", Map.of("protocolVersion", "2025-06-18"));
+            harness.client().send(request);
+
+            JsonNode response = harness.client().readResponse(Duration.ofSeconds(5));
+            assertThat(response.get("id").asLong()).isEqualTo(3L);
+            assertThat(response.has("error")).isFalse();
+
+            JsonNode result = response.get("result");
+            assertThat(result.get("protocolVersion").asText()).isEqualTo("2025-06-18");
+            JsonNode tools = result.get("capabilities").get("tools");
+            assertThat(tools).isNotNull();
+            assertThat(tools.isObject()).isTrue();
+
+            JsonNode serverInfo = result.get("serverInfo");
+            assertThat(serverInfo).isNotNull();
+            assertThat(serverInfo.isNull()).isFalse();
+            assertThat(serverInfo.get("name").asText()).isEqualTo("LangChain4j");
+            assertThat(serverInfo.get("version").asText()).isNotBlank();
+        }
+    }
+
+    private static String jsonRequest(long id, String method, Map<String, Object> params)
+            throws JsonProcessingException {
+        ObjectNode node = OBJECT_MAPPER.createObjectNode();
+        node.put("jsonrpc", "2.0");
+        node.put("id", id);
+        node.put("method", method);
+        if (params != null) {
+            node.set("params", OBJECT_MAPPER.valueToTree(params));
+        }
+        return OBJECT_MAPPER.writeValueAsString(node);
+    }
+
+    static class EchoTool {
+        @Tool
+        public String echo(String input) {
+            return input;
+        }
+    }
+
+    private static class ServerHarness implements AutoCloseable {
+
+        private final PipedInputStream serverInputStream;
+        private final PipedOutputStream clientOutputStream;
+        private final PipedInputStream clientInputStream;
+        private final PipedOutputStream serverOutputStream;
+        private final StdioMcpServerTransport serverTransport;
+        private final RawJsonClient client;
+
+        private ServerHarness(McpServer server) throws IOException {
+            this.serverInputStream = new PipedInputStream(PIPE_BUFFER_SIZE);
+            this.clientOutputStream = new PipedOutputStream(serverInputStream);
+            this.clientInputStream = new PipedInputStream(PIPE_BUFFER_SIZE);
+            this.serverOutputStream = new PipedOutputStream(clientInputStream);
+            this.serverTransport = new StdioMcpServerTransport(serverInputStream, serverOutputStream, server);
+            this.client = new RawJsonClient(clientInputStream, clientOutputStream);
+        }
+
+        private RawJsonClient client() {
+            return client;
+        }
+
+        @Override
+        public void close() throws IOException {
+            client.close();
+            serverTransport.close();
+            serverOutputStream.close();
+            clientInputStream.close();
+            clientOutputStream.close();
+            serverInputStream.close();
+        }
+    }
+
+    private static class RawJsonClient implements AutoCloseable {
+
+        private final PrintWriter writer;
+        private final BufferedReader reader;
+        private final ExecutorService readerExecutor = Executors.newSingleThreadExecutor();
+
+        private RawJsonClient(InputStream input, OutputStream output) {
+            this.writer = new PrintWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8), true);
+            this.reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+        }
+
+        private void send(String json) {
+            writer.println(json);
+        }
+
+        private JsonNode readResponse(Duration timeout) throws Exception {
+            CompletableFuture<String> future = CompletableFuture.supplyAsync(
+                    () -> {
+                        try {
+                            return reader.readLine();
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    },
+                    readerExecutor);
+            String line = future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            if (line == null) {
+                throw new IllegalStateException("Server closed the response stream");
+            }
+            return OBJECT_MAPPER.readTree(line);
+        }
+
+        @Override
+        public void close() throws IOException {
+            writer.close();
+            reader.close();
+            readerExecutor.shutdownNow();
+            boolean terminated;
+            try {
+                terminated = readerExecutor.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+            assertThat(terminated).isTrue();
+        }
+    }
+}

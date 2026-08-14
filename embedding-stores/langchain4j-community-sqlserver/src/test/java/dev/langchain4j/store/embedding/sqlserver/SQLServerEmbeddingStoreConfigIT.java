@@ -1,7 +1,8 @@
 package dev.langchain4j.store.embedding.sqlserver;
 
 import static dev.langchain4j.store.embedding.sqlserver.util.SQLServerTestsUtil.getSqlServerDataSource;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import dev.langchain4j.data.embedding.Embedding;
@@ -27,7 +28,7 @@ class SQLServerEmbeddingStoreConfigIT {
                         .dimension(4)
                         .build())
                 .build();
-        assertNotNull(embeddingStore);
+        assertThat(embeddingStore).isNotNull();
     }
 
     @Test
@@ -41,7 +42,7 @@ class SQLServerEmbeddingStoreConfigIT {
                         .dimension(4)
                         .build())
                 .build();
-        assertNotNull(embeddingStore);
+        assertThat(embeddingStore).isNotNull();
 
         SQLServerEmbeddingStore.Builder embeddingStoreBuilder = SQLServerEmbeddingStore.dataSourceBuilder()
                 .dataSource(dataSource)
@@ -50,7 +51,7 @@ class SQLServerEmbeddingStoreConfigIT {
                         .name("my_embedding_table")
                         .dimension(4)
                         .build());
-        assertThrows(SQLServerLangChain4jException.class, embeddingStoreBuilder::build);
+        assertThatExceptionOfType(SQLServerLangChain4jException.class).isThrownBy(embeddingStoreBuilder::build);
 
         SQLServerEmbeddingStore embeddingStore2 = SQLServerEmbeddingStore.dataSourceBuilder()
                 .dataSource(dataSource)
@@ -61,7 +62,7 @@ class SQLServerEmbeddingStoreConfigIT {
                         .build())
                 .build();
 
-        assertNotNull(embeddingStore2);
+        assertThat(embeddingStore2).isNotNull();
     }
 
     @Test
@@ -77,7 +78,7 @@ class SQLServerEmbeddingStoreConfigIT {
                         .dimension(4)
                         .build())
                 .build();
-        assertNotNull(embeddingStore);
+        assertThat(embeddingStore).isNotNull();
 
         SQLServerEmbeddingStore.Builder embeddingStoreBuilder = SQLServerEmbeddingStore.dataSourceBuilder()
                 .dataSource(dataSource)
@@ -88,7 +89,7 @@ class SQLServerEmbeddingStoreConfigIT {
                         .name("my_embedding_table")
                         .dimension(4)
                         .build());
-        assertThrows(SQLServerLangChain4jException.class, embeddingStoreBuilder::build);
+        assertThatExceptionOfType(SQLServerLangChain4jException.class).isThrownBy(embeddingStoreBuilder::build);
 
         SQLServerEmbeddingStore embeddingStore2 = SQLServerEmbeddingStore.dataSourceBuilder()
                 .dataSource(dataSource)
@@ -101,7 +102,7 @@ class SQLServerEmbeddingStoreConfigIT {
                         .build())
                 .build();
 
-        assertNotNull(embeddingStore2);
+        assertThat(embeddingStore2).isNotNull();
     }
 
     @Test
@@ -127,7 +128,7 @@ class SQLServerEmbeddingStoreConfigIT {
                 .build();
 
         // Test that store was created successfully
-        assertNotNull(embeddingStore);
+        assertThat(embeddingStore).isNotNull();
     }
 
     @Test
@@ -138,7 +139,7 @@ class SQLServerEmbeddingStoreConfigIT {
                 .key("year", Integer.class, JSONIndexBuilder.Order.DESC);
         jsonIndex.createOption(CreateOption.CREATE_IF_NOT_EXISTS);
 
-        assertThrows(IllegalStateException.class, jsonIndex::build);
+        assertThatExceptionOfType(IllegalStateException.class).isThrownBy(jsonIndex::build);
     }
 
     @Test
@@ -162,14 +163,14 @@ class SQLServerEmbeddingStoreConfigIT {
                 .build();
 
         // Test that store was created successfully
-        assertNotNull(embeddingStore);
+        assertThat(embeddingStore).isNotNull();
 
         // Test basic functionality
         Embedding embedding = new Embedding(new float[] {0.1f, 0.2f, 0.3f, 0.4f});
         TextSegment textSegment = TextSegment.from("test text");
 
         String id = embeddingStore.add(embedding, textSegment);
-        assertNotNull(id);
+        assertThat(id).isNotNull();
     }
 
     @Test
@@ -179,6 +180,6 @@ class SQLServerEmbeddingStoreConfigIT {
                 .dimension(4);
 
         // Test that store was created successfully
-        assertThrows(IllegalArgumentException.class, embeddingTable::build);
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(embeddingTable::build);
     }
 }

@@ -1,0 +1,110 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class com.hazelcast.core.HazelcastInstance",
+          "justification": "Hazelcast Enterprise types are an intentionally provided dependency exposed in the EmbeddingStore/ChatMemoryStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class com.hazelcast.core.HazelcastInstance",
+          "justification": "Hazelcast Enterprise types are an intentionally provided dependency exposed in the EmbeddingStore/ChatMemoryStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class com.hazelcast.cp.CPMap",
+          "justification": "Hazelcast Enterprise types are an intentionally provided dependency exposed in the EmbeddingStore/ChatMemoryStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class com.hazelcast.cp.CPMap",
+          "justification": "Hazelcast Enterprise types are an intentionally provided dependency exposed in the EmbeddingStore/ChatMemoryStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class com.hazelcast.vector.VectorCollection",
+          "justification": "Hazelcast Enterprise types are an intentionally provided dependency exposed in the EmbeddingStore/ChatMemoryStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class com.hazelcast.vector.VectorCollection",
+          "justification": "Hazelcast Enterprise types are an intentionally provided dependency exposed in the EmbeddingStore/ChatMemoryStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class com.hazelcast.config.vector.Metric",
+          "justification": "Hazelcast Enterprise types are an intentionally provided dependency exposed in the EmbeddingStore/ChatMemoryStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class com.hazelcast.config.vector.Metric",
+          "justification": "Hazelcast Enterprise types are an intentionally provided dependency exposed in the EmbeddingStore/ChatMemoryStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.data.message.ChatMessage",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.data.message.ChatMessage",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.data.embedding.Embedding",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.data.embedding.Embedding",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.data.segment.TextSegment",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.data.segment.TextSegment",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchRequest",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchRequest",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchResult",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchResult",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.store.embedding.filter.Filter",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.store.embedding.filter.Filter",
+          "justification": "langchain4j-core types are part of the public EmbeddingStore/ChatMemoryStore API by design"
+        }
+      ]
+    }
+  }
+]

@@ -22,18 +22,11 @@ import dev.langchain4j.store.embedding.filter.comparison.IsNotEqualTo;
 import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
-import org.neo4j.cypherdsl.support.schema_name.SchemaNames;
-import org.neo4j.driver.Value;
-import org.neo4j.driver.types.Node;
 
 class Neo4jEmbeddingStoreTest extends Neo4jEmbeddingStoreBaseTest {
 
@@ -473,92 +466,5 @@ class Neo4jEmbeddingStoreTest extends Neo4jEmbeddingStoreBaseTest {
         final EmbeddingSearchResult<TextSegment> searchWithoutFilter = embeddingStore.search(requestWithoutFilter);
         final List<EmbeddingMatch<TextSegment>> matchesWithoutFilter = searchWithoutFilter.matches();
         assertThat(matchesWithoutFilter).hasSize(5);
-    }
-
-    private List<List<Map<String, Object>>> getListRowsBatched(int numElements) {
-        return getListRowsBatched(numElements, embeddingStore);
-    }
-
-    private List<List<Map<String, Object>>> getListRowsBatched(int numElements, Neo4jEmbeddingStore embeddingStore) {
-        List<TextSegment> embedded = IntStream.range(0, numElements)
-                .mapToObj(i -> TextSegment.from("text-" + i))
-                .toList();
-        List<String> ids =
-                IntStream.range(0, numElements).mapToObj(i -> "id-" + i).toList();
-        List<Embedding> embeddings = embeddingModel.embedAll(embedded).content();
-
-        return Neo4jEmbeddingUtils.getRowsBatched(embeddingStore, ids, embeddings, embedded)
-                .toList();
-    }
-
-    private void checkSegmentWithMetadata(String metadataKey, String idProp, String labelName) {
-        TextSegment segment = TextSegment.from(randomUUID(), Metadata.from(METADATA_KEY, "test-value"));
-        Embedding embedding = embeddingModel.embed(segment.text()).content();
-
-        String id = embeddingStore.add(embedding, segment);
-        assertThat(id).isNotNull();
-
-        final EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
-                .queryEmbedding(embedding)
-                .maxResults(10)
-                .build();
-        final List<EmbeddingMatch<TextSegment>> relevant =
-                embeddingStore.search(request).matches();
-        assertThat(relevant).hasSize(1);
-
-        EmbeddingMatch<TextSegment> match = relevant.get(0);
-        assertThat(match.score()).isCloseTo(1, withPercentage(1));
-        assertThat(match.embeddingId()).isEqualTo(id);
-        assertThat(match.embedding()).isEqualTo(embedding);
-        assertThat(match.embedded()).isEqualTo(segment);
-
-        checkEntitiesCreated(relevant.size(), labelName, iterator -> {
-            List<String> otherProps = Arrays.asList(DEFAULT_TEXT_PROP, metadataKey);
-            checkDefaultProps(embedding, idProp, match, iterator.next(), otherProps);
-        });
-    }
-
-    private void checkEntitiesCreated(int expectedSize, Consumer<Iterator<Node>> nodeConsumer) {
-        checkEntitiesCreated(expectedSize, LABEL_TO_SANITIZE, nodeConsumer);
-    }
-
-    private void checkEntitiesCreated(int expectedSize, String labelName, Consumer<Iterator<Node>> nodeConsumer) {
-        String query = String.format(
-                "MATCH (n:%s) RETURN n ORDER BY n.%s",
-                SchemaNames.sanitize(labelName).get(), DEFAULT_TEXT_PROP);
-
-        List<Node> n = session.run(query).list(i -> i.get("n").asNode());
-
-        assertThat(n).hasSize(expectedSize);
-
-        Iterator<Node> iterator = n.iterator();
-        nodeConsumer.accept(iterator);
-
-        assertThat(iterator).isExhausted();
-    }
-
-    private void checkDefaultProps(Embedding embedding, EmbeddingMatch<TextSegment> match, Node node) {
-        checkDefaultProps(embedding, DEFAULT_ID_PROP, match, node, Collections.emptyList());
-    }
-
-    private void checkDefaultProps(
-            Embedding embedding, String idProp, EmbeddingMatch<TextSegment> match, Node node, List<String> otherProps) {
-        checkPropKeys(node, idProp, otherProps);
-
-        assertThat(node.get(idProp).asString()).isEqualTo(match.embeddingId());
-
-        List<Float> floats = node.get(DEFAULT_EMBEDDING_PROP).asList(Value::asFloat);
-        assertThat(floats).isEqualTo(embedding.vectorAsList());
-    }
-
-    private void checkPropKeys(Node node, String idProp, List<String> otherProps) {
-        List<String> strings = new ArrayList<>();
-        // default props
-        strings.add(idProp);
-        strings.add(DEFAULT_EMBEDDING_PROP);
-        // other props
-        strings.addAll(otherProps);
-
-        assertThat(node.keys()).containsExactlyInAnyOrderElementsOf(strings);
     }
 }
