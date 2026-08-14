@@ -730,7 +730,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#codeInterpreterModelNameProvider")
     void should_execute_code_interpretation(String modelName) {
         // given
         StreamingChatModel model = QwenStreamingChatModel.builder()
