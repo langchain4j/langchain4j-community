@@ -65,26 +65,43 @@ public class ModelRouter implements ChatModel, StreamingChatModel {
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
+        // Bound the failover retry to the number of configured routes: each route is
+        // given a single attempt before the original failure propagates. Without this
+        // bound, a persistently-failing delegate would cause unbounded recursion and a
+        // StackOverflowError instead of surfacing the underlying failure.
+        return doChatInternal(chatRequest, this.routes.size());
+    }
+
+    private ChatResponse doChatInternal(ChatRequest chatRequest, int attemptsLeft) {
         ChatModelWrapper delegate = resolveDelegate(chatRequest);
         try {
-            ChatResponse response = delegate.chat(chatRequest);
-            return response;
+            return delegate.chat(chatRequest);
         } catch (NoMatchingModelFoundException e) {
             throw e;
         } catch (Exception e) {
-            return doChat(chatRequest);
+            if (attemptsLeft <= 1) {
+                throw e;
+            }
+            return doChatInternal(chatRequest, attemptsLeft - 1);
         }
     }
 
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
+        doChatInternal(chatRequest, handler, this.routes.size());
+    }
+
+    private void doChatInternal(ChatRequest chatRequest, StreamingChatResponseHandler handler, int attemptsLeft) {
         ChatModelWrapper delegate = resolveDelegate(chatRequest);
         try {
             delegate.chat(chatRequest, handler);
         } catch (NoMatchingModelFoundException e) {
             throw e;
         } catch (Exception e) {
-            doChat(chatRequest, handler);
+            if (attemptsLeft <= 1) {
+                throw e;
+            }
+            doChatInternal(chatRequest, handler, attemptsLeft - 1);
         }
     }
 
