@@ -101,6 +101,7 @@
 
         <!-- Tool integrations -->
         <module>tools/langchain4j-community-tool-jira</module>
+        <module>tools/langchain4j-community-tool-xquik</module>
         <module>tools/langchain4j-community-tool-web-scraper</module>
         <module>tools/langchain4j-community-tool-browser-use</module>
 
