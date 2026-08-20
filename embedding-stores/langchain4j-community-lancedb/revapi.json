@@ -1,0 +1,14 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "justification": "LanceDB embedding store uses langchain4j core and lancedb-core types as public API - these are external dependency types, not this module's own API surface"
+        }
+      ]
+    }
+  }
+]
