@@ -41,6 +41,14 @@ public class ZhipuAiChatRequestParameters extends DefaultChatRequestParameters {
                 .build();
     }
 
+    @Override
+    public ZhipuAiChatRequestParameters defaultedBy(ChatRequestParameters that) {
+        return ZhipuAiChatRequestParameters.builder()
+                .overrideWith(that)
+                .overrideWith(this)
+                .build();
+    }
+
     public static Builder builder() {
         return new Builder();
     }
