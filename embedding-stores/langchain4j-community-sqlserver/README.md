@@ -15,7 +15,7 @@ Java >= 17
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j-community-sqlserver</artifactId>
-    <version>1.19.0-beta29</version>
+    <version>1.20.0-beta30-SNAPSHOT</version>
 </dependency>
 ```
 

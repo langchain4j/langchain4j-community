@@ -8,7 +8,7 @@ This module provides a MongoDB-backed implementation of `ChatMemoryStore` for pe
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j-community-mongodb</artifactId>
-    <version>1.19.0-beta29</version>
+    <version>1.20.0-beta30-SNAPSHOT</version>
 </dependency>
 ```
 
