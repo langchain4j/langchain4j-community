@@ -484,6 +484,20 @@ public class QwenChatRequestParameters extends DefaultChatRequestParameters {
     }
 
     /**
+     * Override defaultedBy to make Qwen-special fields effect when request chat model
+     *
+     * @param that defaultChatRequestParameters
+     * @return qwenChatRequestParameters
+     */
+    @Override
+    public ChatRequestParameters defaultedBy(final ChatRequestParameters that) {
+        return QwenChatRequestParameters.builder()
+                .overrideWith(that)
+                .overrideWith(this)
+                .build();
+    }
+
+    /**
      * The strategy for network search.
      *
      * @param enableSource   Whether to display the searched information in the returned
