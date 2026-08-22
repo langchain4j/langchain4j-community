@@ -23,12 +23,38 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
 
+      - name: Check that the version is not on Maven Central yet
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          POM="https://repo1.maven.org/maven2/dev/langchain4j/langchain4j-community-core/$VERSION/langchain4j-community-core-$VERSION.pom"
+          if curl -sfI "$POM" > /dev/null; then
+            echo "::error::$VERSION is already on Maven Central. Maven Central is immutable, so it cannot be released again. Bump the version instead of re-running this workflow."
+            exit 1
+          fi
+          echo "$VERSION is not on Maven Central yet, proceeding"
+
       - name: release
         run: |
+          set -o pipefail
           mvn -B -U --fail-at-end \
             -DskipTests -DskipITs -Psign \
-            clean deploy
+            clean deploy 2>&1 | tee release.log
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+
+      - name: Show why the release failed
+        if: failure()
+        run: |
+          {
+            echo '## Release failed'
+            echo '```'
+            # Sonatype Central reports rejected components a few hundred lines before the end of the build
+            if grep -q 'Deployment .* failed' release.log; then
+              sed -n '/Deployment .* failed/,$p' release.log | head -n 200
+            else
+              tail -n 100 release.log
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
