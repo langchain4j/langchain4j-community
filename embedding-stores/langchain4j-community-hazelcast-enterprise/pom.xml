@@ -17,7 +17,7 @@
         Requires the Hazelcast Enterprise repository and a valid license key.</description>
 
     <properties>
-        <hazelcast.version>5.7.0</hazelcast.version>
+        <hazelcast.version>5.7.1</hazelcast.version>
     </properties>
 
     <dependencies>

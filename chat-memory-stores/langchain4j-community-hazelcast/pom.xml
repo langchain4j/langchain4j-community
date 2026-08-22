@@ -14,7 +14,7 @@
     <description>Hazelcast ChatMemoryStore backed by an IMap.</description>
 
     <properties>
-        <hazelcast.version>5.7.0</hazelcast.version>
+        <hazelcast.version>5.7.1</hazelcast.version>
     </properties>
 
     <dependencies>
