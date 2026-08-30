@@ -34,7 +34,7 @@ public class InMemoryMcpTransport implements McpTransport {
     @Override
     public void start(McpOperationHandler messageHandler) {
         this.messageHandler = messageHandler;
-        this.ioHandler = new JsonRpcIoHandler(input, output, messageHandler::handle, false);
+        this.ioHandler = new JsonRpcIoHandler(input, output, messageHandler::onMessage, false);
         Thread thread = new Thread(ioHandler, "mcp-client-stdio");
         thread.setDaemon(true);
         thread.start();

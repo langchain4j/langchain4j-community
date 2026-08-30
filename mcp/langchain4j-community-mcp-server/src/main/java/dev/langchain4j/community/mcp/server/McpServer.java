@@ -3,10 +3,10 @@ package dev.langchain4j.community.mcp.server;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -159,7 +159,7 @@ public class McpServer {
         }
 
         String arguments = null;
-        ObjectNode args = params.getArguments();
+        Map<String, Object> args = params.getArguments();
         if (args != null) {
             try {
                 arguments = OBJECT_MAPPER.writeValueAsString(args);
@@ -184,14 +184,14 @@ public class McpServer {
 
     private McpCallToolResult toCallToolResult(Long id, ToolExecutionResult result) {
         String text = result.resultText();
-        McpCallToolResult.Content content = new McpCallToolResult.Content("text", text);
+        Map<String, Object> content = Map.of("type", "text", "text", text);
         Boolean isError = result.isError() ? Boolean.TRUE : null;
         McpCallToolResult.Result response = new McpCallToolResult.Result(List.of(content), null, isError);
         return new McpCallToolResult(id, response);
     }
 
     private McpCallToolResult toCallToolError(Long id, String message) {
-        McpCallToolResult.Content content = new McpCallToolResult.Content("text", message);
+        Map<String, Object> content = Map.of("type", "text", "text", message);
         McpCallToolResult.Result response = new McpCallToolResult.Result(List.of(content), null, true);
         return new McpCallToolResult(id, response);
     }
@@ -240,7 +240,7 @@ public class McpServer {
         JsonNode paramsNode = message.get(PARAMS_FIELD);
 
         String toolName = null;
-        ObjectNode arguments = OBJECT_MAPPER.createObjectNode();
+        Map<String, Object> arguments = Map.of();
 
         if (paramsNode != null && paramsNode.isObject()) {
             JsonNode nameNode = paramsNode.get("name");
@@ -249,12 +249,8 @@ public class McpServer {
             }
 
             JsonNode argumentsNode = paramsNode.get(ARGUMENTS_FIELD);
-            if (argumentsNode != null && !argumentsNode.isNull()) {
-                if (argumentsNode.isObject()) {
-                    arguments = (ObjectNode) argumentsNode;
-                } else {
-                    arguments = OBJECT_MAPPER.createObjectNode();
-                }
+            if (argumentsNode != null && !argumentsNode.isNull() && argumentsNode.isObject()) {
+                arguments = OBJECT_MAPPER.convertValue(argumentsNode, new TypeReference<Map<String, Object>>() {});
             }
         }
         return new McpCallToolRequest(id, toolName, arguments);

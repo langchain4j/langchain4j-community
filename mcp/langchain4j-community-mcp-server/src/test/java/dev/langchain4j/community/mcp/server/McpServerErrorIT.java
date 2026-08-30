@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -59,8 +58,7 @@ class McpServerErrorIT {
                         .isInstanceOf(ToolExecutionException.class)
                         .hasMessageContaining("Invalid input");
 
-                JsonNode unknownToolResponse =
-                        executeRawCall(transport, "non_existent_tool", OBJECT_MAPPER.createObjectNode());
+                JsonNode unknownToolResponse = executeRawCall(transport, "non_existent_tool", Map.of());
                 assertThat(unknownToolResponse.has("error")).isFalse();
                 JsonNode unknownToolResult = unknownToolResponse.get("result");
                 assertThat(unknownToolResult.get("isError").asBoolean()).isTrue();
@@ -98,7 +96,7 @@ class McpServerErrorIT {
     }
 
     @SuppressWarnings("SameParameterValue")
-    private static JsonNode executeRawCall(InMemoryMcpTransport transport, String toolName, ObjectNode arguments)
+    private static JsonNode executeRawCall(InMemoryMcpTransport transport, String toolName, Map<String, Object> arguments)
             throws Exception {
         McpCallToolRequest request = new McpCallToolRequest(RAW_REQUEST_ID, toolName, arguments);
         return transport.executeOperationWithResponse(request).get(5, TimeUnit.SECONDS);

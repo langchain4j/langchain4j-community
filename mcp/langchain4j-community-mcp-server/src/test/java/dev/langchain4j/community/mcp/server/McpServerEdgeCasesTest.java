@@ -78,7 +78,7 @@ class McpServerEdgeCasesTest {
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isTrue();
         assertThat(callToolResult.getResult().getContent()).hasSize(1);
-        assertThat(callToolResult.getResult().getContent().get(0).getText()).contains("ToolExecutionException");
+        assertThat(toolResultText(callToolResult)).contains("ToolExecutionException");
     }
 
     @Test
@@ -100,7 +100,11 @@ class McpServerEdgeCasesTest {
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isTrue();
         assertThat(callToolResult.getResult().getContent()).hasSize(1);
-        assertThat(callToolResult.getResult().getContent().get(0).getText()).contains("Missing input");
+        assertThat(toolResultText(callToolResult)).contains("Missing input");
+    }
+
+    private static String toolResultText(McpCallToolResult result) {
+        return (String) result.getResult().getContent().get(0).get("text");
     }
 
     static class BlankMessageTool {

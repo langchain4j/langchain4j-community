@@ -76,7 +76,7 @@ public class StdioMcpServerTransport implements Closeable {
         ioThread.join();
     }
 
-    private void handleMessage(JsonNode message) {
+    private void handleMessage(String message) {
         try {
             messageExecutor.execute(() -> handleMessageInternal(message));
         } catch (RejectedExecutionException ignored) {
@@ -84,8 +84,14 @@ public class StdioMcpServerTransport implements Closeable {
         }
     }
 
-    private void handleMessageInternal(JsonNode message) {
-        McpJsonRpcMessage response = server.handle(message);
+    private void handleMessageInternal(String message) {
+        JsonNode jsonMessage;
+        try {
+            jsonMessage = OBJECT_MAPPER.readTree(message);
+        } catch (IOException e) {
+            return; // ignore: not valid JSON
+        }
+        McpJsonRpcMessage response = server.handle(jsonMessage);
         if (response == null) {
             return;
         }

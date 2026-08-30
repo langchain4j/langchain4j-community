@@ -169,7 +169,7 @@ class McpServerTest {
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isNull();
         assertThat(callToolResult.getResult().getContent()).hasSize(1);
-        assertThat(callToolResult.getResult().getContent().get(0).getText()).isEqualTo("3");
+        assertThat(toolResultText(callToolResult)).isEqualTo("3");
     }
 
     @Test
@@ -213,7 +213,7 @@ class McpServerTest {
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isTrue();
         assertThat(callToolResult.getResult().getContent()).hasSize(1);
-        assertThat(callToolResult.getResult().getContent().get(0).getText()).contains("Unknown tool");
+        assertThat(toolResultText(callToolResult)).contains("Unknown tool");
     }
 
     @Test
@@ -239,7 +239,7 @@ class McpServerTest {
 
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isTrue();
-        assertThat(callToolResult.getResult().getContent().get(0).getText()).contains("Invalid input");
+        assertThat(toolResultText(callToolResult)).contains("Invalid input");
     }
 
     @Test
@@ -261,7 +261,7 @@ class McpServerTest {
 
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isTrue();
-        assertThat(callToolResult.getResult().getContent().get(0).getText()).contains("Missing input");
+        assertThat(toolResultText(callToolResult)).contains("Missing input");
     }
 
     @Test
@@ -269,6 +269,10 @@ class McpServerTest {
         assertThatThrownBy(() -> new McpServer(List.of(new DuplicateTool())))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Tool names must be unique");
+    }
+
+    private static String toolResultText(McpCallToolResult result) {
+        return (String) result.getResult().getContent().get(0).get("text");
     }
 
     static class Calculator {
@@ -375,7 +379,7 @@ class McpServerTest {
 
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isNull();
-        assertThat(callToolResult.getResult().getContent().get(0).getText()).isEqualTo("Success");
+        assertThat(toolResultText(callToolResult)).isEqualTo("Success");
     }
 
     static class EchoTool {
@@ -402,7 +406,7 @@ class McpServerTest {
 
         McpCallToolResult callToolResult = (McpCallToolResult) response;
         assertThat(callToolResult.getResult().getIsError()).isNull();
-        assertThat(callToolResult.getResult().getContent().get(0).getText()).contains("value");
+        assertThat(toolResultText(callToolResult)).contains("value");
     }
 
     static class ComplexReturnTool {
