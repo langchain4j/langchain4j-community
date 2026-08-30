@@ -7,7 +7,6 @@ import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMap
 import static dev.langchain4j.community.store.embedding.clickhouse.ClickHouseMappingKey.TEXT_MAPPING_KEY;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
@@ -210,7 +209,9 @@ public class ClickHouseEmbeddingStore implements EmbeddingStore<TextSegment>, Au
 
     @Override
     public void removeAll(Collection<String> ids) {
-        ensureNotEmpty(ids, "ids");
+        if (isNullOrEmpty(ids)) {
+            return;
+        }
 
         removeAll(metadataKey(settings.getColumnMapping(ID_MAPPING_KEY)).isIn(ids));
     }

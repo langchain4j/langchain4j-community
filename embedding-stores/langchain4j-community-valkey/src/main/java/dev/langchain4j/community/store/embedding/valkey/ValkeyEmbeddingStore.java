@@ -7,7 +7,6 @@ import static dev.langchain4j.community.store.embedding.valkey.ValkeySchema.JSON
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 import static glide.api.models.GlideString.gs;
@@ -243,7 +242,9 @@ public class ValkeyEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCl
 
     @Override
     public void removeAll(Collection<String> ids) {
-        ensureNotEmpty(ids, "ids");
+        if (isNullOrEmpty(ids)) {
+            return;
+        }
 
         String[] valkeyKeys = ids.stream().map(id -> schema.getPrefix() + id).toArray(String[]::new);
         awaitResult(client.del(valkeyKeys));

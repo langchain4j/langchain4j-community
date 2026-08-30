@@ -1,7 +1,7 @@
 package dev.langchain4j.store.embedding.sqlserver;
 
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
@@ -315,7 +315,9 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void removeAll(final Collection<String> ids) {
-        ensureNotEmpty(ids, "ids");
+        if (isNullOrEmpty(ids)) {
+            return;
+        }
 
         String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
         String sql = String.format(

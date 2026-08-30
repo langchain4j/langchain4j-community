@@ -1,6 +1,7 @@
 package dev.langchain4j.community.store.embedding.dynamodb;
 
 import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
@@ -452,7 +453,9 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
 
     @Override
     public void removeAll(Collection<String> ids) {
-        ensureNotEmpty(ids, "ids");
+        if (isNullOrEmpty(ids)) {
+            return;
+        }
 
         List<WriteRequest> writeRequests = new ArrayList<>(ids.size());
         for (String id : ids) {
