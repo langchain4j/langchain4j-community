@@ -636,7 +636,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         private SessionConfig config;
         private Driver driver;
         private int dimension;
-        private long awaitIndexTimeout;
+        private long awaitIndexTimeout = DEFAULT_AWAIT_INDEX_TIMEOUT;
         private String fullTextIndexName;
         private String fullTextQuery;
         private String fullTextRetrievalQuery;
