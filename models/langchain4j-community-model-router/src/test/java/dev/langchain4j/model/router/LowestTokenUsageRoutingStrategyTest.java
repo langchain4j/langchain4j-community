@@ -37,7 +37,7 @@ class LowestTokenUsageRoutingStrategyTest {
 
         LowestTokenUsageRoutingStrategy strategy = new LowestTokenUsageRoutingStrategy();
 
-        ChatModelWrapper selected = strategy.route(List.of(highUsage, lowUsage), REQUEST);
+        ModelWrapper selected = strategy.route(List.of(highUsage, lowUsage), REQUEST);
 
         assertEquals(lowUsage, selected);
     }
@@ -49,8 +49,8 @@ class LowestTokenUsageRoutingStrategyTest {
 
         LowestTokenUsageRoutingStrategy strategy = new LowestTokenUsageRoutingStrategy();
 
-        ChatModelWrapper selected = strategy.route(List.of(first, second), REQUEST);
-        Set<Capability> capabilities = selected.supportedCapabilities();
+        ModelWrapper selected = strategy.route(List.of(first, second), REQUEST);
+        Set<Capability> capabilities = ((ChatModelWrapper) selected).supportedCapabilities();
 
         assertEquals(first, selected);
         assertTrue(capabilities.isEmpty());
@@ -60,7 +60,7 @@ class LowestTokenUsageRoutingStrategyTest {
     void returnsNullWhenNoRoutesAreAvailable() {
         LowestTokenUsageRoutingStrategy strategy = new LowestTokenUsageRoutingStrategy();
 
-        ChatModelWrapper selected = strategy.route(List.of(), REQUEST);
+        ModelWrapper selected = strategy.route(List.of(), REQUEST);
 
         assertNull(selected);
     }

@@ -21,7 +21,7 @@ public abstract class DelegatingModelRoutingStrategy implements ModelRoutingStra
         this.delegate = delegate;
     }
 
-    protected ChatModelWrapper delegateRoute(List<ChatModelWrapper> availableModels, ChatRequest chatRequest) {
+    protected ModelWrapper delegateRoute(List<? extends ModelWrapper> availableModels, ChatRequest chatRequest) {
         if (delegate == null) {
             return null;
         }

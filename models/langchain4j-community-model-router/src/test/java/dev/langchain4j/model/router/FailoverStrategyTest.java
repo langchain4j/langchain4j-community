@@ -37,7 +37,7 @@ class FailoverStrategyTest {
 
         FailoverStrategy strategy = new FailoverStrategy(Duration.ofMinutes(1));
 
-        ChatModelWrapper route = strategy.route(
+        ModelWrapper route = strategy.route(
                 routes, ChatRequest.builder().messages(new UserMessage("ping")).build());
 
         assertEquals(secondary, route);
@@ -55,7 +55,7 @@ class FailoverStrategyTest {
 
         FailoverStrategy strategy = new FailoverStrategy(Duration.ofMinutes(1));
 
-        ChatModelWrapper route = strategy.route(
+        ModelWrapper route = strategy.route(
                 routes, ChatRequest.builder().messages(new UserMessage("ping")).build());
 
         assertEquals(primary, route);
@@ -77,7 +77,7 @@ class FailoverStrategyTest {
         ModelRoutingStrategy delegate = (available, chatRequest) -> available.get(0);
         FailoverStrategy strategy = new FailoverStrategy(delegate, Duration.ofMinutes(1));
 
-        ChatModelWrapper route = strategy.route(
+        ModelWrapper route = strategy.route(
                 routes, ChatRequest.builder().messages(new UserMessage("ping")).build());
 
         assertEquals(healthy, route);
@@ -95,7 +95,7 @@ class FailoverStrategyTest {
 
         FailoverStrategy strategy = new FailoverStrategy(Duration.ofMinutes(1));
 
-        ChatModelWrapper route = strategy.route(
+        ModelWrapper route = strategy.route(
                 List.of(first, second),
                 ChatRequest.builder().messages(new UserMessage("ping")).build());
 

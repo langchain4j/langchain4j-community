@@ -22,16 +22,18 @@ public class LowestTokenUsageRoutingStrategy implements ModelRoutingStrategy {
     public static final String TOTAL_TOKEN_USAGE = "TOTAL_TOKEN_USAGE";
 
     @Override
-    public ChatModelWrapper route(List<ChatModelWrapper> availableModels, ChatRequest chatRequest) {
+    public ModelWrapper route(List<? extends ModelWrapper> availableModels, ChatRequest chatRequest) {
+        List<ModelWrapper> models = List.copyOf(availableModels);
+
         // add FailureListener to each not already having one
-        availableModels.stream()
+        models.stream()
                 .filter(m -> m.listeners().stream().noneMatch(UsageTrackerListener.class::isInstance))
                 .forEach(m -> m.addListener(new UsageTrackerListener(m)));
 
-        ChatModelWrapper selectedModel = null;
+        ModelWrapper selectedModel = null;
         long selectedUsage = Long.MAX_VALUE;
 
-        for (ChatModelWrapper entry : availableModels) {
+        for (ModelWrapper entry : models) {
             long routeUsage = readUsage(entry);
             if (routeUsage < selectedUsage) {
                 selectedModel = entry;
@@ -42,7 +44,7 @@ public class LowestTokenUsageRoutingStrategy implements ModelRoutingStrategy {
         return selectedModel;
     }
 
-    private long readUsage(ChatModelWrapper wrapper) {
+    private long readUsage(ModelWrapper wrapper) {
         Object metadata = wrapper.getMetadata(TOTAL_TOKEN_USAGE);
         if (metadata instanceof Number) {
             return ((Number) metadata).longValue();
@@ -55,9 +57,9 @@ public class LowestTokenUsageRoutingStrategy implements ModelRoutingStrategy {
      */
     class UsageTrackerListener implements ChatModelListener {
 
-        private ChatModelWrapper wrapper;
+        private ModelWrapper wrapper;
         // we need to remember the wrapper as the listener does not have access to the model
-        public UsageTrackerListener(ChatModelWrapper wrapper) {
+        public UsageTrackerListener(ModelWrapper wrapper) {
             this.wrapper = wrapper;
         }
 

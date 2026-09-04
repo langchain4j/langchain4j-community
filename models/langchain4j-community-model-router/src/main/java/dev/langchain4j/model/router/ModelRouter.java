@@ -1,25 +1,28 @@
 package dev.langchain4j.model.router;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
  * A {@link ChatModel} implementation that routes requests to other chat models
  * using a provided routing strategy.
+ *
+ * <p>Streaming models are routed by {@link StreamingModelRouter} instead: since
+ * {@link ChatModel} and {@link dev.langchain4j.model.chat.StreamingChatModel} define conflicting
+ * {@code chat(...)}/{@code doChat(...)} signatures, a single router cannot implement both.
  *
  * <p>Usage example:
  * <pre>{@code
@@ -36,15 +39,15 @@ import java.util.Set;
  * </pre>
  */
 @Experimental
-public class ModelRouter implements ChatModel, StreamingChatModel {
+public class ModelRouter implements ChatModel {
 
     private final List<ChatModelWrapper> routes;
     private final ModelRoutingStrategy routingStrategy;
     private final ChatModelWrapper defaultTarget;
 
     private ModelRouter(Builder builder) {
-        this.routes = Collections.unmodifiableList(Objects.requireNonNull(builder.routes, "routes"));
-        this.routingStrategy = Objects.requireNonNull(builder.routingStrategy, "routingStrategy");
+        this.routes = Collections.unmodifiableList(ensureNotNull(builder.routes, "routes"));
+        this.routingStrategy = ensureNotNull(builder.routingStrategy, "routingStrategy");
         this.defaultTarget = builder.defaultRoute;
     }
 
@@ -53,7 +56,9 @@ public class ModelRouter implements ChatModel, StreamingChatModel {
     }
 
     protected ChatModelWrapper resolveDelegate(ChatRequest chatRequest) {
-        ChatModelWrapper target = routingStrategy.route(routes, chatRequest);
+        // safe by the ModelRoutingStrategy contract: strategies must return one of the
+        // given availableModels, which are all ChatModelWrappers for this router
+        ChatModelWrapper target = (ChatModelWrapper) routingStrategy.route(routes, chatRequest);
         if (target == null) {
             target = defaultTarget;
         }
@@ -83,25 +88,6 @@ public class ModelRouter implements ChatModel, StreamingChatModel {
                 throw e;
             }
             return doChatInternal(chatRequest, attemptsLeft - 1);
-        }
-    }
-
-    @Override
-    public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-        doChatInternal(chatRequest, handler, this.routes.size());
-    }
-
-    private void doChatInternal(ChatRequest chatRequest, StreamingChatResponseHandler handler, int attemptsLeft) {
-        ChatModelWrapper delegate = resolveDelegate(chatRequest);
-        try {
-            delegate.chat(chatRequest, handler);
-        } catch (NoMatchingModelFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            if (attemptsLeft <= 1) {
-                throw e;
-            }
-            doChatInternal(chatRequest, handler, attemptsLeft - 1);
         }
     }
 
@@ -137,19 +123,7 @@ public class ModelRouter implements ChatModel, StreamingChatModel {
             return this;
         }
 
-        public Builder addRoutes(StreamingChatModel... model) {
-            for (StreamingChatModel chatModel : model) {
-                this.routes.add(new ChatModelWrapper(chatModel));
-            }
-            return this;
-        }
-
         public Builder defaultRoute(ChatModel model) {
-            this.defaultRoute = new ChatModelWrapper(model);
-            return this;
-        }
-
-        public Builder defaultRoute(StreamingChatModel model) {
             this.defaultRoute = new ChatModelWrapper(model);
             return this;
         }
@@ -160,21 +134,6 @@ public class ModelRouter implements ChatModel, StreamingChatModel {
         }
 
         public ModelRouter build() {
-            Boolean streaming = null;
-            for (ChatModelWrapper chatModelWrapper : routes) {
-                if (chatModelWrapper.isStreaming()) {
-                    if (streaming == null) {
-                        streaming = true;
-                    } else {
-                        throw new RuntimeException("you cannot mix streaming and non streaming models");
-                    }
-                }
-            }
-            if (streaming != null) {
-                if (defaultRoute.isStreaming() && !streaming) {
-                    throw new RuntimeException("you cannot mix streaming and non streaming models");
-                }
-            }
             return new ModelRouter(this);
         }
     }

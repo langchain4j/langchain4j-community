@@ -12,13 +12,18 @@ import java.util.List;
 public interface ModelRoutingStrategy {
 
     /**
-     * Determines the route key to use for the given chat messages.
+     * Determines the route to use for the given chat request.
+     *
+     * <p>The same strategy can be used with both {@link ModelRouter} (whose routes are
+     * {@link ChatModelWrapper}s) and {@link StreamingModelRouter} (whose routes are
+     * {@link StreamingChatModelWrapper}s). Implementations must return one of the given
+     * {@code availableModels} (or {@code null}).
      *
      * @param availableModels
      *            all configured models, including any routing metadata
      * @param chatRequest
      *            the incoming chat request
-     * @return the key of the route to use
+     * @return the route to use, or {@code null} if no route matches
      */
-    ChatModelWrapper route(List<ChatModelWrapper> availableModels, ChatRequest chatRequest);
+    ModelWrapper route(List<? extends ModelWrapper> availableModels, ChatRequest chatRequest);
 }

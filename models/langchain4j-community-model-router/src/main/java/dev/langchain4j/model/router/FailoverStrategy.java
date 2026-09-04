@@ -54,19 +54,20 @@ public class FailoverStrategy extends DelegatingModelRoutingStrategy {
     }
 
     @Override
-    public ChatModelWrapper route(List<ChatModelWrapper> availableModels, ChatRequest chatRequest) {
+    public ModelWrapper route(List<? extends ModelWrapper> availableModels, ChatRequest chatRequest) {
+        List<ModelWrapper> models = List.copyOf(availableModels);
+
         // add FailureListener to each not already having one
-        availableModels.stream()
+        models.stream()
                 .filter(m -> m.listeners().stream().noneMatch(FailureListener.class::isInstance))
                 .forEach(m -> m.addListener(new FailureListener(m)));
 
         Instant now = Instant.now();
 
-        List<ChatModelWrapper> healthyModels = availableModels.stream()
-                .filter(entry -> !isInCooldown(entry, now))
-                .collect(Collectors.toList());
+        List<ModelWrapper> healthyModels =
+                models.stream().filter(entry -> !isInCooldown(entry, now)).collect(Collectors.toList());
         // try to delegate
-        ChatModelWrapper target = delegateRoute(healthyModels, chatRequest);
+        ModelWrapper target = delegateRoute(healthyModels, chatRequest);
         // it not, use first healthy model
         if (target == null && !healthyModels.isEmpty()) {
             target = healthyModels.iterator().next();
@@ -74,7 +75,7 @@ public class FailoverStrategy extends DelegatingModelRoutingStrategy {
         return target;
     }
 
-    private boolean isInCooldown(ChatModelWrapper model, Instant now) {
+    private boolean isInCooldown(ModelWrapper model, Instant now) {
         Object failedValue = model.getMetadata(FAILED);
         if (!(failedValue instanceof Boolean) || !((Boolean) failedValue)) {
             return false;
@@ -99,9 +100,9 @@ public class FailoverStrategy extends DelegatingModelRoutingStrategy {
      */
     class FailureListener implements ChatModelListener {
 
-        private ChatModelWrapper wrapper;
+        private ModelWrapper wrapper;
         // we need to remember the wrapper as the listener does not have access to the model
-        public FailureListener(ChatModelWrapper wrapper) {
+        public FailureListener(ModelWrapper wrapper) {
             this.wrapper = wrapper;
         }
 

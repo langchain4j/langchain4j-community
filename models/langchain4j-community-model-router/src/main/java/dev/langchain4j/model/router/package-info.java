@@ -6,6 +6,7 @@
  * <p>Key interfaces and classes:
  * <ul>
  *   <li>{@link dev.langchain4j.model.router.ModelRouter} - A ChatModel implementation which routes requests to other models</li>
+ *   <li>{@link dev.langchain4j.model.router.StreamingModelRouter} - A StreamingChatModel implementation which routes requests to other models</li>
  *   <li>{@link dev.langchain4j.model.router.ModelRoutingStrategy} - Interface for different routing strategies</li>
  * </ul>
  */
