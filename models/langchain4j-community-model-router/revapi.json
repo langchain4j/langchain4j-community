@@ -1,0 +1,94 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.method.removed",
+          "old": "method void dev.langchain4j.model.router.ChatModelWrapper::<init>(dev.langchain4j.model.chat.StreamingChatModel)",
+          "justification": "Adaptation to the reactive StreamingChatModel API from langchain4j/langchain4j#5527: ChatModel and StreamingChatModel now declare conflicting chat(...)/doChat(...) signatures, so streaming models are wrapped by the new StreamingChatModelWrapper instead. The module is @Experimental; see issue #775."
+        },
+        {
+          "code": "java.method.removed",
+          "old": "method void dev.langchain4j.model.router.ChatModelWrapper::doChat(dev.langchain4j.model.chat.request.ChatRequest, dev.langchain4j.model.chat.response.StreamingChatResponseHandler)",
+          "justification": "Adaptation to the reactive StreamingChatModel API from langchain4j/langchain4j#5527: streaming support moved to the new StreamingChatModelWrapper. The module is @Experimental; see issue #775."
+        },
+        {
+          "code": "java.method.removed",
+          "old": "method boolean dev.langchain4j.model.router.ChatModelWrapper::isStreaming()",
+          "justification": "Adaptation to the reactive StreamingChatModel API from langchain4j/langchain4j#5527: wrappers now wrap exactly one kind of model, so the streaming flag is obsolete. The module is @Experimental; see issue #775."
+        },
+        {
+          "code": "java.class.nonFinalClassInheritsFromNewClass",
+          "old": "class dev.langchain4j.model.router.ChatModelWrapper",
+          "new": "class dev.langchain4j.model.router.ChatModelWrapper",
+          "justification": "ChatModelWrapper now extends the new ModelWrapper base class, which only extracts members that already existed on ChatModelWrapper (routing metadata and wrapper listeners). Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        },
+        {
+          "code": "java.method.removed",
+          "old": "method dev.langchain4j.model.router.ModelRouter.Builder dev.langchain4j.model.router.ModelRouter.Builder::addRoutes(dev.langchain4j.model.chat.StreamingChatModel[])",
+          "justification": "Adaptation to the reactive StreamingChatModel API from langchain4j/langchain4j#5527: streaming routes are now added via the new StreamingModelRouter.Builder instead. The module is @Experimental; see issue #775."
+        },
+        {
+          "code": "java.method.removed",
+          "old": "method dev.langchain4j.model.router.ModelRouter.Builder dev.langchain4j.model.router.ModelRouter.Builder::defaultRoute(dev.langchain4j.model.chat.StreamingChatModel)",
+          "justification": "Adaptation to the reactive StreamingChatModel API from langchain4j/langchain4j#5527: the streaming default route is now configured via the new StreamingModelRouter.Builder instead. The module is @Experimental; see issue #775."
+        },
+        {
+          "code": "java.method.removed",
+          "old": "method void dev.langchain4j.model.router.ModelRouter::doChat(dev.langchain4j.model.chat.request.ChatRequest, dev.langchain4j.model.chat.response.StreamingChatResponseHandler)",
+          "justification": "Adaptation to the reactive StreamingChatModel API from langchain4j/langchain4j#5527: streaming routing moved to the new StreamingModelRouter. The module is @Experimental; see issue #775."
+        },
+        {
+          "code": "java.method.parameterTypeParameterChanged",
+          "old": "parameter dev.langchain4j.model.router.ChatModelWrapper dev.langchain4j.model.router.DelegatingModelRoutingStrategy::delegateRoute(===java.util.List<dev.langchain4j.model.router.ChatModelWrapper>===, dev.langchain4j.model.chat.request.ChatRequest)",
+          "new": "parameter dev.langchain4j.model.router.ModelWrapper dev.langchain4j.model.router.DelegatingModelRoutingStrategy::delegateRoute(===java.util.List<? extends dev.langchain4j.model.router.ModelWrapper>===, dev.langchain4j.model.chat.request.ChatRequest)",
+          "justification": "Routing strategies were generalized from List<ChatModelWrapper> to List<? extends ModelWrapper> so the same strategy can be used with both ModelRouter and the new StreamingModelRouter. Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        },
+        {
+          "code": "java.method.parameterTypeParameterChanged",
+          "old": "parameter dev.langchain4j.model.router.ChatModelWrapper dev.langchain4j.model.router.FailoverStrategy::route(===java.util.List<dev.langchain4j.model.router.ChatModelWrapper>===, dev.langchain4j.model.chat.request.ChatRequest)",
+          "new": "parameter dev.langchain4j.model.router.ModelWrapper dev.langchain4j.model.router.FailoverStrategy::route(===java.util.List<? extends dev.langchain4j.model.router.ModelWrapper>===, dev.langchain4j.model.chat.request.ChatRequest)",
+          "justification": "Routing strategies were generalized from List<ChatModelWrapper> to List<? extends ModelWrapper> so the same strategy can be used with both ModelRouter and the new StreamingModelRouter. Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        },
+        {
+          "code": "java.method.parameterTypeParameterChanged",
+          "old": "parameter dev.langchain4j.model.router.ChatModelWrapper dev.langchain4j.model.router.LowestTokenUsageRoutingStrategy::route(===java.util.List<dev.langchain4j.model.router.ChatModelWrapper>===, dev.langchain4j.model.chat.request.ChatRequest)",
+          "new": "parameter dev.langchain4j.model.router.ModelWrapper dev.langchain4j.model.router.LowestTokenUsageRoutingStrategy::route(===java.util.List<? extends dev.langchain4j.model.router.ModelWrapper>===, dev.langchain4j.model.chat.request.ChatRequest)",
+          "justification": "Routing strategies were generalized from List<ChatModelWrapper> to List<? extends ModelWrapper> so the same strategy can be used with both ModelRouter and the new StreamingModelRouter. Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        },
+        {
+          "code": "java.method.parameterTypeParameterChanged",
+          "old": "parameter dev.langchain4j.model.router.ChatModelWrapper dev.langchain4j.model.router.ModelRoutingStrategy::route(===java.util.List<dev.langchain4j.model.router.ChatModelWrapper>===, dev.langchain4j.model.chat.request.ChatRequest)",
+          "new": "parameter dev.langchain4j.model.router.ModelWrapper dev.langchain4j.model.router.ModelRoutingStrategy::route(===java.util.List<? extends dev.langchain4j.model.router.ModelWrapper>===, dev.langchain4j.model.chat.request.ChatRequest)",
+          "justification": "Routing strategies were generalized from List<ChatModelWrapper> to List<? extends ModelWrapper> so the same strategy can be used with both ModelRouter and the new StreamingModelRouter. Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        },
+        {
+          "code": "java.method.returnTypeChanged",
+          "old": "method dev.langchain4j.model.router.ChatModelWrapper dev.langchain4j.model.router.DelegatingModelRoutingStrategy::delegateRoute(java.util.List<dev.langchain4j.model.router.ChatModelWrapper>, dev.langchain4j.model.chat.request.ChatRequest)",
+          "new": "method dev.langchain4j.model.router.ModelWrapper dev.langchain4j.model.router.DelegatingModelRoutingStrategy::delegateRoute(java.util.List<? extends dev.langchain4j.model.router.ModelWrapper>, dev.langchain4j.model.chat.request.ChatRequest)",
+          "justification": "Routing strategies were generalized to return ModelWrapper instead of ChatModelWrapper so the same strategy can be used with both ModelRouter and the new StreamingModelRouter. Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        },
+        {
+          "code": "java.method.returnTypeChanged",
+          "old": "method dev.langchain4j.model.router.ChatModelWrapper dev.langchain4j.model.router.FailoverStrategy::route(java.util.List<dev.langchain4j.model.router.ChatModelWrapper>, dev.langchain4j.model.chat.request.ChatRequest)",
+          "new": "method dev.langchain4j.model.router.ModelWrapper dev.langchain4j.model.router.FailoverStrategy::route(java.util.List<? extends dev.langchain4j.model.router.ModelWrapper>, dev.langchain4j.model.chat.request.ChatRequest)",
+          "justification": "Routing strategies were generalized to return ModelWrapper instead of ChatModelWrapper so the same strategy can be used with both ModelRouter and the new StreamingModelRouter. Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        },
+        {
+          "code": "java.method.returnTypeChanged",
+          "old": "method dev.langchain4j.model.router.ChatModelWrapper dev.langchain4j.model.router.LowestTokenUsageRoutingStrategy::route(java.util.List<dev.langchain4j.model.router.ChatModelWrapper>, dev.langchain4j.model.chat.request.ChatRequest)",
+          "new": "method dev.langchain4j.model.router.ModelWrapper dev.langchain4j.model.router.LowestTokenUsageRoutingStrategy::route(java.util.List<? extends dev.langchain4j.model.router.ModelWrapper>, dev.langchain4j.model.chat.request.ChatRequest)",
+          "justification": "Routing strategies were generalized to return ModelWrapper instead of ChatModelWrapper so the same strategy can be used with both ModelRouter and the new StreamingModelRouter. Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        },
+        {
+          "code": "java.method.returnTypeChanged",
+          "old": "method dev.langchain4j.model.router.ChatModelWrapper dev.langchain4j.model.router.ModelRoutingStrategy::route(java.util.List<dev.langchain4j.model.router.ChatModelWrapper>, dev.langchain4j.model.chat.request.ChatRequest)",
+          "new": "method dev.langchain4j.model.router.ModelWrapper dev.langchain4j.model.router.ModelRoutingStrategy::route(java.util.List<? extends dev.langchain4j.model.router.ModelWrapper>, dev.langchain4j.model.chat.request.ChatRequest)",
+          "justification": "Routing strategies were generalized to return ModelWrapper instead of ChatModelWrapper so the same strategy can be used with both ModelRouter and the new StreamingModelRouter. Part of the adaptation to langchain4j/langchain4j#5527; see issue #775."
+        }
+      ]
+    }
+  }
+]

@@ -5,44 +5,51 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import dev.langchain4j.Experimental;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
-import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.ChatModelStreamingEvent;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Flow.Publisher;
 
 /**
- * Wraps a {@link ChatModel} adding optional routing metadata.
+ * Wraps a {@link StreamingChatModel} adding optional routing metadata.
  *
- * <p>Streaming models are wrapped by {@link StreamingChatModelWrapper} instead: since
- * {@link ChatModel} and {@link dev.langchain4j.model.chat.StreamingChatModel} define conflicting
+ * <p>Synchronous models are wrapped by {@link ChatModelWrapper} instead: since
+ * {@link dev.langchain4j.model.chat.ChatModel} and {@link StreamingChatModel} define conflicting
  * {@code chat(...)}/{@code doChat(...)} signatures, a single wrapper cannot implement both.
  */
 @Experimental
-public class ChatModelWrapper extends ModelWrapper implements ChatModel {
+public class StreamingChatModelWrapper extends ModelWrapper implements StreamingChatModel {
 
-    private final ChatModel model;
+    private final StreamingChatModel model;
 
-    ChatModelWrapper(ChatModel model, Map<String, Serializable> metadata) {
+    StreamingChatModelWrapper(StreamingChatModel model, Map<String, Serializable> metadata) {
         super(metadata);
         this.model = ensureNotNull(model, "model");
     }
 
-    public ChatModelWrapper(ChatModel model) {
+    public StreamingChatModelWrapper(StreamingChatModel model) {
         this(model, new HashMap<>());
     }
 
-    public ChatModel model() {
+    public StreamingChatModel model() {
         return model;
     }
 
     @Override
-    public ChatResponse doChat(ChatRequest chatRequest) {
+    public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
+        model.chat(chatRequest, handler);
+    }
+
+    @Override
+    public Publisher<ChatModelStreamingEvent> doChat(ChatRequest chatRequest) {
         return model.chat(chatRequest);
     }
 
