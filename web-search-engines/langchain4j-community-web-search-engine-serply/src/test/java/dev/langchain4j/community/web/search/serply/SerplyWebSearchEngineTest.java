@@ -3,6 +3,7 @@ package dev.langchain4j.community.web.search.serply;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.web.search.WebSearchInformationResult;
 import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchResults;
 import java.util.List;
@@ -31,36 +32,79 @@ class SerplyWebSearchEngineTest {
                   "related_questions": [{"question": "What is LangChain4j?"}]
                 }
                 """;
-        SerplyWebSearchResponse response = OBJECT_MAPPER.readValue(json, SerplyWebSearchResponse.class);
 
-        WebSearchResults results = SerplyWebSearchEngine.toWebSearchResults(response);
+        WebSearchResults results = SerplyWebSearchEngine.toWebSearchResults(parse(json), 1);
 
         List<WebSearchOrganicResult> organicResults = results.results();
         assertThat(organicResults).hasSize(1);
         assertThat(organicResults.get(0).title()).isEqualTo("LangChain4j");
         assertThat(organicResults.get(0).snippet()).isEqualTo("Idiomatic Java library for LLMs.");
         assertThat(organicResults.get(0).url().toString()).isEqualTo("https://docs.langchain4j.dev/");
+        assertThat(organicResults.get(0).metadata()).containsEntry("position", "1");
 
-        assertThat(results.searchInformation().totalResults()).isEqualTo(42L);
+        WebSearchInformationResult information = results.searchInformation();
+        assertThat(information.totalResults()).isEqualTo(42L);
+        assertThat(information.pageNumber()).isEqualTo(1);
+        assertThat(information.metadata()).doesNotContainKey(SerplyWebSearchEngine.TOTAL_RESULTS_ESTIMATED_KEY);
         assertThat(results.searchMetadata()).containsKey("relatedQuestions");
     }
 
     @Test
-    void should_omit_related_questions_metadata_when_absent() throws Exception {
+    void should_flag_total_results_as_estimated_when_serply_omits_total() throws Exception {
         String json = """
                 {
                   "results": [
-                    {"title": "Only Result", "description": "A snippet", "position": 1, "link": "https://example.com"}
+                    {"title": "One", "description": "A snippet", "position": 1, "link": "https://example.com/1"},
+                    {"title": "Two", "description": "A snippet", "position": 2, "link": "https://example.com/2"}
                   ],
+                  "total": null,
                   "related_questions": []
                 }
                 """;
-        SerplyWebSearchResponse response = OBJECT_MAPPER.readValue(json, SerplyWebSearchResponse.class);
 
-        WebSearchResults results = SerplyWebSearchEngine.toWebSearchResults(response);
+        WebSearchResults results = SerplyWebSearchEngine.toWebSearchResults(parse(json), 3);
 
+        WebSearchInformationResult information = results.searchInformation();
+        assertThat(information.totalResults()).isEqualTo(2L);
+        assertThat(information.pageNumber()).isEqualTo(3);
+        assertThat(information.metadata()).containsEntry(SerplyWebSearchEngine.TOTAL_RESULTS_ESTIMATED_KEY, true);
         assertThat(results.searchMetadata()).doesNotContainKey("relatedQuestions");
-        assertThat(results.results()).hasSize(1);
+    }
+
+    @Test
+    void should_fall_back_to_real_position_when_position_is_missing() throws Exception {
+        String json = """
+                {
+                  "results": [
+                    {"title": "Ranked", "description": "kept", "realPosition": 4, "link": "https://example.com/ranked"},
+                    {"title": "Unranked", "description": "kept", "link": "https://example.com/unranked"}
+                  ]
+                }
+                """;
+
+        List<WebSearchOrganicResult> results =
+                SerplyWebSearchEngine.toWebSearchResults(parse(json), 1).results();
+
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).metadata()).containsEntry("position", "4");
+        assertThat(results.get(1).metadata()).doesNotContainKey("position");
+    }
+
+    @Test
+    void should_pass_missing_description_through_as_null_snippet() throws Exception {
+        String json = """
+                {
+                  "results": [
+                    {"title": "No description", "position": 1, "link": "https://example.com"}
+                  ]
+                }
+                """;
+
+        List<WebSearchOrganicResult> results =
+                SerplyWebSearchEngine.toWebSearchResults(parse(json), 1).results();
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).snippet()).isNull();
     }
 
     @Test
@@ -74,11 +118,14 @@ class SerplyWebSearchEngineTest {
                   ]
                 }
                 """;
-        SerplyWebSearchResponse response = OBJECT_MAPPER.readValue(json, SerplyWebSearchResponse.class);
 
-        WebSearchResults results = SerplyWebSearchEngine.toWebSearchResults(response);
+        WebSearchResults results = SerplyWebSearchEngine.toWebSearchResults(parse(json), 1);
 
         assertThat(results.results()).hasSize(1);
         assertThat(results.results().get(0).title()).isEqualTo("Valid");
+    }
+
+    private static SerplyWebSearchResponse parse(String json) throws Exception {
+        return OBJECT_MAPPER.readValue(json, SerplyWebSearchResponse.class);
     }
 }
