@@ -1,6 +1,7 @@
 package dev.langchain4j.community.web.search.serply;
 
 import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import dev.langchain4j.internal.UriUtils;
@@ -17,7 +18,19 @@ import java.util.stream.Collectors;
 
 /**
  * An implementation of a {@link WebSearchEngine} that uses
- * <a href="https://serply.io">Serply</a> for performing web searches. <p>
+ * <a href="https://serply.io">Serply</a> for performing web searches.
+ * <p>
+ * Pagination: {@link WebSearchRequest#startPage()} is translated into Serply's zero-based
+ * {@code start} offset using {@link WebSearchRequest#maxResults()} (or Serply's default page
+ * size of 10) as the page size, and is reported back as
+ * {@link WebSearchInformationResult#pageNumber()}.
+ * <p>
+ * Total results: Serply's responses carry a top-level {@code total} field, but it is
+ * {@code null} for regular web searches. When it is absent, {@link WebSearchInformationResult#totalResults()}
+ * falls back to the number of results on the returned page (the same approach as the Tavily
+ * engine) and {@link WebSearchInformationResult#metadata()} carries
+ * {@code totalResultsEstimated=true} so callers can tell the two apart.
+ * <p>
  * Serply's search results also carry a "People Also Ask" section
  * ({@code related_questions} in the raw response), which is populated only
  * when present on the underlying search results page. It is exposed as-is
@@ -25,6 +38,8 @@ import java.util.stream.Collectors;
  * instead of being mapped into dedicated fields, since its item shape is not documented.
  */
 public class SerplyWebSearchEngine implements WebSearchEngine {
+
+    static final String TOTAL_RESULTS_ESTIMATED_KEY = "totalResultsEstimated";
 
     private final String apiKey;
     private final SerplyClient client;
@@ -43,18 +58,14 @@ public class SerplyWebSearchEngine implements WebSearchEngine {
         return new Builder();
     }
 
-    public static WebSearchEngine withApiKey(String apiKey) {
-        return builder().apiKey(apiKey).build();
-    }
-
     @Override
     public WebSearchResults search(WebSearchRequest webSearchRequest) {
         SerplyWebSearchResponse response = client.search(webSearchRequest);
-        return toWebSearchResults(response);
+        return toWebSearchResults(response, webSearchRequest.startPage());
     }
 
-    static WebSearchResults toWebSearchResults(SerplyWebSearchResponse response) {
-        List<OrganicResult> results = getOrDefault(response.getResults(), List.of());
+    static WebSearchResults toWebSearchResults(SerplyWebSearchResponse response, Integer pageNumber) {
+        List<SerplyOrganicResult> results = getOrDefault(response.getResults(), List.of());
 
         Map<String, Object> searchMetadata = new HashMap<>();
         if (response.getRelatedQuestions() != null
@@ -62,34 +73,42 @@ public class SerplyWebSearchEngine implements WebSearchEngine {
             searchMetadata.put("relatedQuestions", response.getRelatedQuestions());
         }
 
-        WebSearchInformationResult informationResult =
-                WebSearchInformationResult.from(getOrDefault(response.getTotal(), (long) results.size()));
-
-        return WebSearchResults.from(searchMetadata, informationResult, toWebSearchOrganicResults(results));
+        return WebSearchResults.from(
+                searchMetadata,
+                toWebSearchInformationResult(response.getTotal(), results.size(), pageNumber),
+                toWebSearchOrganicResults(results));
     }
 
-    private static List<WebSearchOrganicResult> toWebSearchOrganicResults(List<OrganicResult> results) {
+    private static WebSearchInformationResult toWebSearchInformationResult(
+            Long total, int resultCount, Integer pageNumber) {
+        Map<String, Object> metadata = new HashMap<>();
+        long totalResults;
+        if (total != null) {
+            totalResults = total;
+        } else {
+            totalResults = resultCount;
+            metadata.put(TOTAL_RESULTS_ESTIMATED_KEY, true);
+        }
+        return WebSearchInformationResult.from(totalResults, getOrDefault(pageNumber, 1), metadata);
+    }
+
+    private static List<WebSearchOrganicResult> toWebSearchOrganicResults(List<SerplyOrganicResult> results) {
         return results.stream()
-                .filter(result -> hasValue(result.getTitle()) && hasValue(result.getLink()))
+                .filter(result -> isNotNullOrBlank(result.getTitle()) && isNotNullOrBlank(result.getLink()))
                 .map(SerplyWebSearchEngine::toWebSearchOrganicResult)
                 .collect(Collectors.toList());
     }
 
-    private static WebSearchOrganicResult toWebSearchOrganicResult(OrganicResult result) {
+    private static WebSearchOrganicResult toWebSearchOrganicResult(SerplyOrganicResult result) {
         Map<String, String> metadata = new HashMap<>();
-        if (result.getPosition() != null) {
-            metadata.put("position", String.valueOf(result.getPosition()));
+        Integer position = getOrDefault(result.getPosition(), result.getRealPosition());
+        if (position != null) {
+            metadata.put("position", String.valueOf(position));
         }
+        // A missing description is passed through as null: the core contract tolerates a null
+        // snippet, and an empty string would only hide the fact that Serply sent none.
         return WebSearchOrganicResult.from(
-                result.getTitle(),
-                UriUtils.createUriSafely(result.getLink()),
-                getOrDefault(result.getDescription(), ""),
-                null,
-                metadata);
-    }
-
-    private static boolean hasValue(String value) {
-        return value != null && !value.trim().isEmpty();
+                result.getTitle(), UriUtils.createUriSafely(result.getLink()), result.getDescription(), null, metadata);
     }
 
     public static class Builder {
