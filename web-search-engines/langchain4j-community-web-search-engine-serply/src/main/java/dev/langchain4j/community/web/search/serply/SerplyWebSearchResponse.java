@@ -4,13 +4,18 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
-import java.util.Map;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 class SerplyWebSearchResponse {
 
-    private List<OrganicResult> results;
+    private List<SerplyOrganicResult> results;
+
+    /**
+     * Total number of results the engine reports for the query.
+     * Serply includes this key in every response but leaves it {@code null} for regular
+     * web searches, so callers must be prepared for it to be absent.
+     */
     private Long total;
 
     /**
@@ -22,7 +27,7 @@ class SerplyWebSearchResponse {
 
     public SerplyWebSearchResponse() {}
 
-    public List<OrganicResult> getResults() {
+    public List<SerplyOrganicResult> getResults() {
         return this.results;
     }
 
@@ -32,38 +37,5 @@ class SerplyWebSearchResponse {
 
     public List<Object> getRelatedQuestions() {
         return this.relatedQuestions;
-    }
-}
-
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-@JsonIgnoreProperties(ignoreUnknown = true)
-class OrganicResult {
-
-    private String title;
-    private String description;
-    private String link;
-    private Integer position;
-    private Map<String, Object> metadata;
-
-    public OrganicResult() {}
-
-    public String getTitle() {
-        return this.title;
-    }
-
-    public String getDescription() {
-        return this.description;
-    }
-
-    public String getLink() {
-        return this.link;
-    }
-
-    public Integer getPosition() {
-        return this.position;
-    }
-
-    public Map<String, Object> getMetadata() {
-        return this.metadata;
     }
 }
