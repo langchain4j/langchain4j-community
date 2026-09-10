@@ -27,6 +27,19 @@
 
     <dependencyManagement>
         <dependencies>
+            <!--
+            neo4j-bolt-connection-netty ${neo4j-bolt.version} requires a newer Netty
+            than the one managed by the Spring Boot 4 BOM, which makes the
+            RequireUpperBoundDeps enforcer rule fail. Import netty-bom to align
+            Netty with the version expected by neo4j-bolt-connection-netty.
+            -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>4.2.14.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.neo4j.bolt</groupId>
                 <artifactId>neo4j-bolt-connection</artifactId>
