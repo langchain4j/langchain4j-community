@@ -1,0 +1,130 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class dev.langchain4j.data.embedding.Embedding",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.data.embedding.Embedding",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.data.embedding.Embedding",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class dev.langchain4j.data.segment.TextSegment",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.data.segment.TextSegment",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.data.segment.TextSegment",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchRequest",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchRequest",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchRequest",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchResult",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchResult",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.store.embedding.EmbeddingSearchResult",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class dev.langchain4j.store.embedding.filter.Filter",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class dev.langchain4j.store.embedding.filter.Filter",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class dev.langchain4j.store.embedding.filter.Filter",
+          "justification": "langchain4j-core types are intentionally exposed in the DynamoDB EmbeddingStore API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class software.amazon.awssdk.auth.credentials.AwsCredentialsProvider",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class software.amazon.awssdk.auth.credentials.AwsCredentialsProvider",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class software.amazon.awssdk.auth.credentials.AwsCredentialsProvider",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class software.amazon.awssdk.services.dynamodb.DynamoDbClient",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class software.amazon.awssdk.services.dynamodb.DynamoDbClient",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class software.amazon.awssdk.services.dynamodb.DynamoDbClient",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class software.amazon.awssdk.services.dynamodb.model.VectorDistanceFunction",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class software.amazon.awssdk.services.dynamodb.model.VectorDistanceFunction",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class software.amazon.awssdk.services.dynamodb.model.VectorDistanceFunction",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        }
+      ]
+    }
+  }
+]
