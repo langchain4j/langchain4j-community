@@ -135,17 +135,21 @@ class InternalXinferenceHelper {
 
     static AiMessage aiMessageFrom(AssistantMessage assistantMessage) {
         String text = assistantMessage.getContent();
+        String reasoningContent = assistantMessage.getReasoningContent();
         List<ToolCall> toolCalls = assistantMessage.getToolCalls();
-        if (!isNullOrEmpty(toolCalls)) {
-            List<ToolExecutionRequest> toolExecutionRequests = toolCalls.stream()
-                    .filter(toolCall -> toolCall.getType() == ToolType.FUNCTION)
-                    .map(InternalXinferenceHelper::toToolExecutionRequest)
-                    .toList();
-            return isNullOrBlank(text)
-                    ? AiMessage.from(toolExecutionRequests)
-                    : AiMessage.from(text, toolExecutionRequests);
-        }
-        return AiMessage.from(text);
+
+        List<ToolExecutionRequest> toolExecutionRequests = isNullOrEmpty(toolCalls)
+                ? null
+                : toolCalls.stream()
+                        .filter(toolCall -> toolCall.getType() == ToolType.FUNCTION)
+                        .map(InternalXinferenceHelper::toToolExecutionRequest)
+                        .toList();
+
+        return AiMessage.builder()
+                .text(isNotNullOrBlank(text) ? text : null)
+                .thinking(isNotNullOrBlank(reasoningContent) ? reasoningContent : null)
+                .toolExecutionRequests(toolExecutionRequests)
+                .build();
     }
 
     private static ToolExecutionRequest toToolExecutionRequest(ToolCall toolCall) {
