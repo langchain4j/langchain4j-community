@@ -105,6 +105,7 @@
         <module>tools/langchain4j-community-tool-xquik</module>
         <module>tools/langchain4j-community-tool-web-scraper</module>
         <module>tools/langchain4j-community-tool-browser-use</module>
+        <module>tools/langchain4j-community-tool-live-tennis</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
