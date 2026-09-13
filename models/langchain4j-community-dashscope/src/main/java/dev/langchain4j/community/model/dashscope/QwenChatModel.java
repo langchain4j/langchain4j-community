@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
@@ -181,12 +182,32 @@ public class QwenChatModel implements ChatModel {
     private CompletableFuture<ChatResponse> generateByNonMultimodalModelAsync(ChatRequest chatRequest) {
         boolean incrementalOutput = streamingOnlyModelName(chatRequest.modelName());
         GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, incrementalOutput);
+        return callAsync(
+                (ResultCallback<GenerationResult> callback) -> generation.call(param, callback),
+                result -> chatResponseFrom(param.getModel(), result));
+    }
+
+    private CompletableFuture<ChatResponse> generateByMultimodalModelAsync(ChatRequest chatRequest) {
+        boolean incrementalOutput = streamingOnlyModelName(chatRequest.modelName());
+        MultiModalConversationParam param = toMultiModalConversationParam(
+                apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
+        return callAsync(
+                (ResultCallback<MultiModalConversationResult> callback) -> conv.call(param, callback),
+                result -> chatResponseFrom(param.getModel(), result));
+    }
+
+    private <R> CompletableFuture<ChatResponse> callAsync(
+            ThrowingConsumer<ResultCallback<R>> invocation, Function<R, ChatResponse> responseMapper) {
         CompletableFuture<ChatResponse> future = new CompletableFuture<>();
         try {
-            generation.call(param, new ResultCallback<>() {
+            invocation.accept(new ResultCallback<>() {
                 @Override
-                public void onEvent(GenerationResult result) {
-                    future.complete(chatResponseFrom(param.getModel(), result));
+                public void onEvent(R result) {
+                    try {
+                        future.complete(responseMapper.apply(result));
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
                 }
 
                 @Override
@@ -199,36 +220,15 @@ public class QwenChatModel implements ChatModel {
             });
         } catch (NoApiKeyException | InputRequiredException e) {
             future.completeExceptionally(new IllegalArgumentException(e));
-        }
-        return future;
-    }
-
-    private CompletableFuture<ChatResponse> generateByMultimodalModelAsync(ChatRequest chatRequest) {
-        boolean incrementalOutput = streamingOnlyModelName(chatRequest.modelName());
-        MultiModalConversationParam param = toMultiModalConversationParam(
-                apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
-        CompletableFuture<ChatResponse> future = new CompletableFuture<>();
-        try {
-            conv.call(param, new ResultCallback<>() {
-                @Override
-                public void onEvent(MultiModalConversationResult result) {
-                    future.complete(chatResponseFrom(param.getModel(), result));
-                }
-
-                @Override
-                public void onComplete() {}
-
-                @Override
-                public void onError(Exception e) {
-                    future.completeExceptionally(e);
-                }
-            });
-        } catch (NoApiKeyException e) {
-            future.completeExceptionally(new IllegalArgumentException(e));
         } catch (UploadFileException e) {
             future.completeExceptionally(new IllegalStateException(e));
         }
         return future;
+    }
+
+    @FunctionalInterface
+    private interface ThrowingConsumer<T> {
+        void accept(T t) throws NoApiKeyException, InputRequiredException, UploadFileException;
     }
 
     @Override

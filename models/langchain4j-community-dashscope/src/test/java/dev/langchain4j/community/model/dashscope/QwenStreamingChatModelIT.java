@@ -53,8 +53,10 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.response.ChatModelStreamingEvent;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
+import dev.langchain4j.model.chat.response.CompleteResponse;
 import dev.langchain4j.model.chat.response.PartialResponse;
 import dev.langchain4j.model.chat.response.PartialResponseContext;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
@@ -63,6 +65,10 @@ import dev.langchain4j.model.output.TokenUsage;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -87,6 +93,45 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
 
         assertThat(response.aiMessage().text()).containsIgnoringCase("rain");
         assertThat(response.aiMessage().text()).endsWith("That's all!");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
+    void should_stream_response_via_reactive_publisher(String modelName) throws Exception {
+        QwenStreamingChatModel model = QwenStreamingChatModel.builder()
+                .apiKey(apiKey())
+                .modelName(modelName)
+                .build();
+
+        List<String> partials = new CopyOnWriteArrayList<>();
+        CompletableFuture<ChatResponse> terminal = new CompletableFuture<>();
+        model.chat(ChatRequest.builder().messages(chatMessages()).build()).subscribe(new Flow.Subscriber<>() {
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                subscription.request(Long.MAX_VALUE);
+            }
+
+            @Override
+            public void onNext(ChatModelStreamingEvent event) {
+                if (event instanceof PartialResponse partialResponse) {
+                    partials.add(partialResponse.text());
+                } else if (event instanceof CompleteResponse completeResponse) {
+                    terminal.complete(completeResponse.chatResponse());
+                }
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                terminal.completeExceptionally(throwable);
+            }
+
+            @Override
+            public void onComplete() {}
+        });
+
+        ChatResponse response = terminal.get(120, TimeUnit.SECONDS);
+        assertThat(response.aiMessage().text()).containsIgnoringCase("rain");
+        assertThat(String.join("", partials)).isEqualTo(response.aiMessage().text());
     }
 
     @ParameterizedTest

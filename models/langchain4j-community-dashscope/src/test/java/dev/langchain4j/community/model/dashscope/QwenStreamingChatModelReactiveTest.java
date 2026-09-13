@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Publisher;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,34 @@ class QwenStreamingChatModelReactiveTest {
         }
     }
 
+    private static <T> List<T> collectAll(Publisher<T> publisher) throws Exception {
+        List<T> items = new CopyOnWriteArrayList<>();
+        CompletableFuture<Void> completed = new CompletableFuture<>();
+        publisher.subscribe(new Flow.Subscriber<>() {
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                subscription.request(Long.MAX_VALUE);
+            }
+
+            @Override
+            public void onNext(T item) {
+                items.add(item);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                completed.completeExceptionally(throwable);
+            }
+
+            @Override
+            public void onComplete() {
+                completed.complete(null);
+            }
+        });
+        completed.get(10, SECONDS);
+        return items;
+    }
+
     @Test
     void chat_with_publisher_should_emit_streaming_events_ending_with_complete_response() throws Exception {
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
@@ -70,34 +99,9 @@ class QwenStreamingChatModelReactiveTest {
                 .modelName(QwenModelName.QWEN_TURBO)
                 .build();
 
-        List<ChatModelStreamingEvent> events = new CopyOnWriteArrayList<>();
-        CompletableFuture<Void> completed = new CompletableFuture<>();
-        model.chat(ChatRequest.builder()
-                        .messages(List.of(UserMessage.from("hi")))
-                        .build())
-                .subscribe(new Flow.Subscriber<>() {
-                    @Override
-                    public void onSubscribe(Flow.Subscription subscription) {
-                        subscription.request(Long.MAX_VALUE);
-                    }
+        List<ChatModelStreamingEvent> events = collectAll(model.chat(
+                ChatRequest.builder().messages(List.of(UserMessage.from("hi"))).build()));
 
-                    @Override
-                    public void onNext(ChatModelStreamingEvent event) {
-                        events.add(event);
-                    }
-
-                    @Override
-                    public void onError(Throwable throwable) {
-                        completed.completeExceptionally(throwable);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        completed.complete(null);
-                    }
-                });
-
-        completed.get(10, SECONDS);
         assertThat(events).isNotEmpty();
         assertThat(events.get(events.size() - 1)).isInstanceOf(CompleteResponse.class);
         CompleteResponse completeResponse = (CompleteResponse) events.get(events.size() - 1);
@@ -112,31 +116,8 @@ class QwenStreamingChatModelReactiveTest {
                 .modelName(QwenModelName.QWEN_TURBO)
                 .build();
 
-        List<String> partials = new CopyOnWriteArrayList<>();
-        CompletableFuture<Void> completed = new CompletableFuture<>();
-        model.chat("hi").subscribe(new Flow.Subscriber<>() {
-            @Override
-            public void onSubscribe(Flow.Subscription subscription) {
-                subscription.request(Long.MAX_VALUE);
-            }
+        List<String> partials = collectAll(model.chat("hi"));
 
-            @Override
-            public void onNext(String partial) {
-                partials.add(partial);
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
-                completed.completeExceptionally(throwable);
-            }
-
-            @Override
-            public void onComplete() {
-                completed.complete(null);
-            }
-        });
-
-        completed.get(10, SECONDS);
         assertThat(partials).contains("Hello");
     }
 }
