@@ -22,11 +22,13 @@ import com.alibaba.dashscope.aigc.generation.GenerationOutput;
 import com.alibaba.dashscope.aigc.generation.GenerationOutput.Choice;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
+import com.alibaba.dashscope.aigc.generation.GenerationUsage;
 import com.alibaba.dashscope.aigc.generation.TranslationOptions;
 import com.alibaba.dashscope.aigc.multimodalconversation.AudioParameters;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationOutput;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationTokensDetails;
 import com.alibaba.dashscope.common.Message;
 import com.alibaba.dashscope.common.MultiModalMessage;
 import com.alibaba.dashscope.common.Role;
@@ -367,14 +369,32 @@ class QwenHelper {
     static TokenUsage tokenUsageFrom(GenerationResult result) {
         return Optional.of(result)
                 .map(GenerationResult::getUsage)
-                .map(usage -> new TokenUsage(usage.getInputTokens(), usage.getOutputTokens()))
+                .map(usage -> {
+                    GenerationUsage.PromptTokensDetails details = usage.getPromptTokensDetails();
+                    return QwenTokenUsage.builder()
+                            .inputTokenCount(usage.getInputTokens())
+                            .outputTokenCount(usage.getOutputTokens())
+                            .totalTokenCount(usage.getTotalTokens())
+                            .cachedInputTokens(details == null ? null : details.getCachedTokens())
+                            .cacheCreationInputTokens(details == null ? null : details.getCacheCreationInputTokens())
+                            .build();
+                })
                 .orElse(null);
     }
 
     static TokenUsage tokenUsageFrom(MultiModalConversationResult result) {
         return Optional.of(result)
                 .map(MultiModalConversationResult::getUsage)
-                .map(usage -> new TokenUsage(usage.getInputTokens(), usage.getOutputTokens()))
+                .map(usage -> {
+                    MultiModalConversationTokensDetails details = usage.getPromptTokensDetails();
+                    return QwenTokenUsage.builder()
+                            .inputTokenCount(usage.getInputTokens())
+                            .outputTokenCount(usage.getOutputTokens())
+                            .totalTokenCount(usage.getTotalTokens())
+                            .cachedInputTokens(details == null ? null : details.getCachedTokens())
+                            .cacheCreationInputTokens(details == null ? null : details.getCacheCreationInputTokens())
+                            .build();
+                })
                 .orElse(null);
     }
 
