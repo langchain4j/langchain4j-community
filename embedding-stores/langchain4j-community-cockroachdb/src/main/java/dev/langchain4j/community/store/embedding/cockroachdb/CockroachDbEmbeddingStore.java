@@ -1,6 +1,7 @@
 package dev.langchain4j.community.store.embedding.cockroachdb;
 
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -261,8 +262,8 @@ public class CockroachDbEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void removeAll(Collection<String> ids) {
-        if (ids == null || ids.isEmpty()) {
-            throw new IllegalArgumentException("ids cannot be null or empty");
+        if (isNullOrEmpty(ids)) {
+            return;
         }
         String sql = String.format(
                 "DELETE FROM %s WHERE %s = ?%s",
