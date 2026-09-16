@@ -168,9 +168,12 @@ public class StreamingModelRouter implements StreamingChatModel {
 
         private final ChatRequest chatRequest;
         private final Subscriber<? super ChatModelStreamingEvent> downstream;
-        private volatile int attemptsLeft;
-        private volatile boolean emitted;
-        private volatile boolean cancelled;
+        private int attemptsLeft; // guarded by this
+        private boolean emitted; // guarded by this
+        private volatile boolean cancelled; // also true after a terminal signal is selected
+        private int activeOnNext; // guarded by this
+        private boolean terminalPending; // guarded by this
+        private Throwable terminalError; // guarded by this
         private Subscription current; // guarded by this
         private long totalRequested; // guarded by this
         private long forwarded; // guarded by this
@@ -195,7 +198,10 @@ public class StreamingModelRouter implements StreamingChatModel {
             try {
                 delegate = resolveDelegate(chatRequest);
             } catch (Throwable error) {
-                downstream.onError(error);
+                terminate(error, false);
+                return;
+            }
+            if (cancelled) {
                 return;
             }
             Publisher<ChatModelStreamingEvent> publisher;
@@ -203,6 +209,9 @@ public class StreamingModelRouter implements StreamingChatModel {
                 publisher = delegate.chat(chatRequest);
             } catch (Throwable error) {
                 failoverOrPropagate(error);
+                return;
+            }
+            if (cancelled) {
                 return;
             }
             try {
@@ -213,44 +222,93 @@ public class StreamingModelRouter implements StreamingChatModel {
         }
 
         private void failoverOrPropagate(Throwable error) {
-            attemptsLeft--;
-            if (!emitted && !cancelled && attemptsLeft > 0) {
-                synchronized (this) {
+            boolean retry;
+            synchronized (this) {
+                if (cancelled) {
+                    return;
+                }
+                attemptsLeft--;
+                retry = !emitted && attemptsLeft > 0;
+                if (retry) {
                     current = null;
                     // no event was delivered to the downstream subscriber, so the full
                     // outstanding demand must be granted to the next route
                     forwarded = 0;
                 }
+            }
+            if (retry) {
                 subscribeNextRoute();
             } else {
-                downstream.onError(error);
+                terminate(error, false);
             }
         }
 
         private void register(Subscription subscription) {
-            long toForward;
+            long toForward = 0;
+            boolean cancel;
+            synchronized (this) {
+                cancel = cancelled;
+                if (!cancel) {
+                    current = subscription;
+                    toForward = totalRequested - forwarded;
+                    forwarded = totalRequested;
+                }
+            }
+            if (cancel) {
+                subscription.cancel();
+            } else if (toForward > 0) {
+                subscription.request(toForward);
+            }
+        }
+
+        private void terminate(Throwable error, boolean cancelUpstream) {
+            Subscription subscription;
             synchronized (this) {
                 if (cancelled) {
-                    subscription.cancel();
                     return;
                 }
-                current = subscription;
-                toForward = totalRequested - forwarded;
-                forwarded = totalRequested;
+                cancelled = true;
+                subscription = current;
+                current = null;
+                terminalError = error;
+                terminalPending = true;
             }
-            if (toForward > 0) {
-                subscription.request(toForward);
+            // Cancel outside the monitor: an upstream may synchronously call us back.
+            if (cancelUpstream && subscription != null) {
+                subscription.cancel();
+            }
+            signalTerminal();
+        }
+
+        private void signalTerminal() {
+            Throwable error;
+            synchronized (this) {
+                if (!terminalPending || activeOnNext != 0) {
+                    return;
+                }
+                terminalPending = false;
+                error = terminalError;
+                terminalError = null;
+            }
+            if (error != null) {
+                downstream.onError(error);
+            } else {
+                downstream.onComplete();
             }
         }
 
         @Override
         public void request(long n) {
             if (n <= 0) {
-                throw new IllegalArgumentException("non-positive request: " + n);
+                terminate(new IllegalArgumentException("non-positive request: " + n), true);
+                return;
             }
             Subscription subscription;
             long toForward;
             synchronized (this) {
+                if (cancelled) {
+                    return;
+                }
                 totalRequested = saturatingAdd(totalRequested, n);
                 subscription = current;
                 if (subscription != null) {
@@ -267,10 +325,14 @@ public class StreamingModelRouter implements StreamingChatModel {
 
         @Override
         public void cancel() {
-            cancelled = true;
             Subscription subscription;
             synchronized (this) {
+                if (cancelled) {
+                    return;
+                }
+                cancelled = true;
                 subscription = current;
+                current = null;
             }
             if (subscription != null) {
                 subscription.cancel();
@@ -286,8 +348,23 @@ public class StreamingModelRouter implements StreamingChatModel {
 
             @Override
             public void onNext(ChatModelStreamingEvent event) {
-                emitted = true;
-                downstream.onNext(event);
+                synchronized (FailoverSubscription.this) {
+                    if (cancelled) {
+                        return;
+                    }
+                    emitted = true;
+                    activeOnNext++;
+                }
+                try {
+                    downstream.onNext(event);
+                } finally {
+                    synchronized (FailoverSubscription.this) {
+                        activeOnNext--;
+                    }
+                    // An invalid request can arrive from within onNext or another thread.
+                    // Deliver its terminal signal only after the in-flight callback returns.
+                    signalTerminal();
+                }
             }
 
             @Override
@@ -297,7 +374,7 @@ public class StreamingModelRouter implements StreamingChatModel {
 
             @Override
             public void onComplete() {
-                downstream.onComplete();
+                terminate(null, false);
             }
         }
     }
