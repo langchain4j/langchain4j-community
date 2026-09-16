@@ -22,6 +22,7 @@ public class XinferenceChatModelProperties {
     private String user;
     private Object toolChoice;
     private Boolean parallelToolCalls;
+    private Boolean enableThinking;
     private Integer maxRetries;
     private Duration timeout;
 
@@ -134,6 +135,14 @@ public class XinferenceChatModelProperties {
 
     public void setParallelToolCalls(final Boolean parallelToolCalls) {
         this.parallelToolCalls = parallelToolCalls;
+    }
+
+    public Boolean getEnableThinking() {
+        return enableThinking;
+    }
+
+    public void setEnableThinking(final Boolean enableThinking) {
+        this.enableThinking = enableThinking;
     }
 
     public Integer getMaxRetries() {
