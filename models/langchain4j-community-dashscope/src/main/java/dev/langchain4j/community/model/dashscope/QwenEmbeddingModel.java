@@ -2,8 +2,6 @@ package dev.langchain4j.community.model.dashscope;
 
 import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.DOCUMENT;
 import static com.alibaba.dashscope.embeddings.TextEmbeddingParam.TextType.QUERY;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V1;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.TEXT_EMBEDDING_V2;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
 import static java.util.Collections.singletonList;
@@ -52,7 +50,7 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
         }
         this.modelName = Utils.isNullOrBlank(modelName) ? QwenModelName.TEXT_EMBEDDING_V3 : modelName;
         this.apiKey = apiKey;
-        this.dimension = ensureDimension(this.modelName, dimension);
+        this.dimension = dimension;
         this.embedding = Utils.isNullOrBlank(baseUrl) ? new TextEmbedding() : new TextEmbedding(baseUrl);
     }
 
@@ -162,16 +160,6 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
     public void setTextEmbeddingParamCustomizer(
             Consumer<TextEmbeddingParam.TextEmbeddingParamBuilder<?, ?>> textEmbeddingParamCustomizer) {
         this.textEmbeddingParamCustomizer = ensureNotNull(textEmbeddingParamCustomizer, "textEmbeddingParamCustomizer");
-    }
-
-    private static Integer ensureDimension(String modelName, Integer dimension) {
-        if (dimension == null) {
-            return null;
-        }
-        if (TEXT_EMBEDDING_V1.equals(modelName) || TEXT_EMBEDDING_V2.equals(modelName)) {
-            throw new IllegalArgumentException("dimension '" + dimension + "' is not supported by " + modelName);
-        }
-        return dimension;
     }
 
     public static QwenEmbeddingModelBuilder builder() {
