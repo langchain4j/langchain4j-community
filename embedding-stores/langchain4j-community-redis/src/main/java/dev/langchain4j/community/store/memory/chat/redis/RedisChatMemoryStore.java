@@ -10,7 +10,6 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import java.util.List;
 import redis.clients.jedis.DefaultJedisClientConfig;
 import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.JedisClientConfig;
 import redis.clients.jedis.UnifiedJedis;
 
 /**
@@ -69,19 +68,38 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      */
     public RedisChatMemoryStore(
             String host, Integer port, String user, String password, String prefix, Long ttl, StoreType storeType) {
+        this(host, port, user, password, prefix, ttl, storeType, false);
+    }
+
+    /**
+     * Constructs a new Redis chat memory store with custom prefix, TTL, StoreType and TLS option.
+     *
+     * @param host      Redis server hostname
+     * @param port      Redis server port
+     * @param user      Redis user (can be null when no ACL user is used)
+     * @param password  Redis password (can be provided without {@code user} for servers secured
+     *                  with {@code requirepass})
+     * @param prefix    Prefix for Redis keys (for namespacing)
+     * @param ttl       Time-to-live value in seconds (≤0 means no expiration)
+     * @param storeType Decide which type of RedisOperations to use(default use JSON)
+     * @param ssl       Whether to enable TLS for the Redis connection
+     */
+    public RedisChatMemoryStore(
+            String host, Integer port, String user, String password, String prefix, Long ttl, StoreType storeType,
+            boolean ssl) {
         String finalHost = ensureNotBlank(host, "host");
         int finalPort = ensureNotNull(port, "port");
+        DefaultJedisClientConfig.Builder configBuilder = DefaultJedisClientConfig.builder();
         if (user != null) {
-            String finalUser = ensureNotBlank(user, "user");
-            String finalPassword = ensureNotBlank(password, "password");
-            JedisClientConfig jedisClientConfig = DefaultJedisClientConfig.builder()
-                    .user(finalUser)
-                    .password(finalPassword)
-                    .build();
-            this.client = new UnifiedJedis(new HostAndPort(finalHost, finalPort), jedisClientConfig);
-        } else {
-            this.client = new UnifiedJedis(new HostAndPort(finalHost, finalPort));
+            configBuilder.user(ensureNotBlank(user, "user"));
         }
+        if (password != null) {
+            configBuilder.password(ensureNotBlank(password, "password"));
+        }
+        if (ssl) {
+            configBuilder.ssl(true);
+        }
+        this.client = new UnifiedJedis(new HostAndPort(finalHost, finalPort), configBuilder.build());
         this.keyPrefix = ensureNotNull(prefix, "prefix");
         this.ttl = ensureNotNull(ttl, "ttl");
         this.redisOperations =
@@ -169,6 +187,7 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         private Long ttl = 0L;
         private String prefix = "";
         private StoreType storeType = StoreType.JSON;
+        private boolean ssl;
 
         /**
          * Sets the Redis host.
@@ -255,12 +274,24 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         }
 
         /**
+         * Sets whether to enable TLS for the Redis connection.
+         * Enable this for managed Redis/Valkey services that require encrypted connections.
+         *
+         * @param ssl Whether to enable TLS
+         * @return This builder for method chaining
+         */
+        public Builder ssl(boolean ssl) {
+            this.ssl = ssl;
+            return this;
+        }
+
+        /**
          * Builds a new RedisChatMemoryStore instance with the configured parameters.
          *
          * @return A new RedisChatMemoryStore instance
          */
         public RedisChatMemoryStore build() {
-            return new RedisChatMemoryStore(host, port, user, password, prefix, ttl, storeType);
+            return new RedisChatMemoryStore(host, port, user, password, prefix, ttl, storeType, ssl);
         }
     }
 }
