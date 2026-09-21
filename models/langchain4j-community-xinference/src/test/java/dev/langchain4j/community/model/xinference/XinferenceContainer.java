@@ -46,6 +46,7 @@ public class XinferenceContainer extends GenericContainer<XinferenceContainer> {
             });
         }
         this.withExposedPorts(EXPOSED_PORT);
+        this.withEnv("XINFERENCE_AUTH_ADVANCED", "false");
         // https://github.com/xorbitsai/inference/issues/2573
         this.withCommand("bash", "-c", "xinference-local -H 0.0.0.0");
         this.waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(10)));

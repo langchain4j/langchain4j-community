@@ -23,8 +23,8 @@ class XinferenceLanguageModelIT extends AbstractInferenceLanguageModelInfrastruc
             .build();
 
     @Test
-    void should_generate_answer_and_return_token_usage_and_finish_reason_stop() {
-        String prompt = "中国首都是哪里？";
+    void should_generate_answer_and_return_token_usage_and_finish_reason_length() {
+        String prompt = "你可以告诉我中国首都是哪里及其历史";
         Response<String> response = model.generate(prompt);
         assertThat(response.content()).contains("北京");
         TokenUsage tokenUsage = response.tokenUsage();
