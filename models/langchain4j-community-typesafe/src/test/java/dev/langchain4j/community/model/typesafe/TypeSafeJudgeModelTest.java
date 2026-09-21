@@ -129,6 +129,36 @@ class TypeSafeJudgeModelTest {
     }
 
     @Test
+    void should_ignore_unknown_response_fields() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(new MockResponse()
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("""
+                            {
+                              "model": "jev-latest",
+                              "answers": {"answer": {"type": "noul", "noul": 0.5}},
+                              "usage": {"input_tokens": 1, "output_tokens": 1},
+                              "latency_ms": 17
+                            }
+                            """));
+            server.start();
+
+            TypeSafeJudgeModel model = TypeSafeJudgeModel.builder()
+                    .apiKey("key")
+                    .baseUrl(server.url("/").toString())
+                    .build();
+            JudgeRequest request = JudgeRequest.builder()
+                    .state(Map.of())
+                    .question(
+                            "answer",
+                            NoulQuestion.builder().instructions("Is it true?").build())
+                    .build();
+
+            assertThat(model.judge(request).answers()).containsExactly(Map.entry("answer", answerWithNoul(0.5)));
+        }
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void should_use_per_request_model_override() throws Exception {
         try (MockWebServer server = new MockWebServer()) {
