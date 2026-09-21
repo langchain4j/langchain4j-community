@@ -1,4 +1,4 @@
-package dev.langchain4j.community.store.memory.chat.redis;
+﻿package dev.langchain4j.community.store.memory.chat.redis;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotEmpty;
@@ -85,7 +85,13 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
      * @param ssl       Whether to enable TLS for the Redis connection
      */
     public RedisChatMemoryStore(
-            String host, Integer port, String user, String password, String prefix, Long ttl, StoreType storeType,
+            String host,
+            Integer port,
+            String user,
+            String password,
+            String prefix,
+            Long ttl,
+            StoreType storeType,
             boolean ssl) {
         String finalHost = ensureNotBlank(host, "host");
         int finalPort = ensureNotNull(port, "port");
