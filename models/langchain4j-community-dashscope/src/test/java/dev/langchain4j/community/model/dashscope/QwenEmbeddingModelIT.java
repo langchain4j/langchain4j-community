@@ -10,6 +10,7 @@ import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.data.segment.TextSegment.textSegment;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -143,13 +144,14 @@ class QwenEmbeddingModelIT {
 
     @Test
     void should_embed_one_text_by_customized_dimension() {
-        for (String modelName : List.of(TEXT_EMBEDDING_V1, TEXT_EMBEDDING_V2, TEXT_EMBEDDING_V3)) {
-            QwenEmbeddingModel model = getModel(modelName, 512);
-            assertThat(model.dimension()).isEqualTo(512);
+        assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V1, 512)).isExactlyInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> getModel(TEXT_EMBEDDING_V2, 512)).isExactlyInstanceOf(IllegalArgumentException.class);
 
-            Embedding embedding = model.embed("hello").content();
-            assertThat(embedding.dimension()).isEqualTo(512);
-        }
+        QwenEmbeddingModel model = getModel(TEXT_EMBEDDING_V3, 512);
+        assertThat(model.dimension()).isEqualTo(512);
+
+        Embedding embedding = model.embed("hello").content();
+        assertThat(embedding.dimension()).isEqualTo(512);
     }
 
     @Test
