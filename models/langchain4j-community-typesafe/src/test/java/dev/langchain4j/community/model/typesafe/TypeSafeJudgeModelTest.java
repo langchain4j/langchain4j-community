@@ -148,7 +148,7 @@ class TypeSafeJudgeModelTest {
                     .baseUrl(server.url("/").toString())
                     .build();
             JudgeRequest request = JudgeRequest.builder()
-                    .state(Map.of())
+                    .state(Map.of("message", "hello"))
                     .question(
                             "answer",
                             NoulQuestion.builder().instructions("Is it true?").build())
@@ -176,7 +176,7 @@ class TypeSafeJudgeModelTest {
                     .modelName("configured-model")
                     .build();
             JudgeRequest request = JudgeRequest.builder()
-                    .state(Map.of())
+                    .state(Map.of("message", "hello"))
                     .question(
                             "answer",
                             NoulQuestion.builder().instructions("Is it true?").build())
