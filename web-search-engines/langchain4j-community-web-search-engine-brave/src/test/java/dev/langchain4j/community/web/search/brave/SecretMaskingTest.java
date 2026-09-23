@@ -22,6 +22,15 @@ class SecretMaskingTest {
     }
 
     @Test
+    void builder_toString_should_mask_secrets_in_base_url() {
+        String toString = BraveWebSearchEngine.builder()
+                .baseUrl("https://example.test/search?token=secret-token")
+                .toString();
+
+        assertThat(toString).doesNotContain("secret-token").contains("token=********");
+    }
+
+    @Test
     void clientBuilder_toString_should_mask_api_key() {
         String toString = BraveClient.builder().apiKey("secret-api-key").toString();
 

@@ -10,14 +10,12 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static java.time.Duration.ofSeconds;
 import static java.util.stream.Collectors.toList;
 
-import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.web.search.WebSearchEngine;
 import dev.langchain4j.web.search.WebSearchInformationResult;
 import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchRequest;
 import dev.langchain4j.web.search.WebSearchResults;
 import java.net.URI;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,11 +32,12 @@ import java.util.Objects;
  * Whether further results are available can be checked in the
  * {@link WebSearchResults#searchMetadata()} key {@code moreResultsAvailable}.
  * <br>
- * The {@link WebSearchRequest#safeSearch()} flag is mapped to Brave's {@code safesearch} parameter:
- * {@code true} becomes {@code strict} and {@code false} becomes {@code off}.
+ * An explicitly disabled {@link WebSearchRequest#safeSearch()} is mapped to Brave's {@code off} value.
+ * An ordinary {@link WebSearchRequest} leaves Brave's default {@code moderate} setting in place; use the
+ * {@code safesearch} additional parameter when {@code strict} is required.
  * <br>
- * Brave-specific parameters (e.g. {@code freshness}, {@code units}, {@code ui_lang}, {@code goggles})
- * can be passed through {@link WebSearchRequest#additionalParams()}.
+ * Brave-specific parameters (e.g. {@code freshness}, {@code spellcheck}, {@code extra_snippets}, {@code units},
+ * {@code ui_lang}, {@code goggles}) can be passed through {@link WebSearchRequest#additionalParams()}.
  */
 public class BraveWebSearchEngine implements WebSearchEngine {
 
@@ -47,10 +46,6 @@ public class BraveWebSearchEngine implements WebSearchEngine {
     private static final int MAX_OFFSET = 9;
 
     private final BraveClient braveClient;
-
-    public BraveWebSearchEngine(String baseUrl, String apiKey, Duration timeout) {
-        this(builder().baseUrl(baseUrl).apiKey(apiKey).timeout(timeout));
-    }
 
     public BraveWebSearchEngine(BraveWebSearchEngineBuilder builder) {
         this.braveClient = BraveClient.builder()
@@ -71,7 +66,8 @@ public class BraveWebSearchEngine implements WebSearchEngine {
     public WebSearchResults search(WebSearchRequest webSearchRequest) {
         ensureNotNull(webSearchRequest, "webSearchRequest");
 
-        BraveWebSearchResponse response = braveClient.search(toBraveWebSearchRequest(webSearchRequest));
+        BraveWebSearchRequest braveRequest = toBraveWebSearchRequest(webSearchRequest);
+        BraveWebSearchResponse response = braveClient.search(braveRequest);
 
         List<WebSearchOrganicResult> results = toWebSearchOrganicResults(response);
 
@@ -82,7 +78,7 @@ public class BraveWebSearchEngine implements WebSearchEngine {
 
         return WebSearchResults.from(
                 searchMetadata,
-                WebSearchInformationResult.from((long) results.size(), webSearchRequest.startPage(), null),
+                WebSearchInformationResult.from(totalResults(braveRequest, results), pageNumber(braveRequest), null),
                 results);
     }
 
@@ -94,15 +90,20 @@ public class BraveWebSearchEngine implements WebSearchEngine {
 
         Integer offset = null;
         if (webSearchRequest.startPage() != null && webSearchRequest.startPage() > 1) {
-            offset = Math.min(webSearchRequest.startPage() - 1, MAX_OFFSET);
+            int pageSize = count != null ? count : MAX_COUNT;
+            long requestedOffset = (long) (webSearchRequest.startPage() - 1) * pageSize;
+            offset = (int) Math.min(requestedOffset, MAX_OFFSET);
         }
 
         String safesearch = null;
-        if (Boolean.TRUE.equals(webSearchRequest.safeSearch())) {
-            safesearch = "strict";
-        } else if (Boolean.FALSE.equals(webSearchRequest.safeSearch())) {
+        if (Boolean.FALSE.equals(webSearchRequest.safeSearch())) {
             safesearch = "off";
         }
+
+        Map<String, Object> additionalParameters = copyIfNotNull(webSearchRequest.additionalParams());
+        String freshness = stringParameter(additionalParameters, BraveWebSearchRequest.FRESHNESS);
+        Boolean spellcheck = booleanParameter(additionalParameters, BraveWebSearchRequest.SPELLCHECK);
+        Boolean extraSnippets = booleanParameter(additionalParameters, BraveWebSearchRequest.EXTRA_SNIPPETS);
 
         return BraveWebSearchRequest.builder()
                 .query(webSearchRequest.searchTerms())
@@ -111,16 +112,41 @@ public class BraveWebSearchEngine implements WebSearchEngine {
                 .language(webSearchRequest.language())
                 .country(webSearchRequest.geoLocation())
                 .safesearch(safesearch)
-                .additionalParameters(copyIfNotNull(webSearchRequest.additionalParams()))
+                .freshness(freshness)
+                .spellcheck(spellcheck)
+                .extraSnippets(extraSnippets)
+                .additionalParameters(additionalParameters)
                 .build();
     }
 
+    private static Integer pageNumber(BraveWebSearchRequest request) {
+        int pageSize = request.getCount() != null ? request.getCount() : MAX_COUNT;
+        int offset = request.getOffset() != null ? request.getOffset() : 0;
+        return offset / pageSize + 1;
+    }
+
+    private static long totalResults(BraveWebSearchRequest request, List<WebSearchOrganicResult> results) {
+        // Brave does not expose a total count. The number through the returned page is the closest useful value.
+        int offset = request.getOffset() != null ? request.getOffset() : 0;
+        return (long) offset + results.size();
+    }
+
+    private static String stringParameter(Map<String, Object> parameters, String name) {
+        Object value = parameters == null ? null : parameters.get(name);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private static Boolean booleanParameter(Map<String, Object> parameters, String name) {
+        Object value = parameters == null ? null : parameters.get(name);
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return value == null ? null : Boolean.valueOf(String.valueOf(value));
+    }
+
     private static List<WebSearchOrganicResult> toWebSearchOrganicResults(BraveWebSearchResponse response) {
-        // Depending on the API version, results are nested under the "web" key or returned at the top level.
         List<BraveSearchResult> braveResults =
-                response.getWeb() != null && !isNullOrEmpty(response.getWeb().getResults())
-                        ? response.getWeb().getResults()
-                        : response.getResults();
+                response.getWeb() == null ? null : response.getWeb().getResults();
 
         if (isNullOrEmpty(braveResults)) {
             return new ArrayList<>();
@@ -145,65 +171,24 @@ public class BraveWebSearchEngine implements WebSearchEngine {
             metadata.put("page_age", braveResult.getPageAge());
         }
 
+        String content = isNullOrEmpty(braveResult.getExtraSnippets())
+                ? null
+                : String.join(System.lineSeparator(), braveResult.getExtraSnippets());
+
         return WebSearchOrganicResult.from(
-                braveResult.getTitle(),
-                url,
-                braveResult.getDescription(),
-                null, // by default brave search api does not return full page content
-                metadata);
+                braveResult.getTitle(), url, braveResult.getDescription(), content, metadata);
     }
 
     public static WebSearchEngine withApiKey(String apiKey) {
         return builder().apiKey(apiKey).build();
     }
 
-    public static class BraveWebSearchEngineBuilder {
-        private String baseUrl;
-        private String apiKey;
-        private Duration timeout;
-        private HttpClientBuilder httpClientBuilder;
-        private Boolean logRequests;
-        private Boolean logResponses;
+    public static class BraveWebSearchEngineBuilder extends BraveBuilder<BraveWebSearchEngineBuilder> {
 
         BraveWebSearchEngineBuilder() {}
 
-        public BraveWebSearchEngineBuilder baseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
-            return this;
-        }
-
-        public BraveWebSearchEngineBuilder apiKey(String apiKey) {
-            this.apiKey = apiKey;
-            return this;
-        }
-
-        public BraveWebSearchEngineBuilder timeout(Duration timeout) {
-            this.timeout = timeout;
-            return this;
-        }
-
-        public BraveWebSearchEngineBuilder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
-            this.httpClientBuilder = httpClientBuilder;
-            return this;
-        }
-
-        public BraveWebSearchEngineBuilder logRequests(Boolean logRequests) {
-            this.logRequests = logRequests;
-            return this;
-        }
-
-        public BraveWebSearchEngineBuilder logResponses(Boolean logResponses) {
-            this.logResponses = logResponses;
-            return this;
-        }
-
         public BraveWebSearchEngine build() {
             return new BraveWebSearchEngine(this);
-        }
-
-        public String toString() {
-            return "BraveWebSearchEngine.BraveWebSearchEngineBuilder(baseUrl=" + this.baseUrl + ", apiKey="
-                    + (this.apiKey == null ? null : "********") + ", timeout=" + this.timeout + ")";
         }
     }
 }

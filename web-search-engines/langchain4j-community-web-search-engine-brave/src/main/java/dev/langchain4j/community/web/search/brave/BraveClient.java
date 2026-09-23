@@ -1,18 +1,17 @@
 package dev.langchain4j.community.web.search.brave;
 
+import static dev.langchain4j.community.web.search.brave.BraveJsonUtils.fromJson;
 import static dev.langchain4j.http.client.HttpMethod.GET;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
-import static dev.langchain4j.community.web.search.brave.BraveJsonUtils.fromJson;
 
+import dev.langchain4j.exception.HttpException;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
-import dev.langchain4j.http.client.log.LoggingHttpClient;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,9 +35,8 @@ class BraveClient {
                 .readTimeout(builder.timeout)
                 .build();
 
-        if (builder.logRequests != null && builder.logRequests
-                || builder.logResponses != null && builder.logResponses) {
-            this.httpClient = new LoggingHttpClient(httpClient, builder.logRequests, builder.logResponses);
+        if (Boolean.TRUE.equals(builder.logRequests) || Boolean.TRUE.equals(builder.logResponses)) {
+            this.httpClient = new BraveLoggingHttpClient(httpClient, builder.logRequests, builder.logResponses, apiKey);
         } else {
             this.httpClient = httpClient;
         }
@@ -68,6 +66,9 @@ class BraveClient {
         putIfNotNull(parameters, "search_lang", request.getLanguage());
         putIfNotNull(parameters, "country", request.getCountry());
         putIfNotNull(parameters, "safesearch", request.getSafesearch());
+        putIfNotNull(parameters, BraveWebSearchRequest.FRESHNESS, request.getFreshness());
+        putIfNotNull(parameters, BraveWebSearchRequest.SPELLCHECK, request.getSpellcheck());
+        putIfNotNull(parameters, BraveWebSearchRequest.EXTRA_SNIPPETS, request.getExtraSnippets());
 
         parameters.forEach((key, value) -> {
             if (value != null) {
@@ -75,9 +76,35 @@ class BraveClient {
             }
         });
 
-        SuccessfulHttpResponse response = httpClient.execute(httpRequestBuilder.build());
+        try {
+            SuccessfulHttpResponse response = httpClient.execute(httpRequestBuilder.build());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw apiRequestException(response.statusCode(), response.body());
+            }
 
-        return fromJson(response.body(), BraveWebSearchResponse.class);
+            try {
+                return fromJson(response.body(), BraveWebSearchResponse.class);
+            } catch (RuntimeException e) {
+                throw new RuntimeException(
+                        "Brave Search API returned invalid JSON (status code " + response.statusCode() + "): "
+                                + response.body(),
+                        e);
+            }
+        } catch (HttpException e) {
+            throw new RuntimeException(
+                    "Brave Search API request failed with status code "
+                            + e.statusCode()
+                            + (e.statusCode() == 429 ? " (rate limit exceeded)" : "")
+                            + ": "
+                            + e.getMessage(),
+                    e);
+        }
+    }
+
+    private static RuntimeException apiRequestException(int statusCode, String body) {
+        String rateLimitMessage = statusCode == 429 ? " (rate limit exceeded)" : "";
+        return new RuntimeException(
+                "Brave Search API request failed with status code " + statusCode + rateLimitMessage + ": " + body);
     }
 
     private static void putIfNotNull(Map<String, Object> parameters, String key, Object value) {
@@ -86,53 +113,12 @@ class BraveClient {
         }
     }
 
-    public static class BraveClientBuilder {
-        private String baseUrl;
-        private String apiKey;
-        private Duration timeout;
-        private HttpClientBuilder httpClientBuilder;
-        private Boolean logRequests;
-        private Boolean logResponses;
+    public static class BraveClientBuilder extends BraveBuilder<BraveClientBuilder> {
 
         BraveClientBuilder() {}
 
-        public BraveClientBuilder baseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
-            return this;
-        }
-
-        public BraveClientBuilder apiKey(String apiKey) {
-            this.apiKey = apiKey;
-            return this;
-        }
-
-        public BraveClientBuilder timeout(Duration timeout) {
-            this.timeout = timeout;
-            return this;
-        }
-
-        public BraveClientBuilder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
-            this.httpClientBuilder = httpClientBuilder;
-            return this;
-        }
-
-        public BraveClientBuilder logRequests(Boolean logRequests) {
-            this.logRequests = logRequests;
-            return this;
-        }
-
-        public BraveClientBuilder logResponses(Boolean logResponses) {
-            this.logResponses = logResponses;
-            return this;
-        }
-
         public BraveClient build() {
             return new BraveClient(this);
-        }
-
-        public String toString() {
-            return "BraveClient.BraveClientBuilder(baseUrl=" + this.baseUrl + ", apiKey="
-                    + (this.apiKey == null ? null : "********") + ", timeout=" + this.timeout + ")";
         }
     }
 }

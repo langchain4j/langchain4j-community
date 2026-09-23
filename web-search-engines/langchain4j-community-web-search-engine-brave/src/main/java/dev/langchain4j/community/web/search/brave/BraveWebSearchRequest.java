@@ -9,12 +9,19 @@ import java.util.Map;
  */
 class BraveWebSearchRequest {
 
+    static final String FRESHNESS = "freshness";
+    static final String SPELLCHECK = "spellcheck";
+    static final String EXTRA_SNIPPETS = "extra_snippets";
+
     private String query;
     private Integer count;
     private Integer offset;
     private String language;
     private String country;
     private String safesearch;
+    private String freshness;
+    private Boolean spellcheck;
+    private Boolean extraSnippets;
     private Map<String, Object> additionalParameters;
 
     BraveWebSearchRequest(
@@ -24,6 +31,9 @@ class BraveWebSearchRequest {
             String language,
             String country,
             String safesearch,
+            String freshness,
+            Boolean spellcheck,
+            Boolean extraSnippets,
             Map<String, Object> additionalParameters) {
         this.query = query;
         this.count = count;
@@ -31,6 +41,9 @@ class BraveWebSearchRequest {
         this.language = language;
         this.country = country;
         this.safesearch = safesearch;
+        this.freshness = freshness;
+        this.spellcheck = spellcheck;
+        this.extraSnippets = extraSnippets;
         this.additionalParameters = additionalParameters;
     }
 
@@ -62,6 +75,18 @@ class BraveWebSearchRequest {
         return this.safesearch;
     }
 
+    public String getFreshness() {
+        return this.freshness;
+    }
+
+    public Boolean getSpellcheck() {
+        return this.spellcheck;
+    }
+
+    public Boolean getExtraSnippets() {
+        return this.extraSnippets;
+    }
+
     public Map<String, Object> getAdditionalParameters() {
         return this.additionalParameters;
     }
@@ -73,6 +98,9 @@ class BraveWebSearchRequest {
         private String language;
         private String country;
         private String safesearch;
+        private String freshness;
+        private Boolean spellcheck;
+        private Boolean extraSnippets;
         private Map<String, Object> additionalParameters;
 
         BraveWebSearchRequestBuilder() {}
@@ -107,6 +135,21 @@ class BraveWebSearchRequest {
             return this;
         }
 
+        public BraveWebSearchRequestBuilder freshness(String freshness) {
+            this.freshness = freshness;
+            return this;
+        }
+
+        public BraveWebSearchRequestBuilder spellcheck(Boolean spellcheck) {
+            this.spellcheck = spellcheck;
+            return this;
+        }
+
+        public BraveWebSearchRequestBuilder extraSnippets(Boolean extraSnippets) {
+            this.extraSnippets = extraSnippets;
+            return this;
+        }
+
         public BraveWebSearchRequestBuilder additionalParameters(Map<String, Object> additionalParameters) {
             this.additionalParameters = additionalParameters;
             return this;
@@ -120,6 +163,9 @@ class BraveWebSearchRequest {
                     this.language,
                     this.country,
                     this.safesearch,
+                    this.freshness,
+                    this.spellcheck,
+                    this.extraSnippets,
                     this.additionalParameters);
         }
     }

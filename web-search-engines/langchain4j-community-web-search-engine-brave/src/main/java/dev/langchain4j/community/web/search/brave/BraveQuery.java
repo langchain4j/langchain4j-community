@@ -6,19 +6,9 @@ package dev.langchain4j.community.web.search.brave;
  */
 class BraveQuery {
 
-    private String original;
-    private String altered;
     private Boolean moreResultsAvailable;
 
     public BraveQuery() {}
-
-    public String getOriginal() {
-        return this.original;
-    }
-
-    public String getAltered() {
-        return this.altered;
-    }
 
     public Boolean getMoreResultsAvailable() {
         return this.moreResultsAvailable;

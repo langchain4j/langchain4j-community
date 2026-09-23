@@ -7,9 +7,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 class BraveJsonUtils {
 
-    private BraveJsonUtils() throws InstantiationException {
-        throw new InstantiationException("Can't instantiate this utility class.");
-    }
+    private BraveJsonUtils() {}
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
@@ -19,7 +17,7 @@ class BraveJsonUtils {
         try {
             return OBJECT_MAPPER.readValue(jsonStr, clazz);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException("Unable to parse JSON: " + jsonStr, e);
         }
     }
 }

@@ -4,6 +4,7 @@ import static dev.langchain4j.http.client.HttpMethod.GET;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.langchain4j.exception.HttpException;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpRequest;
@@ -32,7 +33,8 @@ class BraveWebSearchEngineTest {
                     "title": "LangChain4j - LLM Application Development",
                     "url": "https://docs.langchain4j.dev/",
                     "description": "LangChain4j is a Java framework for building LLM applications.",
-                    "page_age": "2024-05-01 12:00:00"
+                    "page_age": "2024-05-01 12:00:00",
+                    "extra_snippets": ["Additional context", "Another excerpt"]
                   },
                   {
                     "title": "GitHub - langchain4j/langchain4j",
@@ -41,22 +43,6 @@ class BraveWebSearchEngineTest {
                   }
                 ]
               }
-            }
-            """;
-
-    static final String LEGACY_RESPONSE_WITH_TOP_LEVEL_RESULTS = """
-            {
-              "type": "search",
-              "query": {
-                "original": "What is LangChain4j?"
-              },
-              "results": [
-                {
-                  "title": "LangChain4j - LLM Application Development",
-                  "url": "https://docs.langchain4j.dev/",
-                  "description": "LangChain4j is a Java framework for building LLM applications."
-                }
-              ]
             }
             """;
 
@@ -81,7 +67,7 @@ class BraveWebSearchEngineTest {
                 .geoLocation("DE")
                 .startPage(2)
                 .safeSearch(false)
-                .additionalParams(Map.of("freshness", "pw"))
+                .additionalParams(Map.of("freshness", "pw", "spellcheck", false, "extra_snippets", true))
                 .build();
 
         // when
@@ -94,11 +80,13 @@ class BraveWebSearchEngineTest {
         assertThat(httpRequest.url())
                 .contains("q=What+is+LangChain4j")
                 .contains("count=5")
-                .contains("offset=1")
+                .contains("offset=5")
                 .contains("search_lang=de")
                 .contains("country=DE")
                 .contains("safesearch=off")
-                .contains("freshness=pw");
+                .contains("freshness=pw")
+                .contains("spellcheck=false")
+                .contains("extra_snippets=true");
         assertThat(httpRequest.headers()).containsKey("X-Subscription-Token");
         assertThat(httpRequest.headers().get("X-Subscription-Token")).containsExactly("test-api-key");
         assertThat(httpRequest.body()).isNull();
@@ -109,28 +97,13 @@ class BraveWebSearchEngineTest {
         assertThat(first.title()).isEqualTo("LangChain4j - LLM Application Development");
         assertThat(first.url().toString()).isEqualTo("https://docs.langchain4j.dev/");
         assertThat(first.snippet()).contains("Java framework");
-        assertThat(first.content()).isNull();
+        assertThat(first.content()).isEqualTo("Additional context" + System.lineSeparator() + "Another excerpt");
         assertThat(first.metadata()).containsEntry("page_age", "2024-05-01 12:00:00");
         assertThat(results.results().get(1).metadata()).isEmpty();
 
         assertThat(results.searchMetadata()).containsEntry("moreResultsAvailable", true);
-        assertThat(results.searchInformation().totalResults()).isEqualTo(2L);
+        assertThat(results.searchInformation().totalResults()).isEqualTo(7L);
         assertThat(results.searchInformation().pageNumber()).isEqualTo(2);
-    }
-
-    @Test
-    void should_support_legacy_response_with_top_level_results() {
-
-        // given
-        recordingHttpClient.responseBody = LEGACY_RESPONSE_WITH_TOP_LEVEL_RESULTS;
-
-        // when
-        WebSearchResults results = engine().search(WebSearchRequest.from("What is LangChain4j?"));
-
-        // then
-        assertThat(results.results()).hasSize(1);
-        assertThat(results.results().get(0).title()).isEqualTo("LangChain4j - LLM Application Development");
-        assertThat(results.searchMetadata()).isEmpty();
     }
 
     @Test
@@ -153,11 +126,12 @@ class BraveWebSearchEngineTest {
         // then
         assertThat(braveRequest.getQuery()).isEqualTo("What is LangChain4j?");
         assertThat(braveRequest.getCount()).isEqualTo(5);
-        assertThat(braveRequest.getOffset()).isEqualTo(2);
+        assertThat(braveRequest.getOffset()).isEqualTo(9);
         assertThat(braveRequest.getLanguage()).isEqualTo("de");
         assertThat(braveRequest.getCountry()).isEqualTo("DE");
-        assertThat(braveRequest.getSafesearch()).isEqualTo("strict");
+        assertThat(braveRequest.getSafesearch()).isNull();
         assertThat(braveRequest.getAdditionalParameters()).containsEntry("freshness", "pw");
+        assertThat(braveRequest.getFreshness()).isEqualTo("pw");
     }
 
     @Test
@@ -209,22 +183,45 @@ class BraveWebSearchEngineTest {
     }
 
     @Test
+    void should_leave_safe_search_default_to_brave() {
+        BraveWebSearchRequest braveRequest =
+                BraveWebSearchEngine.toBraveWebSearchRequest(WebSearchRequest.from("What is LangChain4j?"));
+
+        assertThat(braveRequest.getSafesearch()).isNull();
+    }
+
+    @Test
     void should_throw_when_api_key_is_missing() {
         assertThatThrownBy(() -> BraveWebSearchEngine.builder().build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("apiKey");
     }
 
+    @Test
+    void should_include_status_and_body_when_api_request_fails() {
+        recordingHttpClient.statusCode = 429;
+        recordingHttpClient.responseBody = "{\"error\":\"quota exceeded\"}";
+
+        assertThatThrownBy(() -> engine().search(WebSearchRequest.from("What is LangChain4j?")))
+                .hasMessageContaining("status code 429")
+                .hasMessageContaining("rate limit exceeded")
+                .hasMessageContaining("quota exceeded");
+    }
+
     static class RecordingHttpClient implements HttpClient {
 
         HttpRequest lastRequest;
+        int statusCode = 200;
         String responseBody = RESPONSE_WITH_WEB_SECTION;
 
         @Override
         public SuccessfulHttpResponse execute(HttpRequest request) {
             this.lastRequest = request;
+            if (statusCode != 200) {
+                throw new HttpException(statusCode, responseBody);
+            }
             return SuccessfulHttpResponse.builder()
-                    .statusCode(200)
+                    .statusCode(statusCode)
                     .body(responseBody)
                     .build();
         }
