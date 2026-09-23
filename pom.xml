@@ -106,6 +106,7 @@
         <module>tools/langchain4j-community-tool-xquik</module>
         <module>tools/langchain4j-community-tool-web-scraper</module>
         <module>tools/langchain4j-community-tool-browser-use</module>
+        <module>tools/langchain4j-community-tool-live-tennis</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
@@ -124,6 +125,7 @@
         <langchain4j.core.version>1.21.0-SNAPSHOT</langchain4j.core.version>
         <langchain4j.version>1.21.0-SNAPSHOT</langchain4j.version>
         <langchain4j.http-client-jdk.version>1.21.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.reactive-streaming.version>1.21.0-beta31-SNAPSHOT</langchain4j.reactive-streaming.version>
         <langchain4j.open-ai.version>1.21.0-SNAPSHOT</langchain4j.open-ai.version>
         <project.build.outputTimestamp>2026-04-30T10:00:00Z</project.build.outputTimestamp>
     </properties>

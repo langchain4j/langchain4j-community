@@ -5,6 +5,7 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNotNullOrEmpty;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
+import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -336,8 +337,8 @@ public class AlloyDBEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     @Override
     public void removeAll(Collection<String> ids) {
-        if (ids == null || ids.isEmpty()) {
-            throw new IllegalArgumentException("ids cannot be null or empty");
+        if (isNullOrEmpty(ids)) {
+            return;
         }
 
         try (Connection conn = engine.getConnection()) {

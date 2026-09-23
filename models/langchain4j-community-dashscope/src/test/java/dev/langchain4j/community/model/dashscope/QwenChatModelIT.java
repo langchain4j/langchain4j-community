@@ -25,6 +25,7 @@ import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -70,6 +71,18 @@ class QwenChatModelIT extends AbstractChatModelIT {
         ChatResponse response = model.chat(QwenTestHelper.chatMessages());
 
         assertThat(response.aiMessage().text()).containsIgnoringCase("rain");
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#nonMultimodalChatModelNameProvider")
+    void should_answer_async(String modelName) throws Exception {
+        ChatModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(modelName).build();
+
+        ChatResponse response = model.chatAsync(QwenTestHelper.chatMessages()).get(120, SECONDS);
+
+        assertThat(response.aiMessage().text()).containsIgnoringCase("rain");
+        assertThat(response.tokenUsage().inputTokenCount()).isPositive();
     }
 
     @ParameterizedTest

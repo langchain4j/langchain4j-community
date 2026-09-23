@@ -23,7 +23,7 @@
     </licenses>
 
     <properties>
-        <yugabytedb.version>42.7.3-yb-4</yugabytedb.version>
+        <yugabytedb.version>42.7.3-yb-6</yugabytedb.version>
         <hikaricp.version>7.0.2</hikaricp.version>
         <pgvector.version>0.1.6</pgvector.version>
     </properties>

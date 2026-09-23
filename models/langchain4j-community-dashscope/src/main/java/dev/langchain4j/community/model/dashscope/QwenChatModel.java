@@ -21,6 +21,7 @@ import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversation;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
+import com.alibaba.dashscope.common.ResultCallback;
 import com.alibaba.dashscope.exception.InputRequiredException;
 import com.alibaba.dashscope.exception.NoApiKeyException;
 import com.alibaba.dashscope.exception.UploadFileException;
@@ -34,7 +35,9 @@ import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
@@ -167,6 +170,65 @@ public class QwenChatModel implements ChatModel {
         return isMultimodalModel(chatRequest)
                 ? generateByMultimodalModel(chatRequest)
                 : generateByNonMultimodalModel(chatRequest);
+    }
+
+    @Override
+    public CompletableFuture<ChatResponse> doChatAsync(ChatRequest chatRequest) {
+        return isMultimodalModel(chatRequest)
+                ? generateByMultimodalModelAsync(chatRequest)
+                : generateByNonMultimodalModelAsync(chatRequest);
+    }
+
+    private CompletableFuture<ChatResponse> generateByNonMultimodalModelAsync(ChatRequest chatRequest) {
+        boolean incrementalOutput = streamingOnlyModelName(chatRequest.modelName());
+        GenerationParam param = toGenerationParam(apiKey, chatRequest, generationParamCustomizer, incrementalOutput);
+        return callAsync(
+                (ResultCallback<GenerationResult> callback) -> generation.call(param, callback),
+                result -> chatResponseFrom(param.getModel(), result));
+    }
+
+    private CompletableFuture<ChatResponse> generateByMultimodalModelAsync(ChatRequest chatRequest) {
+        boolean incrementalOutput = streamingOnlyModelName(chatRequest.modelName());
+        MultiModalConversationParam param = toMultiModalConversationParam(
+                apiKey, chatRequest, multimodalConversationParamCustomizer, incrementalOutput);
+        return callAsync(
+                (ResultCallback<MultiModalConversationResult> callback) -> conv.call(param, callback),
+                result -> chatResponseFrom(param.getModel(), result));
+    }
+
+    private <R> CompletableFuture<ChatResponse> callAsync(
+            ThrowingConsumer<ResultCallback<R>> invocation, Function<R, ChatResponse> responseMapper) {
+        CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+        try {
+            invocation.accept(new ResultCallback<>() {
+                @Override
+                public void onEvent(R result) {
+                    try {
+                        future.complete(responseMapper.apply(result));
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                }
+
+                @Override
+                public void onComplete() {}
+
+                @Override
+                public void onError(Exception e) {
+                    future.completeExceptionally(e);
+                }
+            });
+        } catch (NoApiKeyException | InputRequiredException e) {
+            future.completeExceptionally(new IllegalArgumentException(e));
+        } catch (UploadFileException e) {
+            future.completeExceptionally(new IllegalStateException(e));
+        }
+        return future;
+    }
+
+    @FunctionalInterface
+    private interface ThrowingConsumer<T> {
+        void accept(T t) throws NoApiKeyException, InputRequiredException, UploadFileException;
     }
 
     @Override

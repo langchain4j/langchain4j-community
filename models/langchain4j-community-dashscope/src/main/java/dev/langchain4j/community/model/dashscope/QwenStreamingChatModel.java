@@ -37,6 +37,7 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import dev.langchain4j.model.chat.response.ChatModelStreamingEvent;
 import dev.langchain4j.model.chat.response.CompleteToolCall;
 import dev.langchain4j.model.chat.response.PartialResponse;
 import dev.langchain4j.model.chat.response.PartialResponseContext;
@@ -45,9 +46,15 @@ import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.model.chat.response.PartialToolCallContext;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.chat.response.StreamingHandle;
+import dev.langchain4j.reactive.streaming.ReactiveStreamingDefaults;
+import dev.langchain4j.reactive.streaming.TubeBackedStreamingChatResponseHandler;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Flow.Publisher;
 import java.util.function.Consumer;
+import mutiny.zero.BackpressureStrategy;
+import mutiny.zero.TubeConfiguration;
+import mutiny.zero.ZeroPublisher;
 
 /**
  * Represents a Qwen language model with a chat completion interface.
@@ -311,6 +318,20 @@ public class QwenStreamingChatModel implements StreamingChatModel {
         } else {
             generateByNonMultimodalModel(chatRequest, handler);
         }
+    }
+
+    @Override
+    public Publisher<ChatModelStreamingEvent> doChat(ChatRequest chatRequest) {
+        TubeConfiguration configuration = new TubeConfiguration()
+                .withBackpressureStrategy(BackpressureStrategy.BUFFER)
+                .withBufferSize(ReactiveStreamingDefaults.DEFAULT_BUFFER_SIZE);
+        return ZeroPublisher.create(configuration, tube -> {
+            TubeBackedStreamingChatResponseHandler bridge = new TubeBackedStreamingChatResponseHandler(tube);
+            // The SDK exposes no handle to abort the in-flight SSE request;
+            // cancelUpstream at least stops relaying events once the tube terminates.
+            tube.whenTerminates(bridge::cancelUpstream);
+            doChat(chatRequest, bridge);
+        });
     }
 
     @Override
