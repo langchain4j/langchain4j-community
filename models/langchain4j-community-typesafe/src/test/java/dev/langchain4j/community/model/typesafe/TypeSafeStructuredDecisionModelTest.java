@@ -4,15 +4,15 @@ import static dev.langchain4j.internal.Json.fromJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.langchain4j.model.judge.ChoiceQuestion;
-import dev.langchain4j.model.judge.JudgeAnswer;
-import dev.langchain4j.model.judge.JudgeRequest;
-import dev.langchain4j.model.judge.JudgeRequestParameters;
-import dev.langchain4j.model.judge.JudgeResponse;
-import dev.langchain4j.model.judge.NoulCriteria;
-import dev.langchain4j.model.judge.NoulQuestion;
-import dev.langchain4j.model.judge.OptionCriteria;
-import dev.langchain4j.model.judge.ScoreQuestion;
+import dev.langchain4j.model.structureddecision.ChoiceQuestion;
+import dev.langchain4j.model.structureddecision.NoulCriteria;
+import dev.langchain4j.model.structureddecision.NoulQuestion;
+import dev.langchain4j.model.structureddecision.OptionCriteria;
+import dev.langchain4j.model.structureddecision.ScoreQuestion;
+import dev.langchain4j.model.structureddecision.StructuredDecisionAnswer;
+import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
+import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
+import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
 import java.util.List;
 import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
@@ -20,7 +20,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.Test;
 
-class TypeSafeJudgeModelTest {
+class TypeSafeStructuredDecisionModelTest {
 
     @Test
     @SuppressWarnings("unchecked")
@@ -44,12 +44,12 @@ class TypeSafeJudgeModelTest {
                             """));
             server.start();
 
-            TypeSafeJudgeModel model = TypeSafeJudgeModel.builder()
+            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
                     .apiKey("secret-key")
                     .baseUrl(server.url("/").toString())
                     .build();
 
-            JudgeRequest request = JudgeRequest.builder()
+            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
                     .state(Map.of("message", "I was charged twice; fix this today"))
                     .question(
                             "refund",
@@ -78,7 +78,7 @@ class TypeSafeJudgeModelTest {
                                     .build())
                     .build();
 
-            JudgeResponse response = model.judge(request);
+            StructuredDecisionResponse response = model.decide(request);
 
             assertThat(response.answers())
                     .containsExactly(
@@ -143,18 +143,18 @@ class TypeSafeJudgeModelTest {
                             """));
             server.start();
 
-            TypeSafeJudgeModel model = TypeSafeJudgeModel.builder()
+            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
                     .apiKey("key")
                     .baseUrl(server.url("/").toString())
                     .build();
-            JudgeRequest request = JudgeRequest.builder()
+            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
                     .state(Map.of("message", "hello"))
                     .question(
                             "answer",
                             NoulQuestion.builder().instructions("Is it true?").build())
                     .build();
 
-            assertThat(model.judge(request).answers()).containsExactly(Map.entry("answer", answerWithNoul(0.5)));
+            assertThat(model.decide(request).answers()).containsExactly(Map.entry("answer", answerWithNoul(0.5)));
         }
     }
 
@@ -170,22 +170,22 @@ class TypeSafeJudgeModelTest {
                             """));
             server.start();
 
-            TypeSafeJudgeModel model = TypeSafeJudgeModel.builder()
+            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
                     .apiKey("key")
                     .baseUrl(server.url("/").toString())
                     .modelName("configured-model")
                     .build();
-            JudgeRequest request = JudgeRequest.builder()
+            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
                     .state(Map.of("message", "hello"))
                     .question(
                             "answer",
                             NoulQuestion.builder().instructions("Is it true?").build())
-                    .parameters(JudgeRequestParameters.builder()
+                    .parameters(StructuredDecisionRequestParameters.builder()
                             .modelName("jev-special")
                             .build())
                     .build();
 
-            assertThat(model.judge(request).answers().get("answer").noul()).isEqualTo(0.5);
+            assertThat(model.decide(request).answers().get("answer").noul()).isEqualTo(0.5);
             Map<String, Object> json = fromJson(server.takeRequest().getBody().readUtf8(), Map.class);
             assertThat(json.get("model")).isEqualTo("jev-special");
             assertThat(model.defaultRequestParameters().modelName()).isEqualTo("configured-model");
@@ -194,10 +194,11 @@ class TypeSafeJudgeModelTest {
 
     @Test
     void should_validate_required_builder_values() {
-        assertThatThrownBy(() -> TypeSafeJudgeModel.builder().build())
+        assertThatThrownBy(() -> TypeSafeStructuredDecisionModel.builder().build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("apiKey");
-        assertThatThrownBy(() -> TypeSafeJudgeModel.builder().apiKey(" ").build())
+        assertThatThrownBy(() ->
+                        TypeSafeStructuredDecisionModel.builder().apiKey(" ").build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("apiKey");
     }
@@ -206,15 +207,21 @@ class TypeSafeJudgeModelTest {
         return OptionCriteria.builder().what(what).build();
     }
 
-    private static JudgeAnswer answerWithNoul(double noul) {
-        return JudgeAnswer.builder().noul(noul).build();
+    private static StructuredDecisionAnswer answerWithNoul(double noul) {
+        return StructuredDecisionAnswer.builder().noul(noul).build();
     }
 
-    private static JudgeAnswer answerWithChoice(String choice, double confidence) {
-        return JudgeAnswer.builder().choice(choice).confidence(confidence).build();
+    private static StructuredDecisionAnswer answerWithChoice(String choice, double confidence) {
+        return StructuredDecisionAnswer.builder()
+                .choice(choice)
+                .confidence(confidence)
+                .build();
     }
 
-    private static JudgeAnswer answerWithScore(double score, double confidence) {
-        return JudgeAnswer.builder().score(score).confidence(confidence).build();
+    private static StructuredDecisionAnswer answerWithScore(double score, double confidence) {
+        return StructuredDecisionAnswer.builder()
+                .score(score)
+                .confidence(confidence)
+                .build();
     }
 }

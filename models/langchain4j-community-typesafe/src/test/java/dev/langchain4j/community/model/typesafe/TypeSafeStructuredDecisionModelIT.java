@@ -2,21 +2,21 @@ package dev.langchain4j.community.model.typesafe;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.model.judge.JudgeRequest;
-import dev.langchain4j.model.judge.NoulQuestion;
+import dev.langchain4j.model.structureddecision.NoulQuestion;
+import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "TYPESAFE_API_KEY", matches = ".+")
-class TypeSafeJudgeModelIT {
+class TypeSafeStructuredDecisionModelIT {
 
     @Test
-    void should_judge_with_system_one() {
-        TypeSafeJudgeModel model = TypeSafeJudgeModel.builder()
+    void should_decide_with_system_one() {
+        TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
                 .apiKey(System.getenv("TYPESAFE_API_KEY"))
                 .build();
-        JudgeRequest request = JudgeRequest.builder()
+        StructuredDecisionRequest request = StructuredDecisionRequest.builder()
                 .state(Map.of("message", "Please refund the duplicate charge"))
                 .question(
                         "refund",
@@ -25,6 +25,6 @@ class TypeSafeJudgeModelIT {
                                 .build())
                 .build();
 
-        assertThat(model.judge(request).answers().get("refund").noul()).isBetween(0.0, 1.0);
+        assertThat(model.decide(request).answers().get("refund").noul()).isBetween(0.0, 1.0);
     }
 }

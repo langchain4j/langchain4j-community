@@ -13,25 +13,25 @@ import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
-import dev.langchain4j.model.judge.ChoiceQuestion;
-import dev.langchain4j.model.judge.JudgeAnswer;
-import dev.langchain4j.model.judge.JudgeModel;
-import dev.langchain4j.model.judge.JudgeRequest;
-import dev.langchain4j.model.judge.JudgeRequestParameters;
-import dev.langchain4j.model.judge.JudgeResponse;
-import dev.langchain4j.model.judge.NoulCriteria;
-import dev.langchain4j.model.judge.NoulQuestion;
-import dev.langchain4j.model.judge.OptionCriteria;
-import dev.langchain4j.model.judge.Question;
-import dev.langchain4j.model.judge.ScoreQuestion;
+import dev.langchain4j.model.structureddecision.ChoiceQuestion;
+import dev.langchain4j.model.structureddecision.NoulCriteria;
+import dev.langchain4j.model.structureddecision.NoulQuestion;
+import dev.langchain4j.model.structureddecision.OptionCriteria;
+import dev.langchain4j.model.structureddecision.Question;
+import dev.langchain4j.model.structureddecision.ScoreQuestion;
+import dev.langchain4j.model.structureddecision.StructuredDecisionAnswer;
+import dev.langchain4j.model.structureddecision.StructuredDecisionModel;
+import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
+import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
+import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** A {@link JudgeModel} backed by TypeSafe AI's System One API. */
+/** A {@link StructuredDecisionModel} backed by TypeSafe AI's System One API. */
 @Experimental
-public final class TypeSafeJudgeModel implements JudgeModel {
+public final class TypeSafeStructuredDecisionModel implements StructuredDecisionModel {
 
     /** Default TypeSafe API root used by the official SDKs. */
     public static final String DEFAULT_BASE_URL = "https://api.typesafe.ai";
@@ -42,28 +42,29 @@ public final class TypeSafeJudgeModel implements JudgeModel {
     private final HttpClient httpClient;
     private final String apiKey;
     private final String baseUrl;
-    private final JudgeRequestParameters defaultRequestParameters;
+    private final StructuredDecisionRequestParameters defaultRequestParameters;
 
-    private TypeSafeJudgeModel(Builder builder) {
+    private TypeSafeStructuredDecisionModel(Builder builder) {
         this.apiKey = ensureNotBlank(builder.apiKey, "apiKey");
         this.baseUrl = withoutTrailingSlash(ensureNotBlank(getOrDefault(builder.baseUrl, DEFAULT_BASE_URL), "baseUrl"));
         String modelName = ensureNotBlank(getOrDefault(builder.modelName, DEFAULT_MODEL_NAME), "modelName");
-        this.defaultRequestParameters =
-                JudgeRequestParameters.builder().modelName(modelName).build();
+        this.defaultRequestParameters = StructuredDecisionRequestParameters.builder()
+                .modelName(modelName)
+                .build();
         HttpClientBuilder httpClientBuilder =
                 getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
         this.httpClient = httpClientBuilder.build();
     }
 
-    /** Creates a builder for a TypeSafe-backed judge model. */
+    /** Creates a builder for a TypeSafe-backed structured decision model. */
     public static Builder builder() {
         return new Builder();
     }
 
     @Override
-    public JudgeResponse judge(JudgeRequest request) {
+    public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
         ensureNotNull(request, "request");
-        JudgeRequestParameters parameters = defaultRequestParameters.overrideWith(request.parameters());
+        StructuredDecisionRequestParameters parameters = defaultRequestParameters.overrideWith(request.parameters());
         SystemOneRequest systemOneRequest =
                 new SystemOneRequest(request.state(), parameters.modelName(), mapQuestions(request.questions()));
 
@@ -80,7 +81,7 @@ public final class TypeSafeJudgeModel implements JudgeModel {
     }
 
     @Override
-    public JudgeRequestParameters defaultRequestParameters() {
+    public StructuredDecisionRequestParameters defaultRequestParameters() {
         return defaultRequestParameters;
     }
 
@@ -145,14 +146,14 @@ public final class TypeSafeJudgeModel implements JudgeModel {
         }
     }
 
-    private static JudgeResponse mapResponse(SystemOneResponse response) {
-        JudgeResponse.Builder result = JudgeResponse.builder();
+    private static StructuredDecisionResponse mapResponse(SystemOneResponse response) {
+        StructuredDecisionResponse.Builder result = StructuredDecisionResponse.builder();
         response.answers().forEach((name, answer) -> result.answer(name, mapAnswer(answer)));
         return result.build();
     }
 
-    private static JudgeAnswer mapAnswer(SystemOneAnswer answer) {
-        JudgeAnswer.Builder result = JudgeAnswer.builder();
+    private static StructuredDecisionAnswer mapAnswer(SystemOneAnswer answer) {
+        StructuredDecisionAnswer.Builder result = StructuredDecisionAnswer.builder();
         switch (answer.type()) {
             case "noul" -> result.noul(answer.noul());
             case "choice" -> result.choice(answer.choice()).confidence(answer.confidence());
@@ -170,7 +171,7 @@ public final class TypeSafeJudgeModel implements JudgeModel {
         return value.substring(0, end);
     }
 
-    /** Builder for {@link TypeSafeJudgeModel}. */
+    /** Builder for {@link TypeSafeStructuredDecisionModel}. */
     public static final class Builder {
         private String apiKey;
         private String baseUrl;
@@ -202,8 +203,8 @@ public final class TypeSafeJudgeModel implements JudgeModel {
         }
 
         /** Builds the model. */
-        public TypeSafeJudgeModel build() {
-            return new TypeSafeJudgeModel(this);
+        public TypeSafeStructuredDecisionModel build() {
+            return new TypeSafeStructuredDecisionModel(this);
         }
     }
 }
