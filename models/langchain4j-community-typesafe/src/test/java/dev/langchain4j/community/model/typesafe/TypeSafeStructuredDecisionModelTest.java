@@ -4,6 +4,8 @@ import static dev.langchain4j.internal.Json.fromJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.model.structureddecision.ChoiceQuestion;
 import dev.langchain4j.model.structureddecision.NoulCriteria;
 import dev.langchain4j.model.structureddecision.NoulQuestion;
@@ -129,7 +131,7 @@ class TypeSafeStructuredDecisionModelTest {
     }
 
     @Test
-    void should_ignore_unknown_response_fields() throws Exception {
+    void should_preserve_unknown_response_fields_as_metadata() throws Exception {
         try (MockWebServer server = new MockWebServer()) {
             server.enqueue(new MockResponse()
                     .setHeader("Content-Type", "application/json")
@@ -138,7 +140,8 @@ class TypeSafeStructuredDecisionModelTest {
                               "model": "jev-latest",
                               "answers": {"answer": {"type": "noul", "noul": 0.5}},
                               "usage": {"input_tokens": 1, "output_tokens": 1},
-                              "latency_ms": 17
+                              "latency_ms": 17,
+                              "diagnostics": {"region": "local"}
                             }
                             """));
             server.start();
@@ -154,7 +157,60 @@ class TypeSafeStructuredDecisionModelTest {
                             NoulQuestion.builder().instructions("Is it true?").build())
                     .build();
 
-            assertThat(model.decide(request).answers()).containsExactly(Map.entry("answer", answerWithNoul(0.5)));
+            StructuredDecisionResponse response = model.decide(request);
+            assertThat(response.answers()).containsExactly(Map.entry("answer", answerWithNoul(0.5)));
+            assertThat(response.metadata())
+                    .containsExactly(Map.entry("latency_ms", 17), Map.entry("diagnostics", Map.of("region", "local")));
+        }
+    }
+
+    @Test
+    void should_send_text_state_without_rewriting_it() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(
+                    new MockResponse().setBody("{" + "\"answers\":{\"answer\":{\"type\":\"noul\",\"noul\":0.5}}}"));
+            server.start();
+            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
+                    .apiKey("key")
+                    .baseUrl(server.url("/").toString())
+                    .build();
+            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+                    .state("hello")
+                    .question(
+                            "answer",
+                            NoulQuestion.builder().instructions("Is it true?").build())
+                    .build();
+
+            model.decide(request);
+            Map<String, Object> json = fromJson(server.takeRequest().getBody().readUtf8(), Map.class);
+            assertThat(json.get("state")).isEqualTo("hello");
+        }
+    }
+
+    @Test
+    void should_reject_unsupported_content_and_request_properties_before_http() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.start();
+            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
+                    .apiKey("key")
+                    .baseUrl(server.url("/").toString())
+                    .build();
+            StructuredDecisionRequest.Builder request = StructuredDecisionRequest.builder()
+                    .state("hello")
+                    .question(
+                            "answer",
+                            NoulQuestion.builder().instructions("Is it true?").build());
+
+            assertThatThrownBy(() -> model.decide(request.content(ImageContent.from("aGVsbG8=", "image/png"))
+                            .build()))
+                    .isInstanceOf(UnsupportedFeatureException.class);
+            assertThatThrownBy(() -> model.decide(request.contents(List.of())
+                            .parameters(StructuredDecisionRequestParameters.builder()
+                                    .additionalProperty("temperature", 0.5)
+                                    .build())
+                            .build()))
+                    .isInstanceOf(UnsupportedFeatureException.class);
+            assertThat(server.getRequestCount()).isZero();
         }
     }
 

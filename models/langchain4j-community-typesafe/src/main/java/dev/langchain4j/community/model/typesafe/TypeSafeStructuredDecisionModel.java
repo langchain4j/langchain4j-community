@@ -8,6 +8,7 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import dev.langchain4j.Experimental;
+import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
@@ -65,6 +66,13 @@ public final class TypeSafeStructuredDecisionModel implements StructuredDecision
     public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
         ensureNotNull(request, "request");
         StructuredDecisionRequestParameters parameters = defaultRequestParameters.overrideWith(request.parameters());
+        if (!request.contents().isEmpty()) {
+            throw new UnsupportedFeatureException("System One JSON integration does not support multimodal content");
+        }
+        if (!parameters.additionalProperties().isEmpty()) {
+            throw new UnsupportedFeatureException(
+                    "System One JSON integration does not support additional request properties");
+        }
         SystemOneRequest systemOneRequest =
                 new SystemOneRequest(request.state(), parameters.modelName(), mapQuestions(request.questions()));
 
@@ -147,7 +155,8 @@ public final class TypeSafeStructuredDecisionModel implements StructuredDecision
     }
 
     private static StructuredDecisionResponse mapResponse(SystemOneResponse response) {
-        StructuredDecisionResponse.Builder result = StructuredDecisionResponse.builder();
+        StructuredDecisionResponse.Builder result =
+                StructuredDecisionResponse.builder().metadata(response.metadata());
         response.answers().forEach((name, answer) -> result.answer(name, mapAnswer(answer)));
         return result.build();
     }
