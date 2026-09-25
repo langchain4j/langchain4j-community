@@ -7,11 +7,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.model.structureddecision.ChoiceQuestion;
+import dev.langchain4j.model.structureddecision.ConfidenceProvenance;
 import dev.langchain4j.model.structureddecision.NoulCriteria;
 import dev.langchain4j.model.structureddecision.NoulQuestion;
 import dev.langchain4j.model.structureddecision.OptionCriteria;
 import dev.langchain4j.model.structureddecision.ScoreQuestion;
-import dev.langchain4j.model.structureddecision.StructuredDecisionAnswer;
 import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
 import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
 import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
@@ -82,11 +82,16 @@ class TypeSafeStructuredDecisionModelTest {
 
             StructuredDecisionResponse response = model.decide(request);
 
-            assertThat(response.answers())
-                    .containsExactly(
-                            Map.entry("refund", answerWithNoul(0.91)),
-                            Map.entry("team", answerWithChoice("billing", 0.87)),
-                            Map.entry("urgency", answerWithScore(1.7, 0.78)));
+            assertThat(response.answers()).containsOnlyKeys("refund", "team", "urgency");
+            assertThat(response.answers().get("refund").value()).isEqualTo(0.91);
+            assertThat(response.answers().get("team").value()).isEqualTo("billing");
+            assertThat(response.answers().get("team").confidence()).isEqualTo(0.87);
+            assertThat(response.answers().get("team").confidenceProvenance())
+                    .isEqualTo(ConfidenceProvenance.PROVIDER_REPORTED);
+            assertThat(response.answers().get("team").metadata())
+                    .containsEntry("probabilities", Map.of("billing", 0.87, "support", 0.13));
+            assertThat(response.answers().get("urgency").value()).isEqualTo(1.7);
+            assertThat(response.answers().get("urgency").metadata()).containsKey("legend");
 
             RecordedRequest recorded = server.takeRequest();
             assertThat(recorded.getMethod()).isEqualTo("POST");
@@ -158,9 +163,12 @@ class TypeSafeStructuredDecisionModelTest {
                     .build();
 
             StructuredDecisionResponse response = model.decide(request);
-            assertThat(response.answers()).containsExactly(Map.entry("answer", answerWithNoul(0.5)));
+            assertThat(response.answers().get("answer").value()).isEqualTo(0.5);
             assertThat(response.metadata())
-                    .containsExactly(Map.entry("latency_ms", 17), Map.entry("diagnostics", Map.of("region", "local")));
+                    .containsEntry("latency_ms", 17)
+                    .containsEntry("diagnostics", Map.of("region", "local"))
+                    .containsEntry("model", "jev-latest")
+                    .containsKey("usage");
         }
     }
 
@@ -241,7 +249,7 @@ class TypeSafeStructuredDecisionModelTest {
                             .build())
                     .build();
 
-            assertThat(model.decide(request).answers().get("answer").noul()).isEqualTo(0.5);
+            assertThat(model.decide(request).answers().get("answer").value()).isEqualTo(0.5);
             Map<String, Object> json = fromJson(server.takeRequest().getBody().readUtf8(), Map.class);
             assertThat(json.get("model")).isEqualTo("jev-special");
             assertThat(model.defaultRequestParameters().modelName()).isEqualTo("configured-model");
@@ -263,21 +271,4 @@ class TypeSafeStructuredDecisionModelTest {
         return OptionCriteria.builder().what(what).build();
     }
 
-    private static StructuredDecisionAnswer answerWithNoul(double noul) {
-        return StructuredDecisionAnswer.builder().noul(noul).build();
-    }
-
-    private static StructuredDecisionAnswer answerWithChoice(String choice, double confidence) {
-        return StructuredDecisionAnswer.builder()
-                .choice(choice)
-                .confidence(confidence)
-                .build();
-    }
-
-    private static StructuredDecisionAnswer answerWithScore(double score, double confidence) {
-        return StructuredDecisionAnswer.builder()
-                .score(score)
-                .confidence(confidence)
-                .build();
-    }
 }
