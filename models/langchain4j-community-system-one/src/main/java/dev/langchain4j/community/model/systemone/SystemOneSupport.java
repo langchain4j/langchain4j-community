@@ -8,20 +8,20 @@ import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
-import dev.langchain4j.model.structureddecision.ChoiceAnswer;
-import dev.langchain4j.model.structureddecision.ChoiceQuestion;
-import dev.langchain4j.model.structureddecision.ConfidenceProvenance;
-import dev.langchain4j.model.structureddecision.NoulAnswer;
-import dev.langchain4j.model.structureddecision.NoulCriteria;
-import dev.langchain4j.model.structureddecision.NoulQuestion;
-import dev.langchain4j.model.structureddecision.OptionCriteria;
-import dev.langchain4j.model.structureddecision.Question;
-import dev.langchain4j.model.structureddecision.ScoreAnswer;
-import dev.langchain4j.model.structureddecision.ScoreQuestion;
-import dev.langchain4j.model.structureddecision.StructuredDecisionAnswer;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
-import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
+import dev.langchain4j.model.decision.ChoiceAnswer;
+import dev.langchain4j.model.decision.ChoiceQuestion;
+import dev.langchain4j.model.decision.ConfidenceProvenance;
+import dev.langchain4j.model.decision.DecisionAnswer;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequestParameters;
+import dev.langchain4j.model.decision.DecisionResponse;
+import dev.langchain4j.model.decision.NoulAnswer;
+import dev.langchain4j.model.decision.NoulCriteria;
+import dev.langchain4j.model.decision.NoulQuestion;
+import dev.langchain4j.model.decision.OptionCriteria;
+import dev.langchain4j.model.decision.Question;
+import dev.langchain4j.model.decision.ScoreAnswer;
+import dev.langchain4j.model.decision.ScoreQuestion;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,20 +39,16 @@ final class SystemOneSupport {
         this.apiKey = apiKey;
     }
 
-    StructuredDecisionResponse decide(
-            StructuredDecisionRequest request, StructuredDecisionRequestParameters parameters) {
+    DecisionResponse decide(DecisionRequest request, DecisionRequestParameters parameters) {
         return decode(execute("/v1/systemone", payload(request, parameters)), request);
     }
 
-    Map<String, Object> payload(StructuredDecisionRequest request, StructuredDecisionRequestParameters parameters) {
+    Map<String, Object> payload(DecisionRequest request, DecisionRequestParameters parameters) {
         return payload(request, parameters, false, false);
     }
 
     Map<String, Object> payload(
-            StructuredDecisionRequest request,
-            StructuredDecisionRequestParameters parameters,
-            boolean allowImages,
-            boolean allowSpans) {
+            DecisionRequest request, DecisionRequestParameters parameters, boolean allowImages, boolean allowSpans) {
         if (!allowImages && !request.contents().isEmpty()) {
             throw new UnsupportedFeatureException("System One JSON does not support content attachments");
         }
@@ -165,12 +161,12 @@ final class SystemOneSupport {
     }
 
     @SuppressWarnings("unchecked")
-    static StructuredDecisionResponse decode(SuccessfulHttpResponse response, StructuredDecisionRequest request) {
+    static DecisionResponse decode(SuccessfulHttpResponse response, DecisionRequest request) {
         Object body = fromJson(response.body(), Map.class);
         if (!(body instanceof Map<?, ?> json) || !(json.get("answers") instanceof Map<?, ?> answers)) {
             throw new IllegalArgumentException("System One response must contain answers");
         }
-        StructuredDecisionResponse.Builder result = StructuredDecisionResponse.builder();
+        DecisionResponse.Builder result = DecisionResponse.builder();
         Map<String, Object> metadata = new LinkedHashMap<>();
         json.forEach((key, value) -> {
             if (!"answers".equals(key)) metadata.put((String) key, value);
@@ -189,7 +185,7 @@ final class SystemOneSupport {
         return result.build();
     }
 
-    private static StructuredDecisionAnswer mapAnswer(Map<String, Object> answer, Question question, String name) {
+    private static DecisionAnswer mapAnswer(Map<String, Object> answer, Question question, String name) {
         if (answer == null) throw new IllegalArgumentException("System One answer is null");
         Object type = answer.get("type");
         if (type == null && question instanceof NoulQuestion) type = "noul";

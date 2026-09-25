@@ -3,14 +3,14 @@ package dev.langchain4j.community.model.systemone;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 
 import dev.langchain4j.Experimental;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
+import dev.langchain4j.model.decision.DecisionRequestParameters;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** CLM-specific per-call parameters for System One. */
 @Experimental
 public record ClmRequestParameters(String modelName, Double temperature, Map<String, Object> additionalProperties)
-        implements StructuredDecisionRequestParameters {
+        implements DecisionRequestParameters {
 
     public ClmRequestParameters {
         ensureTrue(
@@ -24,7 +24,7 @@ public record ClmRequestParameters(String modelName, Double temperature, Map<Str
     }
 
     @Override
-    public ClmRequestParameters overrideWith(StructuredDecisionRequestParameters that) {
+    public ClmRequestParameters overrideWith(DecisionRequestParameters that) {
         if (that == null) return this;
         Map<String, Object> properties = new LinkedHashMap<>(additionalProperties);
         properties.putAll(that.additionalProperties());

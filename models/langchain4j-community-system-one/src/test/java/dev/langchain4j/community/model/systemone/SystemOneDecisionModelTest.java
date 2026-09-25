@@ -5,20 +5,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.langchain4j.exception.UnsupportedFeatureException;
-import dev.langchain4j.model.structureddecision.ChoiceAnswer;
-import dev.langchain4j.model.structureddecision.ChoiceQuestion;
-import dev.langchain4j.model.structureddecision.ConfidenceProvenance;
-import dev.langchain4j.model.structureddecision.NoulQuestion;
-import dev.langchain4j.model.structureddecision.OptionCriteria;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
-import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
+import dev.langchain4j.model.decision.ChoiceAnswer;
+import dev.langchain4j.model.decision.ChoiceQuestion;
+import dev.langchain4j.model.decision.ConfidenceProvenance;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.DecisionResponse;
+import dev.langchain4j.model.decision.NoulQuestion;
+import dev.langchain4j.model.decision.OptionCriteria;
 import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.Test;
 
-class SystemOneStructuredDecisionModelTest {
+class SystemOneDecisionModelTest {
 
     @Test
     @SuppressWarnings("unchecked")
@@ -32,10 +32,10 @@ class SystemOneStructuredDecisionModelTest {
                        "vendor_diagnostic":{"code":3}}}}
                     """));
             server.start();
-            SystemOneStructuredDecisionModel model = SystemOneStructuredDecisionModel.builder()
+            SystemOneDecisionModel model = SystemOneDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state("Charge dispute")
                     .question(
                             "team",
@@ -49,7 +49,7 @@ class SystemOneStructuredDecisionModelTest {
                                     .build())
                     .build();
 
-            StructuredDecisionResponse response = model.decide(request);
+            DecisionResponse response = model.decide(request);
 
             assertThat(response.answers().get("team")).isInstanceOf(ChoiceAnswer.class);
             assertThat(response.answers().get("team").confidenceProvenance())
@@ -77,10 +77,10 @@ class SystemOneStructuredDecisionModelTest {
     void rejects_an_unknown_question_before_http() throws Exception {
         try (MockWebServer server = new MockWebServer()) {
             server.start();
-            SystemOneStructuredDecisionModel model = SystemOneStructuredDecisionModel.builder()
+            SystemOneDecisionModel model = SystemOneDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state("x")
                     .question("new", () -> "Provider-specific question")
                     .build();
@@ -97,10 +97,10 @@ class SystemOneStructuredDecisionModelTest {
                     {"answers":{"unexpected":{"type":"noul","noul":0.8}}}
                     """));
             server.start();
-            SystemOneStructuredDecisionModel model = SystemOneStructuredDecisionModel.builder()
+            SystemOneDecisionModel model = SystemOneDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state("x")
                     .question(
                             "expected",
@@ -120,10 +120,10 @@ class SystemOneStructuredDecisionModelTest {
                     {"answers":{"expected":{"type":"choice","choice":"wrong"}}}
                     """));
             server.start();
-            SystemOneStructuredDecisionModel model = SystemOneStructuredDecisionModel.builder()
+            SystemOneDecisionModel model = SystemOneDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state("x")
                     .question(
                             "expected",

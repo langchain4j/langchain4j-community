@@ -1,8 +1,8 @@
 package dev.langchain4j.community.model.systemone;
 
 import dev.langchain4j.Experimental;
-import dev.langchain4j.model.structureddecision.ConfidenceProvenance;
-import dev.langchain4j.model.structureddecision.StructuredDecisionAnswer;
+import dev.langchain4j.model.decision.ConfidenceProvenance;
+import dev.langchain4j.model.decision.DecisionAnswer;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +11,7 @@ import java.util.Map;
 @Experimental
 public record SpansAnswer(
         SpansValue value, Double confidence, ConfidenceProvenance confidenceProvenance, Map<String, Object> metadata)
-        implements StructuredDecisionAnswer {
+        implements DecisionAnswer {
     public SpansAnswer {
         SpanAnswer.validateConfidence(confidence, confidenceProvenance);
         metadata = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(metadata));

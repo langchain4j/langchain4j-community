@@ -4,15 +4,15 @@ import static dev.langchain4j.internal.Json.fromJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.langchain4j.model.structureddecision.NoulQuestion;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.NoulQuestion;
 import java.util.List;
 import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.Test;
 
-class ClmStructuredDecisionModelTest {
+class ClmDecisionModelTest {
 
     @Test
     void sends_temperature_and_preserves_latency_header() throws Exception {
@@ -21,10 +21,10 @@ class ClmStructuredDecisionModelTest {
                     .setHeader("X-CLM-Latency-Ms", "58.1")
                     .setBody("{\"answers\":{\"q\":{\"noul\":0.6}}}"));
             server.start();
-            ClmStructuredDecisionModel model = ClmStructuredDecisionModel.builder()
+            ClmDecisionModel model = ClmDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state("A state")
                     .question("q", NoulQuestion.builder().instructions("True?").build())
                     .parameters(new ClmRequestParameters(null, 0.5))
@@ -48,7 +48,7 @@ class ClmStructuredDecisionModelTest {
                       {"rank":2,"candidate":"Sun","prob":0.1}]}
                     """));
             server.start();
-            ClmStructuredDecisionModel model = ClmStructuredDecisionModel.builder()
+            ClmDecisionModel model = ClmDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
 

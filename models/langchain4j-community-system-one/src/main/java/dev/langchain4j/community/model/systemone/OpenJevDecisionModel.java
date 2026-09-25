@@ -7,27 +7,26 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import dev.langchain4j.Experimental;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
-import dev.langchain4j.model.structureddecision.StructuredDecisionModel;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
-import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
+import dev.langchain4j.model.decision.DecisionModel;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequestParameters;
+import dev.langchain4j.model.decision.DecisionResponse;
 import java.util.List;
 import java.util.Map;
 
 /** System One decisions with openjev inline images. */
 @Experimental
-public final class OpenJevStructuredDecisionModel implements StructuredDecisionModel {
+public final class OpenJevDecisionModel implements DecisionModel {
     private final SystemOneSupport support;
-    private final StructuredDecisionRequestParameters defaults;
+    private final DecisionRequestParameters defaults;
 
-    private OpenJevStructuredDecisionModel(Builder builder) {
+    private OpenJevDecisionModel(Builder builder) {
         HttpClientBuilder clientBuilder =
                 getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
         support =
                 new SystemOneSupport(clientBuilder.build(), ensureNotBlank(builder.baseUrl, "baseUrl"), builder.apiKey);
-        defaults = StructuredDecisionRequestParameters.builder()
-                .modelName(builder.modelName)
-                .build();
+        defaults =
+                DecisionRequestParameters.builder().modelName(builder.modelName).build();
     }
 
     public static Builder builder() {
@@ -35,7 +34,7 @@ public final class OpenJevStructuredDecisionModel implements StructuredDecisionM
     }
 
     @Override
-    public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
+    public DecisionResponse decide(DecisionRequest request) {
         ensureNotNull(request, "request");
         List<SystemOneImages.InlineImage> images = SystemOneImages.extract(request.contents(), 8);
         Map<String, Object> payload =
@@ -48,7 +47,7 @@ public final class OpenJevStructuredDecisionModel implements StructuredDecisionM
     }
 
     @Override
-    public StructuredDecisionRequestParameters defaultRequestParameters() {
+    public DecisionRequestParameters defaultRequestParameters() {
         return defaults;
     }
 
@@ -78,8 +77,8 @@ public final class OpenJevStructuredDecisionModel implements StructuredDecisionM
             return this;
         }
 
-        public OpenJevStructuredDecisionModel build() {
-            return new OpenJevStructuredDecisionModel(this);
+        public OpenJevDecisionModel build() {
+            return new OpenJevDecisionModel(this);
         }
     }
 }

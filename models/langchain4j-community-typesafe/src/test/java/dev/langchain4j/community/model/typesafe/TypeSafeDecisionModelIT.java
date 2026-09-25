@@ -2,21 +2,21 @@ package dev.langchain4j.community.model.typesafe;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.langchain4j.model.structureddecision.NoulQuestion;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.NoulQuestion;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "TYPESAFE_API_KEY", matches = ".+")
-class TypeSafeStructuredDecisionModelIT {
+class TypeSafeDecisionModelIT {
 
     @Test
     void should_decide_with_system_one() {
-        TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
+        TypeSafeDecisionModel model = TypeSafeDecisionModel.builder()
                 .apiKey(System.getenv("TYPESAFE_API_KEY"))
                 .build();
-        StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+        DecisionRequest request = DecisionRequest.builder()
                 .state(Map.of("message", "Please refund the duplicate charge"))
                 .question(
                         "refund",

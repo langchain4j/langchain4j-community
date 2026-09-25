@@ -4,16 +4,16 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import dev.langchain4j.Experimental;
-import dev.langchain4j.community.model.systemone.SystemOneStructuredDecisionModel;
+import dev.langchain4j.community.model.systemone.SystemOneDecisionModel;
 import dev.langchain4j.http.client.HttpClientBuilder;
-import dev.langchain4j.model.structureddecision.StructuredDecisionModel;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
-import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
+import dev.langchain4j.model.decision.DecisionModel;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequestParameters;
+import dev.langchain4j.model.decision.DecisionResponse;
 
-/** A {@link StructuredDecisionModel} backed by TypeSafe AI's System One API. */
+/** A {@link DecisionModel} backed by TypeSafe AI's System One API. */
 @Experimental
-public final class TypeSafeStructuredDecisionModel implements StructuredDecisionModel {
+public final class TypeSafeDecisionModel implements DecisionModel {
 
     /** Default TypeSafe API root used by the official SDKs. */
     public static final String DEFAULT_BASE_URL = "https://api.typesafe.ai";
@@ -21,20 +21,17 @@ public final class TypeSafeStructuredDecisionModel implements StructuredDecision
     /** Default System One model used by the official SDKs. */
     public static final String DEFAULT_MODEL_NAME = "jev-latest";
 
-    private final SystemOneStructuredDecisionModel delegate;
-    private final StructuredDecisionRequestParameters defaultRequestParameters;
+    private final SystemOneDecisionModel delegate;
+    private final DecisionRequestParameters defaultRequestParameters;
 
-    private TypeSafeStructuredDecisionModel(Builder builder) {
+    private TypeSafeDecisionModel(Builder builder) {
         String apiKey = ensureNotBlank(builder.apiKey, "apiKey");
         String baseUrl = ensureNotBlank(getOrDefault(builder.baseUrl, DEFAULT_BASE_URL), "baseUrl");
         String modelName = ensureNotBlank(getOrDefault(builder.modelName, DEFAULT_MODEL_NAME), "modelName");
-        this.defaultRequestParameters = StructuredDecisionRequestParameters.builder()
-                .modelName(modelName)
-                .build();
-        SystemOneStructuredDecisionModel.Builder delegateBuilder = SystemOneStructuredDecisionModel.builder()
-                .apiKey(apiKey)
-                .baseUrl(baseUrl)
-                .modelName(modelName);
+        this.defaultRequestParameters =
+                DecisionRequestParameters.builder().modelName(modelName).build();
+        SystemOneDecisionModel.Builder delegateBuilder =
+                SystemOneDecisionModel.builder().apiKey(apiKey).baseUrl(baseUrl).modelName(modelName);
         if (builder.httpClientBuilder != null) {
             delegateBuilder.httpClientBuilder(builder.httpClientBuilder);
         }
@@ -47,16 +44,16 @@ public final class TypeSafeStructuredDecisionModel implements StructuredDecision
     }
 
     @Override
-    public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
+    public DecisionResponse decide(DecisionRequest request) {
         return delegate.decide(request);
     }
 
     @Override
-    public StructuredDecisionRequestParameters defaultRequestParameters() {
+    public DecisionRequestParameters defaultRequestParameters() {
         return defaultRequestParameters;
     }
 
-    /** Builder for {@link TypeSafeStructuredDecisionModel}. */
+    /** Builder for {@link TypeSafeDecisionModel}. */
     public static final class Builder {
         private String apiKey;
         private String baseUrl;
@@ -88,8 +85,8 @@ public final class TypeSafeStructuredDecisionModel implements StructuredDecision
         }
 
         /** Builds the model. */
-        public TypeSafeStructuredDecisionModel build() {
-            return new TypeSafeStructuredDecisionModel(this);
+        public TypeSafeDecisionModel build() {
+            return new TypeSafeDecisionModel(this);
         }
     }
 }

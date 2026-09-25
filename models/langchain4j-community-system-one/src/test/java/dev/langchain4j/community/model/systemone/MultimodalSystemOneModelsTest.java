@@ -6,8 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.exception.UnsupportedFeatureException;
-import dev.langchain4j.model.structureddecision.NoulQuestion;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.NoulQuestion;
 import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -20,7 +20,7 @@ class MultimodalSystemOneModelsTest {
         try (MockWebServer server = new MockWebServer()) {
             server.enqueue(new MockResponse().setBody("{\"answers\":{\"q\":{\"type\":\"noul\",\"noul\":0.7}}}"));
             server.start();
-            OpenJevStructuredDecisionModel model = OpenJevStructuredDecisionModel.builder()
+            OpenJevDecisionModel model = OpenJevDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
             var response = model.decide(request()
@@ -46,7 +46,7 @@ class MultimodalSystemOneModelsTest {
                              "coverage":0.93}],"reads":2}}}
                     """));
             server.start();
-            DjevStructuredDecisionModel model = DjevStructuredDecisionModel.builder()
+            DjevDecisionModel model = DjevDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
             var response = model.decide(request()
@@ -86,7 +86,7 @@ class MultimodalSystemOneModelsTest {
         try (MockWebServer server = new MockWebServer()) {
             server.enqueue(new MockResponse().setBody("{\"answers\":{\"q\":{\"type\":\"noul\",\"noul\":0.7}}}"));
             server.start();
-            DjevStructuredDecisionModel model = DjevStructuredDecisionModel.builder()
+            DjevDecisionModel model = DjevDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .multipart(true)
                     .build();
@@ -107,7 +107,7 @@ class MultimodalSystemOneModelsTest {
     void rejects_unsupported_image_mime_type_before_http() throws Exception {
         try (MockWebServer server = new MockWebServer()) {
             server.start();
-            OpenJevStructuredDecisionModel model = OpenJevStructuredDecisionModel.builder()
+            OpenJevDecisionModel model = OpenJevDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
             assertThatThrownBy(() -> model.decide(request()
@@ -125,10 +125,10 @@ class MultimodalSystemOneModelsTest {
                     {"answers":{"id":{"type":"span","found":true,"text":"A","start":1.5,"end":2}}}
                     """));
             server.start();
-            DjevStructuredDecisionModel model = DjevStructuredDecisionModel.builder()
+            DjevDecisionModel model = DjevDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
-            assertThatThrownBy(() -> model.decide(StructuredDecisionRequest.builder()
+            assertThatThrownBy(() -> model.decide(DecisionRequest.builder()
                             .state("A")
                             .question("id", new SpanQuestion("Find A", null))
                             .build()))
@@ -140,10 +140,10 @@ class MultimodalSystemOneModelsTest {
     void openjev_rejects_a_ninth_image_before_http() throws Exception {
         try (MockWebServer server = new MockWebServer()) {
             server.start();
-            OpenJevStructuredDecisionModel model = OpenJevStructuredDecisionModel.builder()
+            OpenJevDecisionModel model = OpenJevDecisionModel.builder()
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest.Builder request = request();
+            DecisionRequest.Builder request = request();
             for (int i = 0; i < 9; i++) {
                 request.content(ImageContent.from("aGVsbG8=", "image/png"));
             }
@@ -152,8 +152,8 @@ class MultimodalSystemOneModelsTest {
         }
     }
 
-    private static StructuredDecisionRequest.Builder request() {
-        return StructuredDecisionRequest.builder()
+    private static DecisionRequest.Builder request() {
+        return DecisionRequest.builder()
                 .state("Invoice #A-1042")
                 .question("valid", NoulQuestion.builder().instructions("Valid?").build())
                 .question("q", NoulQuestion.builder().instructions("True?").build());

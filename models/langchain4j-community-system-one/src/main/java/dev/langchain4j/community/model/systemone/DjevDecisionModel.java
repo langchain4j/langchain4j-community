@@ -8,28 +8,27 @@ import dev.langchain4j.Experimental;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
-import dev.langchain4j.model.structureddecision.StructuredDecisionModel;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
-import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
+import dev.langchain4j.model.decision.DecisionModel;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequestParameters;
+import dev.langchain4j.model.decision.DecisionResponse;
 import java.util.List;
 import java.util.Map;
 
 /** System One decisions with djev span questions and image transport. */
 @Experimental
-public final class DjevStructuredDecisionModel implements StructuredDecisionModel {
+public final class DjevDecisionModel implements DecisionModel {
     private final SystemOneSupport support;
-    private final StructuredDecisionRequestParameters defaults;
+    private final DecisionRequestParameters defaults;
     private final boolean multipart;
 
-    private DjevStructuredDecisionModel(Builder builder) {
+    private DjevDecisionModel(Builder builder) {
         HttpClientBuilder clientBuilder =
                 getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
         support =
                 new SystemOneSupport(clientBuilder.build(), ensureNotBlank(builder.baseUrl, "baseUrl"), builder.apiKey);
-        defaults = StructuredDecisionRequestParameters.builder()
-                .modelName(builder.modelName)
-                .build();
+        defaults =
+                DecisionRequestParameters.builder().modelName(builder.modelName).build();
         multipart = builder.multipart;
     }
 
@@ -38,7 +37,7 @@ public final class DjevStructuredDecisionModel implements StructuredDecisionMode
     }
 
     @Override
-    public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
+    public DecisionResponse decide(DecisionRequest request) {
         ensureNotNull(request, "request");
         List<SystemOneImages.InlineImage> images = SystemOneImages.extract(request.contents(), Integer.MAX_VALUE);
         Map<String, Object> payload = support.payload(request, defaults.overrideWith(request.parameters()), true, true);
@@ -58,7 +57,7 @@ public final class DjevStructuredDecisionModel implements StructuredDecisionMode
     }
 
     @Override
-    public StructuredDecisionRequestParameters defaultRequestParameters() {
+    public DecisionRequestParameters defaultRequestParameters() {
         return defaults;
     }
 
@@ -94,8 +93,8 @@ public final class DjevStructuredDecisionModel implements StructuredDecisionMode
             return this;
         }
 
-        public DjevStructuredDecisionModel build() {
-            return new DjevStructuredDecisionModel(this);
+        public DjevDecisionModel build() {
+            return new DjevDecisionModel(this);
         }
     }
 }

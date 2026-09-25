@@ -8,27 +8,26 @@ import dev.langchain4j.Experimental;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
-import dev.langchain4j.model.structureddecision.StructuredDecisionModel;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
-import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
+import dev.langchain4j.model.decision.DecisionModel;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequestParameters;
+import dev.langchain4j.model.decision.DecisionResponse;
 
 /** A configurable client for the shared JSON System One decision endpoint. */
 @Experimental
-public final class SystemOneStructuredDecisionModel implements StructuredDecisionModel {
+public final class SystemOneDecisionModel implements DecisionModel {
 
     private final SystemOneSupport support;
-    private final StructuredDecisionRequestParameters defaultRequestParameters;
+    private final DecisionRequestParameters defaultRequestParameters;
 
-    private SystemOneStructuredDecisionModel(Builder builder) {
+    private SystemOneDecisionModel(Builder builder) {
         String baseUrl = ensureNotBlank(builder.baseUrl, "baseUrl");
         HttpClientBuilder clientBuilder =
                 getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
         HttpClient httpClient = clientBuilder.build();
         this.support = new SystemOneSupport(httpClient, baseUrl, builder.apiKey);
-        this.defaultRequestParameters = StructuredDecisionRequestParameters.builder()
-                .modelName(builder.modelName)
-                .build();
+        this.defaultRequestParameters =
+                DecisionRequestParameters.builder().modelName(builder.modelName).build();
     }
 
     public static Builder builder() {
@@ -36,13 +35,13 @@ public final class SystemOneStructuredDecisionModel implements StructuredDecisio
     }
 
     @Override
-    public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
+    public DecisionResponse decide(DecisionRequest request) {
         return support.decide(
                 ensureNotNull(request, "request"), defaultRequestParameters.overrideWith(request.parameters()));
     }
 
     @Override
-    public StructuredDecisionRequestParameters defaultRequestParameters() {
+    public DecisionRequestParameters defaultRequestParameters() {
         return defaultRequestParameters;
     }
 
@@ -72,8 +71,8 @@ public final class SystemOneStructuredDecisionModel implements StructuredDecisio
             return this;
         }
 
-        public SystemOneStructuredDecisionModel build() {
-            return new SystemOneStructuredDecisionModel(this);
+        public SystemOneDecisionModel build() {
+            return new SystemOneDecisionModel(this);
         }
     }
 }

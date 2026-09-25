@@ -6,15 +6,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.exception.UnsupportedFeatureException;
-import dev.langchain4j.model.structureddecision.ChoiceQuestion;
-import dev.langchain4j.model.structureddecision.ConfidenceProvenance;
-import dev.langchain4j.model.structureddecision.NoulCriteria;
-import dev.langchain4j.model.structureddecision.NoulQuestion;
-import dev.langchain4j.model.structureddecision.OptionCriteria;
-import dev.langchain4j.model.structureddecision.ScoreQuestion;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
-import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
+import dev.langchain4j.model.decision.ChoiceQuestion;
+import dev.langchain4j.model.decision.ConfidenceProvenance;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequestParameters;
+import dev.langchain4j.model.decision.DecisionResponse;
+import dev.langchain4j.model.decision.NoulCriteria;
+import dev.langchain4j.model.decision.NoulQuestion;
+import dev.langchain4j.model.decision.OptionCriteria;
+import dev.langchain4j.model.decision.ScoreQuestion;
 import java.util.List;
 import java.util.Map;
 import okhttp3.mockwebserver.MockResponse;
@@ -22,7 +22,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.Test;
 
-class TypeSafeStructuredDecisionModelTest {
+class TypeSafeDecisionModelTest {
 
     @Test
     @SuppressWarnings("unchecked")
@@ -46,12 +46,12 @@ class TypeSafeStructuredDecisionModelTest {
                             """));
             server.start();
 
-            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
+            TypeSafeDecisionModel model = TypeSafeDecisionModel.builder()
                     .apiKey("secret-key")
                     .baseUrl(server.url("/").toString())
                     .build();
 
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state(Map.of("message", "I was charged twice; fix this today"))
                     .question(
                             "refund",
@@ -80,7 +80,7 @@ class TypeSafeStructuredDecisionModelTest {
                                     .build())
                     .build();
 
-            StructuredDecisionResponse response = model.decide(request);
+            DecisionResponse response = model.decide(request);
 
             assertThat(response.answers()).containsOnlyKeys("refund", "team", "urgency");
             assertThat(response.answers().get("refund").value()).isEqualTo(0.91);
@@ -151,18 +151,18 @@ class TypeSafeStructuredDecisionModelTest {
                             """));
             server.start();
 
-            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
+            TypeSafeDecisionModel model = TypeSafeDecisionModel.builder()
                     .apiKey("key")
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state(Map.of("message", "hello"))
                     .question(
                             "answer",
                             NoulQuestion.builder().instructions("Is it true?").build())
                     .build();
 
-            StructuredDecisionResponse response = model.decide(request);
+            DecisionResponse response = model.decide(request);
             assertThat(response.answers().get("answer").value()).isEqualTo(0.5);
             assertThat(response.metadata())
                     .containsEntry("latency_ms", 17)
@@ -178,11 +178,11 @@ class TypeSafeStructuredDecisionModelTest {
             server.enqueue(
                     new MockResponse().setBody("{" + "\"answers\":{\"answer\":{\"type\":\"noul\",\"noul\":0.5}}}"));
             server.start();
-            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
+            TypeSafeDecisionModel model = TypeSafeDecisionModel.builder()
                     .apiKey("key")
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state("hello")
                     .question(
                             "answer",
@@ -199,11 +199,11 @@ class TypeSafeStructuredDecisionModelTest {
     void should_reject_unsupported_content_and_request_properties_before_http() throws Exception {
         try (MockWebServer server = new MockWebServer()) {
             server.start();
-            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
+            TypeSafeDecisionModel model = TypeSafeDecisionModel.builder()
                     .apiKey("key")
                     .baseUrl(server.url("/").toString())
                     .build();
-            StructuredDecisionRequest.Builder request = StructuredDecisionRequest.builder()
+            DecisionRequest.Builder request = DecisionRequest.builder()
                     .state("hello")
                     .question(
                             "answer",
@@ -213,7 +213,7 @@ class TypeSafeStructuredDecisionModelTest {
                             .build()))
                     .isInstanceOf(UnsupportedFeatureException.class);
             assertThatThrownBy(() -> model.decide(request.contents(List.of())
-                            .parameters(StructuredDecisionRequestParameters.builder()
+                            .parameters(DecisionRequestParameters.builder()
                                     .additionalProperty("temperature", 0.5)
                                     .build())
                             .build()))
@@ -234,17 +234,17 @@ class TypeSafeStructuredDecisionModelTest {
                             """));
             server.start();
 
-            TypeSafeStructuredDecisionModel model = TypeSafeStructuredDecisionModel.builder()
+            TypeSafeDecisionModel model = TypeSafeDecisionModel.builder()
                     .apiKey("key")
                     .baseUrl(server.url("/").toString())
                     .modelName("configured-model")
                     .build();
-            StructuredDecisionRequest request = StructuredDecisionRequest.builder()
+            DecisionRequest request = DecisionRequest.builder()
                     .state(Map.of("message", "hello"))
                     .question(
                             "answer",
                             NoulQuestion.builder().instructions("Is it true?").build())
-                    .parameters(StructuredDecisionRequestParameters.builder()
+                    .parameters(DecisionRequestParameters.builder()
                             .modelName("jev-special")
                             .build())
                     .build();
@@ -258,11 +258,10 @@ class TypeSafeStructuredDecisionModelTest {
 
     @Test
     void should_validate_required_builder_values() {
-        assertThatThrownBy(() -> TypeSafeStructuredDecisionModel.builder().build())
+        assertThatThrownBy(() -> TypeSafeDecisionModel.builder().build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("apiKey");
-        assertThatThrownBy(() ->
-                        TypeSafeStructuredDecisionModel.builder().apiKey(" ").build())
+        assertThatThrownBy(() -> TypeSafeDecisionModel.builder().apiKey(" ").build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("apiKey");
     }

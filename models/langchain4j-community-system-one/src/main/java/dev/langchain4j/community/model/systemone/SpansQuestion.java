@@ -4,7 +4,7 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 
 import dev.langchain4j.Experimental;
-import dev.langchain4j.model.structureddecision.Question;
+import dev.langchain4j.model.decision.Question;
 
 /** djev's multiple grounded text-spans question. */
 @Experimental

@@ -10,10 +10,10 @@ import dev.langchain4j.Experimental;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
-import dev.langchain4j.model.structureddecision.StructuredDecisionModel;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
-import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;
-import dev.langchain4j.model.structureddecision.StructuredDecisionResponse;
+import dev.langchain4j.model.decision.DecisionModel;
+import dev.langchain4j.model.decision.DecisionRequest;
+import dev.langchain4j.model.decision.DecisionRequestParameters;
+import dev.langchain4j.model.decision.DecisionResponse;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,12 +21,12 @@ import java.util.Map;
 
 /** CLM's System One endpoint and its separate candidate ranking operation. */
 @Experimental
-public final class ClmStructuredDecisionModel implements StructuredDecisionModel {
+public final class ClmDecisionModel implements DecisionModel {
 
     private final SystemOneSupport support;
     private final ClmRequestParameters defaults;
 
-    private ClmStructuredDecisionModel(Builder builder) {
+    private ClmDecisionModel(Builder builder) {
         HttpClientBuilder clientBuilder =
                 getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
         support =
@@ -39,7 +39,7 @@ public final class ClmStructuredDecisionModel implements StructuredDecisionModel
     }
 
     @Override
-    public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
+    public DecisionResponse decide(DecisionRequest request) {
         ensureNotNull(request, "request");
         ClmRequestParameters parameters = defaults.overrideWith(request.parameters());
         Map<String, Object> payload = support.payload(request, parameters);
@@ -47,7 +47,7 @@ public final class ClmStructuredDecisionModel implements StructuredDecisionModel
             payload.put("temperature", parameters.temperature());
         }
         SuccessfulHttpResponse httpResponse = support.execute("/v1/systemone", payload);
-        StructuredDecisionResponse decoded = SystemOneSupport.decode(httpResponse, request);
+        DecisionResponse decoded = SystemOneSupport.decode(httpResponse, request);
         Map<String, Object> metadata = new LinkedHashMap<>(decoded.metadata());
         if (httpResponse.headers() != null) {
             httpResponse.headers().forEach((key, values) -> {
@@ -56,14 +56,14 @@ public final class ClmStructuredDecisionModel implements StructuredDecisionModel
                 }
             });
         }
-        return StructuredDecisionResponse.builder()
+        return DecisionResponse.builder()
                 .answers(decoded.answers())
                 .metadata(metadata)
                 .build();
     }
 
     @Override
-    public StructuredDecisionRequestParameters defaultRequestParameters() {
+    public DecisionRequestParameters defaultRequestParameters() {
         return defaults;
     }
 
@@ -117,8 +117,8 @@ public final class ClmStructuredDecisionModel implements StructuredDecisionModel
             return this;
         }
 
-        public ClmStructuredDecisionModel build() {
-            return new ClmStructuredDecisionModel(this);
+        public ClmDecisionModel build() {
+            return new ClmDecisionModel(this);
         }
     }
 }

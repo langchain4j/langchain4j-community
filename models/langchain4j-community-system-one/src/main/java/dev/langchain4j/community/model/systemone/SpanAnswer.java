@@ -4,8 +4,8 @@ import static dev.langchain4j.internal.ValidationUtils.ensureBetween;
 import static dev.langchain4j.internal.ValidationUtils.ensureTrue;
 
 import dev.langchain4j.Experimental;
-import dev.langchain4j.model.structureddecision.ConfidenceProvenance;
-import dev.langchain4j.model.structureddecision.StructuredDecisionAnswer;
+import dev.langchain4j.model.decision.ConfidenceProvenance;
+import dev.langchain4j.model.decision.DecisionAnswer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -13,7 +13,7 @@ import java.util.Map;
 @Experimental
 public record SpanAnswer(
         SpanValue value, Double confidence, ConfidenceProvenance confidenceProvenance, Map<String, Object> metadata)
-        implements StructuredDecisionAnswer {
+        implements DecisionAnswer {
     public SpanAnswer {
         validateConfidence(confidence, confidenceProvenance);
         metadata = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(metadata));
