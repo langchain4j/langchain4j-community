@@ -19,6 +19,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 class QwenEmbeddingModelDimensionTest {
 
     private static final String API_KEY = "test-api-key";
+    private static final String V1_V2_FIXED_DIMENSION_MESSAGE =
+            "text-embedding-v1/text-embedding-v2 only support the fixed dimension of 1536";
 
     private QwenEmbeddingModel buildModel(String modelName, Integer dimension) {
         return QwenEmbeddingModel.builder()
@@ -33,25 +35,29 @@ class QwenEmbeddingModelDimensionTest {
     @Test
     void should_reject_dimension_for_v1() {
         assertThatThrownBy(() -> buildModel(TEXT_EMBEDDING_V1, 512))
-                .isExactlyInstanceOf(IllegalArgumentException.class);
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage(V1_V2_FIXED_DIMENSION_MESSAGE);
     }
 
     @Test
     void should_reject_dimension_for_v2() {
         assertThatThrownBy(() -> buildModel(TEXT_EMBEDDING_V2, 512))
-                .isExactlyInstanceOf(IllegalArgumentException.class);
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage(V1_V2_FIXED_DIMENSION_MESSAGE);
     }
 
     @Test
     void should_reject_2048_dimension_for_v1() {
         assertThatThrownBy(() -> buildModel(TEXT_EMBEDDING_V1, 2048))
-                .isExactlyInstanceOf(IllegalArgumentException.class);
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage(V1_V2_FIXED_DIMENSION_MESSAGE);
     }
 
     @Test
     void should_reject_2048_dimension_for_v2() {
         assertThatThrownBy(() -> buildModel(TEXT_EMBEDDING_V2, 2048))
-                .isExactlyInstanceOf(IllegalArgumentException.class);
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage(V1_V2_FIXED_DIMENSION_MESSAGE);
     }
 
     // --- V3: accept all dimensions (API validates) ---
