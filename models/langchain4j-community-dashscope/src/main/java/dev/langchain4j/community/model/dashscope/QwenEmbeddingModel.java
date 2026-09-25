@@ -169,7 +169,8 @@ public class QwenEmbeddingModel extends DimensionAwareEmbeddingModel {
             return null;
         }
         if (TEXT_EMBEDDING_V1.equals(modelName) || TEXT_EMBEDDING_V2.equals(modelName)) {
-            throw new IllegalArgumentException("dimension '" + dimension + "' is not supported by " + modelName);
+            throw new IllegalArgumentException(
+                    "text-embedding-v1/text-embedding-v2 only support the fixed dimension of 1536");
         }
         return dimension;
     }
