@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.exception.AsyncNotSupportedException;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
@@ -19,6 +20,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class ModelRouterTest {
+
+    @Test
+    void synchronousAsyncNotSupportedExceptionStillTriggersFailover() {
+        ChatModel failing = new ChatModel() {
+            @Override
+            public ChatResponse doChat(ChatRequest request) {
+                throw new AsyncNotSupportedException("synchronous delegate failure");
+            }
+        };
+        ModelRouter router = ModelRouter.builder()
+                .addRoutes(failing, new NoOpChatModel("healthy"))
+                .routingStrategy(new FailoverStrategy())
+                .build();
+        assertEquals("healthy", router.chat(REQUEST).aiMessage().text());
+    }
 
     private static final ChatRequest REQUEST =
             ChatRequest.builder().messages(new UserMessage("ping")).build();

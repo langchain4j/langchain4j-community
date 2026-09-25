@@ -1,8 +1,11 @@
 package dev.langchain4j.model.router;
 
+import static dev.langchain4j.internal.CompletableFutureUtils.propagateCancellation;
+import static dev.langchain4j.internal.Exceptions.unwrapCompletionException;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import dev.langchain4j.Experimental;
+import dev.langchain4j.exception.AsyncNotSupportedException;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
@@ -15,6 +18,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A {@link ChatModel} implementation that routes requests to other chat models
@@ -88,6 +94,86 @@ public class ModelRouter implements ChatModel {
                 throw e;
             }
             return doChatInternal(chatRequest, attemptsLeft - 1);
+        }
+    }
+
+    /**
+     * Routes a native asynchronous request with bounded failover. Cancellation and unsupported
+     * asynchronous operation terminate the request without retrying or invoking a blocking model.
+     */
+    @Override
+    public CompletableFuture<ChatResponse> doChatAsync(ChatRequest chatRequest) {
+        AsyncRequest request = new AsyncRequest(chatRequest);
+        request.attempt();
+        return request.result;
+    }
+
+    private final class AsyncRequest {
+        private final ChatRequest chatRequest;
+        private final CompletableFuture<ChatResponse> result = new CompletableFuture<>();
+        private final AtomicInteger pendingAttempts = new AtomicInteger();
+        private int attemptsLeft = Math.max(1, routes.size());
+
+        private AsyncRequest(ChatRequest chatRequest) {
+            this.chatRequest = chatRequest;
+        }
+
+        private void attempt() {
+            // An already-failed future may call back inline. Drain retries instead of recursing.
+            if (pendingAttempts.getAndIncrement() != 0) {
+                return;
+            }
+            do {
+                if (!result.isDone()) {
+                    startAttempt();
+                }
+            } while (pendingAttempts.decrementAndGet() != 0);
+        }
+
+        private void startAttempt() {
+            ChatModelWrapper delegate;
+            try {
+                delegate = resolveDelegate(chatRequest);
+            } catch (Throwable error) {
+                // This may run inside a future callback: never leave the result pending.
+                result.completeExceptionally(error);
+                return;
+            }
+            if (result.isDone()) {
+                return;
+            }
+            attemptsLeft--;
+            CompletableFuture<ChatResponse> source;
+            try {
+                source = delegate.chatAsync(chatRequest);
+            } catch (Throwable error) {
+                failed(error);
+                return;
+            }
+            // Also cancels a source returned after cancellation raced with delegate invocation.
+            propagateCancellation(result, source);
+            source.whenComplete((response, error) -> {
+                if (error == null) {
+                    result.complete(response);
+                } else {
+                    failed(unwrapCompletionException(error));
+                }
+            });
+        }
+
+        private void failed(Throwable error) {
+            if (result.isDone()) {
+                return;
+            }
+            if (error instanceof CancellationException
+                    || error instanceof AsyncNotSupportedException
+                    || error instanceof NoMatchingModelFoundException
+                    || !(error instanceof Exception)
+                    || attemptsLeft == 0) {
+                result.completeExceptionally(error);
+            } else {
+                attempt();
+            }
         }
     }
 
