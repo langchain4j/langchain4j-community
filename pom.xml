@@ -45,6 +45,8 @@
         <module>models/langchain4j-community-model-router</module>
         <module>models/langchain4j-community-model-registry</module>
         <module>models/langchain4j-community-responsible-ai</module>
+        <module>models/langchain4j-community-typesafe</module>
+        <module>models/langchain4j-community-system-one</module>
 
         <!-- Integration of embedding store -->
         <module>embedding-stores/langchain4j-community-clickhouse</module>
@@ -188,7 +190,7 @@
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
                 <configuration>
-                    <ratchetFrom>origin/main</ratchetFrom>
+                <ratchetFrom>origin/main</ratchetFrom>
                     <pom>
                         <sortPom>
                             <nrOfIndentSpace>4</nrOfIndentSpace>
