@@ -21,8 +21,11 @@ class MultimodalSystemOneModelsTest {
             server.enqueue(new MockResponse().setBody("{\"answers\":{\"q\":{\"type\":\"noul\",\"noul\":0.7}}}"));
             server.start();
             OpenJevStructuredDecisionModel model = OpenJevStructuredDecisionModel.builder()
-                    .baseUrl(server.url("/").toString()).build();
-            var response = model.decide(request().content(ImageContent.from("aGVsbG8=", "image/png")).build());
+                    .baseUrl(server.url("/").toString())
+                    .build();
+            var response = model.decide(request()
+                    .content(ImageContent.from("aGVsbG8=", "image/png"))
+                    .build());
 
             assertThat(response.answers().get("q").value()).isEqualTo(0.7);
             Map<String, Object> json = fromJson(server.takeRequest().getBody().readUtf8(), Map.class);
@@ -44,7 +47,8 @@ class MultimodalSystemOneModelsTest {
                     """));
             server.start();
             DjevStructuredDecisionModel model = DjevStructuredDecisionModel.builder()
-                    .baseUrl(server.url("/").toString()).build();
+                    .baseUrl(server.url("/").toString())
+                    .build();
             var response = model.decide(request()
                     .question("id", new SpanQuestion("Invoice ID", null))
                     .question("dates", new SpansQuestion("Dates", null, null))
@@ -52,13 +56,23 @@ class MultimodalSystemOneModelsTest {
                     .build());
 
             assertThat(response.answers().get("id")).isInstanceOf(SpanAnswer.class);
-            assertThat(((SpanAnswer) response.answers().get("id")).value().text()).isEqualTo("A-1042");
+            assertThat(((SpanAnswer) response.answers().get("id")).value().text())
+                    .isEqualTo("A-1042");
             assertThat(response.answers().get("id").metadata()).containsEntry("coverage", 0.99);
             assertThat(((SpansAnswer) response.answers().get("dates")).value().items())
-                    .extracting(SpanAnswer.SpanValue::text).containsExactly("2024-03-15");
-            assertThat(((SpansAnswer) response.answers().get("dates")).value().items().get(0).confidence())
+                    .extracting(SpanAnswer.SpanValue::text)
+                    .containsExactly("2024-03-15");
+            assertThat(((SpansAnswer) response.answers().get("dates"))
+                            .value()
+                            .items()
+                            .get(0)
+                            .confidence())
                     .isEqualTo(0.75);
-            assertThat(((SpansAnswer) response.answers().get("dates")).value().items().get(0).metadata())
+            assertThat(((SpansAnswer) response.answers().get("dates"))
+                            .value()
+                            .items()
+                            .get(0)
+                            .metadata())
                     .containsEntry("coverage", 0.93);
             Map<String, Object> json = fromJson(server.takeRequest().getBody().readUtf8(), Map.class);
             assertThat(json.get("images")).isEqualTo(java.util.List.of("data:image/jpeg;base64,aGVsbG8="));
@@ -73,8 +87,12 @@ class MultimodalSystemOneModelsTest {
             server.enqueue(new MockResponse().setBody("{\"answers\":{\"q\":{\"type\":\"noul\",\"noul\":0.7}}}"));
             server.start();
             DjevStructuredDecisionModel model = DjevStructuredDecisionModel.builder()
-                    .baseUrl(server.url("/").toString()).multipart(true).build();
-            model.decide(request().content(ImageContent.from("aGVsbG8=", "image/png")).build());
+                    .baseUrl(server.url("/").toString())
+                    .multipart(true)
+                    .build();
+            model.decide(request()
+                    .content(ImageContent.from("aGVsbG8=", "image/png"))
+                    .build());
 
             var posted = server.takeRequest();
             assertThat(posted.getHeader("Content-Type")).startsWith("multipart/form-data");
@@ -90,9 +108,11 @@ class MultimodalSystemOneModelsTest {
         try (MockWebServer server = new MockWebServer()) {
             server.start();
             OpenJevStructuredDecisionModel model = OpenJevStructuredDecisionModel.builder()
-                    .baseUrl(server.url("/").toString()).build();
+                    .baseUrl(server.url("/").toString())
+                    .build();
             assertThatThrownBy(() -> model.decide(request()
-                    .content(ImageContent.from("aGVsbG8=", "image/gif")).build()))
+                            .content(ImageContent.from("aGVsbG8=", "image/gif"))
+                            .build()))
                     .isInstanceOf(UnsupportedFeatureException.class);
             assertThat(server.getRequestCount()).isZero();
         }
@@ -106,11 +126,13 @@ class MultimodalSystemOneModelsTest {
                     """));
             server.start();
             DjevStructuredDecisionModel model = DjevStructuredDecisionModel.builder()
-                    .baseUrl(server.url("/").toString()).build();
+                    .baseUrl(server.url("/").toString())
+                    .build();
             assertThatThrownBy(() -> model.decide(StructuredDecisionRequest.builder()
-                    .state("A")
-                    .question("id", new SpanQuestion("Find A", null))
-                    .build())).isInstanceOf(IllegalArgumentException.class);
+                            .state("A")
+                            .question("id", new SpanQuestion("Find A", null))
+                            .build()))
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -119,13 +141,13 @@ class MultimodalSystemOneModelsTest {
         try (MockWebServer server = new MockWebServer()) {
             server.start();
             OpenJevStructuredDecisionModel model = OpenJevStructuredDecisionModel.builder()
-                    .baseUrl(server.url("/").toString()).build();
+                    .baseUrl(server.url("/").toString())
+                    .build();
             StructuredDecisionRequest.Builder request = request();
             for (int i = 0; i < 9; i++) {
                 request.content(ImageContent.from("aGVsbG8=", "image/png"));
             }
-            assertThatThrownBy(() -> model.decide(request.build()))
-                    .isInstanceOf(UnsupportedFeatureException.class);
+            assertThatThrownBy(() -> model.decide(request.build())).isInstanceOf(UnsupportedFeatureException.class);
             assertThat(server.getRequestCount()).isZero();
         }
     }

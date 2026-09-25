@@ -37,10 +37,16 @@ class SystemOneStructuredDecisionModelTest {
                     .build();
             StructuredDecisionRequest request = StructuredDecisionRequest.builder()
                     .state("Charge dispute")
-                    .question("team", ChoiceQuestion.builder()
-                            .instructions("Route request")
-                            .option("billing", OptionCriteria.builder().what("Payments").build())
-                            .build())
+                    .question(
+                            "team",
+                            ChoiceQuestion.builder()
+                                    .instructions("Route request")
+                                    .option(
+                                            "billing",
+                                            OptionCriteria.builder()
+                                                    .what("Payments")
+                                                    .build())
+                                    .build())
                     .build();
 
             StructuredDecisionResponse response = model.decide(request);
@@ -92,10 +98,13 @@ class SystemOneStructuredDecisionModelTest {
                     """));
             server.start();
             SystemOneStructuredDecisionModel model = SystemOneStructuredDecisionModel.builder()
-                    .baseUrl(server.url("/").toString()).build();
+                    .baseUrl(server.url("/").toString())
+                    .build();
             StructuredDecisionRequest request = StructuredDecisionRequest.builder()
                     .state("x")
-                    .question("expected", NoulQuestion.builder().instructions("True?").build())
+                    .question(
+                            "expected",
+                            NoulQuestion.builder().instructions("True?").build())
                     .build();
 
             assertThatThrownBy(() -> model.decide(request))
@@ -112,10 +121,13 @@ class SystemOneStructuredDecisionModelTest {
                     """));
             server.start();
             SystemOneStructuredDecisionModel model = SystemOneStructuredDecisionModel.builder()
-                    .baseUrl(server.url("/").toString()).build();
+                    .baseUrl(server.url("/").toString())
+                    .build();
             StructuredDecisionRequest request = StructuredDecisionRequest.builder()
                     .state("x")
-                    .question("expected", NoulQuestion.builder().instructions("True?").build())
+                    .question(
+                            "expected",
+                            NoulQuestion.builder().instructions("True?").build())
                     .build();
 
             assertThatThrownBy(() -> model.decide(request))

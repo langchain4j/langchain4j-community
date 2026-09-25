@@ -55,7 +55,8 @@ class ClmStructuredDecisionModelTest {
             ClmRankResult result = model.rank("Tides", "Which cause?", List.of("Moon", "Sun"));
 
             assertThat(result.model()).isEqualTo("clm-latest");
-            assertThat(result.ranked()).extracting(ClmRankResult.RankedCandidate::candidate)
+            assertThat(result.ranked())
+                    .extracting(ClmRankResult.RankedCandidate::candidate)
                     .containsExactly("Moon", "Sun");
             assertThat(result.ranked().get(0).probability()).isEqualTo(0.9);
             assertThat(server.takeRequest().getPath()).isEqualTo("/v1/rank");
@@ -64,9 +65,7 @@ class ClmStructuredDecisionModelTest {
 
     @Test
     void validates_temperature_and_rank_candidates_locally() {
-        assertThatThrownBy(() -> new ClmRequestParameters(null, 0.0))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new ClmRequestParameters(null, 101.0))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ClmRequestParameters(null, 0.0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ClmRequestParameters(null, 101.0)).isInstanceOf(IllegalArgumentException.class);
     }
 }

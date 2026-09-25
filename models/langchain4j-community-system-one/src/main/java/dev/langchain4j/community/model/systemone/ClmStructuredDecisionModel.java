@@ -29,7 +29,8 @@ public final class ClmStructuredDecisionModel implements StructuredDecisionModel
     private ClmStructuredDecisionModel(Builder builder) {
         HttpClientBuilder clientBuilder =
                 getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
-        support = new SystemOneSupport(clientBuilder.build(), ensureNotBlank(builder.baseUrl, "baseUrl"), builder.apiKey);
+        support =
+                new SystemOneSupport(clientBuilder.build(), ensureNotBlank(builder.baseUrl, "baseUrl"), builder.apiKey);
         defaults = new ClmRequestParameters(builder.modelName, builder.temperature);
     }
 
@@ -55,7 +56,10 @@ public final class ClmStructuredDecisionModel implements StructuredDecisionModel
                 }
             });
         }
-        return StructuredDecisionResponse.builder().answers(decoded.answers()).metadata(metadata).build();
+        return StructuredDecisionResponse.builder()
+                .answers(decoded.answers())
+                .metadata(metadata)
+                .build();
     }
 
     @Override
@@ -68,14 +72,15 @@ public final class ClmStructuredDecisionModel implements StructuredDecisionModel
         ensureNotBlank(context, "context");
         ensureNotBlank(question, "question");
         ensureNotEmpty(candidates, "candidates").forEach(candidate -> ensureNotBlank(candidate, "candidate"));
-        SuccessfulHttpResponse response = support.execute("/v1/rank",
-                Map.of("context", context, "question", question, "answers", candidates));
+        SuccessfulHttpResponse response =
+                support.execute("/v1/rank", Map.of("context", context, "question", question, "answers", candidates));
         Map<String, Object> json = fromJson(response.body(), Map.class);
         List<Map<String, Object>> ranked = (List<Map<String, Object>>) json.get("ranked");
         if (ranked == null) throw new IllegalArgumentException("CLM rank response must contain ranked");
         List<ClmRankResult.RankedCandidate> result = new ArrayList<>();
         ranked.forEach(item -> result.add(new ClmRankResult.RankedCandidate(
-                ((Number) item.get("rank")).intValue(), (String) item.get("candidate"),
+                ((Number) item.get("rank")).intValue(),
+                (String) item.get("candidate"),
                 ((Number) item.get("prob")).doubleValue())));
         return new ClmRankResult((String) json.get("model"), result);
     }
@@ -87,13 +92,33 @@ public final class ClmStructuredDecisionModel implements StructuredDecisionModel
         private Double temperature;
         private HttpClientBuilder httpClientBuilder;
 
-        public Builder baseUrl(String baseUrl) { this.baseUrl = baseUrl; return this; }
-        public Builder apiKey(String apiKey) { this.apiKey = apiKey; return this; }
-        public Builder modelName(String modelName) { this.modelName = modelName; return this; }
-        public Builder temperature(Double temperature) { this.temperature = temperature; return this; }
-        public Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
-            this.httpClientBuilder = httpClientBuilder; return this;
+        public Builder baseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+            return this;
         }
-        public ClmStructuredDecisionModel build() { return new ClmStructuredDecisionModel(this); }
+
+        public Builder apiKey(String apiKey) {
+            this.apiKey = apiKey;
+            return this;
+        }
+
+        public Builder modelName(String modelName) {
+            this.modelName = modelName;
+            return this;
+        }
+
+        public Builder temperature(Double temperature) {
+            this.temperature = temperature;
+            return this;
+        }
+
+        public Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
+            this.httpClientBuilder = httpClientBuilder;
+            return this;
+        }
+
+        public ClmStructuredDecisionModel build() {
+            return new ClmStructuredDecisionModel(this);
+        }
     }
 }

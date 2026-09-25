@@ -21,37 +21,65 @@ public final class OpenJevStructuredDecisionModel implements StructuredDecisionM
     private final StructuredDecisionRequestParameters defaults;
 
     private OpenJevStructuredDecisionModel(Builder builder) {
-        HttpClientBuilder clientBuilder = getOrDefault(builder.httpClientBuilder,
-                HttpClientBuilderLoader::loadHttpClientBuilder);
-        support = new SystemOneSupport(clientBuilder.build(), ensureNotBlank(builder.baseUrl, "baseUrl"), builder.apiKey);
-        defaults = StructuredDecisionRequestParameters.builder().modelName(builder.modelName).build();
+        HttpClientBuilder clientBuilder =
+                getOrDefault(builder.httpClientBuilder, HttpClientBuilderLoader::loadHttpClientBuilder);
+        support =
+                new SystemOneSupport(clientBuilder.build(), ensureNotBlank(builder.baseUrl, "baseUrl"), builder.apiKey);
+        defaults = StructuredDecisionRequestParameters.builder()
+                .modelName(builder.modelName)
+                .build();
     }
 
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     @Override
     public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
         ensureNotNull(request, "request");
         List<SystemOneImages.InlineImage> images = SystemOneImages.extract(request.contents(), 8);
-        Map<String, Object> payload = support.payload(request, defaults.overrideWith(request.parameters()), true, false);
-        if (!images.isEmpty()) payload.put("images", images.stream().map(SystemOneImages.InlineImage::dataUrl).toList());
+        Map<String, Object> payload =
+                support.payload(request, defaults.overrideWith(request.parameters()), true, false);
+        if (!images.isEmpty())
+            payload.put(
+                    "images",
+                    images.stream().map(SystemOneImages.InlineImage::dataUrl).toList());
         return SystemOneSupport.decode(support.execute("/v1/systemone", payload), request);
     }
 
     @Override
-    public StructuredDecisionRequestParameters defaultRequestParameters() { return defaults; }
+    public StructuredDecisionRequestParameters defaultRequestParameters() {
+        return defaults;
+    }
 
     public static final class Builder {
         private String baseUrl;
         private String apiKey;
         private String modelName;
         private HttpClientBuilder httpClientBuilder;
-        public Builder baseUrl(String baseUrl) { this.baseUrl = baseUrl; return this; }
-        public Builder apiKey(String apiKey) { this.apiKey = apiKey; return this; }
-        public Builder modelName(String modelName) { this.modelName = modelName; return this; }
-        public Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
-            this.httpClientBuilder = httpClientBuilder; return this;
+
+        public Builder baseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+            return this;
         }
-        public OpenJevStructuredDecisionModel build() { return new OpenJevStructuredDecisionModel(this); }
+
+        public Builder apiKey(String apiKey) {
+            this.apiKey = apiKey;
+            return this;
+        }
+
+        public Builder modelName(String modelName) {
+            this.modelName = modelName;
+            return this;
+        }
+
+        public Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
+            this.httpClientBuilder = httpClientBuilder;
+            return this;
+        }
+
+        public OpenJevStructuredDecisionModel build() {
+            return new OpenJevStructuredDecisionModel(this);
+        }
     }
 }

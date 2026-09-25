@@ -270,5 +270,4 @@ class TypeSafeStructuredDecisionModelTest {
     private static OptionCriteria criteria(String what) {
         return OptionCriteria.builder().what(what).build();
     }
-
 }

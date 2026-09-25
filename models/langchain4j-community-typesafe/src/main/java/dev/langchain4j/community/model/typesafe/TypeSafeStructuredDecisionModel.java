@@ -4,8 +4,8 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import dev.langchain4j.Experimental;
-import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.community.model.systemone.SystemOneStructuredDecisionModel;
+import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.model.structureddecision.StructuredDecisionModel;
 import dev.langchain4j.model.structureddecision.StructuredDecisionRequest;
 import dev.langchain4j.model.structureddecision.StructuredDecisionRequestParameters;

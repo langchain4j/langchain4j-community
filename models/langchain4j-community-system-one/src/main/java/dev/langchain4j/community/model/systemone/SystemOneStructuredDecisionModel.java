@@ -37,8 +37,8 @@ public final class SystemOneStructuredDecisionModel implements StructuredDecisio
 
     @Override
     public StructuredDecisionResponse decide(StructuredDecisionRequest request) {
-        return support.decide(ensureNotNull(request, "request"),
-                defaultRequestParameters.overrideWith(request.parameters()));
+        return support.decide(
+                ensureNotNull(request, "request"), defaultRequestParameters.overrideWith(request.parameters()));
     }
 
     @Override

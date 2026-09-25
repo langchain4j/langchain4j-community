@@ -25,6 +25,7 @@ class TypeSafeStructuredDecisionModelIT {
                                 .build())
                 .build();
 
-        assertThat((Double) model.decide(request).answers().get("refund").value()).isBetween(0.0, 1.0);
+        assertThat((Double) model.decide(request).answers().get("refund").value())
+                .isBetween(0.0, 1.0);
     }
 }

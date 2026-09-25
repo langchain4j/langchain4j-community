@@ -13,7 +13,8 @@ public record ClmRequestParameters(String modelName, Double temperature, Map<Str
         implements StructuredDecisionRequestParameters {
 
     public ClmRequestParameters {
-        ensureTrue(temperature == null || (Double.isFinite(temperature) && temperature > 0 && temperature <= 100),
+        ensureTrue(
+                temperature == null || (Double.isFinite(temperature) && temperature > 0 && temperature <= 100),
                 "CLM temperature must be in (0, 100]");
         additionalProperties = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(additionalProperties));
     }
@@ -27,7 +28,8 @@ public record ClmRequestParameters(String modelName, Double temperature, Map<Str
         if (that == null) return this;
         Map<String, Object> properties = new LinkedHashMap<>(additionalProperties);
         properties.putAll(that.additionalProperties());
-        return new ClmRequestParameters(that.modelName() == null ? modelName : that.modelName(),
+        return new ClmRequestParameters(
+                that.modelName() == null ? modelName : that.modelName(),
                 that instanceof ClmRequestParameters clm && clm.temperature != null ? clm.temperature : temperature,
                 properties);
     }

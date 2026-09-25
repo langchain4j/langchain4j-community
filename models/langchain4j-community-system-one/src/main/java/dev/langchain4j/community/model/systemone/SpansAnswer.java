@@ -9,8 +9,9 @@ import java.util.Map;
 
 /** djev's list of grounded spans and optional diagnostics. */
 @Experimental
-public record SpansAnswer(SpansValue value, Double confidence, ConfidenceProvenance confidenceProvenance,
-                          Map<String, Object> metadata) implements StructuredDecisionAnswer {
+public record SpansAnswer(
+        SpansValue value, Double confidence, ConfidenceProvenance confidenceProvenance, Map<String, Object> metadata)
+        implements StructuredDecisionAnswer {
     public SpansAnswer {
         SpanAnswer.validateConfidence(confidence, confidenceProvenance);
         metadata = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(metadata));

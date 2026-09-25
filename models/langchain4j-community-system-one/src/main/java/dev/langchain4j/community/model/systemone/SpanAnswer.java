@@ -11,15 +11,17 @@ import java.util.Map;
 
 /** One djev grounded span and optional diagnostics. */
 @Experimental
-public record SpanAnswer(SpanValue value, Double confidence, ConfidenceProvenance confidenceProvenance,
-                         Map<String, Object> metadata) implements StructuredDecisionAnswer {
+public record SpanAnswer(
+        SpanValue value, Double confidence, ConfidenceProvenance confidenceProvenance, Map<String, Object> metadata)
+        implements StructuredDecisionAnswer {
     public SpanAnswer {
         validateConfidence(confidence, confidenceProvenance);
         metadata = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(metadata));
     }
 
     static void validateConfidence(Double confidence, ConfidenceProvenance provenance) {
-        ensureTrue((confidence == null) == (provenance == null),
+        ensureTrue(
+                (confidence == null) == (provenance == null),
                 "confidence and confidenceProvenance must both be present or absent");
         if (confidence != null) {
             ensureTrue(Double.isFinite(confidence), "confidence must be finite");
@@ -27,8 +29,8 @@ public record SpanAnswer(SpanValue value, Double confidence, ConfidenceProvenanc
         }
     }
 
-    public record SpanValue(boolean found, String text, Integer start, Integer end,
-                            Double confidence, Map<String, Object> metadata) {
+    public record SpanValue(
+            boolean found, String text, Integer start, Integer end, Double confidence, Map<String, Object> metadata) {
         public SpanValue {
             if (confidence != null) {
                 ensureTrue(Double.isFinite(confidence), "span confidence must be finite");

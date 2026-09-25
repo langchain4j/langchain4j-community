@@ -39,7 +39,8 @@ final class SystemOneSupport {
         this.apiKey = apiKey;
     }
 
-    StructuredDecisionResponse decide(StructuredDecisionRequest request, StructuredDecisionRequestParameters parameters) {
+    StructuredDecisionResponse decide(
+            StructuredDecisionRequest request, StructuredDecisionRequestParameters parameters) {
         return decode(execute("/v1/systemone", payload(request, parameters)), request);
     }
 
@@ -47,8 +48,11 @@ final class SystemOneSupport {
         return payload(request, parameters, false, false);
     }
 
-    Map<String, Object> payload(StructuredDecisionRequest request, StructuredDecisionRequestParameters parameters,
-                                boolean allowImages, boolean allowSpans) {
+    Map<String, Object> payload(
+            StructuredDecisionRequest request,
+            StructuredDecisionRequestParameters parameters,
+            boolean allowImages,
+            boolean allowSpans) {
         if (!allowImages && !request.contents().isEmpty()) {
             throw new UnsupportedFeatureException("System One JSON does not support content attachments");
         }
@@ -134,7 +138,8 @@ final class SystemOneSupport {
             if (spans.maxItems() != null) limits.put("max_items", spans.maxItems());
             if (!limits.isEmpty()) criteria = limits;
         } else {
-            throw new UnsupportedFeatureException("Unsupported System One question: " + question.getClass().getName());
+            throw new UnsupportedFeatureException(
+                    "Unsupported System One question: " + question.getClass().getName());
         }
         result.put("instructions", question.instructions());
         if (criteria != null) {
@@ -192,11 +197,15 @@ final class SystemOneSupport {
         if (type == null && question instanceof ScoreQuestion) type = "score";
         if (type == null && question instanceof SpanQuestion) type = "span";
         if (type == null && question instanceof SpansQuestion) type = "spans";
-        String expected = question instanceof NoulQuestion ? "noul"
-                : question instanceof ChoiceQuestion ? "choice"
-                : question instanceof ScoreQuestion ? "score"
-                : question instanceof SpanQuestion ? "span"
-                : question instanceof SpansQuestion ? "spans" : null;
+        String expected = question instanceof NoulQuestion
+                ? "noul"
+                : question instanceof ChoiceQuestion
+                        ? "choice"
+                        : question instanceof ScoreQuestion
+                                ? "score"
+                                : question instanceof SpanQuestion
+                                        ? "span"
+                                        : question instanceof SpansQuestion ? "spans" : null;
         if (expected == null || !expected.equals(type)) {
             throw new IllegalArgumentException("Unexpected System One answer type for " + name + ": " + type);
         }
@@ -231,8 +240,11 @@ final class SystemOneSupport {
                 }
                 items.add(spanValue((Map<String, Object>) span, false));
             }
-            return new SpansAnswer(new SpansAnswer.SpansValue(requiredBoolean(answer.get("found"), "found"), items),
-                    confidence, provenance, metadata);
+            return new SpansAnswer(
+                    new SpansAnswer.SpansValue(requiredBoolean(answer.get("found"), "found"), items),
+                    confidence,
+                    provenance,
+                    metadata);
         }
         throw new IllegalArgumentException("Unsupported System One answer type: " + type);
     }
@@ -250,8 +262,8 @@ final class SystemOneSupport {
         }
         Map<String, Object> diagnostics = new LinkedHashMap<>(answer);
         diagnostics.keySet().removeAll(List.of("type", "found", "text", "start", "end", "confidence"));
-        return new SpanAnswer.SpanValue(found, (String) text, start, end,
-                number(answer.get("confidence"), "confidence"), diagnostics);
+        return new SpanAnswer.SpanValue(
+                found, (String) text, start, end, number(answer.get("confidence"), "confidence"), diagnostics);
     }
 
     private static boolean requiredBoolean(Object value, String name) {
@@ -261,9 +273,11 @@ final class SystemOneSupport {
 
     private static Integer integer(Object value) {
         if (value == null) return null;
-        if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue())
+        if (!(value instanceof Number number)
+                || !Double.isFinite(number.doubleValue())
                 || number.doubleValue() != Math.rint(number.doubleValue())
-                || number.doubleValue() < Integer.MIN_VALUE || number.doubleValue() > Integer.MAX_VALUE) {
+                || number.doubleValue() < Integer.MIN_VALUE
+                || number.doubleValue() > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("System One span offset must be an integer");
         }
         return number.intValue();
