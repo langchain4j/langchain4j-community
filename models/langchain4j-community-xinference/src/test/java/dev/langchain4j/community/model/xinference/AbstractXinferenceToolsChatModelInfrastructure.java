@@ -1,6 +1,6 @@
 package dev.langchain4j.community.model.xinference;
 
-import static dev.langchain4j.community.model.xinference.XinferenceUtils.CHAT_MODEL_NAME;
+import static dev.langchain4j.community.model.xinference.XinferenceUtils.CHAT_MODEL_WITH_TOOLS_NAME;
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_API_KEY;
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_BASE_URL;
 import static dev.langchain4j.community.model.xinference.XinferenceUtils.XINFERENCE_IMAGE;
@@ -45,6 +45,6 @@ abstract class AbstractXinferenceToolsChatModelInfrastructure extends AbstractAi
     }
 
     public static String modelName() {
-        return CHAT_MODEL_NAME;
+        return CHAT_MODEL_WITH_TOOLS_NAME;
     }
 }

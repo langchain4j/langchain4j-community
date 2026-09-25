@@ -6,6 +6,7 @@ import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static java.util.Collections.emptyMap;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -30,6 +31,7 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.VideoContent;
 import dev.langchain4j.data.video.Video;
+import dev.langchain4j.exception.UnsupportedFeatureException;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
@@ -103,6 +105,10 @@ class InternalXinferenceHelper {
                                     .build();
                         }
                     } else if (msg instanceof ToolExecutionResultMessage message) {
+                        if (!message.hasSingleText()) {
+                            throw new UnsupportedFeatureException(
+                                    "Xinference does not support non-text content in tool results. Only text content is supported.");
+                        }
                         return ToolMessage.of(message.id(), message.text());
                     }
                     throw illegalArgument("Unknown message type: " + msg.type());
@@ -161,11 +167,15 @@ class InternalXinferenceHelper {
         if (toolSpecification.parameters() != null) {
             JsonObjectSchema parameters = toolSpecification.parameters();
             return Parameters.builder()
+                    .type("object")
                     .properties(toMap(parameters.properties()))
                     .required(parameters.required())
                     .build();
         } else {
-            return null;
+            return Parameters.builder() // For tools with no args
+                    .type("object")
+                    .properties(emptyMap())
+                    .build();
         }
     }
 
