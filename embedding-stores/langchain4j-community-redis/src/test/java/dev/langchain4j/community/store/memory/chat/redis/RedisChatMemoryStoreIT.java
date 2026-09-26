@@ -66,6 +66,35 @@ class RedisChatMemoryStoreIT {
     }
 
     @Test
+    void should_connect_with_password_when_no_user_is_set() {
+        // given: a server secured with requirepass (no ACL user)
+        RedisContainer securedRedis = new RedisContainer(DEFAULT_IMAGE_NAME.withTag(DEFAULT_TAG))
+                .withCommand("redis-server", "--requirepass", "s3cret");
+        securedRedis.start();
+        try {
+            RedisChatMemoryStore securedStore = RedisChatMemoryStore.builder()
+                    .port(securedRedis.getFirstMappedPort())
+                    .host(securedRedis.getHost())
+                    .password("s3cret")
+                    .build();
+
+            // when/then: the store authenticates with the password and operates normally
+            List<ChatMessage> messages = securedStore.getMessages("someUserId");
+            assertThat(messages).isEmpty();
+
+            List<ChatMessage> chatMessages = new ArrayList<>();
+            chatMessages.add(new SystemMessage("You are a large language model working with Langchain4j"));
+            chatMessages.add(new UserMessage("What do you see in this image?"));
+            securedStore.updateMessages("someUserId", chatMessages);
+
+            messages = securedStore.getMessages("someUserId");
+            assertThat(messages).hasSize(2);
+        } finally {
+            securedRedis.stop();
+        }
+    }
+
+    @Test
     void should_delete_messages_from_redis() {
         // given
         List<ChatMessage> chatMessages = new ArrayList<>();
