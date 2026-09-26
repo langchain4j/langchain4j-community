@@ -89,8 +89,16 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
  * <p>DynamoDB vector search can filter results only on attributes declared in the vector index
  * search schema — the {@code HASH} key and {@code INLINE_FILTER} attributes — and only with equality.
  * Those attributes are fixed when the index is created, so to use metadata filters you must declare
- * them up front with {@link Builder#inlineFilterAttributes(List)}. Only {@link dev.langchain4j.store.embedding.filter.comparison.IsEqualTo}
+ * them up front with {@link Builder#inlineFilterAttributes(List)} (each typed as a string) or
+ * {@link Builder#inlineFilterAttributes(Map)} (to give a type per attribute). Only {@link dev.langchain4j.store.embedding.filter.comparison.IsEqualTo}
  * filters (optionally combined with {@code AND}) are supported.
+ *
+ * <p>An inline filter attribute must be typed {@code S} or {@code N}: string, {@code Float} and
+ * {@code Double} metadata are stored as {@code S}, while {@code Integer} and {@code Long} metadata are
+ * stored as {@code N}. Boolean metadata cannot be an inline filter, because DynamoDB has no boolean
+ * scalar attribute type; declaring one throws {@link IllegalArgumentException} at build time. Writing a
+ * metadata value whose type does not match its declared inline filter type also throws
+ * {@link IllegalArgumentException}.
  *
  * @see <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/">Amazon DynamoDB Documentation</a>
  */
@@ -135,7 +143,7 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
     private final String textMetadataKey;
     private final VectorDistanceFunction distanceFunction;
     private final boolean createTableIfNotExists;
-    private final List<String> inlineFilterAttributes;
+    private final Map<String, ScalarAttributeType> inlineFilterAttributes;
 
     public DynamoDbEmbeddingStore(Builder builder) {
         this.tableName = ensureNotNull(builder.tableName, "tableName");
@@ -145,10 +153,34 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         this.textMetadataKey = getOrDefault(builder.textMetadataKey, DEFAULT_TEXT_METADATA_KEY);
         this.distanceFunction = getOrDefault(builder.distanceFunction, VectorDistanceFunction.COSINE);
         this.createTableIfNotExists = getOrDefault(builder.createTableIfNotExists, true);
-        this.inlineFilterAttributes =
-                builder.inlineFilterAttributes == null ? List.of() : List.copyOf(builder.inlineFilterAttributes);
+        this.inlineFilterAttributes = resolveInlineFilterAttributes(builder);
         this.ownsClient = isNull(builder.dynamoDbClient);
         this.dynamoDbClient = ownsClient ? createClient(builder) : builder.dynamoDbClient;
+    }
+
+    private Map<String, ScalarAttributeType> resolveInlineFilterAttributes(Builder builder) {
+        Map<String, ScalarAttributeType> resolved = new LinkedHashMap<>();
+        if (builder.inlineFilterAttributeTypes != null) {
+            resolved.putAll(builder.inlineFilterAttributeTypes);
+        }
+        if (builder.inlineFilterAttributes != null) {
+            for (String attribute : builder.inlineFilterAttributes) {
+                resolved.putIfAbsent(attribute, ScalarAttributeType.S);
+            }
+        }
+        for (Map.Entry<String, ScalarAttributeType> entry : resolved.entrySet()) {
+            ScalarAttributeType type = entry.getValue();
+            if (type != ScalarAttributeType.S && type != ScalarAttributeType.N) {
+                throw new IllegalArgumentException("Inline filter attribute '" + entry.getKey() + "' has type " + type
+                        + ", but DynamoDB vector search inline filters support only S (string) and N (number). "
+                        + "Boolean metadata cannot be used as an inline filter.");
+            }
+            if (entry.getKey().equals(keyAttribute)) {
+                throw new IllegalArgumentException("Inline filter attribute '" + entry.getKey()
+                        + "' collides with the partition key attribute; the key is already part of the search schema.");
+            }
+        }
+        return Collections.unmodifiableMap(resolved);
     }
 
     private DynamoDbClient createClient(Builder builder) {
@@ -198,6 +230,7 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         private VectorDistanceFunction distanceFunction;
         private Boolean createTableIfNotExists;
         private List<String> inlineFilterAttributes;
+        private Map<String, ScalarAttributeType> inlineFilterAttributeTypes;
 
         /**
          * Sets a pre-configured {@link DynamoDbClient}. If not set, one is created from the region,
@@ -269,12 +302,29 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         }
 
         /**
-         * Declares the metadata attributes that can be used in filters. These become
-         * {@code INLINE_FILTER} elements of the vector index search schema and can therefore only be
-         * set when the index is created. Defaults to none (no metadata filtering).
+         * Declares the metadata attributes that can be used in filters, each typed as a DynamoDB
+         * string ({@code S}). These become {@code INLINE_FILTER} elements of the vector index search
+         * schema and can therefore only be set when the index is created. Defaults to none (no
+         * metadata filtering).
+         *
+         * <p>Use {@link #inlineFilterAttributes(Map)} to declare numeric ({@code N}) filter
+         * attributes such as {@code Integer} or {@code Long} metadata.
          */
         public Builder inlineFilterAttributes(List<String> inlineFilterAttributes) {
             this.inlineFilterAttributes = inlineFilterAttributes;
+            return this;
+        }
+
+        /**
+         * Declares the metadata attributes that can be used in filters, each with its DynamoDB scalar
+         * type. Only {@link ScalarAttributeType#S} (strings, including {@code Float} and {@code Double}
+         * metadata, which are stored as strings) and {@link ScalarAttributeType#N} (integer and long
+         * metadata) are supported; {@link ScalarAttributeType#B} is rejected at {@link #build()}, since
+         * boolean metadata cannot be an inline filter. These become {@code INLINE_FILTER} elements of
+         * the vector index search schema and can therefore only be set when the index is created.
+         */
+        public Builder inlineFilterAttributes(Map<String, ScalarAttributeType> inlineFilterAttributeTypes) {
+            this.inlineFilterAttributeTypes = inlineFilterAttributeTypes;
             return this;
         }
 
@@ -529,10 +579,19 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
 
     private void createTable(int dimension) {
         List<SearchSchemaElement> searchSchema = new ArrayList<>();
-        for (String attribute : inlineFilterAttributes) {
+        List<AttributeDefinition> attributeDefinitions = new ArrayList<>();
+        attributeDefinitions.add(AttributeDefinition.builder()
+                .attributeName(keyAttribute)
+                .attributeType(ScalarAttributeType.S)
+                .build());
+        for (Map.Entry<String, ScalarAttributeType> entry : inlineFilterAttributes.entrySet()) {
             searchSchema.add(SearchSchemaElement.builder()
-                    .attributeName(attribute)
+                    .attributeName(entry.getKey())
                     .searchSchemaElementType(SearchSchemaElementType.INLINE_FILTER)
+                    .build());
+            attributeDefinitions.add(AttributeDefinition.builder()
+                    .attributeName(entry.getKey())
+                    .attributeType(entry.getValue())
                     .build());
         }
 
@@ -552,10 +611,7 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         CreateTableRequest request = CreateTableRequest.builder()
                 .tableName(tableName)
                 .billingMode(BillingMode.PAY_PER_REQUEST)
-                .attributeDefinitions(AttributeDefinition.builder()
-                        .attributeName(keyAttribute)
-                        .attributeType(ScalarAttributeType.S)
-                        .build())
+                .attributeDefinitions(attributeDefinitions)
                 .keySchema(KeySchemaElement.builder()
                         .attributeName(keyAttribute)
                         .keyType(KeyType.HASH)
@@ -605,12 +661,28 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
                                 + "Rename the metadata key, or configure a different keyAttribute, "
                                 + "vectorAttribute or textMetadataKey on the store.");
                     }
-                    item.put(key, DynamoDbAttributeCodec.encode(value));
+                    AttributeValue encoded = DynamoDbAttributeCodec.encode(value);
+                    ensureInlineFilterTypeMatches(key, encoded);
+                    item.put(key, encoded);
                 });
             }
         }
 
         return item;
+    }
+
+    private void ensureInlineFilterTypeMatches(String key, AttributeValue encoded) {
+        ScalarAttributeType declaredType = inlineFilterAttributes.get(key);
+        if (declaredType == null) {
+            return;
+        }
+        ScalarAttributeType actualType = encoded.n() != null ? ScalarAttributeType.N : ScalarAttributeType.S;
+        if (declaredType != actualType) {
+            throw new IllegalArgumentException("Metadata key '" + key + "' is declared as inline filter type "
+                    + declaredType + ", but its value encodes to DynamoDB type " + actualType
+                    + ". Numeric filters require Integer/Long metadata (N); string, float and double "
+                    + "metadata are stored as S.");
+        }
     }
 
     private TextSegment extractTextSegment(Map<String, AttributeValue> item) {
