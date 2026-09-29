@@ -270,6 +270,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-web-search-engine-firecrawl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- mcp -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
