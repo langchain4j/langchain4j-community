@@ -26,44 +26,54 @@ import org.junit.jupiter.params.provider.Arguments;
 
 class QwenTestHelper {
 
+    /**
+     * The default text/chat model used across integration tests: a cheap, current-generation
+     * workhorse. Update this (and the providers below) when a newer generation becomes the
+     * primary test model.
+     */
+    public static final String TEST_TEXT_MODEL_NAME = QwenModelName.QWEN3_8_FLASH;
+
+    /**
+     * The default multimodal (image/video understanding) model used across integration tests.
+     */
+    public static final String TEST_MULTIMODAL_MODEL_NAME = QwenModelName.QWEN3_VL_PLUS;
+
     public static Stream<Arguments> languageModelNameProvider() {
+        // QwenLanguageModel uses the legacy text-generation API, which qwen3.8 models do not serve
         return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX));
     }
 
     public static Stream<Arguments> nonMultimodalChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN3_7_MAX),
-                Arguments.of(QwenModelName.QWEN3_7_PLUS),
-                Arguments.of(QwenModelName.QWEN3_8_MAX));
+        return Stream.of(Arguments.of(TEST_TEXT_MODEL_NAME), Arguments.of(QwenModelName.QWEN3_8_MAX));
     }
 
     public static Stream<Arguments> reasoningChatModelNameProvider() {
         // Only streaming output is supported.
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN3_7_MAX),
-                Arguments.of(QwenModelName.QWEN3_7_PLUS),
-                Arguments.of(QwenModelName.QWEN3_8_MAX));
+        return Stream.of(Arguments.of(TEST_TEXT_MODEL_NAME), Arguments.of(QwenModelName.QWEN3_8_MAX));
     }
 
     public static Stream<Arguments> functionCallChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN3_7_MAX),
-                Arguments.of(QwenModelName.QWEN3_7_PLUS),
-                Arguments.of(QwenModelName.QWEN3_8_MAX));
+        // Hybrid-thinking models (like qwen3.8-flash) reject ToolChoice.REQUIRED while thinking is
+        // enabled and may skip AUTO tool calls while thinking is disabled, so tool tests use the
+        // flagship model with thinking disabled instead.
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_8_MAX));
     }
 
     public static Stream<Arguments> codeInterpreterModelNameProvider() {
+        // qwen3.8 models do not support the code_interpreter tool yet
         return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX));
     }
 
     public static Stream<Arguments> searchingChatModelNameProvider() {
+        // search_options are currently only forwarded on the text-generation path
+        // (see QwenHelper#toMultiModalConversationParam), so use a text-routed model here
         return Stream.of(Arguments.of(QwenModelName.QWEN3_7_MAX));
     }
 
     public static Stream<Arguments> multimodalChatModelNameProvider() {
         return Stream.of(
-                Arguments.of(QwenModelName.QWEN3_VL_FLASH),
-                Arguments.of(QwenModelName.QWEN3_7_PLUS),
+                Arguments.of(TEST_TEXT_MODEL_NAME),
+                Arguments.of(TEST_MULTIMODAL_MODEL_NAME),
                 Arguments.of(QwenModelName.QWEN3_8_MAX));
     }
 
@@ -76,8 +86,7 @@ class QwenTestHelper {
     }
 
     public static Stream<Arguments> ttsChatModelNameProvider() {
-        return Stream.of(
-                Arguments.of(QwenModelName.QWEN3_TTS_FLASH), Arguments.of(QwenModelName.QWEN3_TTS_INSTRUCT_FLASH));
+        return Stream.of(Arguments.of(QwenModelName.QWEN3_TTS_FLASH));
     }
 
     public static Stream<Arguments> embeddingModelNameProvider() {

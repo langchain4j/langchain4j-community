@@ -96,7 +96,7 @@ class QwenStreamingChatModelReactiveTest {
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey("stub-api-key")
                 .baseUrl(baseUrl)
-                .modelName(QwenModelName.QWEN_TURBO)
+                .modelName(QwenModelName.QWEN3_7_MAX)
                 .build();
 
         List<ChatModelStreamingEvent> events = collectAll(model.chat(
@@ -113,7 +113,7 @@ class QwenStreamingChatModelReactiveTest {
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey("stub-api-key")
                 .baseUrl(baseUrl)
-                .modelName(QwenModelName.QWEN_TURBO)
+                .modelName(QwenModelName.QWEN3_7_MAX)
                 .build();
 
         List<String> partials = collectAll(model.chat("hi"));

@@ -12,12 +12,14 @@ class QwenTokenUsageTest {
         QwenTokenUsage first = QwenTokenUsage.builder()
                 .inputTokenCount(100)
                 .outputTokenCount(10)
+                .totalTokenCount(110)
                 .cachedInputTokens(64)
                 .cacheCreationInputTokens(36)
                 .build();
         QwenTokenUsage second = QwenTokenUsage.builder()
                 .inputTokenCount(200)
                 .outputTokenCount(20)
+                .totalTokenCount(220)
                 .cachedInputTokens(128)
                 .build();
 
@@ -27,6 +29,7 @@ class QwenTokenUsageTest {
         QwenTokenUsage qwenSum = (QwenTokenUsage) sum;
         assertThat(qwenSum.inputTokenCount()).isEqualTo(300);
         assertThat(qwenSum.outputTokenCount()).isEqualTo(30);
+        assertThat(qwenSum.totalTokenCount()).isEqualTo(330);
         assertThat(qwenSum.cachedInputTokens()).isEqualTo(192);
         assertThat(qwenSum.cacheCreationInputTokens()).isEqualTo(36);
     }
@@ -36,12 +39,14 @@ class QwenTokenUsageTest {
         QwenTokenUsage first = QwenTokenUsage.builder()
                 .inputTokenCount(100)
                 .outputTokenCount(10)
+                .totalTokenCount(110)
                 .cachedInputTokens(64)
                 .build();
 
         TokenUsage sum = first.add(new TokenUsage(200, 20));
 
         assertThat(sum).isInstanceOf(QwenTokenUsage.class);
+        assertThat(sum.totalTokenCount()).isEqualTo(330);
         assertThat(((QwenTokenUsage) sum).cachedInputTokens()).isEqualTo(64);
         assertThat(((QwenTokenUsage) sum).cacheCreationInputTokens()).isNull();
     }

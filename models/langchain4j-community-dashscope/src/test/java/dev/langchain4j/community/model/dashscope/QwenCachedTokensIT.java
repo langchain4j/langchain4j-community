@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.TEST_TEXT_MODEL_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dev.langchain4j.data.message.ChatMessage;
@@ -43,7 +44,7 @@ class QwenCachedTokensIT {
                 .apiKey(QwenTestHelper.apiKey())
                 // optional, for dedicated deployments (e.g. private Bailian instances)
                 .baseUrl(System.getenv("DASHSCOPE_BASE_URL"))
-                .modelName(QwenModelName.QWEN3_7_MAX)
+                .modelName(TEST_TEXT_MODEL_NAME)
                 .build();
 
         List<ChatMessage> messages = List.of(SystemMessage.from(LONG_SHARED_PREFIX), UserMessage.from("Say OK."));
