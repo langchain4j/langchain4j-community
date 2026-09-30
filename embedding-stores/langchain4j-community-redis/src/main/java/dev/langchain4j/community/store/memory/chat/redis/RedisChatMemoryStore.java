@@ -98,8 +98,8 @@ public class RedisChatMemoryStore implements ChatMemoryStore {
         DefaultJedisClientConfig.Builder configBuilder = DefaultJedisClientConfig.builder();
         if (user != null) {
             configBuilder.user(ensureNotBlank(user, "user"));
-        }
-        if (password != null) {
+            configBuilder.password(ensureNotBlank(password, "password"));
+        } else if (password != null) {
             configBuilder.password(ensureNotBlank(password, "password"));
         }
         if (ssl) {
