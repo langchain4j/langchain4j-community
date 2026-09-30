@@ -79,16 +79,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final Logger log = LoggerFactory.getLogger(Neo4jEmbeddingStore.class);
 
-    public static final String ENTITIES_CREATION =
-            """
+    public static final String ENTITIES_CREATION = """
                     UNWIND $rows AS row
                     MERGE (u:%1$s {%2$s: row.%2$s})
                     SET u += row.%3$s
                     WITH row, u
                     CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
                     RETURN count(*)""";
-    public static final String INDEX_ALREADY_EXISTS_ERROR =
-            """
+    public static final String INDEX_ALREADY_EXISTS_ERROR = """
                     It's not possible to create an index for the label `%s` and the property `%s`,
                     as there is another index with name `%s` with different labels: `%s` and properties `%s`.
                     Please provide another indexName to create the vector index, or delete the existing one""";
@@ -509,8 +507,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private boolean constraintExist() {
         try (Session session = session()) {
-            String query =
-                    """
+            String query = """
                             SHOW CONSTRAINTS
                             WHERE $label IN labelsOrTypes
                             AND $property IN properties
@@ -601,14 +598,12 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             queryBuilder.append("] ");
         }
 
-        queryBuilder.append(String.format(
-                """
+        queryBuilder.append(String.format("""
                         OPTIONS { indexConfig: {
                             `vector.dimensions`: %d,
                             `vector.similarity_function`: 'cosine'
                         }}
-                        """,
-                this.dimension));
+                        """, this.dimension));
 
         try (Session session = session()) {
             String createIndexQuery = queryBuilder.toString();
