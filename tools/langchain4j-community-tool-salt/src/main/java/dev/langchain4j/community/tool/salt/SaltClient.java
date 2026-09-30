@@ -10,10 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.langchain4j.exception.HttpException;
 import dev.langchain4j.http.client.HttpClient;
-import dev.langchain4j.http.client.HttpClientBuilder;
-import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
+import dev.langchain4j.http.client.jdk.JdkHttpClient;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -31,7 +30,6 @@ import java.util.Objects;
 final class SaltClient {
 
     private static final String DEFAULT_BASE_URL = "https://saltapp.ai";
-    private static final int MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final HttpClient httpClient;
@@ -42,10 +40,13 @@ final class SaltClient {
         this.baseUri = normalizeBaseUrl(builder.baseUrl);
         this.apiKey = ensureNotBlank(builder.apiKey, "apiKey");
         Duration timeout = Objects.requireNonNull(builder.timeout, "timeout must not be null");
-        HttpClientBuilder httpClientBuilder = HttpClientBuilderLoader.loadHttpClientBuilder()
+        // Built explicitly rather than through the HttpClientBuilderLoader SPI: surfacing Salt's own
+        // error sentences depends on JdkHttpClient putting the raw response body into
+        // HttpException#getMessage() (see httpErrorMessage), so the client must not be swappable.
+        this.httpClient = JdkHttpClient.builder()
                 .connectTimeout(timeout)
-                .readTimeout(timeout);
-        this.httpClient = httpClientBuilder.build();
+                .readTimeout(timeout)
+                .build();
     }
 
     /**
@@ -74,12 +75,7 @@ final class SaltClient {
         if (text != null) {
             payload.put("text", text);
         }
-        HttpRequest request = requestBuilder("/api/v1/cards")
-                .method(POST)
-                .addHeader("Content-Type", "application/json")
-                .body(payload.toString())
-                .build();
-        return send(request);
+        return post("/api/v1/cards", payload);
     }
 
     /**
@@ -96,7 +92,7 @@ final class SaltClient {
         if (after != null && !after.isBlank()) {
             path = path + "?after=" + encodeQuery(after);
         }
-        return send(requestBuilder(path).method(GET).build());
+        return get(path);
     }
 
     /**
@@ -115,12 +111,7 @@ final class SaltClient {
         payload.put("chat_id", ensureNotBlank(chatId, "chatId"));
         payload.put("message", ensureNotBlank(text, "text"));
         payload.put("encrypted", false);
-        HttpRequest request = requestBuilder("/api/v1/messages")
-                .method(POST)
-                .addHeader("Content-Type", "application/json")
-                .body(payload.toString())
-                .build();
-        return send(request);
+        return post("/api/v1/messages", payload);
     }
 
     /**
@@ -142,12 +133,7 @@ final class SaltClient {
         if (note != null) {
             payload.put("message", note);
         }
-        HttpRequest request = requestBuilder("/api/v1/transfer_requests")
-                .method(POST)
-                .addHeader("Content-Type", "application/json")
-                .body(payload.toString())
-                .build();
-        return send(request);
+        return post("/api/v1/transfer_requests", payload);
     }
 
     /**
@@ -158,7 +144,20 @@ final class SaltClient {
      * @return Salt's response JSON (an array)
      */
     JsonNode listChats() {
-        return send(requestBuilder("/api/v1/chats").method(GET).build());
+        return get("/api/v1/chats");
+    }
+
+    private JsonNode get(String path) {
+        return send(requestBuilder(path).method(GET).build());
+    }
+
+    private JsonNode post(String path, ObjectNode payload) {
+        HttpRequest request = requestBuilder(path)
+                .method(POST)
+                .addHeader("Content-Type", "application/json")
+                .body(payload.toString())
+                .build();
+        return send(request);
     }
 
     private HttpRequest.Builder requestBuilder(String path) {
@@ -175,9 +174,6 @@ final class SaltClient {
             String body = response.body();
             if (body == null || body.isBlank()) {
                 throw new SaltClientException("Salt returned an empty response.");
-            }
-            if (body.getBytes(StandardCharsets.UTF_8).length > MAX_RESPONSE_BYTES) {
-                throw new SaltClientException("Salt response exceeds the 5 MiB safety limit.");
             }
             return OBJECT_MAPPER.readTree(body);
         } catch (HttpException e) {

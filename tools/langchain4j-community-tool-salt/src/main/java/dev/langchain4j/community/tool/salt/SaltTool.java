@@ -6,8 +6,12 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
+import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -33,6 +37,7 @@ public final class SaltTool {
     private static final int MIN_BUTTONS = 1;
     private static final int MAX_BUTTONS = 5;
     private static final Pattern NON_ACTION_ID_CHARS = Pattern.compile("[^a-z0-9_\\-]+");
+    private static final Pattern PLAIN_POSITIVE_DECIMAL = Pattern.compile("\\d+(\\.\\d+)?");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final SaltClient client;
@@ -140,7 +145,7 @@ public final class SaltTool {
             }
             StringBuilder result =
                     new StringBuilder("Taps on card ").append(cardId).append(" (newest first):");
-            for (JsonNode interaction : interactions) {
+            for (JsonNode interaction : newestFirst(interactions)) {
                 result.append(System.lineSeparator())
                         .append("- action=")
                         .append(text(interaction, "action_id", "unknown"))
@@ -205,8 +210,13 @@ public final class SaltTool {
             @P("This agent's own wallet id to receive the payment") String walletId,
             @P("A human-decimal amount, e.g. \"1.50\" -- never base units") String amount,
             @P(value = "An optional note shown on the request", required = false) String note) {
+        if (amount == null
+                || !PLAIN_POSITIVE_DECIMAL.matcher(amount.trim()).matches()
+                || new BigDecimal(amount.trim()).signum() <= 0) {
+            return "Error: amount must be a plain positive decimal number with a dot separator, e.g. \"1.50\".";
+        }
         try {
-            JsonNode response = client.createTransferRequest(receiverId, walletId, amount, chatId, note);
+            JsonNode response = client.createTransferRequest(receiverId, walletId, amount.trim(), chatId, note);
             return "Payment request created. id=" + text(response, "id", "unknown") + " status="
                     + text(response, "status", "unknown");
         } catch (RuntimeException e) {
@@ -272,8 +282,8 @@ public final class SaltTool {
             int suffix = 2;
             while (ids.contains(candidate)) {
                 String suffixed = "_" + suffix;
-                int trim = Math.max(0, base.length() - suffixed.length());
-                candidate = base.substring(0, Math.min(base.length(), trim)) + suffixed;
+                int keep = Math.min(base.length(), MAX_BUTTON_LABEL - suffixed.length());
+                candidate = base.substring(0, keep) + suffixed;
                 suffix++;
             }
             ids.add(candidate);
@@ -281,12 +291,29 @@ public final class SaltTool {
         return ids;
     }
 
+    // Salt answers newest first (created_at desc, id desc (ids are UUIDs, so the id is only a stable tiebreak)), but
+    // the tool's output states that order,
+    // so it is enforced here rather than trusted: created_at descending, then id descending.
+    private static List<JsonNode> newestFirst(JsonNode interactions) {
+        List<JsonNode> sorted = new ArrayList<>();
+        interactions.forEach(sorted::add);
+        sorted.sort(Comparator.comparing((JsonNode n) -> createdAt(n), Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing((JsonNode n) -> text(n, "id", ""))
+                .reversed());
+        return sorted;
+    }
+
+    private static Instant createdAt(JsonNode interaction) {
+        try {
+            return OffsetDateTime.parse(text(interaction, "created_at", "")).toInstant();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     private static String text(JsonNode node, String field, String fallback) {
         JsonNode value = node.path(field);
-        if (value.isMissingNode() || value.isNull()) {
-            return fallback;
-        }
-        return value.isTextual() ? value.asText() : value.asText(fallback);
+        return value.isTextual() && !value.asText().isBlank() ? value.asText() : fallback;
     }
 
     private static String formatError(RuntimeException error) {

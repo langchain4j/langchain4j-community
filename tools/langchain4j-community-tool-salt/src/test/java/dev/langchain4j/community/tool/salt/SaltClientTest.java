@@ -220,20 +220,23 @@ class SaltClientTest {
     }
 
     @Test
-    void rejectsEmptyAndOversizedResponses() throws Exception {
-        AtomicReference<RecordedRequest> emptyRecorded = new AtomicReference<>();
-        try (TestServer server = startServer(200, "", emptyRecorded)) {
+    void rejectsEmptyResponses() throws Exception {
+        try (TestServer server = startServer(200, "", new AtomicReference<>())) {
             assertThatThrownBy(() -> client(server).listChats())
                     .isInstanceOf(SaltClientException.class)
                     .hasMessage("Salt returned an empty response.");
         }
+    }
 
-        AtomicReference<RecordedRequest> largeRecorded = new AtomicReference<>();
-        String largeResponse = "\"" + "x".repeat(5 * 1024 * 1024) + "\"";
-        try (TestServer server = startServer(200, largeResponse, largeRecorded)) {
+    // Pins the dependency httpErrorMessage() relies on: the JDK client puts the raw error body
+    // into HttpException#getMessage(), so Salt's own sentence reaches the model verbatim.
+    @Test
+    void surfacesSaltErrorSentenceVerbatimFromTheJdkClient() throws Exception {
+        try (TestServer server = startServer(
+                422, "{\"errors\":[\"Amount is invalid.\",\"Wallet is required.\"]}", new AtomicReference<>())) {
             assertThatThrownBy(() -> client(server).listChats())
                     .isInstanceOf(SaltClientException.class)
-                    .hasMessage("Salt response exceeds the 5 MiB safety limit.");
+                    .hasMessage("Amount is invalid. Wallet is required.");
         }
     }
 

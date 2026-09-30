@@ -8,13 +8,11 @@ final class SaltClientException extends RuntimeException {
     private final int statusCode;
 
     SaltClientException(String message) {
-        super(message);
-        this.statusCode = -1;
+        this(-1, message, null);
     }
 
     SaltClientException(String message, Throwable cause) {
-        super(message, cause);
-        this.statusCode = -1;
+        this(-1, message, cause);
     }
 
     SaltClientException(int statusCode, String message, Throwable cause) {

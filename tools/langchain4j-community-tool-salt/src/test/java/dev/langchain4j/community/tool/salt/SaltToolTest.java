@@ -108,6 +108,97 @@ class SaltToolTest {
     }
 
     @Test
+    void readCardTaps_sortsNewestFirstWhateverOrderSaltReturns() throws Exception {
+        String response = """
+                {"id":"c-1","interactions":[
+                  {"id":"i-5","user_id":"u-1","action_id":"oldest","created_at":"2026-09-27T00:00:00Z"},
+                  {"id":"i-9","user_id":"u-1","action_id":"newest","created_at":"2026-09-27T00:00:09Z"},
+                  {"id":"i-7","user_id":"u-1","action_id":"tie_low_id","created_at":"2026-09-27T00:00:05Z"},
+                  {"id":"i-8","user_id":"u-1","action_id":"tie_high_id","created_at":"2026-09-27T00:00:05Z"}
+                ]}
+                """;
+        try (TestServer server = startServer(200, response, new AtomicReference<>())) {
+            String result = tool(server).readCardTaps("c-1", null);
+
+            assertThat(result.indexOf("action=newest")).isLessThan(result.indexOf("action=tie_high_id"));
+            assertThat(result.indexOf("action=tie_high_id")).isLessThan(result.indexOf("action=tie_low_id"));
+            assertThat(result.indexOf("action=tie_low_id")).isLessThan(result.indexOf("action=oldest"));
+        }
+    }
+
+    @Test
+    void postCard_suffixesCollidingActionIds() throws Exception {
+        AtomicReference<String> capturedBody = new AtomicReference<>();
+        try (TestServer server = startServer(200, "{\"message_id\":\"m-1\"}", capturedBody)) {
+            tool(server).postCard("chat-1", "Q", List.of("Yes!", "yes", "YES?"));
+
+            assertThat(capturedBody.get())
+                    .contains("\"action_id\":\"yes\"")
+                    .contains("\"action_id\":\"yes_2\"")
+                    .contains("\"action_id\":\"yes_3\"");
+        }
+    }
+
+    @Test
+    void postCard_keepsSuffixedActionIdWithinFortyCharacters() throws Exception {
+        AtomicReference<String> capturedBody = new AtomicReference<>();
+        try (TestServer server = startServer(200, "{\"message_id\":\"m-1\"}", capturedBody)) {
+            String label = "a".repeat(40);
+            tool(server).postCard("chat-1", "Q", List.of(label, label));
+
+            assertThat(capturedBody.get())
+                    .contains("\"action_id\":\"" + label + "\"")
+                    .contains("\"action_id\":\"" + "a".repeat(38) + "_2\"");
+        }
+    }
+
+    @Test
+    void postCard_fallsBackToOptionActionIdForEmojiOnlyLabels() throws Exception {
+        AtomicReference<String> capturedBody = new AtomicReference<>();
+        try (TestServer server = startServer(200, "{\"message_id\":\"m-1\"}", capturedBody)) {
+            tool(server).postCard("chat-1", "Q", List.of("\uD83D\uDC4D", "\uD83D\uDC4E"));
+
+            assertThat(capturedBody.get()).contains("\"action_id\":\"option\"").contains("\"action_id\":\"option_2\"");
+        }
+    }
+
+    @Test
+    void postCard_acceptsQuestionAtLimitAndRejectsOneOver() throws Exception {
+        try (TestServer server = startServer(200, "{\"message_id\":\"m-1\"}", new AtomicReference<>())) {
+            SaltTool tool = tool(server);
+
+            assertThat(tool.postCard("chat-1", "q".repeat(2000), List.of("Yes")))
+                    .startsWith("Card posted.");
+            assertThat(tool.postCard("chat-1", "q".repeat(2001), List.of("Yes")))
+                    .isEqualTo("Error: question must be at most 2000 characters.");
+        }
+    }
+
+    @Test
+    void createPaymentRequest_rejectsAmountThatIsNotAPlainPositiveDecimal() {
+        SaltTool tool = SaltTool.builder()
+                .apiKey("test-key")
+                .baseUrl("http://localhost:1")
+                .build();
+
+        for (String bad : new String[] {"1,50", "abc", "-1", "0", "0.00", "1e3", "", " ", ".5", "1.", "$5"}) {
+            assertThat(tool.createPaymentRequest("chat-1", "u-2", "w-1", bad, null))
+                    .as(bad)
+                    .startsWith("Error: amount must be a plain positive decimal");
+        }
+        assertThat(tool.createPaymentRequest("chat-1", "u-2", "w-1", null, null))
+                .startsWith("Error: amount must be");
+    }
+
+    @Test
+    void text_treatsBlankValuesAsMissing() throws Exception {
+        try (TestServer server = startServer(200, "{\"id\":\"tr-42\",\"status\":\"  \"}", new AtomicReference<>())) {
+            assertThat(tool(server).createPaymentRequest("chat-1", "u-2", "w-1", "1.50", null))
+                    .isEqualTo("Payment request created. id=tr-42 status=unknown");
+        }
+    }
+
+    @Test
     void readCardTaps_reportsNoTapsYet() throws Exception {
         try (TestServer server = startServer(200, "{\"id\":\"c-1\",\"interactions\":[]}", new AtomicReference<>())) {
             SaltTool tool = tool(server);
