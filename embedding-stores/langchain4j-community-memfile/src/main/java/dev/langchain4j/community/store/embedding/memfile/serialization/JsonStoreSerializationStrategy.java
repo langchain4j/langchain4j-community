@@ -20,6 +20,7 @@ import dev.langchain4j.community.store.embedding.memfile.MemFileEmbeddingStore;
 import dev.langchain4j.community.store.embedding.memfile.MemFileEmbeddingStore.MemFileStoreData;
 import dev.langchain4j.data.embedding.Embedding;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -154,7 +155,7 @@ public class JsonStoreSerializationStrategy<T> implements StoreSerializationStra
         ensureNotNull(filePath, "filePath");
         try {
             String json = serialize(store);
-            Files.write(filePath, json.getBytes(), CREATE, TRUNCATE_EXISTING);
+            Files.write(filePath, json.getBytes(StandardCharsets.UTF_8), CREATE, TRUNCATE_EXISTING);
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to serialize MemFileEmbeddingStore to file: " + filePath, e);

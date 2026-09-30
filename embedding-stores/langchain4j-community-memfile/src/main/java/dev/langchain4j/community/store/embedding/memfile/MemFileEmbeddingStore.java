@@ -24,6 +24,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -677,7 +678,7 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
                 content = OBJECT_MAPPER.writeValueAsString(embedded);
             }
 
-            Files.write(filePath, content.getBytes(), CREATE, TRUNCATE_EXISTING);
+            Files.write(filePath, content.getBytes(StandardCharsets.UTF_8), CREATE, TRUNCATE_EXISTING);
             log.debug("Saved chunk to file: {}", filePath);
             return fileName;
         } catch (IOException e) {
