@@ -1,6 +1,7 @@
 package dev.langchain4j.model.router;
 
 import dev.langchain4j.Experimental;
+import dev.langchain4j.exception.AsyncNotSupportedException;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -108,6 +109,11 @@ public class FailoverStrategy extends DelegatingModelRoutingStrategy {
 
         @Override
         public void onError(ChatModelErrorContext errorContext) {
+            // Missing async support does not mean the model's synchronous path is unhealthy.
+            if (errorContext.attributes().get(ChatModelWrapper.ASYNC_INVOCATION) == wrapper
+                    && errorContext.error() instanceof AsyncNotSupportedException) {
+                return;
+            }
             wrapper.setMetadata(FAILED, Boolean.TRUE);
             wrapper.setMetadata(FAILED_TIME, Instant.now());
             wrapper.setMetadata(FAILED_REASON, errorContext.error());

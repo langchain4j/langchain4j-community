@@ -34,6 +34,43 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class StreamingModelRouterTest {
 
+    @Test
+    void unsupportedReactiveDelegateStillFailsOver() throws InterruptedException {
+        StreamingChatModel unsupported = new StreamingChatModel() {};
+        ScriptedStreamingModel healthy = successfulModel("healthy");
+        EventCollector collector = new EventCollector();
+        StreamingModelRouter.builder()
+                .addRoutes(unsupported, healthy)
+                .routingStrategy(new FailoverStrategy())
+                .build()
+                .chat(REQUEST)
+                .subscribe(collector);
+        collector.awaitTerminal();
+        assertNull(collector.error.get());
+        assertEquals(1, healthy.reactiveCalls());
+        assertEquals("healthy", ((PartialResponse) collector.events.get(0)).text());
+    }
+
+    @Test
+    void cancellationAfterReactiveFailoverCancelsActiveDelegate() {
+        ControlledStreamingModel first = new ControlledStreamingModel();
+        ControlledStreamingModel second = new ControlledStreamingModel();
+        DemandCollector collector = new DemandCollector(1L);
+        StreamingModelRouter.builder()
+                .addRoutes(first, second)
+                .routingStrategy(new FailoverStrategy())
+                .build()
+                .chat(REQUEST)
+                .subscribe(collector);
+        first.subscriber.onError(new IllegalStateException("first"));
+        collector.subscription.cancel();
+        assertEquals(1, second.cancels.get());
+        second.subscriber.onNext(new PartialResponse("late"));
+        second.subscriber.onComplete();
+        assertTrue(collector.events.isEmpty());
+        assertEquals(0, collector.completions);
+    }
+
     @ParameterizedTest
     @ValueSource(longs = {0, -1})
     void invalidDemandInOnSubscribeShouldSignalError(long n) {

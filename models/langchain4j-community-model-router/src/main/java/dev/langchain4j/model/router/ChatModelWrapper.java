@@ -6,6 +6,7 @@ import dev.langchain4j.Experimental;
 import dev.langchain4j.model.ModelProvider;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.ChatRequestOptions;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -15,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Wraps a {@link ChatModel} adding optional routing metadata.
@@ -25,6 +27,9 @@ import java.util.Set;
  */
 @Experimental
 public class ChatModelWrapper extends ModelWrapper implements ChatModel {
+
+    // Per-invocation context, rather than shared state: sync and async calls can overlap.
+    static final Object ASYNC_INVOCATION = new Object();
 
     private final ChatModel model;
 
@@ -44,6 +49,23 @@ public class ChatModelWrapper extends ModelWrapper implements ChatModel {
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
         return model.chat(chatRequest);
+    }
+
+    @Override
+    public CompletableFuture<ChatResponse> doChatAsync(ChatRequest chatRequest) {
+        return model.chatAsync(chatRequest);
+    }
+
+    @Override
+    public CompletableFuture<ChatResponse> chatAsync(ChatRequest chatRequest, ChatRequestOptions options) {
+        Map<Object, Object> attributes = new HashMap<>();
+        if (options != null) {
+            attributes.putAll(options.listenerAttributes());
+        }
+        attributes.put(ASYNC_INVOCATION, this);
+        return ChatModel.super.chatAsync(
+                chatRequest,
+                ChatRequestOptions.builder().listenerAttributes(attributes).build());
     }
 
     @Override
