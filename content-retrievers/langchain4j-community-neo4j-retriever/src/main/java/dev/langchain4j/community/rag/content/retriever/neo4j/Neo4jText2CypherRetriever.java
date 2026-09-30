@@ -280,7 +280,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
         /**
          * @param dialect the string value of the {@link org.neo4j.cypherdsl.core.renderer},
-         *                to be used via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withDialect(Dialect)} , if {@param relationships} is not empty
+         *                to be used via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withDialect(Dialect)} , if {@code relationships} is not empty
          *                (default is: "NEO4J_5_23")
          */
         public Builder dialect(String dialect) {
