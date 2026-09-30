@@ -79,16 +79,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private static final Logger log = LoggerFactory.getLogger(Neo4jEmbeddingStore.class);
 
-    public static final String ENTITIES_CREATION =
-            """
+    public static final String ENTITIES_CREATION = """
                     UNWIND $rows AS row
                     MERGE (u:%1$s {%2$s: row.%2$s})
                     SET u += row.%3$s
                     WITH row, u
                     CALL db.create.setNodeVectorProperty(u, $embeddingProperty, row.%4$s)
                     RETURN count(*)""";
-    public static final String INDEX_ALREADY_EXISTS_ERROR =
-            """
+    public static final String INDEX_ALREADY_EXISTS_ERROR = """
                     It's not possible to create an index for the label `%s` and the property `%s`,
                     as there is another index with name `%s` with different labels: `%s` and properties `%s`.
                     Please provide another indexName to create the vector index, or delete the existing one""";
@@ -143,7 +141,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
      * (default: "RETURN properties(node) AS metadata, node.`idProperty` AS `idProperty`, node.`textProperty` AS `textProperty`, node.`embeddingProperty` AS `embeddingProperty`, score")
      * @param fullTextIndexName      the optional full-text index name, to perform a hybrid search (default: `fulltext`)
      * @param fullTextQuery          the optional full-text index query, required if we want to perform a hybrid search
-     * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
+     * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@code retrievalQuery})
      * @param autoCreateFullText     if true, it will auto create the full-text index if not exists (default: false)
      * @param initializeSchema       if true, it will create vector index and constraints (default: true)
      * @param entityCreationQuery    the optional entity creation query (default: {@link Neo4jEmbeddingStore#ENTITIES_CREATION})
@@ -509,8 +507,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
 
     private boolean constraintExist() {
         try (Session session = session()) {
-            String query =
-                    """
+            String query = """
                             SHOW CONSTRAINTS
                             WHERE $label IN labelsOrTypes
                             AND $property IN properties
@@ -601,14 +598,12 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
             queryBuilder.append("] ");
         }
 
-        queryBuilder.append(String.format(
-                """
+        queryBuilder.append(String.format("""
                         OPTIONS { indexConfig: {
                             `vector.dimensions`: %d,
                             `vector.similarity_function`: 'cosine'
                         }}
-                        """,
-                this.dimension));
+                        """, this.dimension));
 
         try (Session session = session()) {
             String createIndexQuery = queryBuilder.toString();
@@ -769,7 +764,7 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         }
 
         /**
-         * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@param retrievalQuery})
+         * @param fullTextRetrievalQuery the optional full-text retrieval query (default: {@code retrievalQuery})
          */
         public Builder fullTextRetrievalQuery(String fullTextRetrievalQuery) {
             this.fullTextRetrievalQuery = fullTextRetrievalQuery;

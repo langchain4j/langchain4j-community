@@ -27,8 +27,7 @@ import org.neo4j.driver.types.TypeSystem;
 
 public class Neo4jText2CypherRetriever implements ContentRetriever {
 
-    private static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from(
-            """
+    private static final PromptTemplate DEFAULT_PROMPT_TEMPLATE = PromptTemplate.from("""
                     Task:Generate Cypher statement to query a graph database.
                     Instructions
                     Use only the provided relationship types and properties in the schema.
@@ -44,8 +43,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                     The question is: {{question}}
                     """);
 
-    public static final PromptTemplate FROM_LLM_PROMPT_TEMPLATE = PromptTemplate.from(
-            """
+    public static final PromptTemplate FROM_LLM_PROMPT_TEMPLATE = PromptTemplate.from("""
                     Based on the following context and the generated Cypher,
                     write an answer in natural language to the provided user's question:
                     Context: {{context}}
@@ -140,14 +138,12 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                         try {
                             response = executeQuery(cypherQuery);
                         } catch (Exception e) {
-                            String errorUserMsg = String.format(
-                                    """
+                            String errorUserMsg = String.format("""
                                             The previous Cypher Statement throws the following error, consider it to return the correct statement: `%s`.
                                             Please, try to return a valid query.
 
                                             Cypher query:
-                                            """,
-                                    e.getMessage());
+                                            """, e.getMessage());
                             messages.add(UserMessage.from(errorUserMsg));
                             throw e;
                         }
@@ -155,8 +151,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
                         List<Content> list =
                                 response.stream().map(Content::from).toList();
                         if (list.isEmpty()) {
-                            String errorUserMsg =
-                                    """
+                            String errorUserMsg = """
                                             The previous Cypher Statement returns no result, consider it to return the correct statement.
                                             Please, try to return a valid query.
 
@@ -280,7 +275,7 @@ public class Neo4jText2CypherRetriever implements ContentRetriever {
 
         /**
          * @param dialect the string value of the {@link org.neo4j.cypherdsl.core.renderer},
-         *                to be used via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withDialect(Dialect)} , if {@param relationships} is not empty
+         *                to be used via {@link org.neo4j.cypherdsl.core.renderer.Configuration.Builder#withDialect(Dialect)} , if {@code relationships} is not empty
          *                (default is: "NEO4J_5_23")
          */
         public Builder dialect(String dialect) {
