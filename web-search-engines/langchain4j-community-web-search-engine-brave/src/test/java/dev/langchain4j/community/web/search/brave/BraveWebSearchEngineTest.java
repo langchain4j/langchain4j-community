@@ -80,7 +80,7 @@ class BraveWebSearchEngineTest {
         assertThat(httpRequest.url())
                 .contains("q=What+is+LangChain4j")
                 .contains("count=5")
-                .contains("offset=5")
+                .contains("offset=1")
                 .contains("search_lang=de")
                 .contains("country=DE")
                 .contains("safesearch=off")
@@ -126,7 +126,7 @@ class BraveWebSearchEngineTest {
         // then
         assertThat(braveRequest.getQuery()).isEqualTo("What is LangChain4j?");
         assertThat(braveRequest.getCount()).isEqualTo(5);
-        assertThat(braveRequest.getOffset()).isEqualTo(9);
+        assertThat(braveRequest.getOffset()).isEqualTo(2);
         assertThat(braveRequest.getLanguage()).isEqualTo("de");
         assertThat(braveRequest.getCountry()).isEqualTo("DE");
         assertThat(braveRequest.getSafesearch()).isNull();
@@ -150,6 +150,27 @@ class BraveWebSearchEngineTest {
         // then
         assertThat(braveRequest.getCount()).isEqualTo(20);
         assertThat(braveRequest.getOffset()).isEqualTo(9);
+    }
+
+    @Test
+    void should_report_effective_page_and_total_when_offset_is_clamped() {
+
+        // given
+        recordingHttpClient.responseBody = RESPONSE_WITH_WEB_SECTION;
+        WebSearchRequest request = WebSearchRequest.builder()
+                .searchTerms("What is LangChain4j?")
+                .startPage(25)
+                .build();
+
+        // when
+        WebSearchResults results = engine().search(request);
+
+        // then - offset clamped to Brave's max page index (9) -> effective page 10, not the requested 25
+        assertThat(recordingHttpClient.lastRequest.url()).contains("offset=9");
+        assertThat(results.searchInformation().pageNumber()).isEqualTo(10);
+
+        // offset 9 pages * 20 (default count) + 2 returned results
+        assertThat(results.searchInformation().totalResults()).isEqualTo(182L);
     }
 
     @Test

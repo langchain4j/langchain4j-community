@@ -90,9 +90,8 @@ public class BraveWebSearchEngine implements WebSearchEngine {
 
         Integer offset = null;
         if (webSearchRequest.startPage() != null && webSearchRequest.startPage() > 1) {
-            int pageSize = count != null ? count : MAX_COUNT;
-            long requestedOffset = (long) (webSearchRequest.startPage() - 1) * pageSize;
-            offset = (int) Math.min(requestedOffset, MAX_OFFSET);
+            // Brave's offset is a 0-based index of result pages (count) to skip, not a result position.
+            offset = Math.min(webSearchRequest.startPage() - 1, MAX_OFFSET);
         }
 
         String safesearch = null;
@@ -120,15 +119,16 @@ public class BraveWebSearchEngine implements WebSearchEngine {
     }
 
     private static Integer pageNumber(BraveWebSearchRequest request) {
-        int pageSize = request.getCount() != null ? request.getCount() : MAX_COUNT;
         int offset = request.getOffset() != null ? request.getOffset() : 0;
-        return offset / pageSize + 1;
+        return offset + 1;
     }
 
     private static long totalResults(BraveWebSearchRequest request, List<WebSearchOrganicResult> results) {
-        // Brave does not expose a total count. The number through the returned page is the closest useful value.
+        // Brave does not expose a total count. The number of results through the returned page is the closest
+        // useful value.
         int offset = request.getOffset() != null ? request.getOffset() : 0;
-        return (long) offset + results.size();
+        int pageSize = request.getCount() != null ? request.getCount() : MAX_COUNT;
+        return (long) offset * pageSize + results.size();
     }
 
     private static String stringParameter(Map<String, Object> parameters, String name) {
