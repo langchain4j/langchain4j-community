@@ -30,22 +30,35 @@ import org.junit.jupiter.api.Timeout;
 
 class FirecrawlWebSearchEngineTest {
 
+    // Shape of a default search response, without scrapeOptions there is no "markdown" field
     private static final String RESPONSE = "{"
             + "\"success\": true,"
-            + "\"creditsUsed\": 2,"
+            + "\"creditsUsed\": 1,"
             + "\"id\": \"abc\","
             + "\"data\": {"
             + "  \"web\": ["
             + "    {\"url\": \"https://docs.langchain4j.dev/intro/\", \"title\": \"Introduction | LangChain4j\","
             + "     \"description\": \"The goal of LangChain4j is to simplify integrating LLMs into Java applications.\","
-            + "     \"position\": 1, \"category\": \"docs\", \"markdown\": \"# Introduction\","
-            + "     \"metadata\": {\"ogTitle\": \"Introduction\"}},"
+            + "     \"position\": 1, \"category\": \"docs\"},"
             + "    {\"url\": \"\", \"title\": \"No URL\", \"description\": \"skipped\", \"position\": 2},"
             + "    {\"url\": \"https://example.com/no-title\", \"title\": \" \", \"position\": 3},"
             + "    {\"url\": \"https://github.com/langchain4j/langchain4j\", \"title\": \"LangChain4j on GitHub\","
             + "     \"description\": \"Java library for LLM apps\", \"position\": 4}"
             + "  ],"
             + "  \"news\": [{\"title\": \"ignored\"}]"
+            + "}}";
+
+    // Shape of a search response with scrapeOptions, each web result also carries "markdown" and "metadata"
+    private static final String SCRAPE_RESPONSE = "{"
+            + "\"success\": true,"
+            + "\"creditsUsed\": 2,"
+            + "\"data\": {"
+            + "  \"web\": ["
+            + "    {\"url\": \"https://docs.langchain4j.dev/intro/\", \"title\": \"Introduction | LangChain4j\","
+            + "     \"description\": \"The goal of LangChain4j is to simplify integrating LLMs into Java applications.\","
+            + "     \"position\": 1, \"markdown\": \"# Introduction\","
+            + "     \"metadata\": {\"ogTitle\": \"Introduction\", \"statusCode\": 200}}"
+            + "  ]"
             + "}}";
 
     private HttpServer server;
@@ -122,7 +135,7 @@ class FirecrawlWebSearchEngineTest {
     void should_send_optional_parameters() {
         FirecrawlWebSearchEngine engine = engineBuilder()
                 .location("Germany")
-                .tbs("qdr:w")
+                .timeBasedFilter("qdr:w")
                 .scrapeContent(true)
                 .build();
 
@@ -135,12 +148,14 @@ class FirecrawlWebSearchEngineTest {
                 .contains("\"limit\":3")
                 .contains("\"location\":\"Germany\"")
                 .contains("\"tbs\":\"qdr:w\"")
-                .contains("\"scrapeOptions\":{\"formats\":[\"markdown\"]}");
+                .contains("\"scrapeOptions\":{\"formats\":[{\"type\":\"markdown\"}]}");
     }
 
     @Test
-    void should_map_response() {
+    void should_map_response_without_content_by_default() {
         WebSearchResults webSearchResults = engineBuilder().build().search("What is LangChain4j?");
+
+        assertThat(requestBody.get()).doesNotContain("scrapeOptions");
 
         List<WebSearchOrganicResult> results = webSearchResults.results();
         assertThat(results).hasSize(2);
@@ -150,13 +165,28 @@ class FirecrawlWebSearchEngineTest {
         assertThat(first.title()).isEqualTo("Introduction | LangChain4j");
         assertThat(first.url()).isEqualTo(URI.create("https://docs.langchain4j.dev/intro/"));
         assertThat(first.snippet()).startsWith("The goal of LangChain4j");
-        assertThat(first.content()).isEqualTo("# Introduction");
+        assertThat(first.content()).isNull();
         assertThat(first.metadata()).containsExactlyEntriesOf(Map.of("position", "1"));
 
         WebSearchOrganicResult second = results.get(1);
         assertThat(second.url()).isEqualTo(URI.create("https://github.com/langchain4j/langchain4j"));
         assertThat(second.content()).isNull();
         assertThat(second.metadata()).containsEntry("position", "4");
+    }
+
+    @Test
+    void should_map_scraped_markdown_to_content() {
+        responseBody = SCRAPE_RESPONSE;
+
+        WebSearchResults webSearchResults =
+                engineBuilder().scrapeContent(true).build().search("What is LangChain4j?");
+
+        assertThat(requestBody.get()).contains("\"scrapeOptions\":{\"formats\":[{\"type\":\"markdown\"}]}");
+
+        List<WebSearchOrganicResult> results = webSearchResults.results();
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).content()).isEqualTo("# Introduction");
+        assertThat(results.get(0).metadata()).containsExactlyEntriesOf(Map.of("position", "1"));
     }
 
     @Test

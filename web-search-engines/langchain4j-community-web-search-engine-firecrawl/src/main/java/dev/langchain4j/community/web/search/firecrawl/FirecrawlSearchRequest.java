@@ -18,7 +18,8 @@ class FirecrawlSearchRequest {
         this.sources = builder.sources;
         this.location = builder.location;
         this.tbs = builder.tbs;
-        this.scrapeOptions = Boolean.TRUE.equals(builder.scrapeContent) ? new ScrapeOptions(List.of("markdown")) : null;
+        this.scrapeOptions =
+                Boolean.TRUE.equals(builder.scrapeContent) ? new ScrapeOptions(List.of(new Format("markdown"))) : null;
         this.origin = builder.origin;
     }
 
@@ -56,14 +57,27 @@ class FirecrawlSearchRequest {
 
     static class ScrapeOptions {
 
-        private final List<String> formats;
+        private final List<Format> formats;
 
-        ScrapeOptions(List<String> formats) {
+        ScrapeOptions(List<Format> formats) {
             this.formats = formats;
         }
 
-        public List<String> getFormats() {
+        public List<Format> getFormats() {
             return formats;
+        }
+    }
+
+    static class Format {
+
+        private final String type;
+
+        Format(String type) {
+            this.type = type;
+        }
+
+        public String getType() {
+            return type;
         }
     }
 

@@ -31,7 +31,8 @@ import java.util.concurrent.CompletableFuture;
  * <br>
  * When {@link Builder#scrapeContent(Boolean)} is set to {@code true}, Firecrawl also scrapes each result and its
  * content appears as Markdown in the {@link WebSearchOrganicResult#content()} field. Scraping uses additional
- * credits and takes longer, so the default timeout is raised to 60 seconds in that case.
+ * credits and takes longer, so the default timeout is raised to 90 seconds in that case, which leaves a margin
+ * over the 60 second budget Firecrawl allows a search request by default.
  * <br>
  * {@link WebSearchRequest#maxResults()} is sent as the {@code limit}, which Firecrawl accepts between 1 and 100.
  */
@@ -39,13 +40,13 @@ public class FirecrawlWebSearchEngine implements WebSearchEngine {
 
     private static final String DEFAULT_BASE_URL = "https://api.firecrawl.dev/v2/";
     private static final Duration DEFAULT_TIMEOUT = ofSeconds(10);
-    private static final Duration DEFAULT_SCRAPE_TIMEOUT = ofSeconds(60);
+    private static final Duration DEFAULT_SCRAPE_TIMEOUT = ofSeconds(90);
     private static final List<String> SOURCES = List.of("web");
     private static final String ORIGIN = "langchain4j";
 
     private final FirecrawlClient client;
     private final String location;
-    private final String tbs;
+    private final String timeBasedFilter;
     private final Boolean scrapeContent;
 
     private FirecrawlWebSearchEngine(Builder builder) {
@@ -59,7 +60,7 @@ public class FirecrawlWebSearchEngine implements WebSearchEngine {
                 builder.logRequests,
                 builder.logResponses);
         this.location = builder.location;
-        this.tbs = builder.tbs;
+        this.timeBasedFilter = builder.timeBasedFilter;
     }
 
     /**
@@ -106,7 +107,7 @@ public class FirecrawlWebSearchEngine implements WebSearchEngine {
                 .limit(webSearchRequest.maxResults())
                 .sources(SOURCES)
                 .location(location)
-                .tbs(tbs)
+                .tbs(timeBasedFilter)
                 .scrapeContent(scrapeContent)
                 .origin(ORIGIN)
                 .build();
@@ -148,7 +149,7 @@ public class FirecrawlWebSearchEngine implements WebSearchEngine {
         private String apiKey;
         private Duration timeout;
         private String location;
-        private String tbs;
+        private String timeBasedFilter;
         private Boolean scrapeContent;
         private HttpClientBuilder httpClientBuilder;
         private Boolean logRequests;
@@ -175,7 +176,7 @@ public class FirecrawlWebSearchEngine implements WebSearchEngine {
         }
 
         /**
-         * @param timeout connect and read timeout, defaults to 10 seconds, or 60 seconds when content is scraped
+         * @param timeout connect and read timeout, defaults to 10 seconds, or 90 seconds when content is scraped
          * @return {@link Builder}
          */
         public Builder timeout(Duration timeout) {
@@ -193,11 +194,12 @@ public class FirecrawlWebSearchEngine implements WebSearchEngine {
         }
 
         /**
-         * @param tbs time-based filter, e.g. {@code "qdr:w"} for results from the past week
+         * @param timeBasedFilter time-based filter, sent as Firecrawl's {@code tbs} parameter,
+         *                        e.g. {@code "qdr:w"} for results from the past week
          * @return {@link Builder}
          */
-        public Builder tbs(String tbs) {
-            this.tbs = tbs;
+        public Builder timeBasedFilter(String timeBasedFilter) {
+            this.timeBasedFilter = timeBasedFilter;
             return this;
         }
 
@@ -251,7 +253,8 @@ public class FirecrawlWebSearchEngine implements WebSearchEngine {
         public String toString() {
             return "FirecrawlWebSearchEngine.Builder(baseUrl=" + baseUrl + ", apiKey="
                     + (apiKey == null ? null : "********") + ", timeout=" + timeout + ", location=" + location
-                    + ", tbs=" + tbs + ", scrapeContent=" + scrapeContent + ", logRequests=" + logRequests
+                    + ", timeBasedFilter=" + timeBasedFilter + ", scrapeContent=" + scrapeContent + ", logRequests="
+                    + logRequests
                     + ", logResponses=" + logResponses + ")";
         }
     }
