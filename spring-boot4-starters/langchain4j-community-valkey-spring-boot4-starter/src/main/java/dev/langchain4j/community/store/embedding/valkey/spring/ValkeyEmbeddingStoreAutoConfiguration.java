@@ -39,7 +39,8 @@ public class ValkeyEmbeddingStoreAutoConfiguration {
                             .address(NodeAddress.builder()
                                     .host(properties.getHost())
                                     .port(properties.getPort())
-                                    .build());
+                                    .build())
+                            .clientInfoTag("langchain4j:1.0");
 
             if (properties.getPassword() != null) {
                 ServerCredentials.ServerCredentialsBuilder credentialsBuilder =
