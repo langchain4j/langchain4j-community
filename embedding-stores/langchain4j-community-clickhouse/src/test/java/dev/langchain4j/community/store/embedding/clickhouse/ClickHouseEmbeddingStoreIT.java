@@ -23,6 +23,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.clickhouse.ClickHouseContainer;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
 
@@ -33,7 +34,13 @@ class ClickHouseEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                     DockerImageName.parse("clickhouse/clickhouse-server:latest"))
             .withDatabaseName("default")
             .withUsername(USERNAME)
-            .withPassword(PASSWORD);
+            .withPassword(PASSWORD)
+            // client-v2 <=0.10.0 hardcodes the LZ4 response reader while server >=26.9 defaults to
+            // ZSTD(3); force the server-side network compression method back to LZ4. Remove once
+            // https://github.com/ClickHouse/clickhouse-java/issues/3105 is fixed and the client is upgraded.
+            .withCopyFileToContainer(
+                    MountableFile.forClasspathResource("clickhouse/network-compression-lz4.xml"),
+                    "/etc/clickhouse-server/users.d/network-compression-lz4.xml");
 
     EmbeddingModel embeddingModel = new AllMiniLmL6V2QuantizedEmbeddingModel();
 
