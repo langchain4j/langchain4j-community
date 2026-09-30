@@ -23,6 +23,7 @@ public class XinferenceStreamingChatModelProperties {
     private String user;
     private Object toolChoice;
     private Boolean parallelToolCalls;
+    private Boolean enableThinking;
     private Duration timeout;
 
     @NestedConfigurationProperty
@@ -134,6 +135,14 @@ public class XinferenceStreamingChatModelProperties {
 
     public void setParallelToolCalls(final Boolean parallelToolCalls) {
         this.parallelToolCalls = parallelToolCalls;
+    }
+
+    public Boolean getEnableThinking() {
+        return enableThinking;
+    }
+
+    public void setEnableThinking(final Boolean enableThinking) {
+        this.enableThinking = enableThinking;
     }
 
     public Duration getTimeout() {

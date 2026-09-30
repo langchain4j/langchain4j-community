@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.xinference;
 
+import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.aiMessageFrom;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toTool;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.toXinferenceMessages;
 import static java.util.Collections.emptyMap;
@@ -11,6 +12,10 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.xinference.client.chat.Function;
 import dev.langchain4j.community.model.xinference.client.chat.Parameters;
 import dev.langchain4j.community.model.xinference.client.chat.Tool;
+import dev.langchain4j.community.model.xinference.client.chat.message.AssistantMessage;
+import dev.langchain4j.community.model.xinference.client.chat.message.Message;
+import dev.langchain4j.community.model.xinference.client.chat.message.ToolCall;
+import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
@@ -128,5 +133,75 @@ class InternalXinferenceHelperTest {
                                         .properties(emptyMap())
                                         .build())
                                 .build())));
+    }
+
+    @Test
+    void should_map_empty_content_to_empty_text_in_ai_message() {
+
+        // given — AssistantMessage defaults null content to ""
+        AssistantMessage assistantMessage = AssistantMessage.builder().build();
+
+        // when
+        AiMessage aiMessage = aiMessageFrom(assistantMessage, true);
+
+        // then
+        assertThat(aiMessage.text()).isEqualTo("");
+        assertThat(aiMessage.thinking()).isNull();
+    }
+
+    @Test
+    void should_include_thinking_only_when_requested() {
+
+        // given
+        AssistantMessage assistantMessage = AssistantMessage.builder()
+                .content("Madrid")
+                .reasoningContent("The capital of Spain is Madrid")
+                .build();
+
+        // when - then
+        assertThat(aiMessageFrom(assistantMessage, true).thinking()).isEqualTo("The capital of Spain is Madrid");
+        assertThat(aiMessageFrom(assistantMessage, false).thinking()).isNull();
+        assertThat(aiMessageFrom(assistantMessage, false).text()).isEqualTo("Madrid");
+    }
+
+    @Test
+    void should_preserve_whitespace_only_thinking_to_match_the_partial_thinking_gate() {
+
+        // given
+        AssistantMessage assistantMessage = AssistantMessage.builder()
+                .content("Madrid")
+                .reasoningContent("  ")
+                .build();
+
+        // when - then
+        assertThat(aiMessageFrom(assistantMessage, true).thinking()).isEqualTo("  ");
+    }
+
+    @Test
+    void should_throw_when_all_tool_calls_are_filtered_out_by_type() {
+
+        // given — a tool call with an absent (non-FUNCTION) type gets filtered out, leaving an empty list
+        AssistantMessage assistantMessage = AssistantMessage.builder()
+                .content("I will call a tool")
+                .toolCalls(List.of(ToolCall.builder().id("call_1").build()))
+                .build();
+
+        // when - then
+        assertThatThrownBy(() -> aiMessageFrom(assistantMessage, true))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("function");
+    }
+
+    @Test
+    void should_keep_content_non_null_when_round_tripping_a_thinking_only_ai_message() {
+
+        // given — a thinking-only AiMessage, as produced by an assistant turn with reasoning and empty content
+        AiMessage aiMessage = AiMessage.builder().thinking("some reasoning").build();
+
+        // when
+        Message message = toXinferenceMessages(List.of(aiMessage)).get(0);
+
+        // then — the serialized outbound assistant turn must never carry null content
+        assertThat(((AssistantMessage) message).getContent()).isEqualTo("");
     }
 }

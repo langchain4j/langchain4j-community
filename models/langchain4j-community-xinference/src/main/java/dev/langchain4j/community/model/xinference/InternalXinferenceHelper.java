@@ -139,19 +139,29 @@ class InternalXinferenceHelper {
                 .build();
     }
 
-    static AiMessage aiMessageFrom(AssistantMessage assistantMessage) {
+    static AiMessage aiMessageFrom(AssistantMessage assistantMessage, boolean includeThinking) {
         String text = assistantMessage.getContent();
         List<ToolCall> toolCalls = assistantMessage.getToolCalls();
+
+        List<ToolExecutionRequest> toolExecutionRequests = null;
         if (!isNullOrEmpty(toolCalls)) {
-            List<ToolExecutionRequest> toolExecutionRequests = toolCalls.stream()
+            toolExecutionRequests = toolCalls.stream()
                     .filter(toolCall -> toolCall.getType() == ToolType.FUNCTION)
                     .map(InternalXinferenceHelper::toToolExecutionRequest)
                     .toList();
-            return isNullOrBlank(text)
-                    ? AiMessage.from(toolExecutionRequests)
-                    : AiMessage.from(text, toolExecutionRequests);
+            if (toolExecutionRequests.isEmpty()) {
+                throw illegalArgument(
+                        "None of the %s tool calls returned by the model have type 'function'", toolCalls.size());
+            }
         }
-        return AiMessage.from(text);
+
+        String thinking = includeThinking ? assistantMessage.getReasoningContent() : null;
+
+        return AiMessage.builder()
+                .text(toolExecutionRequests == null || isNotNullOrBlank(text) ? text : null)
+                .thinking(isNullOrEmpty(thinking) ? null : thinking)
+                .toolExecutionRequests(toolExecutionRequests)
+                .build();
     }
 
     private static ToolExecutionRequest toToolExecutionRequest(ToolCall toolCall) {

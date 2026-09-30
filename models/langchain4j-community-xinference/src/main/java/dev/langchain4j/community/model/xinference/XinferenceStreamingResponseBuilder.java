@@ -3,7 +3,6 @@ package dev.langchain4j.community.model.xinference;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -30,11 +29,21 @@ import java.util.concurrent.atomic.AtomicReference;
 public class XinferenceStreamingResponseBuilder {
 
     private final StringBuffer contentBuilder = new StringBuffer();
+    private final StringBuffer reasoningContentBuilder = new StringBuffer();
     private final AtomicReference<String> responseId = new AtomicReference<>();
     private final AtomicReference<String> responseModel = new AtomicReference<>();
     private volatile TokenUsage tokenUsage;
     private volatile FinishReason finishReason;
     private volatile List<ToolExecutionRequestBuilder> toolExecutionRequestList;
+    private final boolean includeThinking;
+
+    public XinferenceStreamingResponseBuilder() {
+        this(false);
+    }
+
+    public XinferenceStreamingResponseBuilder(boolean includeThinking) {
+        this.includeThinking = includeThinking;
+    }
 
     public void append(ChatCompletionResponse partialResponse) {
         if (partialResponse == null) {
@@ -69,7 +78,11 @@ public class XinferenceStreamingResponseBuilder {
         String content = delta.getContent();
         if (content != null) {
             contentBuilder.append(content);
-            return;
+        }
+
+        String reasoningContent = delta.getReasoningContent();
+        if (includeThinking && reasoningContent != null) {
+            reasoningContentBuilder.append(reasoningContent);
         }
         if (!isNullOrEmpty(delta.getToolCalls())) {
             toolExecutionRequestList = delta.getToolCalls().stream()
@@ -119,37 +132,33 @@ public class XinferenceStreamingResponseBuilder {
 
     public ChatResponse build() {
         String text = contentBuilder.toString();
-        if (!isNullOrEmpty(toolExecutionRequestList)) {
-            List<ToolExecutionRequest> list = toolExecutionRequestList.stream()
-                    .map(it -> ToolExecutionRequest.builder()
-                            .id(it.idBuilder.toString())
-                            .name(it.nameBuilder.toString())
-                            .arguments(it.argumentsBuilder.toString())
-                            .build())
-                    .toList();
-            AiMessage aiMessage = isNullOrBlank(text) ? AiMessage.from(list) : AiMessage.from(text, list);
-            return ChatResponse.builder()
-                    .aiMessage(aiMessage)
-                    .metadata(ChatResponseMetadata.builder()
-                            .id(getResponseId())
-                            .modelName(getResponseModel())
-                            .finishReason(finishReason)
-                            .tokenUsage(tokenUsage)
-                            .build())
-                    .build();
-        }
-        if (!isNullOrBlank(text)) {
-            return ChatResponse.builder()
-                    .aiMessage(AiMessage.from(text))
-                    .metadata(ChatResponseMetadata.builder()
-                            .id(getResponseId())
-                            .modelName(getResponseModel())
-                            .finishReason(finishReason)
-                            .tokenUsage(tokenUsage)
-                            .build())
-                    .build();
-        }
-        return null;
+        String reasoningContent = reasoningContentBuilder.toString();
+
+        List<ToolExecutionRequest> toolExecutionRequests = isNullOrEmpty(toolExecutionRequestList)
+                ? null
+                : toolExecutionRequestList.stream()
+                        .map(requestBuilder -> ToolExecutionRequest.builder()
+                                .id(requestBuilder.idBuilder.toString())
+                                .name(requestBuilder.nameBuilder.toString())
+                                .arguments(requestBuilder.argumentsBuilder.toString())
+                                .build())
+                        .toList();
+
+        AiMessage aiMessage = AiMessage.builder()
+                .text(toolExecutionRequests == null || isNotNullOrBlank(text) ? text : null)
+                .toolExecutionRequests(toolExecutionRequests)
+                .thinking(isNullOrEmpty(reasoningContent) ? null : reasoningContent)
+                .build();
+
+        return ChatResponse.builder()
+                .aiMessage(aiMessage)
+                .metadata(ChatResponseMetadata.builder()
+                        .id(getResponseId())
+                        .modelName(getResponseModel())
+                        .finishReason(finishReason)
+                        .tokenUsage(tokenUsage)
+                        .build())
+                .build();
     }
 
     public String getResponseId() {
