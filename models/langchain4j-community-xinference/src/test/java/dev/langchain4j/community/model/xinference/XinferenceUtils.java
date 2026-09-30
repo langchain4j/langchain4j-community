@@ -19,7 +19,6 @@ public class XinferenceUtils {
     public static final String CHAT_MODEL_NAME = "qwen3";
     public static final String CHAT_MODEL_WITH_TOOLS_NAME = "qwen3.5";
     public static final String THINKING_MODEL_NAME = "qwen3-thinking";
-    private static final String THINKING_BASE_MODEL_NAME = "qwen3";
     public static final String GENERATE_MODEL_NAME = "qwen2.5-instruct";
     public static final String VISION_MODEL_NAME = "qwen2-vl-instruct";
     public static final String IMAGE_MODEL_NAME = "sd3-medium";
@@ -44,7 +43,7 @@ public class XinferenceUtils {
                             "xinference launch --model-engine Transformers --model-name %s --model-uid %s "
                                     + "--size-in-billions 0_6 --model-format pytorch --quantization none "
                                     + "--reasoning_content True", // for enabling automatic reasoning content parsing
-                            THINKING_BASE_MODEL_NAME, THINKING_MODEL_NAME));
+                            CHAT_MODEL_NAME, THINKING_MODEL_NAME));
             put(
                     GENERATE_MODEL_NAME,
                     String.format(

@@ -182,7 +182,7 @@ public class XinferenceChatModel implements ChatModel {
                 chatCompletionResponse.getChoices().get(0);
 
         return ChatResponse.builder()
-                .aiMessage(aiMessageFrom(completionChoice.getMessage()))
+                .aiMessage(aiMessageFrom(completionChoice.getMessage(), Boolean.TRUE.equals(enableThinking)))
                 .metadata(ChatResponseMetadata.builder()
                         .id(chatCompletionResponse.getId())
                         .modelName(request.modelName())

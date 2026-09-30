@@ -3,7 +3,6 @@ package dev.langchain4j.community.model.xinference;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.finishReasonFrom;
 import static dev.langchain4j.community.model.xinference.InternalXinferenceHelper.tokenUsageFrom;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -36,6 +35,15 @@ public class XinferenceStreamingResponseBuilder {
     private volatile TokenUsage tokenUsage;
     private volatile FinishReason finishReason;
     private volatile List<ToolExecutionRequestBuilder> toolExecutionRequestList;
+    private final boolean includeThinking;
+
+    public XinferenceStreamingResponseBuilder() {
+        this(false);
+    }
+
+    public XinferenceStreamingResponseBuilder(boolean includeThinking) {
+        this.includeThinking = includeThinking;
+    }
 
     public void append(ChatCompletionResponse partialResponse) {
         if (partialResponse == null) {
@@ -73,7 +81,7 @@ public class XinferenceStreamingResponseBuilder {
         }
 
         String reasoningContent = delta.getReasoningContent();
-        if (reasoningContent != null) {
+        if (includeThinking && reasoningContent != null) {
             reasoningContentBuilder.append(reasoningContent);
         }
         if (!isNullOrEmpty(delta.getToolCalls())) {
@@ -137,9 +145,9 @@ public class XinferenceStreamingResponseBuilder {
                         .toList();
 
         AiMessage aiMessage = AiMessage.builder()
-                .text(isNullOrBlank(text) ? null : text)
+                .text(toolExecutionRequests == null || isNotNullOrBlank(text) ? text : null)
                 .toolExecutionRequests(toolExecutionRequests)
-                .thinking(isNullOrBlank(reasoningContent) ? null : reasoningContent)
+                .thinking(isNullOrEmpty(reasoningContent) ? null : reasoningContent)
                 .build();
 
         return ChatResponse.builder()

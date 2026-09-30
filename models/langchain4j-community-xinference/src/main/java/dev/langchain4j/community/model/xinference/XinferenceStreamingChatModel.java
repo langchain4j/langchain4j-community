@@ -172,7 +172,8 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
         }
 
         ChatCompletionRequest xinferenceRequest = builder.build();
-        XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder();
+        boolean includeThinking = Boolean.TRUE.equals(enableThinking);
+        XinferenceStreamingResponseBuilder responseBuilder = new XinferenceStreamingResponseBuilder(includeThinking);
         client.chatCompletions(xinferenceRequest)
                 .onPartialResponse(partialResponse -> {
                     responseBuilder.append(partialResponse);
@@ -185,7 +186,7 @@ public class XinferenceStreamingChatModel implements StreamingChatModel {
                         }
 
                         String reasoningContent = delta.getReasoningContent();
-                        if (isNotNullOrEmpty(reasoningContent)) {
+                        if (includeThinking && isNotNullOrEmpty(reasoningContent)) {
                             handler.onPartialThinking(new PartialThinking(reasoningContent));
                         }
                     }
