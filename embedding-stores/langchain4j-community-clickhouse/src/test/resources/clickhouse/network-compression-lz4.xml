@@ -1,0 +1,14 @@
+<clickhouse>
+    <!--
+        client-v2 (<=0.10.0) hardcodes the LZ4 response reader while ClickHouse server >=26.9
+        changed its default network compression method to ZSTD(3), which breaks every compressed
+        response with "Invalid LZ4 magic byte". Forcing the server-side compression method back
+        to LZ4 keeps the compression code path under test and is the upstream-recommended workaround.
+        See https://github.com/ClickHouse/clickhouse-java/issues/3105
+    -->
+    <profiles>
+        <default>
+            <network_compression_method>LZ4</network_compression_method>
+        </default>
+    </profiles>
+</clickhouse>
