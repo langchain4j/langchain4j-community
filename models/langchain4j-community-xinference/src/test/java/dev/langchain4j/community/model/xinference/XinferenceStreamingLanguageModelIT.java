@@ -26,7 +26,7 @@ class XinferenceStreamingLanguageModelIT extends AbstractInferenceLanguageModelI
     @Test
     void should_stream_answer() throws Exception {
         TestStreamingResponseHandler<String> handler = new TestStreamingResponseHandler<>();
-        model.generate("中国首都是哪里？", handler);
+        model.generate("你可以告诉我中国首都是哪里及其历史", handler);
         Response<String> response = handler.get();
         assertThat(response.content()).contains("北京");
         TokenUsage tokenUsage = response.tokenUsage();
