@@ -36,7 +36,11 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                         }
                     }
                     """;
-        session.run(createVectorIndexQuery);
+        // consume() waits for the auto-commit transaction to complete: otherwise this CREATE may
+        // still be uncommitted when the store's "SHOW VECTOR INDEX" check runs, and the store's
+        // concurrent "CREATE ... IF NOT EXISTS" then fails with "An equivalent index already
+        // exists". The same applies to the constraint/index writes below.
+        session.run(createVectorIndexQuery).consume();
 
         Neo4jEmbeddingStore.builder()
                 .label("Document1")
@@ -73,7 +77,7 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 FOR (n:Document3)
                 REQUIRE n.id IS UNIQUE;
                 """;
-        session.run(createUniqueConstraintQuery);
+        session.run(createUniqueConstraintQuery).consume();
 
         Neo4jEmbeddingStore.builder()
                 .label("Document3")
@@ -98,7 +102,7 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 FOR (n:Document4)
                 REQUIRE n.id IS NODE KEY;
                 """;
-        session.run(createNodeKeyConstraintQuery);
+        session.run(createNodeKeyConstraintQuery).consume();
 
         Neo4jEmbeddingStore.builder()
                 .label("Document4")
@@ -141,7 +145,7 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                 FOR (n:Document6)
                 REQUIRE n.`id property` IS NODE KEY;
                 """;
-        session.run(createNodeKeyConstraintQuery);
+        session.run(createNodeKeyConstraintQuery).consume();
 
         Neo4jEmbeddingStore.builder()
                 .label("Document6")
@@ -171,7 +175,7 @@ class Neo4jEmbeddingStoreSchemaCreationTest extends Neo4jEmbeddingStoreBaseTest 
                         }
                     }
                     """;
-        session.run(createVectorIndexQuery);
+        session.run(createVectorIndexQuery).consume();
 
         Neo4jEmbeddingStore.builder()
                 .label("Document Seven")
