@@ -22,7 +22,7 @@
     </licenses>
 
     <properties>
-        <valkey-glide.version>2.3.1</valkey-glide.version>
+        <valkey-glide.version>2.5.2</valkey-glide.version>
     </properties>
 
     <dependencyManagement>
