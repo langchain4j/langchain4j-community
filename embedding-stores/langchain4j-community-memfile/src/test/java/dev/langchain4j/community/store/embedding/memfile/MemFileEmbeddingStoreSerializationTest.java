@@ -9,6 +9,7 @@ import dev.langchain4j.community.store.embedding.memfile.serialization.StoreSeri
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -168,6 +169,30 @@ class MemFileEmbeddingStoreSerializationTest {
                         .embedded()
                         .text())
                 .isEqualTo(text2);
+    }
+
+    @Test
+    void should_keep_non_ascii_text_after_file_roundtrip() {
+        // given - text and id outside ASCII
+        String text = "Café crème, 你好世界";
+        embeddingStore.add("id-é", embeddingModel.embed(text).content(), TextSegment.from(text));
+
+        Path file = tempDir.resolve("store_non_ascii.json");
+
+        // when - serialize to file and deserialize back
+        embeddingStore.serializeToFile(strategy, file);
+        MemFileEmbeddingStore<TextSegment> deserializedStore = embeddingStore.deserializeFromFile(strategy, file);
+
+        // then - id and text come back unchanged
+        EmbeddingMatch<TextSegment> match = deserializedStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embeddingModel.embed(text).content())
+                        .maxResults(1)
+                        .build())
+                .matches()
+                .get(0);
+        assertThat(match.embeddingId()).isEqualTo("id-é");
+        assertThat(match.embedded().text()).isEqualTo(text);
     }
 
     @Test
