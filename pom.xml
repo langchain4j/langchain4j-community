@@ -80,6 +80,7 @@
         <module>web-search-engines/langchain4j-community-web-search-engine-duckduckgo</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-brave</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-serply</module>
+        <module>web-search-engines/langchain4j-community-web-search-engine-firecrawl</module>
 
         <!-- Integration of document loaders -->
         <module>document-loaders/langchain4j-community-document-loader-confluence</module>
