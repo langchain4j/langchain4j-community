@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_8_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,10 +19,8 @@ class QwenChatModelReasoningIT {
     void should_return_thinking() {
 
         // given
-        ChatModel model = QwenChatModel.builder()
-                .apiKey(apiKey())
-                .modelName("deepseek-r1-distill-llama-8b")
-                .build();
+        ChatModel model =
+                QwenChatModel.builder().apiKey(apiKey()).modelName(QWEN3_8_MAX).build();
 
         UserMessage userMessage1 = UserMessage.from("What is the capital of Germany?");
 
@@ -41,7 +40,13 @@ class QwenChatModelReasoningIT {
         UserMessage userMessage2 = UserMessage.from("What is the capital of France?");
 
         // when
-        ChatResponse chatResponse2 = model.chat(userMessage1, aiMessage1, userMessage2);
+        // thinking is requested explicitly on every turn so the test does not depend on
+        // server-side thinking defaults, which differ between models and deployments
+        ChatResponse chatResponse2 = model.chat(ChatRequest.builder()
+                .messages(userMessage1, aiMessage1, userMessage2)
+                .parameters(
+                        QwenChatRequestParameters.builder().enableThinking(true).build())
+                .build());
 
         // then
         AiMessage aiMessage2 = chatResponse2.aiMessage();

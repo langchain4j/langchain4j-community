@@ -1,7 +1,7 @@
 package dev.langchain4j.community.model.dashscope;
 
 import static dev.langchain4j.community.model.dashscope.QwenHelper.GENERATED_AUDIOS_KEY;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.TEST_TEXT_MODEL_NAME;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.getBase64DataFromResource;
@@ -218,6 +218,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
                 .parameters(QwenChatRequestParameters.builder()
                         .toolSpecifications(mustBeExecutedTool)
                         .toolChoice(REQUIRED)
+                        .enableThinking(false)
                         .build())
                 .build());
 
@@ -641,6 +642,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
                         .temperature(0.0d)
                         .enableSanitizeMessages(false)
                         .toolChoice(REQUIRED)
+                        .enableThinking(false)
                         .build())
                 .build();
 
@@ -679,6 +681,8 @@ class QwenChatModelIT extends AbstractChatModelIT {
                 .temperature(0.0d)
                 .enableSanitizeMessages(false)
                 .parallelToolCalls(true)
+                // thinking mode rejects ToolChoice.REQUIRED (object tool_choice) on qwen3.x models
+                .enableThinking(false)
                 .build();
 
         return functionCallChatModelNameProvider()
@@ -715,7 +719,7 @@ class QwenChatModelIT extends AbstractChatModelIT {
         QwenChatModel.QwenChatModelBuilder qwenChatModelBuilder =
                 QwenChatModel.builder().apiKey(apiKey()).defaultRequestParameters(parameters);
         if (parameters.modelName() == null) {
-            qwenChatModelBuilder.modelName(QWEN_MAX);
+            qwenChatModelBuilder.modelName(TEST_TEXT_MODEL_NAME);
         }
         return qwenChatModelBuilder.build();
     }
@@ -745,6 +749,11 @@ class QwenChatModelIT extends AbstractChatModelIT {
     @Override
     protected Class<? extends ChatResponseMetadata> chatResponseMetadataType(ChatModel model) {
         return QwenChatResponseMetadata.class;
+    }
+
+    @Override
+    protected Class<? extends TokenUsage> tokenUsageType(ChatModel model) {
+        return QwenTokenUsage.class;
     }
 
     @Override

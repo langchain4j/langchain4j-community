@@ -1,6 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.TEST_TEXT_MODEL_NAME;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static java.util.Collections.singletonList;
 
@@ -26,7 +26,7 @@ class QwenStreamingChatModelListenerIT extends AbstractStreamingChatModelListene
 
     @Override
     protected String modelName() {
-        return QWEN_MAX;
+        return TEST_TEXT_MODEL_NAME;
     }
 
     @Override

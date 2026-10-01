@@ -1,6 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_TURBO;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_PLUS;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,9 +29,11 @@ class QwenStreamingChatModelReasoningIT {
     void should_return_thinking() {
 
         // given
+        // qwen-plus is a hybrid-thinking model with thinking disabled by default, which the
+        // @NullSource case of should_NOT_return_thinking below relies on
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
-                .modelName(QWEN_TURBO)
+                .modelName(QWEN_PLUS)
                 .build();
 
         UserMessage userMessage1 = UserMessage.from("What is the capital of Germany?");
@@ -89,7 +91,7 @@ class QwenStreamingChatModelReasoningIT {
         // given
         QwenStreamingChatModel model = QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
-                .modelName(QWEN_TURBO)
+                .modelName(QWEN_PLUS)
                 .build();
 
         String userMessage = "What is the capital of Germany?";

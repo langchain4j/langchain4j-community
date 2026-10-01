@@ -2,7 +2,7 @@ package dev.langchain4j.community.model.dashscope;
 
 import static dev.langchain4j.community.model.dashscope.QwenHelper.GENERATED_AUDIOS_KEY;
 import static dev.langchain4j.community.model.dashscope.QwenHelper.convertHandler;
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN_MAX;
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.TEST_TEXT_MODEL_NAME;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.chatMessages;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.functionCallChatModelNameProvider;
@@ -295,6 +295,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                         .parameters(QwenChatRequestParameters.builder()
                                 .toolSpecifications(mustBeExecutedTool)
                                 .toolChoice(REQUIRED)
+                                .enableThinking(false)
                                 .build())
                         .build(),
                 handler);
@@ -735,7 +736,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @ParameterizedTest
-    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#reasoningChatModelNameProvider")
+    @MethodSource("dev.langchain4j.community.model.dashscope.QwenTestHelper#functionCallChatModelNameProvider")
     void should_respect_parallelToolCalls_parameter(String modelName) {
         // given
         ToolSpecification toolSpecification = ToolSpecification.builder()
@@ -758,6 +759,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                         .temperature(0.0d)
                         .enableSanitizeMessages(false)
                         .toolChoice(REQUIRED)
+                        .enableThinking(false)
                         .build())
                 .build();
 
@@ -884,6 +886,8 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
                 .temperature(0.0d)
                 .enableSanitizeMessages(false)
                 .parallelToolCalls(true)
+                // thinking mode rejects ToolChoice.REQUIRED (object tool_choice) on qwen3.x models
+                .enableThinking(false)
                 .build();
 
         return functionCallChatModelNameProvider()
@@ -920,7 +924,7 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
         QwenStreamingChatModel.QwenStreamingChatModelBuilder qwenChatModelBuilder =
                 QwenStreamingChatModel.builder().apiKey(apiKey()).defaultRequestParameters(parameters);
         if (parameters.modelName() == null) {
-            qwenChatModelBuilder.modelName(QWEN_MAX);
+            qwenChatModelBuilder.modelName(TEST_TEXT_MODEL_NAME);
         }
         return qwenChatModelBuilder.build();
     }
@@ -1016,10 +1020,15 @@ class QwenStreamingChatModelIT extends AbstractStreamingChatModelIT {
     }
 
     @Override
+    protected Class<? extends TokenUsage> tokenUsageType(StreamingChatModel model) {
+        return QwenTokenUsage.class;
+    }
+
+    @Override
     public StreamingChatModel createModelWith(ChatModelListener chatModelListener) {
         return QwenStreamingChatModel.builder()
                 .apiKey(apiKey())
-                .modelName(QwenModelName.QWEN_MAX)
+                .modelName(TEST_TEXT_MODEL_NAME)
                 .listeners(singletonList(chatModelListener))
                 .build();
     }
