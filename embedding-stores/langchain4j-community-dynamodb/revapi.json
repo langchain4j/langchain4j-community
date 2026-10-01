@@ -123,6 +123,21 @@
           "code": "java.class.externalClassExposedInAPI",
           "new": "missing-class software.amazon.awssdk.services.dynamodb.model.VectorDistanceFunction",
           "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.missing.oldClass",
+          "old": "missing-class software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.missing.newClass",
+          "new": "missing-class software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType",
+          "justification": "AWS SDK types are intentionally exposed in the DynamoDB EmbeddingStore builder API"
         }
       ]
     }

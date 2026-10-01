@@ -18,6 +18,8 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
+import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,6 +43,8 @@ import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.DeleteRequest;
 import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTimeToLiveRequest;
+import software.amazon.awssdk.services.dynamodb.model.DynamoDbException;
 import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
 import software.amazon.awssdk.services.dynamodb.model.KeyType;
 import software.amazon.awssdk.services.dynamodb.model.Projection;
@@ -54,6 +58,10 @@ import software.amazon.awssdk.services.dynamodb.model.SearchSchemaElementType;
 import software.amazon.awssdk.services.dynamodb.model.SearchVectorsRequest;
 import software.amazon.awssdk.services.dynamodb.model.SearchVectorsResponse;
 import software.amazon.awssdk.services.dynamodb.model.TableStatus;
+import software.amazon.awssdk.services.dynamodb.model.TimeToLiveDescription;
+import software.amazon.awssdk.services.dynamodb.model.TimeToLiveSpecification;
+import software.amazon.awssdk.services.dynamodb.model.TimeToLiveStatus;
+import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 import software.amazon.awssdk.services.dynamodb.model.VectorAttributeDefinition;
 import software.amazon.awssdk.services.dynamodb.model.VectorDistanceFunction;
 import software.amazon.awssdk.services.dynamodb.model.VectorIndex;
@@ -89,10 +97,55 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
  * <p>DynamoDB vector search can filter results only on attributes declared in the vector index
  * search schema — the {@code HASH} key and {@code INLINE_FILTER} attributes — and only with equality.
  * Those attributes are fixed when the index is created, so to use metadata filters you must declare
- * them up front with {@link Builder#inlineFilterAttributes(List)}. Only {@link dev.langchain4j.store.embedding.filter.comparison.IsEqualTo}
+ * them up front with {@link Builder#inlineFilterAttributes(List)} (each typed as a string) or
+ * {@link Builder#inlineFilterAttributes(Map)} (to give a type per attribute). Only {@link dev.langchain4j.store.embedding.filter.comparison.IsEqualTo}
  * filters (optionally combined with {@code AND}) are supported.
  *
+ * <p>An inline filter attribute must be typed {@code S} or {@code N}: string, {@code Float} and
+ * {@code Double} metadata are stored as {@code S}, while {@code Integer} and {@code Long} metadata are
+ * stored as {@code N}. Declaring an inline filter as {@code B} (binary) throws
+ * {@link IllegalArgumentException} at build time, because metadata is never stored as binary. Boolean
+ * metadata is stored as {@code BOOL}, which is not a valid attribute definition type, so it cannot be an
+ * inline filter. Writing a metadata value whose type does not match its declared inline filter type also
+ * throws {@link IllegalArgumentException}.
+ *
+ * <h2>Expiration (TTL)</h2>
+ *
+ * <p>Time to live is off by default. It is turned on by {@link Builder#ttlAttribute(String)},
+ * {@link Builder#ttl(Duration)}, or both, and supports two ways of expiring items that can be combined:
+ *
+ * <ul>
+ *   <li><b>Per item.</b> A segment carrying a metadata entry under the TTL attribute name (by default
+ *       {@value #DEFAULT_TTL_ATTRIBUTE}) expires at that time. The value must be an {@code Integer} or
+ *       {@code Long} Unix epoch <em>second</em>; epoch milliseconds, fractional numbers and non-numeric values
+ *       are rejected with {@link IllegalArgumentException}. This entry is <em>consumed</em>: it is converted to the
+ *       native expiry Number and not stored as ordinary metadata. With only {@link Builder#ttlAttribute(String)}
+ *       set, items without such an entry never expire.</li>
+ *   <li><b>Store-wide default.</b> With {@link Builder#ttl(Duration)} set, every item without its own
+ *       expiry expires {@code ttl} after it is written.</li>
+ * </ul>
+ *
+ * <p>The expiry is stored as a native DynamoDB Number, which is the type DynamoDB TTL requires. It round-trips
+ * like any other metadata: a segment returned by {@link #search(EmbeddingSearchRequest)} carries its expiry as an
+ * integral number ({@code Integer} or {@code Long}) under the TTL attribute name, so a segment read from the store
+ * can be written back unchanged.
+ *
+ * <p>DynamoDB deletes expired items on a best-effort basis, typically within a few days of expiry. Because a
+ * vector search cannot filter on a range, {@link #search(EmbeddingSearchRequest)} drops expired matches after
+ * the search instead, so they are never returned even before DynamoDB deletes them. As a consequence, a search
+ * can return fewer than {@code maxResults} matches while expired items are still in the table.
+ *
+ * <p>When {@link Builder#createTableIfNotExists(Boolean)} is {@code true} (the default), the store manages the
+ * table: on the first write it creates the table if needed and, when TTL is on, enables DynamoDB TTL on the TTL
+ * attribute, whether the store created the table or it already existed. This requires the
+ * {@code dynamodb:DescribeTimeToLive} and {@code dynamodb:UpdateTimeToLive} permissions. Enabling TTL can take up
+ * to an hour to take effect; until then the search-time filter still hides expired items. If TTL is already
+ * enabled on a different attribute, the first write fails with {@link IllegalStateException}, because DynamoDB
+ * allows a single TTL attribute per table. When {@code createTableIfNotExists} is {@code false}, the store never
+ * changes the table and TTL must be enabled wherever the table is provisioned.
+ *
  * @see <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/">Amazon DynamoDB Documentation</a>
+ * @see <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/TTL.html">DynamoDB Time to Live</a>
  */
 public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, AutoCloseable {
 
@@ -106,6 +159,9 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
 
     /** Default name of the partition key attribute holding the embedding id. */
     public static final String DEFAULT_KEY_ATTRIBUTE = "id";
+
+    /** Default name of the attribute holding the item expiry as a Unix epoch second, when TTL is on. */
+    public static final String DEFAULT_TTL_ATTRIBUTE = "expiresAt";
 
     private static final Region DEFAULT_REGION = Region.US_EAST_1;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
@@ -123,6 +179,9 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
     /** DynamoDB SearchVectors limits TopK to the range 1..100. */
     private static final int MAX_TOP_K = 100;
 
+    /** 9999-12-31T23:59:59Z. Larger values are almost certainly epoch milliseconds, not seconds. */
+    private static final long MAX_EPOCH_SECOND = 253_402_300_799L;
+
     private final DynamoDbClient dynamoDbClient;
 
     /** True only when this store created the client itself and is therefore responsible for closing it. */
@@ -135,7 +194,18 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
     private final String textMetadataKey;
     private final VectorDistanceFunction distanceFunction;
     private final boolean createTableIfNotExists;
-    private final List<String> inlineFilterAttributes;
+    private final Map<String, ScalarAttributeType> inlineFilterAttributes;
+
+    /** Null when TTL is off; otherwise the attribute holding each item's expiry. */
+    private final String ttlAttribute;
+
+    /** Null when items without their own expiry never expire. */
+    private final Duration ttl;
+
+    private final Clock clock;
+
+    /** Set once the table (and its TTL, when on) has been verified or created by this store. */
+    private volatile boolean tableReady;
 
     public DynamoDbEmbeddingStore(Builder builder) {
         this.tableName = ensureNotNull(builder.tableName, "tableName");
@@ -145,10 +215,76 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         this.textMetadataKey = getOrDefault(builder.textMetadataKey, DEFAULT_TEXT_METADATA_KEY);
         this.distanceFunction = getOrDefault(builder.distanceFunction, VectorDistanceFunction.COSINE);
         this.createTableIfNotExists = getOrDefault(builder.createTableIfNotExists, true);
-        this.inlineFilterAttributes =
-                builder.inlineFilterAttributes == null ? List.of() : List.copyOf(builder.inlineFilterAttributes);
+        this.inlineFilterAttributes = resolveInlineFilterAttributes(builder);
+        this.ttl = resolveTtl(builder);
+        this.ttlAttribute = resolveTtlAttribute(builder);
+        this.clock = getOrDefault(builder.clock, Clock.systemUTC());
         this.ownsClient = isNull(builder.dynamoDbClient);
         this.dynamoDbClient = ownsClient ? createClient(builder) : builder.dynamoDbClient;
+    }
+
+    private Map<String, ScalarAttributeType> resolveInlineFilterAttributes(Builder builder) {
+        Map<String, ScalarAttributeType> resolved = new LinkedHashMap<>();
+        if (builder.inlineFilterAttributeTypes != null) {
+            resolved.putAll(builder.inlineFilterAttributeTypes);
+        }
+        if (builder.inlineFilterAttributes != null) {
+            for (String attribute : builder.inlineFilterAttributes) {
+                resolved.putIfAbsent(attribute, ScalarAttributeType.S);
+            }
+        }
+        for (Map.Entry<String, ScalarAttributeType> entry : resolved.entrySet()) {
+            ScalarAttributeType type = entry.getValue();
+            if (type != ScalarAttributeType.S && type != ScalarAttributeType.N) {
+                throw new IllegalArgumentException("Inline filter attribute '" + entry.getKey() + "' has type " + type
+                        + ", but DynamoDB vector search inline filters support only S (string) and N (number). "
+                        + "Metadata is never stored as binary (B).");
+            }
+            String name = entry.getKey();
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("Inline filter attribute names must not be blank.");
+            }
+            if (name.equals(keyAttribute)) {
+                throw new IllegalArgumentException("Inline filter attribute '" + name
+                        + "' collides with the partition key attribute; the key is already part of the search schema.");
+            }
+            if (name.equals(vectorAttribute) || name.equals(textMetadataKey)) {
+                throw new IllegalArgumentException("Inline filter attribute '" + name
+                        + "' collides with the vector or text attribute; choose a distinct name.");
+            }
+        }
+        return Collections.unmodifiableMap(resolved);
+    }
+
+    private Duration resolveTtl(Builder builder) {
+        if (builder.ttl == null) {
+            return null;
+        }
+        ensureTrue(
+                !builder.ttl.isZero() && !builder.ttl.isNegative(),
+                "ttl must be a positive duration, but was " + builder.ttl);
+        ensureTrue(
+                builder.ttl.getSeconds() >= 1,
+                "ttl must be at least one second (DynamoDB TTL has second granularity), but was " + builder.ttl);
+        return builder.ttl;
+    }
+
+    private String resolveTtlAttribute(Builder builder) {
+        if (builder.ttlAttribute == null && ttl == null) {
+            return null;
+        }
+        String attribute = getOrDefault(builder.ttlAttribute, DEFAULT_TTL_ATTRIBUTE);
+        if (attribute.isBlank()) {
+            throw new IllegalArgumentException("ttlAttribute must not be blank");
+        }
+        if (attribute.equals(keyAttribute)
+                || attribute.equals(vectorAttribute)
+                || attribute.equals(textMetadataKey)
+                || inlineFilterAttributes.containsKey(attribute)) {
+            throw new IllegalArgumentException("ttlAttribute '" + attribute
+                    + "' collides with the key, vector, text, or an inline filter attribute; choose a distinct name.");
+        }
+        return attribute;
     }
 
     private DynamoDbClient createClient(Builder builder) {
@@ -198,6 +334,10 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         private VectorDistanceFunction distanceFunction;
         private Boolean createTableIfNotExists;
         private List<String> inlineFilterAttributes;
+        private Map<String, ScalarAttributeType> inlineFilterAttributeTypes;
+        private String ttlAttribute;
+        private Duration ttl;
+        private Clock clock;
 
         /**
          * Sets a pre-configured {@link DynamoDbClient}. If not set, one is created from the region,
@@ -262,19 +402,65 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
             return this;
         }
 
-        /** Sets whether to create the table and vector index if they do not exist. Defaults to true. */
+        /**
+         * Sets whether the store manages the table: creating the table and vector index if they do not exist
+         * and, when TTL is on, enabling DynamoDB TTL on the table. Defaults to true.
+         */
         public Builder createTableIfNotExists(Boolean createTableIfNotExists) {
             this.createTableIfNotExists = createTableIfNotExists;
             return this;
         }
 
         /**
-         * Declares the metadata attributes that can be used in filters. These become
-         * {@code INLINE_FILTER} elements of the vector index search schema and can therefore only be
-         * set when the index is created. Defaults to none (no metadata filtering).
+         * Declares the metadata attributes that can be used in filters, each typed as a DynamoDB
+         * string ({@code S}). These become {@code INLINE_FILTER} elements of the vector index search
+         * schema and can therefore only be set when the index is created. Defaults to none (no
+         * metadata filtering).
+         *
+         * <p>Use {@link #inlineFilterAttributes(Map)} to declare numeric ({@code N}) filter
+         * attributes such as {@code Integer} or {@code Long} metadata.
          */
         public Builder inlineFilterAttributes(List<String> inlineFilterAttributes) {
             this.inlineFilterAttributes = inlineFilterAttributes;
+            return this;
+        }
+
+        /**
+         * Declares the metadata attributes that can be used in filters, each with its DynamoDB scalar
+         * type. Only {@link ScalarAttributeType#S} (strings, including {@code Float} and {@code Double}
+         * metadata, which are stored as strings) and {@link ScalarAttributeType#N} (integer and long
+         * metadata) are supported; {@link ScalarAttributeType#B} (binary) is rejected at {@link #build()},
+         * since metadata is never stored as binary. These become {@code INLINE_FILTER} elements of
+         * the vector index search schema and can therefore only be set when the index is created.
+         */
+        public Builder inlineFilterAttributes(Map<String, ScalarAttributeType> inlineFilterAttributeTypes) {
+            this.inlineFilterAttributeTypes = inlineFilterAttributeTypes;
+            return this;
+        }
+
+        /**
+         * Turns TTL on using the given attribute to hold each item's expiry (a Unix epoch second). An item
+         * expires when its segment carries an {@code Integer} or {@code Long} metadata entry under this name;
+         * items without one expire only if {@link #ttl(Duration)} is set. Defaults to
+         * {@value #DEFAULT_TTL_ATTRIBUTE} when only {@link #ttl(Duration)} is set.
+         */
+        public Builder ttlAttribute(String ttlAttribute) {
+            this.ttlAttribute = ttlAttribute;
+            return this;
+        }
+
+        /**
+         * Turns TTL on and sets how long an item without its own expiry lives after it is written. Must be
+         * positive. Not set by default, in which case only items carrying an expiry under
+         * {@link #ttlAttribute(String)} expire.
+         */
+        public Builder ttl(Duration ttl) {
+            this.ttl = ttl;
+            return this;
+        }
+
+        Builder clock(Clock clock) {
+            this.clock = clock;
             return this;
         }
 
@@ -325,8 +511,8 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
                 textSegments == null || textSegments.size() == embeddings.size(),
                 "textSegments and embeddings must have the same size");
 
-        if (createTableIfNotExists && !tableExists()) {
-            createTable(embeddings.get(0).dimension());
+        if (!tableReady) {
+            ensureInitialized(embeddings.get(0).dimension());
         }
 
         List<WriteRequest> writeRequests = new ArrayList<>(embeddings.size());
@@ -426,6 +612,8 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
             return new EmbeddingSearchResult<>(Collections.emptyList());
         }
 
+        long now = clock.instant().getEpochSecond();
+        int expired = 0;
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
         for (SearchResultItem result : response.searchResults()) {
             double score = distanceToScore(result.score());
@@ -434,6 +622,11 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
             }
 
             Map<String, AttributeValue> item = result.item();
+            if (isExpired(item, now)) {
+                expired++;
+                continue;
+            }
+
             String id = item.containsKey(keyAttribute) ? item.get(keyAttribute).s() : null;
             if (id == null) {
                 // The key was not projected into the result: likely a misconfigured keyAttribute or
@@ -448,7 +641,23 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
             matches.add(new EmbeddingMatch<>(score, id, null, textSegment));
         }
 
+        if (expired > 0) {
+            log.debug("Dropped {} expired matches from the search on table {}", expired, tableName);
+        }
+
         return new EmbeddingSearchResult<>(matches);
+    }
+
+    private boolean isExpired(Map<String, AttributeValue> item, long now) {
+        if (ttlAttribute == null || item == null) {
+            return false;
+        }
+        AttributeValue expiresAt = item.get(ttlAttribute);
+        if (expiresAt == null || expiresAt.n() == null) {
+            return false;
+        }
+        // DynamoDB deletes an item once its expiry is strictly in the past; match that boundary here.
+        return new BigDecimal(expiresAt.n()).longValue() < now;
     }
 
     @Override
@@ -517,6 +726,54 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         return keys;
     }
 
+    private synchronized void ensureInitialized(int dimension) {
+        if (tableReady) {
+            return;
+        }
+        if (createTableIfNotExists) {
+            try {
+                if (!tableExists()) {
+                    createTable(dimension);
+                }
+                if (ttlAttribute != null) {
+                    ensureTimeToLive();
+                }
+            } catch (RuntimeException e) {
+                log.warn(
+                        "Failed to initialize table {} (create table and/or enable TTL); will retry on the next write. "
+                                + "Check the table configuration and that the credentials allow DescribeTable, "
+                                + "CreateTable and UpdateTimeToLive.",
+                        tableName,
+                        e);
+                throw e;
+            }
+        } else if (ttlAttribute != null) {
+            warnIfTimeToLiveNotEnabled();
+        }
+        tableReady = true;
+    }
+
+    /**
+     * When the store does not manage the table but TTL is configured, DynamoDB TTL must be enabled out of band.
+     * Probe it once and warn if it is missing, since items would otherwise be stamped with expiries that DynamoDB
+     * never acts on. Read-only and best-effort: a failure to describe must not block writes.
+     */
+    private void warnIfTimeToLiveNotEnabled() {
+        try {
+            TimeToLiveDescription current = describeTimeToLive();
+            if (!isTimeToLiveOn(current) || !ttlAttribute.equals(current.attributeName())) {
+                log.warn(
+                        "The store stamps expiries under attribute '{}' on table {}, but DynamoDB TTL is not enabled "
+                                + "on that attribute (createTableIfNotExists is false, so the store does not enable it). "
+                                + "Expired items will be hidden from search but never deleted; enable TTL on the table.",
+                        ttlAttribute,
+                        tableName);
+            }
+        } catch (RuntimeException e) {
+            log.warn("Could not verify DynamoDB TTL configuration on table {}", tableName, e);
+        }
+    }
+
     private boolean tableExists() {
         try {
             dynamoDbClient.describeTable(
@@ -529,10 +786,19 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
 
     private void createTable(int dimension) {
         List<SearchSchemaElement> searchSchema = new ArrayList<>();
-        for (String attribute : inlineFilterAttributes) {
+        List<AttributeDefinition> attributeDefinitions = new ArrayList<>();
+        attributeDefinitions.add(AttributeDefinition.builder()
+                .attributeName(keyAttribute)
+                .attributeType(ScalarAttributeType.S)
+                .build());
+        for (Map.Entry<String, ScalarAttributeType> entry : inlineFilterAttributes.entrySet()) {
             searchSchema.add(SearchSchemaElement.builder()
-                    .attributeName(attribute)
+                    .attributeName(entry.getKey())
                     .searchSchemaElementType(SearchSchemaElementType.INLINE_FILTER)
+                    .build());
+            attributeDefinitions.add(AttributeDefinition.builder()
+                    .attributeName(entry.getKey())
+                    .attributeType(entry.getValue())
                     .build());
         }
 
@@ -552,10 +818,7 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         CreateTableRequest request = CreateTableRequest.builder()
                 .tableName(tableName)
                 .billingMode(BillingMode.PAY_PER_REQUEST)
-                .attributeDefinitions(AttributeDefinition.builder()
-                        .attributeName(keyAttribute)
-                        .attributeType(ScalarAttributeType.S)
-                        .build())
+                .attributeDefinitions(attributeDefinitions)
                 .keySchema(KeySchemaElement.builder()
                         .attributeName(keyAttribute)
                         .keyType(KeyType.HASH)
@@ -565,6 +828,60 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
 
         dynamoDbClient.createTable(request);
         waitForTableActive();
+    }
+
+    private void ensureTimeToLive() {
+        TimeToLiveDescription current = describeTimeToLive();
+        if (isTimeToLiveOn(current)) {
+            ensureSameTimeToLiveAttribute(current);
+            return;
+        }
+        try {
+            dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                    .tableName(tableName)
+                    .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                            .enabled(true)
+                            .attributeName(ttlAttribute)
+                            .build())
+                    .build());
+            log.info("Enabled DynamoDB TTL on attribute '{}' of table {}", ttlAttribute, tableName);
+        } catch (DynamoDbException e) {
+            // UpdateTimeToLive failed. Re-probe to distinguish a genuine failure from a concurrent enable, but do
+            // not let the probe itself mask the original cause.
+            TimeToLiveDescription after;
+            try {
+                after = describeTimeToLive();
+            } catch (RuntimeException probeFailure) {
+                e.addSuppressed(probeFailure);
+                throw e;
+            }
+            if (!isTimeToLiveOn(after)) {
+                throw e;
+            }
+            ensureSameTimeToLiveAttribute(after);
+            log.debug("DynamoDB TTL on table {} was enabled concurrently", tableName);
+        }
+    }
+
+    private TimeToLiveDescription describeTimeToLive() {
+        return dynamoDbClient
+                .describeTimeToLive(
+                        DescribeTimeToLiveRequest.builder().tableName(tableName).build())
+                .timeToLiveDescription();
+    }
+
+    private static boolean isTimeToLiveOn(TimeToLiveDescription description) {
+        TimeToLiveStatus status = description.timeToLiveStatus();
+        return status == TimeToLiveStatus.ENABLED || status == TimeToLiveStatus.ENABLING;
+    }
+
+    private void ensureSameTimeToLiveAttribute(TimeToLiveDescription description) {
+        if (description.attributeName() != null && !ttlAttribute.equals(description.attributeName())) {
+            throw new IllegalStateException("DynamoDB TTL on table " + tableName + " is enabled on attribute '"
+                    + description.attributeName() + "', but the store is configured with ttlAttribute '"
+                    + ttlAttribute + "'. A table has a single TTL attribute; configure the store with '"
+                    + description.attributeName() + "' or change the table's TTL.");
+        }
     }
 
     private void waitForTableActive() {
@@ -592,12 +909,20 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
         item.put(keyAttribute, AttributeValue.fromS(id));
         item.put(vectorAttribute, AttributeValue.fromL(toAttributeValues(embedding.vector())));
 
+        Long expiresAt = null;
         if (textSegment != null) {
             item.put(textMetadataKey, AttributeValue.fromS(textSegment.text()));
             if (textSegment.metadata() != null) {
-                textSegment.metadata().toMap().forEach((key, value) -> {
+                for (Map.Entry<String, Object> entry :
+                        textSegment.metadata().toMap().entrySet()) {
+                    String key = entry.getKey();
+                    Object value = entry.getValue();
                     if (value == null) {
-                        return;
+                        continue;
+                    }
+                    if (key.equals(ttlAttribute)) {
+                        expiresAt = toEpochSecond(key, value);
+                        continue;
                     }
                     if (key.equals(keyAttribute) || key.equals(vectorAttribute) || key.equals(textMetadataKey)) {
                         throw new IllegalArgumentException("Metadata key '" + key
@@ -605,12 +930,63 @@ public class DynamoDbEmbeddingStore implements EmbeddingStore<TextSegment>, Auto
                                 + "Rename the metadata key, or configure a different keyAttribute, "
                                 + "vectorAttribute or textMetadataKey on the store.");
                     }
-                    item.put(key, DynamoDbAttributeCodec.encode(value));
-                });
+                    AttributeValue encoded = DynamoDbAttributeCodec.encode(value);
+                    ensureInlineFilterTypeMatches(key, encoded);
+                    item.put(key, encoded);
+                }
             }
         }
 
+        if (expiresAt == null && ttl != null) {
+            expiresAt = clock.instant().plus(ttl).getEpochSecond();
+            if (expiresAt > MAX_EPOCH_SECOND) {
+                throw new IllegalArgumentException("ttl " + ttl + " puts the item's expiry beyond the maximum Unix "
+                        + "epoch second " + MAX_EPOCH_SECOND + "; use a shorter ttl");
+            }
+        }
+        if (expiresAt != null) {
+            item.put(ttlAttribute, AttributeValue.fromN(Long.toString(expiresAt)));
+        }
+
         return item;
+    }
+
+    private static long toEpochSecond(String key, Object value) {
+        if (!(value instanceof Integer) && !(value instanceof Long)) {
+            throw new IllegalArgumentException("Metadata key '" + key + "' is the TTL attribute and must be an "
+                    + "Integer or Long Unix epoch second, but was "
+                    + value.getClass().getSimpleName());
+        }
+        long epochSecond = ((Number) value).longValue();
+        if (epochSecond <= 0 || epochSecond > MAX_EPOCH_SECOND) {
+            throw new IllegalArgumentException("Metadata key '" + key + "' is the TTL attribute and must be a Unix "
+                    + "epoch second between 1 and " + MAX_EPOCH_SECOND + ", but was " + epochSecond
+                    + " (epoch milliseconds are not supported)");
+        }
+        return epochSecond;
+    }
+
+    private void ensureInlineFilterTypeMatches(String key, AttributeValue encoded) {
+        ScalarAttributeType declaredType = inlineFilterAttributes.get(key);
+        if (declaredType == null) {
+            return;
+        }
+        ScalarAttributeType actualType;
+        if (encoded.n() != null) {
+            actualType = ScalarAttributeType.N;
+        } else if (encoded.s() != null) {
+            actualType = ScalarAttributeType.S;
+        } else {
+            throw new IllegalArgumentException("Metadata key '" + key
+                    + "' holds a Boolean (BOOL) value, which cannot be an inline filter attribute; "
+                    + "store the flag as a String or an Integer instead");
+        }
+        if (declaredType != actualType) {
+            throw new IllegalArgumentException("Metadata key '" + key + "' is declared as inline filter type "
+                    + declaredType + ", but its value encodes to DynamoDB type " + actualType
+                    + ". Numeric filters require Integer/Long metadata (N); string, float and double "
+                    + "metadata are stored as S.");
+        }
     }
 
     private TextSegment extractTextSegment(Map<String, AttributeValue> item) {
