@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <valkey-glide.version>2.5.2</valkey-glide.version>
+        <valkey-glide.version>2.5.3</valkey-glide.version>
     </properties>
 
     <dependencyManagement>
