@@ -445,13 +445,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 CREATE PROPERTY `%s`.`%s` IF NOT EXISTS STRING;
                 CREATE PROPERTY `%s`.`%s` IF NOT EXISTS ARRAY_OF_FLOATS;
                 CREATE PROPERTY `%s`.`%s` IF NOT EXISTS STRING;
-                CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) LSM_VECTOR
-                  METADATA {
-                    "dimensions": %d,
-                    "similarity": "%s",
-                    "maxConnections": %d,
-                    "beamWidth": %d
-                  };
                 CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) FULL_TEXT;
                 """,
                 typeName,
@@ -462,15 +455,35 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 typeName,
                 TEXT_PROPERTY,
                 typeName,
-                EMBEDDING_PROPERTY,
-                dimension,
-                similarityFunction,
-                maxConnections,
-                beamWidth,
-                typeName,
                 TEXT_PROPERTY);
         log.debug("Initializing ArcadeDB schema (remote mode)");
         remoteDatabase.command("sqlscript", script);
+
+        // Like embedded mode, an existing vector index is kept as it is. Since ArcadeDB 26.8.1, CREATE INDEX IF NOT
+        // EXISTS fails when the existing index has a different configuration (e.g. maxConnections), so it is only
+        // sent when the index is missing.
+        if (!remoteIndexExists(typeName + "[" + EMBEDDING_PROPERTY + "]")) {
+            remoteDatabase.command(
+                    "sql",
+                    String.format(
+                            """
+                            CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) LSM_VECTOR
+                              METADATA {
+                                "dimensions": %d,
+                                "similarity": "%s",
+                                "maxConnections": %d,
+                                "beamWidth": %d
+                              }
+                            """,
+                            typeName, EMBEDDING_PROPERTY, dimension, similarityFunction, maxConnections, beamWidth));
+        }
+    }
+
+    private boolean remoteIndexExists(String indexName) {
+        try (ResultSet resultSet =
+                remoteDatabase.query("sql", "SELECT name FROM schema:indexes WHERE name = ?", indexName)) {
+            return resultSet.hasNext();
+        }
     }
 
     private Map<String, Object> extractMetadataFromResult(Result doc) {
