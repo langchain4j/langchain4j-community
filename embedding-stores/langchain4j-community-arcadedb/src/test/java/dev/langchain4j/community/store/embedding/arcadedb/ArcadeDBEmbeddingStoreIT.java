@@ -17,6 +17,7 @@ import dev.langchain4j.store.embedding.filter.MetadataFilterBuilder;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeAll;
@@ -214,6 +215,48 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                         .build())
                 .matches();
         assertThat(matches).extracting(EmbeddingMatch::embeddingId).containsExactly(kept);
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_add_all_in_several_batches() {
+        clearStore();
+        ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("EmbeddingDocument")
+                .dimension(384)
+                .batchSize(3)
+                .build();
+        List<String> ids = new ArrayList<>();
+        List<Embedding> embeddings = new ArrayList<>();
+        List<TextSegment> segments = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            ids.add("batched-" + i);
+            embeddings.add(embeddingModel.embed("batched text " + i).content());
+            // Rows in one batch carry different metadata keys.
+            segments.add(TextSegment.from("batched text " + i, new Metadata(Map.of("key" + (i % 4), i))));
+        }
+
+        batched.addAll(ids, embeddings, segments);
+
+        for (int i = 0; i < 10; i++) {
+            List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                    .search(EmbeddingSearchRequest.builder()
+                            .queryEmbedding(embeddings.get(i))
+                            .maxResults(1)
+                            .build())
+                    .matches();
+            int n = i;
+            assertThat(matches).singleElement().satisfies(match -> {
+                assertThat(match.embeddingId()).isEqualTo(ids.get(n));
+                assertThat(match.embedded().text()).isEqualTo("batched text " + n);
+                assertThat(match.embedded().metadata().getInteger("key" + (n % 4)))
+                        .isEqualTo(n);
+            });
+        }
     }
 
     @org.junit.jupiter.api.Test

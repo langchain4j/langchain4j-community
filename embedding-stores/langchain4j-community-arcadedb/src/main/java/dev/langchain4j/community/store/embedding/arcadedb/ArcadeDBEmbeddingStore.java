@@ -98,6 +98,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private static final String DEFAULT_SIMILARITY = "COSINE";
     private static final int DEFAULT_MAX_CONNECTIONS = 16;
     private static final int DEFAULT_BEAM_WIDTH = 100;
+    /** Rows per request when adding embeddings in remote mode. */
+    private static final int DEFAULT_REMOTE_BATCH_SIZE = 500;
 
     // Remote-specific defaults
     private static final int DEFAULT_PORT = 2480;
@@ -125,6 +127,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private final int embeddedDimension;
     private final int embeddedMaxConnections;
     private final int embeddedBeamWidth;
+    // Rows per request in remote addAll; 0 in embedded mode.
+    private final int remoteBatchSize;
 
     // Tracks the number of non-deleted vertices to detect HNSW connectivity gaps.
     // HNSW may not traverse all nodes when vectors are identical; if HNSW returns fewer
@@ -141,8 +145,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             String similarityFunction,
             int maxConnections,
             int beamWidth,
-            String metadataPrefix) {
+            String metadataPrefix,
+            int batchSize) {
         this.embeddedMode = false;
+        this.remoteBatchSize = batchSize;
         this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
         this.embeddedDatabase = null;
         this.typeName = ensureNotBlank(typeName, "typeName");
@@ -159,6 +165,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     private ArcadeDBEmbeddingStore(EmbeddedBuilder builder) {
         this.embeddedMode = true;
+        this.remoteBatchSize = 0;
         this.remoteDatabase = null;
         this.filterMapper = null;
         this.typeName = builder.typeName;
@@ -328,41 +335,59 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     private void addAllRemote(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
         log.debug("Inserting {} embeddings into ArcadeDB (remote mode)", ids.size());
-        for (int i = 0; i < ids.size(); i++) {
-            // Values are bound as parameters: inlined into the SQL text, a line break in a text or metadata value
-            // was a syntax error.
+        // One request and one transaction per batch: a SQL script of parameterized INSERTs. Values are bound as
+        // parameters; inlined into the SQL text, a line break in a text or metadata value was a syntax error.
+        for (int from = 0; from < ids.size(); from += remoteBatchSize) {
+            int to = Math.min(from + remoteBatchSize, ids.size());
+            StringBuilder script = new StringBuilder("BEGIN;\n");
             Map<String, Object> parameters = new HashMap<>();
-            StringBuilder sql = new StringBuilder();
-            sql.append("INSERT INTO `")
-                    .append(typeName)
-                    .append("` SET `")
-                    .append(ID_PROPERTY)
-                    .append("` = :id");
-            parameters.put("id", ids.get(i));
-            sql.append(", `").append(EMBEDDING_PROPERTY).append("` = :embedding");
-            parameters.put("embedding", embeddings.get(i).vector());
-
-            if (embedded != null && embedded.get(i) != null) {
-                TextSegment segment = embedded.get(i);
-                if (segment.text() != null) {
-                    sql.append(", `").append(TEXT_PROPERTY).append("` = :text");
-                    parameters.put("text", segment.text());
-                }
-                int m = 0;
-                for (Map.Entry<String, Object> entry :
-                        segment.metadata().toMap().entrySet()) {
-                    String name = "m" + m++;
-                    sql.append(", `")
-                            .append(metadataPrefix)
-                            .append(entry.getKey())
-                            .append("` = :")
-                            .append(name);
-                    parameters.put(name, toParameter(entry.getValue()));
-                }
+            for (int i = from; i < to; i++) {
+                appendRemoteInsert(
+                        script,
+                        parameters,
+                        i - from,
+                        ids.get(i),
+                        embeddings.get(i),
+                        embedded == null ? null : embedded.get(i));
             }
-
-            remoteDatabase.command("sql", sql.toString(), parameters);
+            script.append("COMMIT;");
+            remoteDatabase.command("sqlscript", script.toString(), parameters);
         }
+    }
+
+    private void appendRemoteInsert(
+            StringBuilder script,
+            Map<String, Object> parameters,
+            int row,
+            String id,
+            Embedding embedding,
+            TextSegment segment) {
+        script.append("INSERT INTO `")
+                .append(typeName)
+                .append("` SET `")
+                .append(ID_PROPERTY)
+                .append("` = :id");
+        script.append(row);
+        parameters.put("id" + row, id);
+        script.append(", `").append(EMBEDDING_PROPERTY).append("` = :embedding").append(row);
+        parameters.put("embedding" + row, embedding.vector());
+        if (segment != null) {
+            if (segment.text() != null) {
+                script.append(", `").append(TEXT_PROPERTY).append("` = :text").append(row);
+                parameters.put("text" + row, segment.text());
+            }
+            int m = 0;
+            for (Map.Entry<String, Object> entry : segment.metadata().toMap().entrySet()) {
+                String name = "m" + row + "_" + m++;
+                script.append(", `")
+                        .append(metadataPrefix)
+                        .append(entry.getKey())
+                        .append("` = :")
+                        .append(name);
+                parameters.put(name, toParameter(entry.getValue()));
+            }
+        }
+        script.append(";\n");
     }
 
     private EmbeddingSearchResult<TextSegment> searchRemote(EmbeddingSearchRequest request) {
@@ -1040,6 +1065,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private int beamWidth = DEFAULT_BEAM_WIDTH;
         private boolean createDatabase = false;
         private String metadataPrefix = REMOTE_DEFAULT_METADATA_PREFIX;
+        private int batchSize = DEFAULT_REMOTE_BATCH_SIZE;
 
         /**
          * @param host ArcadeDB server hostname. Required.
@@ -1138,8 +1164,18 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             return this;
         }
 
+        /**
+         * @param batchSize Embeddings sent per request by {@code addAll}; each request inserts them in one
+         *                  transaction. Default: 500.
+         */
+        public Builder batchSize(int batchSize) {
+            this.batchSize = batchSize;
+            return this;
+        }
+
         public ArcadeDBEmbeddingStore build() {
             ensureNotBlank(host, "host");
+            ensureTrue(batchSize > 0, "batchSize must be positive");
             ensureNotBlank(databaseName, "databaseName");
             ensureNotBlank(username, "username");
             ensureNotNull(password, "password");
@@ -1160,7 +1196,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     getOrDefault(similarityFunction, DEFAULT_SIMILARITY),
                     maxConnections,
                     beamWidth,
-                    getOrDefault(metadataPrefix, REMOTE_DEFAULT_METADATA_PREFIX));
+                    getOrDefault(metadataPrefix, REMOTE_DEFAULT_METADATA_PREFIX),
+                    batchSize);
         }
     }
 
