@@ -380,9 +380,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             int fetchCount = filter != null ? maxResults * 5 : maxResults;
             String vectorSql = embeddingToSql(queryEmbedding);
             String indexName = typeName + "[" + EMBEDDING_PROPERTY + "]";
-            query = String.format(
-                    "SELECT *, `vector.neighbors`('%s', %s, %d) AS neighbors FROM `%s`",
-                    indexName, vectorSql, fetchCount, typeName);
+            // Expand the neighbours themselves. Projecting vector.neighbors() per row of the type instead runs one
+            // ANN search for every record and returns the records in scan order, not by similarity.
+            query = String.format("SELECT expand(`vector.neighbors`('%s', %s, %d))", indexName, vectorSql, fetchCount);
         }
 
         ResultSet resultSet;
