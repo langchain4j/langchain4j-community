@@ -55,11 +55,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,6 +131,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private final int embeddedBeamWidth;
     // Rows per request in remote addAll; 0 in embedded mode.
     private final int remoteBatchSize;
+    // Whether hybrid query text is passed to the full-text index as Lucene syntax (true) or escaped first (false).
+    private final boolean rawFullTextQuery;
 
     // Tracks the number of non-deleted vertices to detect HNSW connectivity gaps.
     // HNSW may not traverse all nodes when vectors are identical; if HNSW returns fewer
@@ -146,9 +150,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             int maxConnections,
             int beamWidth,
             String metadataPrefix,
-            int batchSize) {
+            int batchSize,
+            boolean rawFullTextQuery) {
         this.embeddedMode = false;
         this.remoteBatchSize = batchSize;
+        this.rawFullTextQuery = rawFullTextQuery;
         this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
         this.embeddedDatabase = null;
         this.typeName = ensureNotBlank(typeName, "typeName");
@@ -166,6 +172,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private ArcadeDBEmbeddingStore(EmbeddedBuilder builder) {
         this.embeddedMode = true;
         this.remoteBatchSize = 0;
+        this.rawFullTextQuery = builder.rawFullTextQuery;
         this.remoteDatabase = null;
         this.filterMapper = null;
         this.typeName = builder.typeName;
@@ -408,7 +415,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         if (isHybrid) {
             int hybridFetchCount = filter != null ? maxResults * 10 : maxResults * 2;
             query = buildHybridSearchQuery(queryEmbedding, EMBEDDING_PROPERTY, TEXT_PROPERTY, hybridFetchCount, false);
-            parameters = Map.of("query", request.query());
+            parameters = Map.of("query", fullTextQuery(request.query()));
         } else {
             int fetchCount = filter != null ? maxResults * 5 : maxResults;
             String vectorSql = embeddingToSql(queryEmbedding);
@@ -422,6 +429,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         try {
             resultSet = remoteDatabase.query("sql", query, parameters);
         } catch (Exception e) {
+            if (isHybrid) {
+                log.warn("Hybrid search failed, falling back to dense search: {}", e.getMessage());
+                return searchRemote(withoutQuery(request));
+            }
             log.warn("Vector search returned error: {}", e.getMessage(), e);
             return new EmbeddingSearchResult<>(List.of());
         }
@@ -636,7 +647,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 buildHybridSearchQuery(queryEmbedding, EMBEDDED_EMBEDDING, EMBEDDED_TEXT, hybridFetchCount, true);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        try (ResultSet rs = embeddedDatabase.query("sql", query, Map.of("query", request.query()))) {
+        try (ResultSet rs = embeddedDatabase.query("sql", query, Map.of("query", fullTextQuery(request.query())))) {
             while (rs.hasNext() && matches.size() < maxResults) {
                 Result result = rs.next();
                 Vertex vertex = null;
@@ -681,8 +692,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 }
             }
         } catch (Exception e) {
-            log.warn("Hybrid search returned error (indices may be empty): {}", e.getMessage());
-            return new EmbeddingSearchResult<>(List.of());
+            log.warn("Hybrid search failed, falling back to dense search: {}", e.getMessage());
+            return searchEmbedded(withoutQuery(request));
         }
 
         return new EmbeddingSearchResult<>(matches);
@@ -1021,6 +1032,46 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return sb.toString();
     }
 
+    /** Lucene query-syntax characters, escaped with a backslash unless {@code rawFullTextQuery} is set. */
+    private static final String LUCENE_SPECIAL_CHARACTERS = "\\+-!():^[]\"{}~*?|&/";
+
+    /** Lucene's boolean operators as standalone words. */
+    private static final Pattern LUCENE_OPERATOR = Pattern.compile("(?<![\\p{L}\\p{N}])(AND|OR|NOT)(?![\\p{L}\\p{N}])");
+
+    /** The hybrid query text as passed to the full-text index (see {@link #escapeFullTextQuery}). */
+    private String fullTextQuery(String text) {
+        return rawFullTextQuery ? text : escapeFullTextQuery(text);
+    }
+
+    /**
+     * Escapes Lucene special characters and lower-cases the operators AND, OR, NOT so they are searched as words (the
+     * default analyzer lower-cases anyway). Without this, a natural-language question such as "what is 3/5?" failed to
+     * parse and the hybrid search returned nothing.
+     */
+    static String escapeFullTextQuery(String text) {
+        StringBuilder escaped = new StringBuilder(text.length() + 16);
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (LUCENE_SPECIAL_CHARACTERS.indexOf(c) >= 0) {
+                escaped.append('\\');
+            }
+            escaped.append(c);
+        }
+        return LUCENE_OPERATOR
+                .matcher(escaped)
+                .replaceAll(match -> match.group(1).toLowerCase(Locale.ROOT));
+    }
+
+    /** The same request without the full-text query, i.e. a dense-only search. */
+    private static EmbeddingSearchRequest withoutQuery(EmbeddingSearchRequest request) {
+        return EmbeddingSearchRequest.builder()
+                .queryEmbedding(request.queryEmbedding())
+                .maxResults(request.maxResults())
+                .minScore(request.minScore())
+                .filter(request.filter())
+                .build();
+    }
+
     /**
      * A metadata value as a query parameter: UUIDs as strings and floats widened to doubles, as they were stored when
      * values were inlined into the SQL text.
@@ -1066,6 +1117,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private boolean createDatabase = false;
         private String metadataPrefix = REMOTE_DEFAULT_METADATA_PREFIX;
         private int batchSize = DEFAULT_REMOTE_BATCH_SIZE;
+        private boolean rawFullTextQuery = false;
 
         /**
          * @param host ArcadeDB server hostname. Required.
@@ -1173,6 +1225,16 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             return this;
         }
 
+        /**
+         * @param rawFullTextQuery Whether the query text of a hybrid search is passed to the full-text index as
+         *                         Lucene query syntax. Default: false — Lucene special characters and the operators
+         *                         AND, OR, NOT are escaped, so natural-language queries cannot fail to parse.
+         */
+        public Builder rawFullTextQuery(boolean rawFullTextQuery) {
+            this.rawFullTextQuery = rawFullTextQuery;
+            return this;
+        }
+
         public ArcadeDBEmbeddingStore build() {
             ensureNotBlank(host, "host");
             ensureTrue(batchSize > 0, "batchSize must be positive");
@@ -1197,7 +1259,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     maxConnections,
                     beamWidth,
                     getOrDefault(metadataPrefix, REMOTE_DEFAULT_METADATA_PREFIX),
-                    batchSize);
+                    batchSize,
+                    rawFullTextQuery);
         }
     }
 
@@ -1222,6 +1285,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private Database database;
         private String typeName = DEFAULT_TYPE_NAME;
         private String metadataPrefix = EMBEDDED_DEFAULT_METADATA_PREFIX;
+        private boolean rawFullTextQuery = false;
         int dimension = 384;
         int maxConnections = DEFAULT_MAX_CONNECTIONS;
         int beamWidth = DEFAULT_BEAM_WIDTH;
@@ -1281,6 +1345,16 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
          */
         public EmbeddedBuilder beamWidth(int beamWidth) {
             this.beamWidth = beamWidth;
+            return this;
+        }
+
+        /**
+         * @param rawFullTextQuery Whether the query text of a hybrid search is passed to the full-text index as
+         *                         Lucene query syntax. Default: false — Lucene special characters and the operators
+         *                         AND, OR, NOT are escaped, so natural-language queries cannot fail to parse.
+         */
+        public EmbeddedBuilder rawFullTextQuery(boolean rawFullTextQuery) {
+            this.rawFullTextQuery = rawFullTextQuery;
             return this;
         }
 

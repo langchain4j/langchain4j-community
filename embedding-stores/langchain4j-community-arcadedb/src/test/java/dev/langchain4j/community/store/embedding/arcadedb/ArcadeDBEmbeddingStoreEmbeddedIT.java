@@ -87,6 +87,55 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_search_hybrid_with_a_question_containing_lucene_syntax() {
+        Embedding embedding = EMBEDDING_MODEL
+                .embed("the three-fifths compromise in the constitution")
+                .content();
+        String id = embeddingStore()
+                .add(
+                        embedding,
+                        TextSegment.from("The 3/5 compromise was stated in the constitution of the graph database"));
+
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore()
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .query("where was the \"3/5 compromise\" (graph: database) stated AND -why? [ok] ~fuzzy* ^2")
+                        .maxResults(1)
+                        .build())
+                .matches();
+
+        assertThat(matches).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_fall_back_to_dense_search_when_a_raw_full_text_query_is_invalid() {
+        try (ArcadeDBEmbeddingStore raw = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(tempDir.resolve("raw-db").toString())
+                .dimension(DIMENSION)
+                .rawFullTextQuery(true)
+                .build()) {
+            Embedding embedding = EMBEDDING_MODEL.embed("graph database").content();
+            String id = raw.add(embedding, TextSegment.from("ArcadeDB is a graph database"));
+
+            List<EmbeddingMatch<TextSegment>> valid = raw.search(EmbeddingSearchRequest.builder()
+                            .queryEmbedding(embedding)
+                            .query("graph AND database")
+                            .maxResults(1)
+                            .build())
+                    .matches();
+            List<EmbeddingMatch<TextSegment>> invalid = raw.search(EmbeddingSearchRequest.builder()
+                            .queryEmbedding(embedding)
+                            .query("graph AND (database")
+                            .maxResults(1)
+                            .build())
+                    .matches();
+
+            assertThat(valid).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+            assertThat(invalid).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
     void should_reopen_existing_store_with_different_index_settings() {
         String path = tempDir.resolve("reopened-db").toString();
         Embedding embedding = EMBEDDING_MODEL.embed("reopened store").content();

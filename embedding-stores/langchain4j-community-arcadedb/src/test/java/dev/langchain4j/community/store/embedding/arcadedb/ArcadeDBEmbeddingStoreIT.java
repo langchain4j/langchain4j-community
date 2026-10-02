@@ -218,6 +218,59 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_search_hybrid_with_a_question_containing_lucene_syntax() {
+        clearStore();
+        Embedding embedding = embeddingModel
+                .embed("the three-fifths compromise in the constitution")
+                .content();
+        String id = embeddingStore.add(
+                embedding, TextSegment.from("The 3/5 compromise was stated in the constitution of the graph database"));
+
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .query("where was the \"3/5 compromise\" (graph: database) stated AND -why? [ok] ~fuzzy* ^2")
+                        .maxResults(1)
+                        .build())
+                .matches();
+
+        assertThat(matches).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_fall_back_to_dense_search_when_a_raw_full_text_query_is_invalid() {
+        clearStore();
+        ArcadeDBEmbeddingStore raw = ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("EmbeddingDocument")
+                .dimension(384)
+                .rawFullTextQuery(true)
+                .build();
+        Embedding embedding = embeddingModel.embed("graph database").content();
+        String id = raw.add(embedding, TextSegment.from("ArcadeDB is a graph database"));
+
+        List<EmbeddingMatch<TextSegment>> valid = raw.search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .query("graph AND database")
+                        .maxResults(1)
+                        .build())
+                .matches();
+        List<EmbeddingMatch<TextSegment>> invalid = raw.search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .query("graph AND (database")
+                        .maxResults(1)
+                        .build())
+                .matches();
+
+        assertThat(valid).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+        assertThat(invalid).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+    }
+
+    @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         clearStore();
         ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.builder()
