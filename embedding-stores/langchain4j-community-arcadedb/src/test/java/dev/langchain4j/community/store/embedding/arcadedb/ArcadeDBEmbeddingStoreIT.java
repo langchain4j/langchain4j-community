@@ -156,6 +156,66 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                 .toList();
     }
 
+    static final String AWKWARD = "Title\nline two\r\nwith 'single' and \"double\" quotes,\ta tab and a back\\slash";
+
+    @org.junit.jupiter.api.Test
+    void should_store_and_find_texts_and_metadata_with_line_breaks_quotes_and_backslashes() {
+        clearStore();
+        Embedding embedding = embeddingModel.embed("awkward text").content();
+        String id = embeddingStore.add(embedding, TextSegment.from(AWKWARD, Metadata.from("note", AWKWARD)));
+
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .maxResults(1)
+                        .build())
+                .matches();
+
+        assertThat(matches).singleElement().satisfies(match -> {
+            assertThat(match.embeddingId()).isEqualTo(id);
+            assertThat(match.embedded().text()).isEqualTo(AWKWARD);
+            assertThat(match.embedded().metadata().getString("note")).isEqualTo(AWKWARD);
+        });
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_search_hybrid_with_a_query_containing_a_line_break() {
+        clearStore();
+        Embedding embedding = embeddingModel.embed("graph database").content();
+        String id = embeddingStore.add(embedding, TextSegment.from("ArcadeDB is a graph database"));
+
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .query("graph\ndatabase")
+                        .maxResults(1)
+                        .build())
+                .matches();
+
+        assertThat(matches).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_remove_by_ids_and_by_filter_with_line_breaks_quotes_and_backslashes() {
+        clearStore();
+        Embedding embedding = embeddingModel.embed("to be removed").content();
+        String awkwardId = "id with 'quote'\nand back\\slash";
+        embeddingStore.addAll(List.of(awkwardId), List.of(embedding), List.of(TextSegment.from("by id")));
+        embeddingStore.add(embedding, TextSegment.from("by filter", Metadata.from("note", AWKWARD)));
+        String kept = embeddingStore.add(embedding, TextSegment.from("kept", Metadata.from("note", "plain")));
+
+        embeddingStore.removeAll(List.of(awkwardId));
+        embeddingStore.removeAll(MetadataFilterBuilder.metadataKey("note").isEqualTo(AWKWARD));
+
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .maxResults(10)
+                        .build())
+                .matches();
+        assertThat(matches).extracting(EmbeddingMatch::embeddingId).containsExactly(kept);
+    }
+
     @org.junit.jupiter.api.Test
     void should_reopen_existing_store_with_different_index_settings() {
         // ArcadeDB 26.8.1+ rejects CREATE INDEX IF NOT EXISTS when the existing index has another configuration.

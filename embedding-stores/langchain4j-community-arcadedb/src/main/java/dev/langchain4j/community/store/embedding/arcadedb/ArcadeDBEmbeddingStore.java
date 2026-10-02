@@ -254,9 +254,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 }
             });
         } else {
-            String idList = ids.stream().map(id -> "'" + escapeString(id) + "'").collect(Collectors.joining(", "));
             remoteDatabase.command(
-                    "sql", String.format("DELETE FROM `%s` WHERE %s IN [%s]", typeName, ID_PROPERTY, idList));
+                    "sql",
+                    String.format("DELETE FROM `%s` WHERE `%s` IN :ids", typeName, ID_PROPERTY),
+                    Map.of("ids", List.copyOf(ids)));
         }
     }
 
@@ -269,10 +270,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             log.info(
                     "Number of embeddings before delete: {}",
                     findAllRemote(1000).size());
-            String whereClause = filterMapper.map(filter);
+            List<Object> parameters = new ArrayList<>();
+            String whereClause = filterMapper.map(filter, parameters);
             String sql = String.format("DELETE FROM `%s` WHERE %s", typeName, whereClause);
             log.debug("Removing with filter: {}", sql);
-            remoteDatabase.command("sql", sql);
+            remoteDatabase.command("sql", sql, parameters.toArray());
             log.info(
                     "Number of embeddings after delete: {}", findAllRemote(1000).size());
         }
@@ -327,34 +329,39 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private void addAllRemote(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
         log.debug("Inserting {} embeddings into ArcadeDB (remote mode)", ids.size());
         for (int i = 0; i < ids.size(); i++) {
+            // Values are bound as parameters: inlined into the SQL text, a line break in a text or metadata value
+            // was a syntax error.
+            Map<String, Object> parameters = new HashMap<>();
             StringBuilder sql = new StringBuilder();
-            sql.append("INSERT INTO `").append(typeName).append("` SET ");
-            sql.append(ID_PROPERTY)
-                    .append(" = '")
-                    .append(escapeString(ids.get(i)))
-                    .append("'");
-            sql.append(", ").append(EMBEDDING_PROPERTY).append(" = ").append(embeddingToSql(embeddings.get(i)));
+            sql.append("INSERT INTO `")
+                    .append(typeName)
+                    .append("` SET `")
+                    .append(ID_PROPERTY)
+                    .append("` = :id");
+            parameters.put("id", ids.get(i));
+            sql.append(", `").append(EMBEDDING_PROPERTY).append("` = :embedding");
+            parameters.put("embedding", embeddings.get(i).vector());
 
             if (embedded != null && embedded.get(i) != null) {
                 TextSegment segment = embedded.get(i);
                 if (segment.text() != null) {
-                    sql.append(", ")
-                            .append(TEXT_PROPERTY)
-                            .append(" = '")
-                            .append(escapeString(segment.text()))
-                            .append("'");
+                    sql.append(", `").append(TEXT_PROPERTY).append("` = :text");
+                    parameters.put("text", segment.text());
                 }
+                int m = 0;
                 for (Map.Entry<String, Object> entry :
                         segment.metadata().toMap().entrySet()) {
-                    sql.append(", ")
+                    String name = "m" + m++;
+                    sql.append(", `")
                             .append(metadataPrefix)
                             .append(entry.getKey())
-                            .append(" = ")
-                            .append(valueToSql(entry.getValue()));
+                            .append("` = :")
+                            .append(name);
+                    parameters.put(name, toParameter(entry.getValue()));
                 }
             }
 
-            remoteDatabase.command("sql", sql.toString());
+            remoteDatabase.command("sql", sql.toString(), parameters);
         }
     }
 
@@ -372,10 +379,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         boolean isHybrid = request.query() != null && !request.query().trim().isEmpty();
 
         String query;
+        Map<String, Object> parameters = Map.of();
         if (isHybrid) {
             int hybridFetchCount = filter != null ? maxResults * 10 : maxResults * 2;
-            query = buildHybridSearchQuery(
-                    queryEmbedding, request.query(), EMBEDDING_PROPERTY, TEXT_PROPERTY, hybridFetchCount, false);
+            query = buildHybridSearchQuery(queryEmbedding, EMBEDDING_PROPERTY, TEXT_PROPERTY, hybridFetchCount, false);
+            parameters = Map.of("query", request.query());
         } else {
             int fetchCount = filter != null ? maxResults * 5 : maxResults;
             String vectorSql = embeddingToSql(queryEmbedding);
@@ -387,7 +395,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
         ResultSet resultSet;
         try {
-            resultSet = remoteDatabase.query("sql", query);
+            resultSet = remoteDatabase.query("sql", query, parameters);
         } catch (Exception e) {
             log.warn("Vector search returned error: {}", e.getMessage(), e);
             return new EmbeddingSearchResult<>(List.of());
@@ -599,11 +607,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         Filter filter = request.filter();
 
         int hybridFetchCount = filter != null ? maxResults * 10 : maxResults * 2;
-        String query = buildHybridSearchQuery(
-                queryEmbedding, request.query(), EMBEDDED_EMBEDDING, EMBEDDED_TEXT, hybridFetchCount, true);
+        String query =
+                buildHybridSearchQuery(queryEmbedding, EMBEDDED_EMBEDDING, EMBEDDED_TEXT, hybridFetchCount, true);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        try (ResultSet rs = embeddedDatabase.query("sql", query)) {
+        try (ResultSet rs = embeddedDatabase.query("sql", query, Map.of("query", request.query()))) {
             while (rs.hasNext() && matches.size() < maxResults) {
                 Result result = rs.next();
                 Vertex vertex = null;
@@ -820,9 +828,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     // ===== Shared helpers =====
 
+    /**
+     * Builds the hybrid (dense + full-text) query; the full-text query text is the parameter {@code :query}.
+     */
     private String buildHybridSearchQuery(
             Embedding queryEmbedding,
-            String queryText,
             String embeddingProperty,
             String textProperty,
             int fetchCount,
@@ -832,11 +842,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         String fullTextQuery;
         if (excludeSoftDeleted) {
             fullTextQuery = String.format(
-                    "SEARCH_INDEX('%s', '%s') = true AND (`%s` IS NULL OR `%s` != true)",
-                    fullTextIndexName, escapeString(queryText), PROPERTY_DELETED, PROPERTY_DELETED);
+                    "SEARCH_INDEX('%s', :query) = true AND (`%s` IS NULL OR `%s` != true)",
+                    fullTextIndexName, PROPERTY_DELETED, PROPERTY_DELETED);
         } else {
-            fullTextQuery =
-                    String.format("SEARCH_INDEX('%s', '%s') = true", fullTextIndexName, escapeString(queryText));
+            fullTextQuery = String.format("SEARCH_INDEX('%s', :query) = true", fullTextIndexName);
         }
         return String.format(
                 "SELECT expand(`vector.fuse`(" + "`vector.neighbors`('%s', %s, %d),"
@@ -987,28 +996,17 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return sb.toString();
     }
 
-    private static String valueToSql(Object value) {
-        if (value instanceof String || value instanceof UUID) {
-            return "'" + escapeString(value.toString()) + "'";
-        } else if (value instanceof Long l) {
-            // ArcadeDB's SQL parser can't handle Long.MIN_VALUE directly because
-            // -(9223372036854775808) overflows. Express it as (MIN+1)-1 as a workaround.
-            if (l == Long.MIN_VALUE) {
-                return "(-9223372036854775807 - 1)";
-            }
-            return l.toString();
+    /**
+     * A metadata value as a query parameter: UUIDs as strings and floats widened to doubles, as they were stored when
+     * values were inlined into the SQL text.
+     */
+    private static Object toParameter(Object value) {
+        if (value instanceof UUID uuid) {
+            return uuid.toString();
         } else if (value instanceof Float f) {
-            // Use decimal notation to avoid scientific notation parsing issues
-            return String.valueOf(f.doubleValue());
-        } else if (value instanceof Double d) {
-            return String.valueOf(d);
-        } else {
-            return value.toString();
+            return f.doubleValue();
         }
-    }
-
-    private static String escapeString(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("'", "\\'");
+        return value;
     }
 
     // ===== Builders =====

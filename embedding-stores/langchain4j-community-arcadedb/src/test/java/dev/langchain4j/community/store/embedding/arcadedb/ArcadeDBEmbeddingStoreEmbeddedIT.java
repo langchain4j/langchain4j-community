@@ -71,6 +71,22 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_search_hybrid_with_a_query_containing_a_line_break() {
+        Embedding embedding = EMBEDDING_MODEL.embed("graph database").content();
+        String id = embeddingStore().add(embedding, TextSegment.from("ArcadeDB is a graph database"));
+
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore()
+                .search(EmbeddingSearchRequest.builder()
+                        .queryEmbedding(embedding)
+                        .query("graph\ndatabase 'quoted' back\\slash")
+                        .maxResults(1)
+                        .build())
+                .matches();
+
+        assertThat(matches).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+    }
+
+    @org.junit.jupiter.api.Test
     void should_reopen_existing_store_with_different_index_settings() {
         String path = tempDir.resolve("reopened-db").toString();
         Embedding embedding = EMBEDDING_MODEL.embed("reopened store").content();

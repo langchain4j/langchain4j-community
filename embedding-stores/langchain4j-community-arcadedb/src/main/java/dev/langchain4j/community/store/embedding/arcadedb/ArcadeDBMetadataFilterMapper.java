@@ -8,11 +8,13 @@ import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.filter.logical.Not;
 import dev.langchain4j.store.embedding.filter.logical.Or;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Maps langchain4j {@link Filter} objects to ArcadeDB SQL WHERE clauses.
+ * Maps langchain4j {@link Filter} objects to ArcadeDB SQL WHERE clauses with positional parameters ({@code ?}); the
+ * values are appended to the parameter list in order, so no value is inlined into the SQL text.
  * Metadata is stored as top-level vertex properties with a configurable prefix.
  */
 class ArcadeDBMetadataFilterMapper {
@@ -23,32 +25,44 @@ class ArcadeDBMetadataFilterMapper {
         this.metadataPrefix = metadataPrefix;
     }
 
-    String map(Filter filter) {
+    /**
+     * Returns the WHERE clause for {@code filter} and appends its parameter values to {@code parameters}.
+     */
+    String map(Filter filter, List<Object> parameters) {
         if (filter instanceof IsEqualTo f) {
-            return mapComparison(f.key(), "=", f.comparisonValue());
+            return mapComparison(f.key(), "=", f.comparisonValue(), parameters);
         } else if (filter instanceof IsNotEqualTo f) {
             // NULL-safe: property absent means "not equal" is true
-            return format("(%s IS NULL OR %s)", formatKey(f.key()), mapComparison(f.key(), "!=", f.comparisonValue()));
+            return format(
+                    "(%s IS NULL OR %s)",
+                    formatKey(f.key()), mapComparison(f.key(), "!=", f.comparisonValue(), parameters));
         } else if (filter instanceof IsGreaterThan f) {
-            return mapComparison(f.key(), ">", f.comparisonValue());
+            return mapComparison(f.key(), ">", f.comparisonValue(), parameters);
         } else if (filter instanceof IsGreaterThanOrEqualTo f) {
-            return mapComparison(f.key(), ">=", f.comparisonValue());
+            return mapComparison(f.key(), ">=", f.comparisonValue(), parameters);
         } else if (filter instanceof IsLessThan f) {
-            return mapComparison(f.key(), "<", f.comparisonValue());
+            return mapComparison(f.key(), "<", f.comparisonValue(), parameters);
         } else if (filter instanceof IsLessThanOrEqualTo f) {
-            return mapComparison(f.key(), "<=", f.comparisonValue());
+            return mapComparison(f.key(), "<=", f.comparisonValue(), parameters);
         } else if (filter instanceof IsIn f) {
-            return mapIn(f);
+            return format("%s IN %s", formatKey(f.key()), placeholders(f.comparisonValues(), parameters));
         } else if (filter instanceof IsNotIn f) {
-            return mapNotIn(f);
+            // NULL-safe: property absent means "not in" is true
+            return format(
+                    "(%s IS NULL OR %s NOT IN %s)",
+                    formatKey(f.key()), formatKey(f.key()), placeholders(f.comparisonValues(), parameters));
         } else if (filter instanceof And f) {
-            return format("(%s AND %s)", map(f.left()), map(f.right()));
+            String left = map(f.left(), parameters);
+            return format("(%s AND %s)", left, map(f.right(), parameters));
         } else if (filter instanceof Or f) {
-            return format("(%s OR %s)", map(f.left()), map(f.right()));
+            String left = map(f.left(), parameters);
+            return format("(%s OR %s)", left, map(f.right(), parameters));
         } else if (filter instanceof Not f) {
             // NULL-safe: if inner expression is NULL (property absent), NOT should be true
-            // ArcadeDB doesn't support IFNULL(NOT(...), true), so use "expr IS NULL OR NOT(expr)" pattern
-            String inner = map(f.expression());
+            // ArcadeDB doesn't support IFNULL(NOT(...), true), so use "expr IS NULL OR NOT(expr)" pattern.
+            // The expression appears twice, so its parameters are appended twice.
+            String inner = map(f.expression(), parameters);
+            map(f.expression(), parameters);
             return format("((%s) IS NULL OR NOT(%s))", inner, inner);
         } else {
             throw new UnsupportedOperationException(
@@ -56,38 +70,21 @@ class ArcadeDBMetadataFilterMapper {
         }
     }
 
-    private String mapComparison(String key, String operator, Object value) {
-        return format("%s %s %s", formatKey(key), operator, formatValue(value));
-    }
-
-    private String mapIn(IsIn filter) {
-        return format("%s IN %s", formatKey(filter.key()), formatValues(filter.comparisonValues()));
-    }
-
-    private String mapNotIn(IsNotIn filter) {
-        // NULL-safe: property absent means "not in" is true
-        return format(
-                "(%s IS NULL OR %s NOT IN %s)",
-                formatKey(filter.key()), formatKey(filter.key()), formatValues(filter.comparisonValues()));
+    private String mapComparison(String key, String operator, Object value, List<Object> parameters) {
+        parameters.add(toParameter(value));
+        return format("%s %s ?", formatKey(key), operator);
     }
 
     String formatKey(String key) {
         return format("`%s%s`", metadataPrefix, key);
     }
 
-    String formatValue(Object value) {
-        if (value instanceof String || value instanceof UUID) {
-            return "'" + escapeString(value.toString()) + "'";
-        } else {
-            return value.toString();
-        }
+    private static String placeholders(Collection<?> values, List<Object> parameters) {
+        values.forEach(value -> parameters.add(toParameter(value)));
+        return "(" + values.stream().map(value -> "?").collect(Collectors.joining(", ")) + ")";
     }
 
-    String formatValues(Collection<?> values) {
-        return "(" + values.stream().map(this::formatValue).collect(Collectors.joining(", ")) + ")";
-    }
-
-    private static String escapeString(String value) {
-        return value.replace("'", "\\'");
+    private static Object toParameter(Object value) {
+        return value instanceof UUID uuid ? uuid.toString() : value;
     }
 }
