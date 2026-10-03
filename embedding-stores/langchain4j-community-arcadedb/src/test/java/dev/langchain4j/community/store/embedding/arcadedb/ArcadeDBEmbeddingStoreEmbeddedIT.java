@@ -3,6 +3,7 @@ package dev.langchain4j.community.store.embedding.arcadedb;
 import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingStoreHybridSearchTestHelper.assertHybridSearch;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -12,7 +13,9 @@ import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreWithFilteringIT;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.io.TempDir;
@@ -132,6 +135,41 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
 
             assertThat(valid).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
             assertThat(invalid).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_add_all_in_several_batches() {
+        try (ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(tempDir.resolve("batched-db").toString())
+                .dimension(DIMENSION)
+                .batchSize(3)
+                .build()) {
+            List<String> ids = new ArrayList<>();
+            List<Embedding> embeddings = new ArrayList<>();
+            List<TextSegment> segments = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                ids.add("id-" + i);
+                embeddings.add(EMBEDDING_MODEL.embed("batched text " + i).content());
+                segments.add(TextSegment.from("batched text " + i, new Metadata(Map.of("key" + (i % 4), i))));
+            }
+
+            batched.addAll(ids, embeddings, segments);
+
+            for (int i = 0; i < 10; i++) {
+                int n = i;
+                List<EmbeddingMatch<TextSegment>> matches = batched.search(EmbeddingSearchRequest.builder()
+                                .queryEmbedding(embeddings.get(i))
+                                .maxResults(1)
+                                .build())
+                        .matches();
+                assertThat(matches).singleElement().satisfies(match -> {
+                    assertThat(match.embeddingId()).isEqualTo(ids.get(n));
+                    assertThat(match.embedded().text()).isEqualTo("batched text " + n);
+                    assertThat(match.embedded().metadata().getInteger("key" + (n % 4)))
+                            .isEqualTo(n);
+                });
+            }
         }
     }
 

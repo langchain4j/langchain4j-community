@@ -102,6 +102,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private static final int DEFAULT_BEAM_WIDTH = 100;
     /** Rows per request when adding embeddings in remote mode. */
     private static final int DEFAULT_REMOTE_BATCH_SIZE = 500;
+    /** Rows per transaction when adding embeddings in embedded mode. */
+    private static final int DEFAULT_EMBEDDED_BATCH_SIZE = 1000;
 
     // Remote-specific defaults
     private static final int DEFAULT_PORT = 2480;
@@ -131,6 +133,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private final int embeddedBeamWidth;
     // Rows per request in remote addAll; 0 in embedded mode.
     private final int remoteBatchSize;
+    // Rows per transaction in embedded addAll; 0 in remote mode.
+    private final int embeddedBatchSize;
     // Whether hybrid query text is passed to the full-text index as Lucene syntax (true) or escaped first (false).
     private final boolean rawFullTextQuery;
 
@@ -154,6 +158,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             boolean rawFullTextQuery) {
         this.embeddedMode = false;
         this.remoteBatchSize = batchSize;
+        this.embeddedBatchSize = 0;
         this.rawFullTextQuery = rawFullTextQuery;
         this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
         this.embeddedDatabase = null;
@@ -172,6 +177,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private ArcadeDBEmbeddingStore(EmbeddedBuilder builder) {
         this.embeddedMode = true;
         this.remoteBatchSize = 0;
+        this.embeddedBatchSize = builder.batchSize;
         this.rawFullTextQuery = builder.rawFullTextQuery;
         this.remoteDatabase = null;
         this.filterMapper = null;
@@ -544,40 +550,46 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     private void addAllEmbedded(List<String> ids, List<Embedding> embeddings, List<TextSegment> segments) {
         log.debug("Inserting {} embeddings into ArcadeDB (embedded mode)", ids.size());
-        for (int i = 0; i < ids.size(); i++) {
-            final int idx = i;
-            final String id = ids.get(i);
+        // One transaction per batch rather than per embedding.
+        for (int from = 0; from < ids.size(); from += embeddedBatchSize) {
+            int batchStart = from;
+            int batchEnd = Math.min(from + embeddedBatchSize, ids.size());
             embeddedDatabase.transaction(() -> {
-                // Soft-delete existing vertex with same id (upsert semantics)
-                softDeleteById(id);
-
-                MutableVertex vertex = embeddedDatabase.newVertex(typeName);
-                vertex.set(EMBEDDED_ID, id);
-                vertex.set(EMBEDDED_EMBEDDING, embeddingToFloatArray(embeddings.get(idx)));
-
-                if (segments != null && segments.get(idx) != null) {
-                    TextSegment segment = segments.get(idx);
-                    vertex.set(EMBEDDED_TEXT, segment.text());
-
-                    Metadata metadata = segment.metadata();
-                    if (metadata != null) {
-                        for (Map.Entry<String, Object> entry : metadata.toMap().entrySet()) {
-                            String propName = metadataPrefix + entry.getKey();
-                            Object value = entry.getValue();
-                            // Convert UUID to String to avoid type mismatch in comparisons
-                            if (value instanceof UUID) {
-                                value = value.toString();
-                            }
-                            vertex.set(propName, value);
-                        }
-                    }
+                for (int i = batchStart; i < batchEnd; i++) {
+                    insertEmbedded(ids.get(i), embeddings.get(i), segments == null ? null : segments.get(i));
                 }
-
-                // Saving the vertex automatically indexes the embedding via the LSM vector index
-                vertex.save();
-                activeVertexCount.incrementAndGet();
             });
         }
+    }
+
+    private void insertEmbedded(String id, Embedding embedding, TextSegment segment) {
+        // Soft-delete existing vertex with same id (upsert semantics)
+        softDeleteById(id);
+
+        MutableVertex vertex = embeddedDatabase.newVertex(typeName);
+        vertex.set(EMBEDDED_ID, id);
+        vertex.set(EMBEDDED_EMBEDDING, embeddingToFloatArray(embedding));
+
+        if (segment != null) {
+            vertex.set(EMBEDDED_TEXT, segment.text());
+
+            Metadata metadata = segment.metadata();
+            if (metadata != null) {
+                for (Map.Entry<String, Object> entry : metadata.toMap().entrySet()) {
+                    String propName = metadataPrefix + entry.getKey();
+                    Object value = entry.getValue();
+                    // Convert UUID to String to avoid type mismatch in comparisons
+                    if (value instanceof UUID) {
+                        value = value.toString();
+                    }
+                    vertex.set(propName, value);
+                }
+            }
+        }
+
+        // Saving the vertex automatically indexes the embedding via the LSM vector index
+        vertex.save();
+        activeVertexCount.incrementAndGet();
     }
 
     public EmbeddingSearchResult<TextSegment> searchEmbedded(EmbeddingSearchRequest request) {
@@ -1286,6 +1298,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private String typeName = DEFAULT_TYPE_NAME;
         private String metadataPrefix = EMBEDDED_DEFAULT_METADATA_PREFIX;
         private boolean rawFullTextQuery = false;
+        private int batchSize = DEFAULT_EMBEDDED_BATCH_SIZE;
         int dimension = 384;
         int maxConnections = DEFAULT_MAX_CONNECTIONS;
         int beamWidth = DEFAULT_BEAM_WIDTH;
@@ -1358,8 +1371,17 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             return this;
         }
 
+        /**
+         * @param batchSize Embeddings inserted per transaction by {@code addAll}. Default: 1000.
+         */
+        public EmbeddedBuilder batchSize(int batchSize) {
+            this.batchSize = batchSize;
+            return this;
+        }
+
         public ArcadeDBEmbeddingStore build() {
             ensureTrue(dimension > 0, "dimension must be positive");
+            ensureTrue(batchSize > 0, "batchSize must be positive");
             return new ArcadeDBEmbeddingStore(this);
         }
     }
