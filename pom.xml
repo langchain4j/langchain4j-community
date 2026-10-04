@@ -110,6 +110,7 @@
         <module>tools/langchain4j-community-tool-browser-use</module>
         <module>tools/langchain4j-community-tool-live-tennis</module>
         <module>tools/langchain4j-community-tool-salt</module>
+        <module>tools/langchain4j-community-tool-darkmoon</module>
 
         <!-- Spring Boot Starters -->
         <module>spring-boot-starters</module>
