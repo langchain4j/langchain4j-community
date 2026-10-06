@@ -130,6 +130,7 @@
         <langchain4j.http-client-jdk.version>1.22.0-SNAPSHOT</langchain4j.http-client-jdk.version>
         <langchain4j.reactive-streaming.version>1.22.0-beta32-SNAPSHOT</langchain4j.reactive-streaming.version>
         <langchain4j.open-ai.version>1.22.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.azure-open-ai.version>1.22.0-SNAPSHOT</langchain4j.azure-open-ai.version>
         <project.build.outputTimestamp>2026-04-30T10:00:00Z</project.build.outputTimestamp>
     </properties>
 
