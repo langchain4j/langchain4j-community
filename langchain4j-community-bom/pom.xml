@@ -323,6 +323,12 @@
             <!-- Spring Boot starters -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-mcp-server-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-community-mcp-server-spring-boot4-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>

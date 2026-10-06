@@ -1,13 +1,13 @@
-# Spring Boot 4 STDIO MCP server
+# Spring Boot 3 STDIO MCP server
 
 This opt-in starter exposes explicitly selected Spring beans using the existing
 `langchain4j-community-mcp-server` and `StdioMcpServerTransport`. It requires Java 17
-or later and Spring Boot 4. There are no Spring AI dependencies.
+or later and Spring Boot 3. There are no Spring AI dependencies.
 
-Add `dev.langchain4j:langchain4j-community-mcp-server-spring-boot4-starter`, with its
-version managed by the LangChain4j Community BOM. The `boot4` suffix follows the
-repository convention: unsuffixed starters target Boot 3. For Boot 3 applications,
-use the [Boot 3 variant](../../spring-boot-starters/langchain4j-community-mcp-server-spring-boot-starter/README.md).
+Add `dev.langchain4j:langchain4j-community-mcp-server-spring-boot-starter`, with its
+version managed by the LangChain4j Community BOM. The unsuffixed name follows the
+repository's Boot 3 convention. For Boot 4 applications, use the
+[Boot 4 variant](../../spring-boot4-starters/langchain4j-community-mcp-server-spring-boot4-starter/README.md).
 Use only the starter matching your application's Spring Boot major version;
 do not include both variants. Both use the same configuration properties and
 tool-selection and lifecycle behavior.

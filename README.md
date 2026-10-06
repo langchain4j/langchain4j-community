@@ -14,6 +14,7 @@ Please use [Discord](https://discord.gg/JzTFvyjG6R) or [StackOverFlow](https://s
 Please let us know what features you need by [opening an issue](https://github.com/langchain4j/langchain4j-community/issues/new/choose).
 
 ## Guides
+- [Spring Boot 3 STDIO MCP server](spring-boot-starters/langchain4j-community-mcp-server-spring-boot-starter/README.md)
 - [Spring Boot 4 STDIO MCP server](spring-boot4-starters/langchain4j-community-mcp-server-spring-boot4-starter/README.md)
 - [Prompt repetition (non-RAG + RAG)](langchain4j-community-prompt-repetition/README.md)
 
