@@ -49,6 +49,7 @@ public class QwenTokenUsage extends TokenUsage {
         return builder()
                 .inputTokenCount(sum(this.inputTokenCount(), that.inputTokenCount()))
                 .outputTokenCount(sum(this.outputTokenCount(), that.outputTokenCount()))
+                .totalTokenCount(sum(this.totalTokenCount(), that.totalTokenCount()))
                 .cachedInputTokens(addCachedInputTokens(that))
                 .cacheCreationInputTokens(addCacheCreationInputTokens(that))
                 .build();

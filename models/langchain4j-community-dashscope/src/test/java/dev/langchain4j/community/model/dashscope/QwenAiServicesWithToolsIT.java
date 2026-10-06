@@ -1,6 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
-import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_6_PLUS;
+import static dev.langchain4j.community.model.dashscope.QwenModelName.QWEN3_8_MAX;
 import static dev.langchain4j.community.model.dashscope.QwenTestHelper.apiKey;
 import static dev.langchain4j.internal.Utils.readBytes;
 import static java.util.Collections.singletonList;
@@ -19,6 +19,8 @@ class QwenAiServicesWithToolsIT extends AbstractAiServiceWithToolsIT {
 
     @Override
     protected List<ChatModel> models() {
+        // qwen3.8-max calls AUTO tools reliably with thinking mode enabled
+        // (qwen3.8-flash intermittently answers arithmetic prompts directly)
         QwenChatRequestParameters parameters = QwenChatRequestParameters.builder()
                 .temperature(0.0d)
                 .enableSanitizeMessages(false)
@@ -26,7 +28,7 @@ class QwenAiServicesWithToolsIT extends AbstractAiServiceWithToolsIT {
 
         return singletonList(QwenChatModel.builder()
                 .apiKey(apiKey())
-                .modelName(QWEN3_6_PLUS)
+                .modelName(QWEN3_8_MAX)
                 .defaultRequestParameters(parameters)
                 .build());
     }
@@ -40,11 +42,12 @@ class QwenAiServicesWithToolsIT extends AbstractAiServiceWithToolsIT {
                 .temperature(0.0d)
                 .enableSanitizeMessages(false)
                 .toolChoice(ToolChoice.REQUIRED)
+                .enableThinking(false)
                 .build();
 
         ChatModel qwenModel = QwenChatModel.builder()
                 .apiKey(apiKey())
-                .modelName(QWEN3_6_PLUS)
+                .modelName(QWEN3_8_MAX)
                 .defaultRequestParameters(parameters)
                 .build();
 
