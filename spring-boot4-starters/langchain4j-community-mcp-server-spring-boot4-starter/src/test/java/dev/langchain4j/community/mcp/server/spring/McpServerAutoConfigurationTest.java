@@ -7,7 +7,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.community.mcp.server.McpServer;
 import dev.langchain4j.community.mcp.server.transport.StdioMcpServerTransport;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -73,8 +76,7 @@ class McpServerAutoConfigurationTest {
 
     @Test
     void generatesTypedConfigurationMetadata() throws Exception {
-        try (var metadata = getClass().getResourceAsStream("/META-INF/spring-configuration-metadata.json")) {
-            assertThat(metadata).isNotNull();
+        try (var metadata = Files.newInputStream(generatedMetadata("spring-configuration-metadata.json"))) {
             var properties = new ObjectMapper().readTree(metadata).path("properties");
             assertThat(properties).hasSize(2);
             assertThat(properties.get(0).path("name").asText()).isEqualTo("langchain4j.community.mcp.server.enabled");
@@ -83,6 +85,29 @@ class McpServerAutoConfigurationTest {
                     .isEqualTo("langchain4j.community.mcp.server.tool-bean-names");
             assertThat(properties.get(1).path("type").asText()).isEqualTo("java.util.List<java.lang.String>");
         }
+    }
+
+    @Test
+    void generatesAutoConfigurationMetadata() throws Exception {
+        try (var metadata = Files.newInputStream(generatedMetadata("spring-autoconfigure-metadata.properties"))) {
+            var properties = new Properties();
+            properties.load(metadata);
+            assertThat(properties.getProperty(McpServerAutoConfiguration.class.getName() + ".ConditionalOnClass"))
+                    .isEqualTo(McpServer.class.getName());
+        }
+    }
+
+    private Path generatedMetadata(String name) throws Exception {
+        // Inspect this module's output, not an identically named resource in a Boot dependency.
+        Path metadata = Path.of(McpServerProperties.class
+                        .getProtectionDomain()
+                        .getCodeSource()
+                        .getLocation()
+                        .toURI())
+                .resolve("META-INF")
+                .resolve(name);
+        assertThat(metadata).isRegularFile();
+        return metadata;
     }
 
     @Test
