@@ -1,0 +1,27 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "differences": [
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class org.springframework.beans.factory.ObjectProvider",
+          "ignore": true,
+          "justification": "Spring auto-configuration intentionally uses ObjectProvider to defer the constructor-started STDIO transport."
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class org.springframework.boot.context.event.ApplicationReadyEvent",
+          "ignore": true,
+          "justification": "The Boot lifecycle intentionally listens for ApplicationReadyEvent before starting STDIO."
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class org.springframework.context.ConfigurableApplicationContext",
+          "ignore": true,
+          "justification": "The Spring-specific starter intentionally accepts the owning context to select beans and close the application on EOF."
+        }
+      ]
+    }
+  }
+]

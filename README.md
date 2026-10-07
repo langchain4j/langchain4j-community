@@ -51,6 +51,8 @@ breaking changes may happen between releases. Pin your dependency versions and r
   alongside core ones under [Integrations](https://docs.langchain4j.dev/category/integrations).
 - [Javadoc](https://docs.langchain4j.dev/apidocs/index.html)
 - Module guides in this repository:
+  - [Spring Boot 3 STDIO MCP server](spring-boot-starters/langchain4j-community-mcp-server-spring-boot-starter/README.md)
+  - [Spring Boot 4 STDIO MCP server](spring-boot4-starters/langchain4j-community-mcp-server-spring-boot4-starter/README.md)
   - [Prompt repetition (non-RAG + RAG)](langchain4j-community-prompt-repetition/README.md)
   - [SQL chat memory store](chat-memory-stores/langchain4j-community-sql/README.md)
   - [MongoDB chat memory store](chat-memory-stores/langchain4j-community-mongodb/README.md)
