@@ -1,5 +1,6 @@
 package dev.langchain4j.community.model.dashscope;
 
+import static dev.langchain4j.community.model.dashscope.QwenTestHelper.TEST_MULTIMODAL_MODEL_NAME;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -88,6 +89,9 @@ class QwenChatModelAsyncTest {
         }
     }
 
+    // Note: QWEN3_7_MAX is routed to the text-generation endpoint (see QwenHelper#isMultimodalModelName)
+    // and TEST_MULTIMODAL_MODEL_NAME to the multimodal one; the path assertions below depend on this
+    // routing, so these model names must not be replaced with multimodal-routed ones.
     private static QwenChatModel model(String modelName) {
         return QwenChatModel.builder()
                 .apiKey("stub-api-key")
@@ -98,7 +102,7 @@ class QwenChatModelAsyncTest {
 
     @Test
     void synchronous_chat_is_stubbed_correctly() {
-        ChatResponse response = model(QwenModelName.QWEN_TURBO)
+        ChatResponse response = model(QwenModelName.QWEN3_7_MAX)
                 .chat(ChatRequest.builder()
                         .messages(List.of(UserMessage.from("hi")))
                         .build());
@@ -111,7 +115,7 @@ class QwenChatModelAsyncTest {
     void chatAsync_should_not_block_caller_and_complete_with_parsed_response() throws Exception {
         responseDelayMillis = 300;
 
-        CompletableFuture<ChatResponse> future = model(QwenModelName.QWEN_TURBO)
+        CompletableFuture<ChatResponse> future = model(QwenModelName.QWEN3_7_MAX)
                 .chatAsync(ChatRequest.builder()
                         .messages(List.of(UserMessage.from("hi")))
                         .build());
@@ -130,7 +134,7 @@ class QwenChatModelAsyncTest {
         responseStatus = 401;
         responseBody = "{\"request_id\":\"stub-3\",\"code\":\"InvalidApiKey\",\"message\":\"bad key\"}";
 
-        CompletableFuture<ChatResponse> future = model(QwenModelName.QWEN_TURBO)
+        CompletableFuture<ChatResponse> future = model(QwenModelName.QWEN3_7_MAX)
                 .chatAsync(ChatRequest.builder()
                         .messages(List.of(UserMessage.from("hi")))
                         .build());
@@ -142,7 +146,7 @@ class QwenChatModelAsyncTest {
     void chatAsync_should_use_multimodal_endpoint_for_multimodal_models() throws Exception {
         responseBody = MULTIMODAL_JSON;
 
-        ChatResponse response = model(QwenModelName.QWEN_VL_PLUS)
+        ChatResponse response = model(TEST_MULTIMODAL_MODEL_NAME)
                 .chatAsync(ChatRequest.builder()
                         .messages(List.of(UserMessage.from("hi")))
                         .build())

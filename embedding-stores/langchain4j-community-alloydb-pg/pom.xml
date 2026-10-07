@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.21.0-beta31-SNAPSHOT</version>
+        <version>1.22.0-beta32-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -60,7 +60,7 @@
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-            <version>7.0.2</version>
+            <version>7.1.0</version>
         </dependency>
 
         <!-- Supports authentication to Google Cloud AlloyDB -->
