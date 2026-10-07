@@ -35,7 +35,35 @@
         <google.http.client.version>2.2.0</google.http.client.version>
         <opencensus.version>0.31.1</opencensus.version>
         <truth.version>1.4.5</truth.version>
+        <grpc.version>1.83.1</grpc.version>
+        <protobuf.version>4.36.2</protobuf.version>
+        <api.common.version>2.70.0</api.common.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Align versions requested by jdbc-socket-factory-core (gRPC/Cloud SQL Data API
+                 client stack) with those from the other Google libraries declared below, so
+                 that the DependencyConvergence and RequireUpperBoundDeps enforcer rules pass. -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api</groupId>
+                <artifactId>api-common</artifactId>
+                <version>${api.common.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
 
