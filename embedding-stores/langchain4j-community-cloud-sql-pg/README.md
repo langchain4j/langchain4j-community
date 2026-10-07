@@ -69,7 +69,7 @@ Connect to a Cloud SQL instance by specifying the host:
  - password
 
 ```java
-import dev.langchain4j.engine.PostgresEngine;
+import dev.langchain4j.community.store.embedding.cloudsql.PostgresEngine;
 
     PostgresEngine engine = new PostgresEngine.Builder()
                 .projectId("my-projectId")
@@ -97,9 +97,9 @@ import dev.langchain4j.engine.PostgresEngine;
 example usage:
 ```java
 ...
-import dev.langchain4j.engine.PostgresEngine;
-import dev.langchain4j.engine.EmbeddingStoreConfig;
-import dev.langchain4j.store.embedding.cloudsql.MetadataColumn;
+import dev.langchain4j.community.store.embedding.cloudsql.PostgresEngine;
+import dev.langchain4j.community.store.embedding.cloudsql.EmbeddingStoreConfig;
+import dev.langchain4j.community.store.embedding.cloudsql.MetadataColumn;
 import java.util.ArrayList;
 ...
         List<MetadataColumn> metadataColumns = new ArrayList<>();
@@ -136,10 +136,10 @@ example usage:
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.engine.PostgresEngine;
-import dev.langchain4j.engine.EmbeddingStoreConfig;
-import dev.langchain4j.store.embedding.cloudsql.MetadataColumn;
-import dev.langchain4j.store.embedding.cloudsql.PostgresEmbeddingStore;
+import dev.langchain4j.community.store.embedding.cloudsql.PostgresEngine;
+import dev.langchain4j.community.store.embedding.cloudsql.EmbeddingStoreConfig;
+import dev.langchain4j.community.store.embedding.cloudsql.MetadataColumn;
+import dev.langchain4j.community.store.embedding.cloudsql.PostgresEmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import java.util.ArrayList;
