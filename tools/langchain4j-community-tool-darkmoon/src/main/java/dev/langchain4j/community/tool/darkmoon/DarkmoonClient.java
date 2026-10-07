@@ -18,6 +18,8 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -203,8 +205,23 @@ final class DarkmoonClient {
         }
         try {
             JsonNode detail = OBJECT_MAPPER.readTree(body).path("detail");
+            // FastAPI HTTPException: {"detail": "a sentence"}.
             if (detail.isTextual() && !detail.asText().isBlank()) {
                 return detail.asText();
+            }
+            // FastAPI RequestValidationError (HTTP 422): {"detail": [{"loc": [...], "msg": "...", "type": "..."}]}.
+            // The items are objects, so asText() yields ""; join their "msg" fields to keep the actionable sentence.
+            if (detail.isArray()) {
+                List<String> messages = new ArrayList<>();
+                for (JsonNode item : detail) {
+                    String message = item.path("msg").asText("");
+                    if (!message.isBlank()) {
+                        messages.add(message);
+                    }
+                }
+                if (!messages.isEmpty()) {
+                    return String.join("; ", messages);
+                }
             }
         } catch (JsonProcessingException ignored) {
             // Not JSON, or not the expected shape -- fall through to the generic message.

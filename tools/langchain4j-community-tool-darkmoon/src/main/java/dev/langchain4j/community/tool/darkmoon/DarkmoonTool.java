@@ -37,6 +37,7 @@ public final class DarkmoonTool {
     private static final int MAX_FINDINGS_LISTED = 50;
     private static final int MAX_CAMPAIGNS_LISTED = 50;
     private static final int MAX_DESCRIPTION_LENGTH = 300;
+    private static final String UNRECOGNISED_SHAPE = "Error: Darkmoon returned an unrecognised response shape.";
 
     private final DarkmoonClient client;
 
@@ -63,7 +64,10 @@ public final class DarkmoonTool {
     public String listDarkmoonCampaigns() {
         try {
             JsonNode data = client.listCampaigns().path("data");
-            if (!data.isArray() || data.isEmpty()) {
+            if (!data.isArray()) {
+                return UNRECOGNISED_SHAPE;
+            }
+            if (data.isEmpty()) {
                 return "No campaigns yet.";
             }
             List<JsonNode> campaigns = new ArrayList<>();
@@ -126,9 +130,12 @@ public final class DarkmoonTool {
                 }
             }
 
-            JsonNode response = client.listVulnerabilities(campaignId.trim());
+            JsonNode data = client.listVulnerabilities(campaignId.trim()).path("data");
+            if (!data.isArray()) {
+                return UNRECOGNISED_SHAPE;
+            }
             List<JsonNode> findings = new ArrayList<>();
-            for (JsonNode finding : response.path("data")) {
+            for (JsonNode finding : data) {
                 if (rank(finding) >= threshold) {
                     findings.add(finding);
                 }
@@ -213,9 +220,16 @@ public final class DarkmoonTool {
                 events = client.getRunLog(runId.trim()).path("data");
             } catch (DarkmoonClientException e) {
                 if (e.statusCode() == 404) {
-                    return "Run " + runId.trim() + " has no log yet: it is still starting, or the run id is unknown.";
+                    return "Run " + runId.trim()
+                            + " has no log yet: it is still starting, the run id is unknown, "
+                            + "or the dashboard API path is misconfigured. " + e.getMessage();
                 }
                 throw e;
+            }
+            // A 200 with no events is shape drift, not "starting": the dashboard answers 404 (handled above)
+            // until the run has written its first event, so an empty or non-array data here is unrecognised.
+            if (!events.isArray() || events.isEmpty()) {
+                return UNRECOGNISED_SHAPE;
             }
             String state = "running";
             int count = 0;
@@ -268,7 +282,7 @@ public final class DarkmoonTool {
         int[] counts = new int[SEVERITIES.size()];
         int unknown = 0;
         for (JsonNode finding : findings) {
-            int rank = SEVERITIES.indexOf(text(finding, "severity", "").toLowerCase(Locale.ROOT));
+            int rank = rank(finding);
             if (rank >= 0) {
                 counts[rank]++;
             } else {
@@ -316,7 +330,9 @@ public final class DarkmoonTool {
         private Builder() {}
 
         /**
-         * Sets the dashboard API base URL of your Darkmoon instance, for example {@code http://localhost:8000}.
+         * Sets the dashboard API base URL of your self-hosted <b>Darkmoon Pro</b> instance, for example
+         * {@code http://localhost:8000}. The open source engine and CLI do not expose the dashboard API, so
+         * pointing this at a GPL-only install will fail at login with a 404.
          *
          * @param baseUrl dashboard API base URL
          * @return this builder

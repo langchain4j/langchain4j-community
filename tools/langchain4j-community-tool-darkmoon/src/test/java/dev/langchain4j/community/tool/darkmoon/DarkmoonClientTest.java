@@ -184,6 +184,21 @@ class DarkmoonClientTest {
     }
 
     @Test
+    void validationError_joinsTheArrayDetailMessages() throws Exception {
+        String body = "{\"detail\":[{\"loc\":[\"body\",\"target\"],\"msg\":\"value is not a valid url\","
+                + "\"type\":\"url_error\"},{\"loc\":[\"body\",\"program\"],\"msg\":\"field required\","
+                + "\"type\":\"value_error.missing\"}]}";
+        try (TestServer server = startServer(
+                request -> request.path.startsWith("/api/v1/auth") ? new Reply(200, LOGIN_OK) : new Reply(422, body))) {
+            DarkmoonClient client = client(server);
+
+            assertThatThrownBy(() -> client.startCampaign("not-a-url", null))
+                    .isInstanceOf(DarkmoonClientException.class)
+                    .hasMessage("Darkmoon request failed: HTTP 422. value is not a valid url; field required");
+        }
+    }
+
+    @Test
     void loginWithoutToken_isReported() throws Exception {
         try (TestServer server = startServer(request -> new Reply(200, "{\"user\":{}}"))) {
             DarkmoonClient client = client(server);

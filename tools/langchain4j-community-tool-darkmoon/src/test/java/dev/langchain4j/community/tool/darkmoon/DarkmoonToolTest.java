@@ -59,6 +59,15 @@ class DarkmoonToolTest {
     }
 
     @Test
+    void listCampaigns_failsLoudlyWhenDataIsNotAnArray() throws Exception {
+        try (TestServer server =
+                startServer(Map.of("/api/v1/campaigns", new Reply(200, "{\"items\":[],\"total\":0}")))) {
+            assertThat(tool(server).listDarkmoonCampaigns())
+                    .isEqualTo("Error: Darkmoon returned an unrecognised response shape.");
+        }
+    }
+
+    @Test
     void listCampaigns_capsTheListing() throws Exception {
         StringBuilder data = new StringBuilder("{\"data\":[");
         for (int i = 0; i < 53; i++) {
@@ -139,6 +148,15 @@ class DarkmoonToolTest {
     }
 
     @Test
+    void getFindings_failsLoudlyWhenDataIsNotAnArray() throws Exception {
+        try (TestServer server =
+                startServer(Map.of("/api/v1/vulnerabilities", new Reply(200, "{\"data\":null,\"total\":0}")))) {
+            assertThat(tool(server).getDarkmoonFindings("camp_1", null))
+                    .isEqualTo("Error: Darkmoon returned an unrecognised response shape.");
+        }
+    }
+
+    @Test
     void getFindings_rejectsBadArgumentsWithoutCallingTheDashboard() {
         DarkmoonTool tool = unreachableTool();
 
@@ -205,11 +223,32 @@ class DarkmoonToolTest {
     }
 
     @Test
-    void runStatus_treatsA404AsNotStartedYet() throws Exception {
+    void runStatus_treatsA404AsNotStartedYetAndAppendsTheDashboardDetail() throws Exception {
         try (TestServer server =
                 startServer(Map.of("/api/v1/run/logs/run_1", new Reply(404, "{\"detail\":\"Run log not found\"}")))) {
             assertThat(tool(server).getDarkmoonRunStatus("run_1"))
-                    .isEqualTo("Run run_1 has no log yet: it is still starting, or the run id is unknown.");
+                    .startsWith("Run run_1 has no log yet: it is still starting, the run id is unknown, "
+                            + "or the dashboard API path is misconfigured.")
+                    .contains("HTTP 404")
+                    .contains("Run log not found");
+        }
+    }
+
+    @Test
+    void runStatus_failsLoudlyWhenThe200DataIsEmpty() throws Exception {
+        try (TestServer server =
+                startServer(Map.of("/api/v1/run/logs/run_1", new Reply(200, "{\"data\":[],\"total\":0}")))) {
+            assertThat(tool(server).getDarkmoonRunStatus("run_1"))
+                    .isEqualTo("Error: Darkmoon returned an unrecognised response shape.");
+        }
+    }
+
+    @Test
+    void runStatus_failsLoudlyWhenDataIsNotAnArray() throws Exception {
+        try (TestServer server =
+                startServer(Map.of("/api/v1/run/logs/run_1", new Reply(200, "{\"events\":[{\"type\":\"x\"}]}")))) {
+            assertThat(tool(server).getDarkmoonRunStatus("run_1"))
+                    .isEqualTo("Error: Darkmoon returned an unrecognised response shape.");
         }
     }
 
