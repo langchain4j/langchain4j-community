@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Integration :: LanceDB</name>
 
     <properties>
-        <lancedb.version>0.31.0-beta.3</lancedb.version>
+        <lancedb.version>0.40.0-final.0</lancedb.version>
         <arrow.version>18.3.0</arrow.version>
         <skipLanceDbITs>true</skipLanceDbITs>
     </properties>
