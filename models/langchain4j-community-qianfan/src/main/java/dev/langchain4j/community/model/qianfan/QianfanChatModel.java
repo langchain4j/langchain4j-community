@@ -40,8 +40,6 @@ public class QianfanChatModel implements ChatModel {
 
     private final ChatRequestParameters defaultRequestParameters;
 
-    /* TODO: we need QianfanChatRequestParameters to customize parameters */
-
     private final String endpoint;
     private final String userId;
     private final String system;
@@ -86,7 +84,7 @@ public class QianfanChatModel implements ChatModel {
                 .logResponses(logResponses)
                 .proxy(proxy)
                 .build();
-        this.defaultRequestParameters = ChatRequestParameters.builder()
+        this.defaultRequestParameters = QianfanChatRequestParameters.builder()
                 .temperature(temperature)
                 .topP(topP)
                 .stopSequences(stop)
@@ -94,6 +92,9 @@ public class QianfanChatModel implements ChatModel {
                 .maxOutputTokens(maxOutputTokens)
                 .responseFormat("json_object".equals(responseFormat) ? ResponseFormat.JSON : ResponseFormat.TEXT)
                 .presencePenalty(penaltyScore)
+                .endpoint(endpoint)
+                .userId(userId)
+                .system(system)
                 .build();
 
         this.userId = userId;
@@ -123,27 +124,49 @@ public class QianfanChatModel implements ChatModel {
         List<ToolSpecification> toolSpecifications = chatRequest.toolSpecifications();
         ChatRequestParameters parameters = chatRequest.parameters();
 
+        String effectiveSystem = null;
+        String curUserId = this.userId;
+        String curEndpoint = null;
+        if (parameters instanceof QianfanChatRequestParameters qianfanParams) {
+            if (!isNullOrBlank(qianfanParams.system())) {
+                effectiveSystem = qianfanParams.system();
+            }
+            if (!isNullOrBlank(qianfanParams.userId())) {
+                curUserId = qianfanParams.userId();
+            }
+            if (!isNullOrBlank(qianfanParams.endpoint())) {
+                curEndpoint = qianfanParams.endpoint();
+            }
+        }
+        if (isNullOrBlank(effectiveSystem)) {
+            if (!isNullOrBlank(this.system)) {
+                effectiveSystem = this.system;
+            } else {
+                effectiveSystem = getSystemMessage(messages);
+            }
+        }
+        if (isNullOrBlank(curEndpoint)) {
+            curEndpoint = parameters.modelName() != null ? fromModelName(parameters.modelName()) : this.endpoint;
+        }
+
         ChatCompletionRequest.Builder builder = ChatCompletionRequest.builder()
                 .messages(toQianfanMessages(messages))
                 .temperature(parameters.temperature())
                 .topP(parameters.topP())
                 .maxOutputTokens(parameters.maxOutputTokens())
                 .stop(parameters.stopSequences())
-                .system(system)
-                .userId(userId)
+                .system(effectiveSystem)
+                .userId(curUserId)
                 .penaltyScore(parameters.presencePenalty())
                 .responseFormat(parameters.responseFormat() == ResponseFormat.JSON ? "json_object" : "text");
-        if (system == null || system.isEmpty()) {
-            builder.system(getSystemMessage(messages));
-        }
         if (toolSpecifications != null && !toolSpecifications.isEmpty()) {
             builder.functions(toFunctions(toolSpecifications));
         }
 
         ChatCompletionRequest param = builder.build();
-        String curEndpoint = parameters.modelName() != null ? fromModelName(parameters.modelName()) : endpoint;
+        final String finalEndpoint = curEndpoint;
         ChatCompletionResponse response =
-                withRetry(() -> client.chatCompletion(param, curEndpoint).execute(), maxRetries);
+                withRetry(() -> client.chatCompletion(param, finalEndpoint).execute(), maxRetries);
 
         return ChatResponse.builder()
                 .aiMessage(aiMessageFrom(response))
