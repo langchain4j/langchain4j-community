@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.22.0-beta32</version>
+        <version>1.23.0-beta33-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -118,7 +118,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <skipITs>${skipOceanBaseITs}</skipITs>
+                    <skipTests>${skipOceanBaseITs}</skipTests>
                 </configuration>
             </plugin>
             <plugin>
