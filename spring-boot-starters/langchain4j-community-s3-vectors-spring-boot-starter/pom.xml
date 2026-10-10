@@ -26,7 +26,7 @@
             The s3vectors artifact was introduced in AWS SDK 2.41.0; align with the version used by
             the langchain4j-community-s3-vectors module.
         -->
-        <aws.sdk.version>2.43.1</aws.sdk.version>
+        <aws.sdk.version>2.55.14</aws.sdk.version>
     </properties>
 
     <dependencyManagement>

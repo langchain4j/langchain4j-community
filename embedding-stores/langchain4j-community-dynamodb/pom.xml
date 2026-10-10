@@ -17,7 +17,7 @@
             DynamoDB native vector search (the SearchVectors operation and vector
             indexes) was introduced in AWS SDK for Java v2 2.51.0 (August 2026).
         -->
-        <aws.sdk.version>2.51.0</aws.sdk.version>
+        <aws.sdk.version>2.55.14</aws.sdk.version>
     </properties>
 
     <dependencyManagement>
