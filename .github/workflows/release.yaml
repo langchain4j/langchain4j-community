@@ -25,7 +25,7 @@ jobs:
 
       - name: Check that the version is not on Maven Central yet
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
           POM="https://repo1.maven.org/maven2/dev/langchain4j/langchain4j-community-core/$VERSION/langchain4j-community-core-$VERSION.pom"
           if curl -sfI "$POM" > /dev/null; then
             echo "::error::$VERSION is already on Maven Central. Maven Central is immutable, so it cannot be released again. Bump the version instead of re-running this workflow."
@@ -36,7 +36,12 @@ jobs:
       - name: release
         run: |
           set -o pipefail
-          mvn -B -U --fail-at-end \
+          # Use ./mvnw so the release pins to the Maven version in .mvn/wrapper:
+          # Maven 3.10 writes maven-metadata-local.xml and _remote.repositories into the
+          # central-publishing plugin's file:// staging repo, those files end up in
+          # central-bundle.zip, and Maven Central then rejects the whole deployment with
+          # "Bundle has content that does NOT have a .pom file".
+          ./mvnw -B -U --fail-at-end \
             -DskipTests -DskipITs -Psign \
             clean deploy 2>&1 | tee release.log
         env:
