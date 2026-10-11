@@ -41,7 +41,7 @@
     </modules>
 
     <properties>
-        <spring-boot4.version>4.0.5</spring-boot4.version>
+        <spring-boot4.version>4.1.1</spring-boot4.version>
     </properties>
 
     <dependencyManagement>
@@ -51,6 +51,10 @@
             langchain4j-parent imports jackson-bom:${jackson.version} and manages
             slf4j:${slf4j.version}, but Spring Boot 4.0.5 BOM manages these to lower
             versions, causing RequireUpperBoundDeps failures.
+            Likewise, langchain4j-parent manages logback-classic to ${logback.version}
+            (1.5.32), which is lower than what Spring Boot 4.1.x's starter-logging
+            requires (1.5.38); this direct entry must be kept in sync with the
+            spring-boot-dependencies version imported below.
             -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -74,6 +78,12 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>1.5.38</version>
             </dependency>
 
             <dependency>
