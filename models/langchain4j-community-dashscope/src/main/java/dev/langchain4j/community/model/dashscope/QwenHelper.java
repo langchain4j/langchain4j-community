@@ -1029,6 +1029,7 @@ class QwenHelper {
                         .promptExtend(parameters.promptExtend())
                         .negativePrompt(parameters.negativePrompt())
                         .enableThinking(parameters.enableThinking())
+                        .thinkingBudget(parameters.thinkingBudget())
                         .responseFormat(
                                 toQwenResponseFormat(parameters.responseFormat(), parameters.strictJsonSchema()));
 

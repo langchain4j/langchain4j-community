@@ -12,10 +12,71 @@ import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationT
 import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationUsage;
 import com.alibaba.dashscope.common.DashScopeResult;
 import com.google.gson.JsonObject;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.output.TokenUsage;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class QwenHelperTest {
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void should_include_thinking_budget_in_multimodal_request(boolean incrementalOutput) {
+        ChatRequest request = ChatRequest.builder()
+                .messages(UserMessage.from("Solve this problem"))
+                .parameters(QwenChatRequestParameters.builder()
+                        .modelName(QwenModelName.QWEN3_VL_PLUS)
+                        .enableThinking(true)
+                        .thinkingBudget(1024)
+                        .build())
+                .build();
+
+        JsonObject parameters = QwenHelper.toMultiModalConversationParam(
+                        "test-api-key", request, null, incrementalOutput)
+                .getHttpBody()
+                .getAsJsonObject("parameters");
+
+        assertThat(parameters.has("thinking_budget")).isTrue();
+        assertThat(parameters.get("thinking_budget").getAsInt()).isEqualTo(1024);
+    }
+
+    @Test
+    void should_omit_unset_thinking_budget_from_multimodal_request() {
+        ChatRequest request = ChatRequest.builder()
+                .messages(UserMessage.from("Solve this problem"))
+                .parameters(QwenChatRequestParameters.builder()
+                        .modelName(QwenModelName.QWEN3_VL_PLUS)
+                        .enableThinking(true)
+                        .build())
+                .build();
+
+        JsonObject parameters = QwenHelper.toMultiModalConversationParam("test-api-key", request, null, false)
+                .getHttpBody()
+                .getAsJsonObject("parameters");
+
+        assertThat(parameters.has("thinking_budget")).isFalse();
+    }
+
+    @Test
+    void should_allow_customizer_to_override_multimodal_thinking_budget() {
+        ChatRequest request = ChatRequest.builder()
+                .messages(UserMessage.from("Solve this problem"))
+                .parameters(QwenChatRequestParameters.builder()
+                        .modelName(QwenModelName.QWEN3_VL_PLUS)
+                        .enableThinking(true)
+                        .thinkingBudget(1024)
+                        .build())
+                .build();
+
+        JsonObject parameters = QwenHelper.toMultiModalConversationParam(
+                        "test-api-key", request, builder -> builder.thinkingBudget(2048), false)
+                .getHttpBody()
+                .getAsJsonObject("parameters");
+
+        assertThat(parameters.get("thinking_budget").getAsInt()).isEqualTo(2048);
+    }
 
     @Test
     void should_map_cached_tokens_from_generation_result() {
