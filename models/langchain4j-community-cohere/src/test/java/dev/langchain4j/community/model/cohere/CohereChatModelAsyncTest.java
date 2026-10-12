@@ -1,7 +1,6 @@
 package dev.langchain4j.community.model.cohere;
 
 import static dev.langchain4j.internal.Json.fromJson;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,6 +32,7 @@ import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
+import dev.langchain4j.internal.DefaultExecutorProvider;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -53,6 +53,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -168,12 +169,12 @@ class CohereChatModelAsyncTest {
         }
     }
 
-    private CohereChatModel modelUsing(HttpClient httpClient, int maxRetries) {
+    private CohereChatModel modelUsing(HttpClient httpClient, int maxRetries, ChatModelListener... listeners) {
         HttpClientBuilder builder = mock(HttpClientBuilder.class, RETURNS_SELF);
         when(builder.build()).thenReturn(httpClient);
         try (var loader = mockStatic(HttpClientBuilderLoader.class)) {
             loader.when(HttpClientBuilderLoader::loadHttpClientBuilder).thenReturn(builder);
-            return modelBuilder().maxRetries(maxRetries).build();
+            return modelBuilder().maxRetries(maxRetries).listeners(listeners).build();
         }
     }
 
@@ -387,26 +388,34 @@ class CohereChatModelAsyncTest {
     }
 
     @Test
-    void should_not_start_another_retry_after_cancellation() throws Exception {
-        AtomicInteger attempts = new AtomicInteger();
-        CountDownLatch firstFailure = new CountDownLatch(1);
-        CountDownLatch anotherAttempt = new CountDownLatch(1);
-        server.createContext("/v2/chat", exchange -> {
-            if (attempts.incrementAndGet() > 1) anotherAttempt.countDown();
-            respond(exchange, 429, "{\"message\":\"retry\"}");
-            firstFailure.countDown();
-        });
+    void should_not_start_another_retry_when_cancelled_during_backoff() throws Exception {
+        HttpClient httpClient = mock(HttpClient.class);
+        CompletableFuture<SuccessfulHttpResponse> firstAttempt = new CompletableFuture<>();
+        when(httpClient.executeAsync(any())).thenReturn(firstAttempt);
+        LinkedBlockingQueue<Runnable> scheduledRetries = new LinkedBlockingQueue<>();
+        Executor retryExecutor = scheduledRetries::add;
         RecordingListener listener = new RecordingListener();
         CompletableFuture<ChatResponse> result =
-                modelBuilder().maxRetries(3).listeners(listener).build().chatAsync(request());
+                modelUsing(httpClient, 3, listener).chatAsync(request());
 
         try {
-            assertThat(firstFailure.await(5, SECONDS)).isTrue();
+            try (var provider = mockStatic(DefaultExecutorProvider.class)) {
+                provider.when(DefaultExecutorProvider::getDefaultExecutor).thenReturn(retryExecutor);
+                // Completing the HTTP future runs the retry callback synchronously and schedules the backoff.
+                firstAttempt.completeExceptionally(new HttpException(429, "retry"));
+            }
+            assertThat(result).isNotDone();
             result.cancel(true);
 
+            // Run the scheduled continuation explicitly, without racing an HTTP response or the retry timer.
+            Runnable retry = scheduledRetries.poll(10, SECONDS);
+            assertThat(retry)
+                    .as("the failed attempt must have scheduled a retry")
+                    .isNotNull();
+            retry.run();
+
             assertThat(result).isCancelled();
-            assertThat(anotherAttempt.await(1500, MILLISECONDS)).isFalse();
-            assertThat(attempts).hasValue(1);
+            verify(httpClient).executeAsync(any());
             assertThat(listener.events).containsExactly("request");
         } finally {
             result.cancel(true);
