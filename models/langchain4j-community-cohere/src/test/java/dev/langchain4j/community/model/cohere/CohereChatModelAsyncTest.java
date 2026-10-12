@@ -442,9 +442,15 @@ class CohereChatModelAsyncTest {
                   "finish_reason":"TOOL_CALL"
                 }
                 """;
-        server.createContext("/v2/chat", exchange -> respond(exchange, 200, responseBody));
+        HttpClient httpClient = mock(HttpClient.class);
+        when(httpClient.executeAsync(any()))
+                .thenReturn(CompletableFuture.completedFuture(SuccessfulHttpResponse.builder()
+                        .statusCode(200)
+                        .headers(Map.of())
+                        .body(responseBody)
+                        .build()));
 
-        ChatResponse response = modelBuilder().build().chatAsync(request()).get(5, SECONDS);
+        ChatResponse response = modelUsing(httpClient, 0).chatAsync(request()).get(5, SECONDS);
 
         assertThat(response.finishReason()).isEqualTo(dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION);
         assertThat(response.aiMessage().toolExecutionRequests()).hasSize(1);
