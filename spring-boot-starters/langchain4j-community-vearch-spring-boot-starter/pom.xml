@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Spring Boot starter :: Vearch</name>
 
     <properties>
-        <skipVearchITs>false</skipVearchITs>
+        <skipVearchITs>${skipITs}</skipVearchITs>
     </properties>
 
     <dependencies>
@@ -87,6 +87,13 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <skipITs>${skipVearchITs}</skipITs>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.honton.chas</groupId>
                 <artifactId>license-maven-plugin</artifactId>

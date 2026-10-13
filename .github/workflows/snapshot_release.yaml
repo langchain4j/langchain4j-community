@@ -1,17 +1,28 @@
 name: snapshot_release
 
-# Only run on pushes to main:
-# Replace with 'on: [push]' if you need to run tests on your PR
+# Once a night rather than on every push: the job runs in the "snapshot" environment, which holds the
+# Maven Central credentials and needs a maintainer's approval, so nothing that lands on main can use
+# them without it. Use workflow_dispatch (or a trigger-snapshot-release repository_dispatch) to publish
+# a snapshot sooner, e.g. right after the "Update to next development version" commit lands.
 on:
+  repository_dispatch:
+    types: [ trigger-snapshot-release ]
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  schedule:
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: snapshot-release
+  cancel-in-progress: false
 
 jobs:
   snapshot_release:
     if: github.repository == 'langchain4j/langchain4j-community'
     runs-on: ubuntu-latest
+    environment: snapshot
     steps:
       - uses: actions/checkout@v7
       - name: Set up JDK 21
@@ -25,16 +36,32 @@ jobs:
           server-id: central
           server-username: MAVEN_CENTRAL_USERNAME
           server-password: MAVEN_CENTRAL_PASSWORD
+
+      # The "release x.y.z" commits also land on main, where the version is not a SNAPSHOT.
+      # Deploying those would re-publish a release: it normally fails on "already exists", but would
+      # push an unsigned release if a release ever died before deploying.
+      - name: Check the version is a SNAPSHOT
+        id: snapshot-check
+        run: |
+          VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          case "$VERSION" in
+            *-SNAPSHOT)
+              echo "proceed=true" >> "$GITHUB_OUTPUT"
+              echo "Version is $VERSION."
+              ;;
+            *)
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              echo "::warning::Version is $VERSION, not a SNAPSHOT; skipping the snapshot deploy."
+              ;;
+          esac
+
       - name: snapshot_release
+        if: steps.snapshot-check.outputs.proceed == 'true'
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-        # Notes:
-        #  - tests already run in a separate action (main)
         run: |
-          mvn -B -U --fail-at-end \
-            -DskipTests -DskipITs \
-            clean deploy
+          ./mvnw -B -U --fail-at-end -DskipTests -DskipITs clean deploy
 
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v6
