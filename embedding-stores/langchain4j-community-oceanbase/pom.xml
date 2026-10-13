@@ -14,7 +14,7 @@
     <description>OceanBase Database Embedding Store</description>
 
     <properties>
-        <skipOceanBaseITs>false</skipOceanBaseITs>
+        <skipOceanBaseITs>${skipITs}</skipOceanBaseITs>
         <oceanbase-client.version>2.4.19</oceanbase-client.version>
     </properties>
 
@@ -118,7 +118,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <skipTests>${skipOceanBaseITs}</skipTests>
+                    <skipITs>${skipOceanBaseITs}</skipITs>
                 </configuration>
             </plugin>
             <plugin>

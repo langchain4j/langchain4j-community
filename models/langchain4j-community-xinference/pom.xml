@@ -22,7 +22,7 @@
     </licenses>
 
     <properties>
-        <skipXinferenceITs>false</skipXinferenceITs>
+        <skipXinferenceITs>${skipITs}</skipXinferenceITs>
     </properties>
 
     <dependencies>
@@ -135,7 +135,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <skipTests>${skipXinferenceITs}</skipTests>
+                    <skipITs>${skipXinferenceITs}</skipITs>
                 </configuration>
             </plugin>
         </plugins>

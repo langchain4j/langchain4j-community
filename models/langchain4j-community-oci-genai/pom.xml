@@ -23,7 +23,7 @@
     </licenses>
 
     <properties>
-        <skipOciGenAiITs>false</skipOciGenAiITs>
+        <skipOciGenAiITs>${skipITs}</skipOciGenAiITs>
         <oci-sdk.version>3.95.0</oci-sdk.version>
         <!-- Stable module name until lc4j switches to JPMS -->
         <automatic-module-name>langchain4j.community.oci.genai</automatic-module-name>
@@ -123,7 +123,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <skipTests>${skipOciGenAiITs}</skipTests>
+                    <skipITs>${skipOciGenAiITs}</skipITs>
                     <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>

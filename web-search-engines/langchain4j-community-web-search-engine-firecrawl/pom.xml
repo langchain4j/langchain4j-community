@@ -24,7 +24,7 @@
     </licenses>
 
     <properties>
-        <skipFirecrawlITs>false</skipFirecrawlITs>
+        <skipFirecrawlITs>${skipITs}</skipFirecrawlITs>
     </properties>
 
     <dependencies>
@@ -82,7 +82,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <skipTests>${skipFirecrawlITs}</skipTests>
+                    <skipITs>${skipFirecrawlITs}</skipITs>
                 </configuration>
             </plugin>
         </plugins>

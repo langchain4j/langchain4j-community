@@ -12,7 +12,7 @@
     <name>LangChain4j :: Community :: Integration :: Vearch</name>
 
     <properties>
-        <skipVearchITs>false</skipVearchITs>
+        <skipVearchITs>${skipITs}</skipVearchITs>
     </properties>
 
     <dependencies>
@@ -104,5 +104,17 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <skipITs>${skipVearchITs}</skipITs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

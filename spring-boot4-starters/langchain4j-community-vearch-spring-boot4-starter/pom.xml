@@ -20,6 +20,10 @@
         </license>
     </licenses>
 
+    <properties>
+        <skipVearchITs>${skipITs}</skipVearchITs>
+    </properties>
+
     <dependencies>
 
         <dependency>
@@ -93,6 +97,13 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <skipITs>${skipVearchITs}</skipITs>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.honton.chas</groupId>
                 <artifactId>license-maven-plugin</artifactId>
