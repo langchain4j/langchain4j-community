@@ -139,6 +139,28 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_replace_an_existing_id_and_allow_adding_it_again_after_removal() {
+        try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(tempDir.resolve("upsert-db").toString())
+                .dimension(DIMENSION)
+                .batchSize(3)
+                .build()) {
+            ArcadeDBUpsertTestHelper.assertUpsertAndReAdd(store, EMBEDDING_MODEL);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_keep_the_last_version_of_an_id_repeated_within_and_across_batches() {
+        try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(tempDir.resolve("repeated-db").toString())
+                .dimension(DIMENSION)
+                .batchSize(3)
+                .build()) {
+            ArcadeDBUpsertTestHelper.assertRepeatedIdsInOneAddAll(store, EMBEDDING_MODEL);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         try (ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.embeddedBuilder()
                 .databasePath(tempDir.resolve("batched-db").toString())

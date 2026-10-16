@@ -270,6 +270,31 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         assertThat(invalid).extracting(EmbeddingMatch::embeddingId).containsExactly(id);
     }
 
+    private ArcadeDBEmbeddingStore storeWithBatchSize3() {
+        return ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("EmbeddingDocument")
+                .dimension(384)
+                .batchSize(3)
+                .build();
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_replace_an_existing_id_and_allow_adding_it_again_after_removal() {
+        clearStore();
+        ArcadeDBUpsertTestHelper.assertUpsertAndReAdd(storeWithBatchSize3(), embeddingModel);
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_keep_the_last_version_of_an_id_repeated_within_and_across_batches() {
+        clearStore();
+        ArcadeDBUpsertTestHelper.assertRepeatedIdsInOneAddAll(storeWithBatchSize3(), embeddingModel);
+    }
+
     @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         clearStore();

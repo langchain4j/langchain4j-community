@@ -348,8 +348,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     private void addAllRemote(List<String> ids, List<Embedding> embeddings, List<TextSegment> embedded) {
         log.debug("Inserting {} embeddings into ArcadeDB (remote mode)", ids.size());
-        // One request and one transaction per batch: a SQL script of parameterized INSERTs. Values are bound as
-        // parameters; inlined into the SQL text, a line break in a text or metadata value was a syntax error.
+        // One request and one transaction per batch: a SQL script of parameterized DELETE + INSERT pairs (upsert by id,
+        // as in embedded mode; the id index keeps the DELETE cheap). Values are bound as parameters; inlined into the
+        // SQL
+        // text, a line break in a text or metadata value was a syntax error.
         for (int from = 0; from < ids.size(); from += remoteBatchSize) {
             int to = Math.min(from + remoteBatchSize, ids.size());
             StringBuilder script = new StringBuilder("BEGIN;\n");
@@ -375,6 +377,12 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             String id,
             Embedding embedding,
             TextSegment segment) {
+        script.append("DELETE FROM `")
+                .append(typeName)
+                .append("` WHERE `")
+                .append(ID_PROPERTY)
+                .append("` = :id");
+        script.append(row).append(";\n");
         script.append("INSERT INTO `")
                 .append(typeName)
                 .append("` SET `")
@@ -496,6 +504,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 CREATE PROPERTY `%s`.`%s` IF NOT EXISTS ARRAY_OF_FLOATS;
                 CREATE PROPERTY `%s`.`%s` IF NOT EXISTS STRING;
                 CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) FULL_TEXT;
+                CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) NOTUNIQUE;
                 """,
                 typeName,
                 typeName,
@@ -505,7 +514,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 typeName,
                 TEXT_PROPERTY,
                 typeName,
-                TEXT_PROPERTY);
+                TEXT_PROPERTY,
+                typeName,
+                ID_PROPERTY);
         log.debug("Initializing ArcadeDB schema (remote mode)");
         remoteDatabase.command("sqlscript", script);
 
@@ -758,9 +769,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     result.getVertex().ifPresent(v -> {
                         Map<String, Object> metadata = extractMetadata(v, metadataPrefix);
                         if (matchesFilter(filter, metadata)) {
-                            v.modify().set(PROPERTY_DELETED, true).save();
-                            vectorIndex.remove(new Object[] {null}, v);
-                            activeVertexCount.decrementAndGet();
+                            softDelete(v);
                         }
                     });
                 }
@@ -864,13 +873,27 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 embeddedDatabase.query("sql", "SELECT FROM " + quotedTypeName + " WHERE " + EMBEDDED_ID + " = ?", id)) {
             while (rs.hasNext()) {
                 Result result = rs.next();
-                result.getVertex().ifPresent(v -> {
-                    v.modify().set(PROPERTY_DELETED, true).save();
-                    // Also remove from the vector index so it's excluded from future searches
-                    vectorIndex.remove(new Object[] {null}, v);
-                    activeVertexCount.decrementAndGet();
-                });
+                result.getVertex().ifPresent(this::softDelete);
             }
+        }
+    }
+
+    /**
+     * Marks the vertex deleted (it stays in place to preserve HNSW graph connectivity), removes it from the vector index
+     * and releases its id: the id has a unique index, so a soft-deleted vertex that kept it made the id unusable for good
+     * (upsert and add-after-remove failed with a DuplicatedKeyException). A vertex soft-deleted before ids were released
+     * only has its id released.
+     */
+    private void softDelete(Vertex vertex) {
+        boolean alreadyDeleted = Boolean.TRUE.equals(vertex.get(PROPERTY_DELETED));
+        MutableVertex modified = vertex.modify();
+        modified.set(PROPERTY_DELETED, true);
+        modified.remove(EMBEDDED_ID);
+        modified.save();
+        if (!alreadyDeleted) {
+            // Also remove from the vector index so it's excluded from future searches
+            vectorIndex.remove(new Object[] {null}, vertex);
+            activeVertexCount.decrementAndGet();
         }
     }
 
