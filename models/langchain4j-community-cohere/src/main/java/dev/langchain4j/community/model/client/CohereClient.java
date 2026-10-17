@@ -3,7 +3,6 @@ package dev.langchain4j.community.model.client;
 import static dev.langchain4j.community.model.util.CohereAudioUtils.mapAudioFileName;
 import static dev.langchain4j.community.model.util.CohereAudioUtils.toAudioByteContent;
 import static dev.langchain4j.http.client.HttpMethod.POST;
-import static dev.langchain4j.internal.CompletableFutureUtils.propagateCancellation;
 import static dev.langchain4j.internal.Json.fromJson;
 import static dev.langchain4j.internal.Json.toJson;
 import static dev.langchain4j.internal.Utils.getOrDefault;
@@ -24,7 +23,6 @@ import dev.langchain4j.http.client.SuccessfulHttpResponse;
 import dev.langchain4j.http.client.log.LoggingHttpClient;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 
 @Internal
@@ -58,15 +56,6 @@ public class CohereClient {
     public CohereChatResponse createMessage(CohereChatRequest cohereChatRequest) {
         SuccessfulHttpResponse rawResponse = this.httpClient.execute(toHttpRequest(cohereChatRequest));
         return fromJson(rawResponse.body(), CohereChatResponse.class);
-    }
-
-    public CompletableFuture<CohereChatResponse> createMessageAsync(CohereChatRequest cohereChatRequest) {
-        CompletableFuture<SuccessfulHttpResponse> httpFuture =
-                httpClient.executeAsync(toHttpRequest(cohereChatRequest));
-        CompletableFuture<CohereChatResponse> result =
-                httpFuture.thenApply(response -> fromJson(response.body(), CohereChatResponse.class));
-        propagateCancellation(result, httpFuture);
-        return result;
     }
 
     public void createStreamingMessage(CohereChatRequest cohereChatRequest, StreamingChatResponseHandler handler) {

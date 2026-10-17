@@ -1,19 +1,12 @@
 package dev.langchain4j.community.model.cohere.common;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import dev.langchain4j.community.model.CohereChatModel;
 import dev.langchain4j.community.model.client.chat.response.CohereChatResponseMetadata;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.common.AbstractChatModelIT;
-import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import java.util.List;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 @EnabledIfEnvironmentVariable(named = "CO_API_KEY", matches = ".+")
@@ -32,16 +25,6 @@ class CohereChatModelIT extends AbstractChatModelIT {
             .logRequests(true)
             .logResponses(true)
             .build();
-
-    @Test
-    void should_chat_asynchronously() throws Exception {
-        ChatRequest request =
-                ChatRequest.builder().messages(UserMessage.from("Say hello")).build();
-
-        ChatResponse response = COHERE_CHAT_MODEL.chatAsync(request).get(60, SECONDS);
-
-        assertThat(response.aiMessage().text()).isNotBlank();
-    }
 
     @Override
     protected List<ChatModel> models() {

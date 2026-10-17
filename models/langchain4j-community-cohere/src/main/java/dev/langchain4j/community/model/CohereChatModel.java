@@ -2,15 +2,12 @@ package dev.langchain4j.community.model;
 
 import static dev.langchain4j.community.model.util.CohereInternalHelper.fromCohereChatResponse;
 import static dev.langchain4j.community.model.util.CohereInternalHelper.toCohereChatRequest;
-import static dev.langchain4j.internal.CompletableFutureUtils.propagateCancellation;
 import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptions;
-import static dev.langchain4j.internal.RetryUtils.withRetryMappingExceptionsAsync;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toSet;
 
-import dev.langchain4j.Experimental;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.community.model.client.CohereChatRequestParameters;
 import dev.langchain4j.community.model.client.CohereClient;
@@ -31,7 +28,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 
 /**
@@ -114,21 +110,6 @@ public class CohereChatModel implements ChatModel {
                 withRetryMappingExceptions(() -> client.createMessage(cohereChatRequest), maxRetries);
 
         return fromCohereChatResponse(cohereResponse, cohereChatRequest.getModel());
-    }
-
-    @Override
-    @Experimental
-    public CompletableFuture<ChatResponse> doChatAsync(ChatRequest chatRequest) {
-        CohereChatRequestParameters parameters =
-                CohereChatRequestParameters.builder().build().defaultedBy(chatRequest.parameters());
-        CohereChatRequest cohereChatRequest = toCohereChatRequest(chatRequest.messages(), parameters);
-
-        CompletableFuture<CohereChatResponse> responseFuture =
-                withRetryMappingExceptionsAsync(() -> client.createMessageAsync(cohereChatRequest), maxRetries);
-        CompletableFuture<ChatResponse> result =
-                responseFuture.thenApply(response -> fromCohereChatResponse(response, cohereChatRequest.getModel()));
-        propagateCancellation(result, responseFuture);
-        return result;
     }
 
     public static Builder builder() {
