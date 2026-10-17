@@ -30,7 +30,7 @@
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>42.7.13</version>
+                <version>42.7.14</version>
             </dependency>
             <!-- Required by Testcontainers, not managed by the Boot 4 BOM. -->
             <dependency>
