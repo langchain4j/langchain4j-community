@@ -244,7 +244,6 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
         entries.removeIf(entry -> {
             if (ids.contains(entry.id)) {
                 deleteChunkFile(entry.chunkFilePath);
-                chunkCache.remove(entry.id);
                 return true;
             }
             return false;
@@ -263,7 +262,6 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
                     boolean matches = filter.test(((TextSegment) embedded).metadata());
                     if (matches) {
                         deleteChunkFile(entry.chunkFilePath);
-                        chunkCache.remove(entry.id);
                     }
                     return matches;
                 }
@@ -752,6 +750,8 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
         if (chunkFilePath == null) {
             return;
         }
+
+        chunkCache.remove(chunkFilePath);
 
         try {
             Path filePath = chunkStorageDirectory.resolve(chunkFilePath);
