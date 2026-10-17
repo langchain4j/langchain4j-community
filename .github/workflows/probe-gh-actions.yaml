@@ -1,0 +1,10 @@
+# Diagnostic probe for the org Actions policy: GitHub-owned actions only, pinned.
+# This file is temporary and will be removed once the policy issue is diagnosed.
+name: Probe GH Actions
+on: pull_request
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - run: echo "GH-only probe: workflow started successfully"
