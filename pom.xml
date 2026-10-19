@@ -81,6 +81,7 @@
         <module>web-search-engines/langchain4j-community-web-search-engine-brave</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-serply</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-firecrawl</module>
+        <module>web-search-engines/langchain4j-community-web-search-engine-deepseek</module>
 
         <!-- Integration of document loaders -->
         <module>document-loaders/langchain4j-community-document-loader-confluence</module>
@@ -219,7 +220,6 @@
                         </goals>
                         <configuration>
                             <ignoredUsedUndeclaredDependencies>true</ignoredUsedUndeclaredDependencies>
-                            <!-- todo: fix dependencies and set to true -->
                             <failOnWarning>false</failOnWarning>
                         </configuration>
                     </execution>
@@ -366,7 +366,6 @@
                         <version>6.46.1</version>
                         <configuration>
                             <activeRecipes>
-                                <!--<recipe>org.openrewrite.java.OrderImports</recipe>-->
                                 <recipe>org.openrewrite.java.testing.assertj.Assertj</recipe>
                                 <recipe>org.openrewrite.java.migrate.UpgradeToJava17</recipe>
                             </activeRecipes>
