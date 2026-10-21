@@ -295,6 +295,42 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         ArcadeDBUpsertTestHelper.assertRepeatedIdsInOneAddAll(storeWithBatchSize3(), embeddingModel);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(ArcadeDBHybridFusion.class)
+    void should_search_hybrid_with_each_fusion(ArcadeDBHybridFusion fusion) {
+        clearStore();
+        ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("EmbeddingDocument")
+                .dimension(384)
+                .hybridFusion(fusion)
+                .hybridWeights(2, 1)
+                .hybridRrfK(20)
+                .build();
+        assertHybridSearch(store, embeddingModel);
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_create_a_full_text_index_with_custom_analyzer_and_bm25_settings() {
+        ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("CustomFullTextDocument")
+                .dimension(384)
+                .fullTextAnalyzer("org.apache.lucene.analysis.standard.StandardAnalyzer")
+                .fullTextBm25K1(1.5)
+                .fullTextBm25B(0.5)
+                .build();
+        assertHybridSearch(store, embeddingModel);
+    }
+
     @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         clearStore();

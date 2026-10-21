@@ -160,6 +160,75 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
         }
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(ArcadeDBHybridFusion.class)
+    void should_search_hybrid_with_each_fusion(ArcadeDBHybridFusion fusion) {
+        try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(tempDir.resolve("fusion-" + fusion).toString())
+                .dimension(DIMENSION)
+                .hybridFusion(fusion)
+                .hybridWeights(2, 1)
+                .hybridRrfK(20)
+                .build()) {
+            assertHybridSearch(store, EMBEDDING_MODEL);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_stem_full_text_with_the_default_english_analyzer_but_not_with_the_standard_one() {
+        assertThat(fullTextMatches(null, "The dogs were running", "runs")).isEqualTo(1);
+        assertThat(fullTextMatches(
+                        "org.apache.lucene.analysis.standard.StandardAnalyzer", "The dogs were running", "runs"))
+                .isZero();
+    }
+
+    private long fullTextMatches(String analyzer, String text, String query) {
+        String path = tempDir.resolve("analyzer-" + (analyzer == null ? "default" : "standard"))
+                .toString();
+        try (com.arcadedb.database.DatabaseFactory factory = new com.arcadedb.database.DatabaseFactory(path);
+                com.arcadedb.database.Database database = factory.create()) {
+            ArcadeDBEmbeddingStore.EmbeddedBuilder builder =
+                    ArcadeDBEmbeddingStore.embeddedBuilder().database(database).dimension(DIMENSION);
+            if (analyzer != null) {
+                builder.fullTextAnalyzer(analyzer);
+            }
+            ArcadeDBEmbeddingStore store = builder.build();
+            store.add(EMBEDDING_MODEL.embed(text).content(), TextSegment.from(text));
+            try (com.arcadedb.query.sql.executor.ResultSet result = database.query(
+                    "sql",
+                    "SELECT count(*) AS n FROM EmbeddingDocument WHERE SEARCH_INDEX('EmbeddingDocument[text]', ?) = true",
+                    query)) {
+                return ((Number) result.next().getProperty("n")).longValue();
+            }
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_keep_the_existing_full_text_index_when_reopened_with_another_analyzer() {
+        String path = tempDir.resolve("reopen-analyzer-db").toString();
+        Embedding embedding = EMBEDDING_MODEL.embed("graph database").content();
+        try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(path)
+                .dimension(DIMENSION)
+                .build()) {
+            store.add(embedding, TextSegment.from("ArcadeDB is a graph database"));
+        }
+        try (ArcadeDBEmbeddingStore reopened = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(path)
+                .dimension(DIMENSION)
+                .fullTextAnalyzer("org.apache.lucene.analysis.standard.StandardAnalyzer")
+                .fullTextBm25K1(2.0)
+                .build()) {
+            assertThat(reopened.search(EmbeddingSearchRequest.builder()
+                                    .queryEmbedding(embedding)
+                                    .query("databases")
+                                    .maxResults(1)
+                                    .build())
+                            .matches())
+                    .hasSize(1);
+        }
+    }
+
     @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         try (ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.embeddedBuilder()

@@ -137,6 +137,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private final int embeddedBatchSize;
     // Whether hybrid query text is passed to the full-text index as Lucene syntax (true) or escaped first (false).
     private final boolean rawFullTextQuery;
+    // Fusion and full-text index settings for hybrid search.
+    private final ArcadeDBHybridSettings hybrid;
 
     // Tracks the number of non-deleted vertices to detect HNSW connectivity gaps.
     // HNSW may not traverse all nodes when vectors are identical; if HNSW returns fewer
@@ -155,11 +157,13 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             int beamWidth,
             String metadataPrefix,
             int batchSize,
-            boolean rawFullTextQuery) {
+            boolean rawFullTextQuery,
+            ArcadeDBHybridSettings hybrid) {
         this.embeddedMode = false;
         this.remoteBatchSize = batchSize;
         this.embeddedBatchSize = 0;
         this.rawFullTextQuery = rawFullTextQuery;
+        this.hybrid = hybrid;
         this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
         this.embeddedDatabase = null;
         this.typeName = ensureNotBlank(typeName, "typeName");
@@ -179,6 +183,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.remoteBatchSize = 0;
         this.embeddedBatchSize = builder.batchSize;
         this.rawFullTextQuery = builder.rawFullTextQuery;
+        this.hybrid = builder.hybrid.copy();
         this.remoteDatabase = null;
         this.filterMapper = null;
         this.typeName = builder.typeName;
@@ -427,8 +432,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         String query;
         Map<String, Object> parameters = Map.of();
         if (isHybrid) {
-            int hybridFetchCount = filter != null ? maxResults * 10 : maxResults * 2;
-            query = buildHybridSearchQuery(queryEmbedding, EMBEDDING_PROPERTY, TEXT_PROPERTY, hybridFetchCount, false);
+            query = buildHybridSearchQuery(
+                    queryEmbedding, EMBEDDING_PROPERTY, TEXT_PROPERTY, maxResults, filter != null, false);
             parameters = Map.of("query", fullTextQuery(request.query()));
         } else {
             int fetchCount = filter != null ? maxResults * 5 : maxResults;
@@ -503,7 +508,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 CREATE PROPERTY `%s`.`%s` IF NOT EXISTS STRING;
                 CREATE PROPERTY `%s`.`%s` IF NOT EXISTS ARRAY_OF_FLOATS;
                 CREATE PROPERTY `%s`.`%s` IF NOT EXISTS STRING;
-                CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) FULL_TEXT;
                 CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) NOTUNIQUE;
                 """,
                 typeName,
@@ -514,8 +518,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 typeName,
                 TEXT_PROPERTY,
                 typeName,
-                TEXT_PROPERTY,
-                typeName,
                 ID_PROPERTY);
         log.debug("Initializing ArcadeDB schema (remote mode)");
         remoteDatabase.command("sqlscript", script);
@@ -523,6 +525,14 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         // Like embedded mode, an existing vector index is kept as it is. Since ArcadeDB 26.8.1, CREATE INDEX IF NOT
         // EXISTS fails when the existing index has a different configuration (e.g. maxConnections), so it is only
         // sent when the index is missing.
+        // The full-text index carries settings too (analyzer, BM25), so the same rule applies.
+        if (!remoteIndexExists(typeName + "[" + TEXT_PROPERTY + "]")) {
+            remoteDatabase.command(
+                    "sql",
+                    String.format(
+                            "CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) FULL_TEXT%s",
+                            typeName, TEXT_PROPERTY, hybrid.fullTextIndexMetadata()));
+        }
         if (!remoteIndexExists(typeName + "[" + EMBEDDING_PROPERTY + "]")) {
             remoteDatabase.command(
                     "sql",
@@ -665,9 +675,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         double minScore = request.minScore();
         Filter filter = request.filter();
 
-        int hybridFetchCount = filter != null ? maxResults * 10 : maxResults * 2;
-        String query =
-                buildHybridSearchQuery(queryEmbedding, EMBEDDED_EMBEDDING, EMBEDDED_TEXT, hybridFetchCount, true);
+        String query = buildHybridSearchQuery(
+                queryEmbedding, EMBEDDED_EMBEDDING, EMBEDDED_TEXT, maxResults, filter != null, true);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
         try (ResultSet rs = embeddedDatabase.query("sql", query, Map.of("query", fullTextQuery(request.query())))) {
@@ -803,13 +812,17 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             if (vertexType.getPolymorphicIndexByProperties(EMBEDDED_ID) == null) {
                 schema.createTypeIndex(Schema.INDEX_TYPE.LSM_TREE, true, typeName, EMBEDDED_ID);
             }
-
-            // Create full-text index on text property
-            String ftIndexName = typeName + "[" + EMBEDDED_TEXT + "]";
-            if (!schema.existsIndex(ftIndexName)) {
-                schema.createTypeIndex(Schema.INDEX_TYPE.FULL_TEXT, false, typeName, EMBEDDED_TEXT);
-            }
         });
+
+        // Create the full-text index on the text property (with the analyzer / BM25 settings); an existing one is kept.
+        String ftIndexName = typeName + "[" + EMBEDDED_TEXT + "]";
+        if (!embeddedDatabase.getSchema().existsIndex(ftIndexName)) {
+            embeddedDatabase.command(
+                    "sql",
+                    String.format(
+                            "CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) FULL_TEXT%s",
+                            typeName, EMBEDDED_TEXT, hybrid.fullTextIndexMetadata()));
+        }
 
         // Check if vector index already exists
         vectorIndex = findVectorIndex();
@@ -901,29 +914,49 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     /**
      * Builds the hybrid (dense + full-text) query; the full-text query text is the parameter {@code :query}.
+     *
+     * <p>The full-text source is bounded to its best matches by BM25 score: a natural-language query matches most
+     * documents under Lucene's default OR, and fusing all of them made hybrid search ~4x slower without changing the
+     * ranking. Soft-deleted records are filtered after bounding, so only the bounded set is loaded. Candidates: as in
+     * dense search on the vector side, twice the requested results on the full-text side, ten times both when a
+     * metadata filter is applied afterwards.
      */
     private String buildHybridSearchQuery(
             Embedding queryEmbedding,
             String embeddingProperty,
             String textProperty,
-            int fetchCount,
+            int maxResults,
+            boolean filtered,
             boolean excludeSoftDeleted) {
+        int denseCandidates = filtered ? maxResults * 10 : Math.max(maxResults * 4, maxResults + 100);
+        int fullTextCandidates = filtered ? maxResults * 10 : maxResults * 2;
         String denseIndexName = typeName + "[" + embeddingProperty + "]";
         String fullTextIndexName = typeName + "[" + textProperty + "]";
-        String fullTextQuery;
+        String fullTextSource;
         if (excludeSoftDeleted) {
-            fullTextQuery = String.format(
-                    "SEARCH_INDEX('%s', :query) = true AND (`%s` IS NULL OR `%s` != true)",
-                    fullTextIndexName, PROPERTY_DELETED, PROPERTY_DELETED);
+            fullTextSource = String.format(
+                    "(SELECT @rid AS rid, score FROM (SELECT @rid, `%s`, $score AS score FROM `%s`"
+                            + " WHERE SEARCH_INDEX('%s', :query) = true ORDER BY $score DESC LIMIT %d)"
+                            + " WHERE (`%s` IS NULL OR `%s` != true))",
+                    PROPERTY_DELETED,
+                    typeName,
+                    fullTextIndexName,
+                    fullTextCandidates,
+                    PROPERTY_DELETED,
+                    PROPERTY_DELETED);
         } else {
-            fullTextQuery = String.format("SEARCH_INDEX('%s', :query) = true", fullTextIndexName);
+            fullTextSource = String.format(
+                    "(SELECT @rid AS rid, $score AS score FROM `%s` WHERE SEARCH_INDEX('%s', :query) = true"
+                            + " ORDER BY $score DESC LIMIT %d)",
+                    typeName, fullTextIndexName, fullTextCandidates);
         }
         return String.format(
-                "SELECT expand(`vector.fuse`(" + "`vector.neighbors`('%s', %s, %d),"
-                        + "(SELECT @rid AS rid FROM `%s` WHERE %s),"
-                        + "{ fusion: 'RRF', limit: %d }"
-                        + "))",
-                denseIndexName, embeddingToSql(queryEmbedding), fetchCount, typeName, fullTextQuery, fetchCount);
+                "SELECT expand(`vector.fuse`(`vector.neighbors`('%s', %s, %d), %s, %s))",
+                denseIndexName,
+                embeddingToSql(queryEmbedding),
+                denseCandidates,
+                fullTextSource,
+                hybrid.fuseOptions(denseCandidates));
     }
 
     private static Embedding resultToEmbedding(Object embObj) {
@@ -1153,6 +1186,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private String metadataPrefix = REMOTE_DEFAULT_METADATA_PREFIX;
         private int batchSize = DEFAULT_REMOTE_BATCH_SIZE;
         private boolean rawFullTextQuery = false;
+        private final ArcadeDBHybridSettings hybrid = new ArcadeDBHybridSettings();
 
         /**
          * @param host ArcadeDB server hostname. Required.
@@ -1270,9 +1304,66 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             return this;
         }
 
+        /**
+         * @param fusion How hybrid search combines the dense and full-text rankings. Default: {@code RRF}.
+         */
+        public Builder hybridFusion(ArcadeDBHybridFusion fusion) {
+            this.hybrid.fusion = fusion;
+            return this;
+        }
+
+        /**
+         * @param denseWeight    Weight of the dense (vector) ranking in hybrid search. Default: 8.
+         * @param fullTextWeight Weight of the full-text (BM25) ranking in hybrid search. Default: 1.
+         */
+        public Builder hybridWeights(double denseWeight, double fullTextWeight) {
+            this.hybrid.denseWeight = denseWeight;
+            this.hybrid.fullTextWeight = fullTextWeight;
+            return this;
+        }
+
+        /**
+         * @param k The RRF constant {@code k} in {@code weight / (k + rank)}. Default: 60.
+         */
+        public Builder hybridRrfK(int k) {
+            this.hybrid.rrfK = k;
+            return this;
+        }
+
+        /**
+         * @param analyzer Lucene analyzer class of the full-text index, e.g.
+         *                 {@code org.apache.lucene.analysis.standard.StandardAnalyzer}; {@code null} for ArcadeDB's
+         *                 default. Default: {@code org.apache.lucene.analysis.en.EnglishAnalyzer} (English stop words
+         *                 and stemming) — choose another analyzer for text that is not English. Applies when the index
+         *                 is created; an existing index keeps its analyzer.
+         */
+        public Builder fullTextAnalyzer(String analyzer) {
+            this.hybrid.analyzer = analyzer;
+            return this;
+        }
+
+        /**
+         * @param k1 BM25 {@code k1} of the full-text index; {@code null} for ArcadeDB's default (1.2). Applies when the
+         *           index is created.
+         */
+        public Builder fullTextBm25K1(Double k1) {
+            this.hybrid.bm25K1 = k1;
+            return this;
+        }
+
+        /**
+         * @param b BM25 {@code b} of the full-text index, in [0, 1]; {@code null} for ArcadeDB's default (0.75).
+         *          Applies when the index is created.
+         */
+        public Builder fullTextBm25B(Double b) {
+            this.hybrid.bm25B = b;
+            return this;
+        }
+
         public ArcadeDBEmbeddingStore build() {
             ensureNotBlank(host, "host");
             ensureTrue(batchSize > 0, "batchSize must be positive");
+            hybrid.validate();
             ensureNotBlank(databaseName, "databaseName");
             ensureNotBlank(username, "username");
             ensureNotNull(password, "password");
@@ -1295,7 +1386,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     beamWidth,
                     getOrDefault(metadataPrefix, REMOTE_DEFAULT_METADATA_PREFIX),
                     batchSize,
-                    rawFullTextQuery);
+                    rawFullTextQuery,
+                    hybrid.copy());
         }
     }
 
@@ -1322,6 +1414,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private String metadataPrefix = EMBEDDED_DEFAULT_METADATA_PREFIX;
         private boolean rawFullTextQuery = false;
         private int batchSize = DEFAULT_EMBEDDED_BATCH_SIZE;
+        private final ArcadeDBHybridSettings hybrid = new ArcadeDBHybridSettings();
         int dimension = 384;
         int maxConnections = DEFAULT_MAX_CONNECTIONS;
         int beamWidth = DEFAULT_BEAM_WIDTH;
@@ -1395,6 +1488,62 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
+         * @param fusion How hybrid search combines the dense and full-text rankings. Default: {@code RRF}.
+         */
+        public EmbeddedBuilder hybridFusion(ArcadeDBHybridFusion fusion) {
+            this.hybrid.fusion = fusion;
+            return this;
+        }
+
+        /**
+         * @param denseWeight    Weight of the dense (vector) ranking in hybrid search. Default: 8.
+         * @param fullTextWeight Weight of the full-text (BM25) ranking in hybrid search. Default: 1.
+         */
+        public EmbeddedBuilder hybridWeights(double denseWeight, double fullTextWeight) {
+            this.hybrid.denseWeight = denseWeight;
+            this.hybrid.fullTextWeight = fullTextWeight;
+            return this;
+        }
+
+        /**
+         * @param k The RRF constant {@code k} in {@code weight / (k + rank)}. Default: 60.
+         */
+        public EmbeddedBuilder hybridRrfK(int k) {
+            this.hybrid.rrfK = k;
+            return this;
+        }
+
+        /**
+         * @param analyzer Lucene analyzer class of the full-text index, e.g.
+         *                 {@code org.apache.lucene.analysis.standard.StandardAnalyzer}; {@code null} for ArcadeDB's
+         *                 default. Default: {@code org.apache.lucene.analysis.en.EnglishAnalyzer} (English stop words
+         *                 and stemming) — choose another analyzer for text that is not English. Applies when the index
+         *                 is created; an existing index keeps its analyzer.
+         */
+        public EmbeddedBuilder fullTextAnalyzer(String analyzer) {
+            this.hybrid.analyzer = analyzer;
+            return this;
+        }
+
+        /**
+         * @param k1 BM25 {@code k1} of the full-text index; {@code null} for ArcadeDB's default (1.2). Applies when the
+         *           index is created.
+         */
+        public EmbeddedBuilder fullTextBm25K1(Double k1) {
+            this.hybrid.bm25K1 = k1;
+            return this;
+        }
+
+        /**
+         * @param b BM25 {@code b} of the full-text index, in [0, 1]; {@code null} for ArcadeDB's default (0.75).
+         *          Applies when the index is created.
+         */
+        public EmbeddedBuilder fullTextBm25B(Double b) {
+            this.hybrid.bm25B = b;
+            return this;
+        }
+
+        /**
          * @param batchSize Embeddings inserted per transaction by {@code addAll}. Default: 1000.
          */
         public EmbeddedBuilder batchSize(int batchSize) {
@@ -1405,6 +1554,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         public ArcadeDBEmbeddingStore build() {
             ensureTrue(dimension > 0, "dimension must be positive");
             ensureTrue(batchSize > 0, "batchSize must be positive");
+            hybrid.validate();
             return new ArcadeDBEmbeddingStore(this);
         }
     }
