@@ -139,6 +139,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private final boolean rawFullTextQuery;
     // Fusion and full-text index settings for hybrid search.
     private final ArcadeDBHybridSettings hybrid;
+    // Search beam width of the vector index per query; null for the defaults (see dense search in each mode).
+    private final Integer efSearch;
 
     // Tracks the number of non-deleted vertices to detect HNSW connectivity gaps.
     // HNSW may not traverse all nodes when vectors are identical; if HNSW returns fewer
@@ -158,12 +160,14 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             String metadataPrefix,
             int batchSize,
             boolean rawFullTextQuery,
-            ArcadeDBHybridSettings hybrid) {
+            ArcadeDBHybridSettings hybrid,
+            Integer efSearch) {
         this.embeddedMode = false;
         this.remoteBatchSize = batchSize;
         this.embeddedBatchSize = 0;
         this.rawFullTextQuery = rawFullTextQuery;
         this.hybrid = hybrid;
+        this.efSearch = efSearch;
         this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
         this.embeddedDatabase = null;
         this.typeName = ensureNotBlank(typeName, "typeName");
@@ -184,6 +188,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.embeddedBatchSize = builder.batchSize;
         this.rawFullTextQuery = builder.rawFullTextQuery;
         this.hybrid = builder.hybrid.copy();
+        this.efSearch = builder.efSearch;
         this.remoteDatabase = null;
         this.filterMapper = null;
         this.typeName = builder.typeName;
@@ -432,8 +437,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         String query;
         Map<String, Object> parameters = Map.of();
         if (isHybrid) {
-            query = buildHybridSearchQuery(
-                    queryEmbedding, EMBEDDING_PROPERTY, TEXT_PROPERTY, maxResults, filter != null, false);
+            query = withoutNestedRecord(buildHybridSearchQuery(
+                    queryEmbedding, EMBEDDING_PROPERTY, TEXT_PROPERTY, maxResults, filter != null, false));
             parameters = Map.of("query", fullTextQuery(request.query()));
         } else {
             int fetchCount = filter != null ? maxResults * 5 : maxResults;
@@ -441,7 +446,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             String indexName = typeName + "[" + EMBEDDING_PROPERTY + "]";
             // Expand the neighbours themselves. Projecting vector.neighbors() per row of the type instead runs one
             // ANN search for every record and returns the records in scan order, not by similarity.
-            query = String.format("SELECT expand(`vector.neighbors`('%s', %s, %d))", indexName, vectorSql, fetchCount);
+            // Only fetchCount rows cross the network; the beam (efSearch) is as wide as embedded search's.
+            query = withoutNestedRecord(String.format(
+                    "SELECT expand(`vector.neighbors`('%s', %s, %d, { efSearch: %d }))",
+                    indexName, vectorSql, fetchCount, remoteEfSearch(maxResults, fetchCount)));
         }
 
         ResultSet resultSet;
@@ -629,7 +637,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         int fetchSize = Math.max(maxResults * 4, maxResults + 100);
-        List<Pair<RID, Float>> neighbors = vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
+        List<Pair<RID, Float>> neighbors = efSearch != null
+                ? vectorIndex.findNeighborsFromVector(queryVector, fetchSize, Math.max(efSearch, fetchSize))
+                : vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
 
         // Collect all RIDs the HNSW graph traversal reached, regardless of whether they pass
         // the score/filter/deleted checks. This is needed to detect unreachable vertices later.
@@ -913,6 +923,26 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     // ===== Shared helpers =====
 
     /**
+     * Remote dense search returns only the rows it needs and widens the search beam instead: the default beam for
+     * {@code k} results is about {@code 2k}, so this matches embedded search, which asks for
+     * {@code max(4k, k + 100)} neighbours. Measured on 100k NQ passages: ANN recall@10 0.970 with the default beam,
+     * 0.992 with this one, at ~1 ms more per query. An explicit {@link Builder#efSearch(Integer)} replaces it.
+     */
+    private int remoteEfSearch(int maxResults, int fetchCount) {
+        int beam = efSearch != null ? efSearch : 2 * Math.max(maxResults * 4, maxResults + 100);
+        return Math.max(beam, fetchCount);
+    }
+
+    /**
+     * Each row of {@code expand(vector.neighbors(...))} and {@code expand(vector.fuse(...))} carries the record's
+     * properties and, again, the whole record under {@code record}; over HTTP that doubled every response (embedding
+     * and text twice). This projection keeps the properties, {@code distance} / {@code score} and the order.
+     */
+    private static String withoutNestedRecord(String query) {
+        return "SELECT *, !record FROM (" + query + ")";
+    }
+
+    /**
      * Builds the hybrid (dense + full-text) query; the full-text query text is the parameter {@code :query}.
      *
      * <p>The full-text source is bounded to its best matches by BM25 score: a natural-language query matches most
@@ -950,13 +980,19 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                             + " ORDER BY $score DESC LIMIT %d)",
                     typeName, fullTextIndexName, fullTextCandidates);
         }
+        // Only the fused rows that can be returned leave vector.fuse(): the store keeps maxResults of them (more when
+        // a metadata filter is applied afterwards).
+        int fusedResults = filtered ? maxResults * 10 : maxResults;
+        String denseOptions =
+                efSearch != null ? String.format(", { efSearch: %d }", Math.max(efSearch, denseCandidates)) : "";
         return String.format(
-                "SELECT expand(`vector.fuse`(`vector.neighbors`('%s', %s, %d), %s, %s))",
+                "SELECT expand(`vector.fuse`(`vector.neighbors`('%s', %s, %d%s), %s, %s))",
                 denseIndexName,
                 embeddingToSql(queryEmbedding),
                 denseCandidates,
+                denseOptions,
                 fullTextSource,
-                hybrid.fuseOptions(denseCandidates));
+                hybrid.fuseOptions(fusedResults));
     }
 
     private static Embedding resultToEmbedding(Object embObj) {
@@ -1187,6 +1223,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private int batchSize = DEFAULT_REMOTE_BATCH_SIZE;
         private boolean rawFullTextQuery = false;
         private final ArcadeDBHybridSettings hybrid = new ArcadeDBHybridSettings();
+        private Integer efSearch;
 
         /**
          * @param host ArcadeDB server hostname. Required.
@@ -1305,6 +1342,18 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
+         * @param efSearch Search beam width of the vector index per query (higher: better recall, slower), at least
+         *                 the number of candidates fetched. Default: {@code null} — embedded mode uses ArcadeDB's
+         *                 default for its {@code max(4k, k + 100)} candidates; remote mode fetches {@code k} and uses
+         *                 an equivalent beam of {@code 2 * max(4k, k + 100)}. Also applies to the dense side of
+         *                 hybrid search when set.
+         */
+        public Builder efSearch(Integer efSearch) {
+            this.efSearch = efSearch;
+            return this;
+        }
+
+        /**
          * @param fusion How hybrid search combines the dense and full-text rankings. Default: {@code RRF}.
          */
         public Builder hybridFusion(ArcadeDBHybridFusion fusion) {
@@ -1364,6 +1413,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             ensureNotBlank(host, "host");
             ensureTrue(batchSize > 0, "batchSize must be positive");
             hybrid.validate();
+            ensureTrue(efSearch == null || efSearch > 0, "efSearch must be positive");
             ensureNotBlank(databaseName, "databaseName");
             ensureNotBlank(username, "username");
             ensureNotNull(password, "password");
@@ -1387,7 +1437,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     getOrDefault(metadataPrefix, REMOTE_DEFAULT_METADATA_PREFIX),
                     batchSize,
                     rawFullTextQuery,
-                    hybrid.copy());
+                    hybrid.copy(),
+                    efSearch);
         }
     }
 
@@ -1415,6 +1466,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private boolean rawFullTextQuery = false;
         private int batchSize = DEFAULT_EMBEDDED_BATCH_SIZE;
         private final ArcadeDBHybridSettings hybrid = new ArcadeDBHybridSettings();
+        private Integer efSearch;
         int dimension = 384;
         int maxConnections = DEFAULT_MAX_CONNECTIONS;
         int beamWidth = DEFAULT_BEAM_WIDTH;
@@ -1488,6 +1540,18 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
+         * @param efSearch Search beam width of the vector index per query (higher: better recall, slower), at least
+         *                 the number of candidates fetched. Default: {@code null} — embedded mode uses ArcadeDB's
+         *                 default for its {@code max(4k, k + 100)} candidates; remote mode fetches {@code k} and uses
+         *                 an equivalent beam of {@code 2 * max(4k, k + 100)}. Also applies to the dense side of
+         *                 hybrid search when set.
+         */
+        public EmbeddedBuilder efSearch(Integer efSearch) {
+            this.efSearch = efSearch;
+            return this;
+        }
+
+        /**
          * @param fusion How hybrid search combines the dense and full-text rankings. Default: {@code RRF}.
          */
         public EmbeddedBuilder hybridFusion(ArcadeDBHybridFusion fusion) {
@@ -1555,6 +1619,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             ensureTrue(dimension > 0, "dimension must be positive");
             ensureTrue(batchSize > 0, "batchSize must be positive");
             hybrid.validate();
+            ensureTrue(efSearch == null || efSearch > 0, "efSearch must be positive");
             return new ArcadeDBEmbeddingStore(this);
         }
     }

@@ -230,6 +230,33 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_never_lower_recall_with_a_wider_ef_search() {
+        try (com.arcadedb.database.DatabaseFactory factory = new com.arcadedb.database.DatabaseFactory(
+                        tempDir.resolve("ef-search-db").toString());
+                com.arcadedb.database.Database database = factory.create()) {
+            ArcadeDBEfSearchTestHelper.assertWiderBeamNeverLowersRecall(
+                    beam -> ArcadeDBEmbeddingStore.embeddedBuilder()
+                            .database(database)
+                            .dimension(ArcadeDBEfSearchTestHelper.DIMENSION)
+                            .efSearch(beam)
+                            .build(),
+                    110,
+                    200,
+                    800);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_reject_a_non_positive_ef_search() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> ArcadeDBEmbeddingStore.embeddedBuilder()
+                        .databasePath(tempDir.resolve("ef-zero").toString())
+                        .dimension(DIMENSION)
+                        .efSearch(-1)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         try (ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.embeddedBuilder()
                 .databasePath(tempDir.resolve("batched-db").toString())
