@@ -361,6 +361,51 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"COSINE", "EUCLIDEAN", "DOT_PRODUCT"})
+    void should_rank_and_score_with_each_similarity_function(String similarity) {
+        ArcadeDBIndexOptionsTestHelper.assertSimilarityScores(
+                ArcadeDBEmbeddingStore.builder()
+                        .host(host)
+                        .port(port)
+                        .databaseName("test_embeddings")
+                        .username("root")
+                        .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                        .typeName("Similarity" + similarity)
+                        .dimension(ArcadeDBIndexOptionsTestHelper.SIMILARITY_DIMENSION)
+                        .similarityFunction(similarity)
+                        .build(),
+                similarity);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(ArcadeDBVectorQuantization.class)
+    void should_search_with_each_quantization(ArcadeDBVectorQuantization quantization) {
+        ArcadeDBIndexOptionsTestHelper.assertFindsStoredVector(ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("Quantization" + quantization)
+                .dimension(ArcadeDBIndexOptionsTestHelper.QUANTIZATION_DIMENSION)
+                .quantization(quantization)
+                .build());
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_reject_an_unsupported_similarity_function() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> ArcadeDBEmbeddingStore.builder()
+                        .host(host)
+                        .port(port)
+                        .databaseName("test_embeddings")
+                        .dimension(384)
+                        .similarityFunction("SQUARED_EUCLIDEAN")
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("SQUARED_EUCLIDEAN");
+    }
+
     @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         clearStore();

@@ -256,6 +256,63 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"COSINE", "EUCLIDEAN", "DOT_PRODUCT"})
+    void should_rank_and_score_with_each_similarity_function(String similarity) {
+        try (com.arcadedb.database.DatabaseFactory factory = new com.arcadedb.database.DatabaseFactory(
+                        tempDir.resolve("similarity-" + similarity).toString());
+                com.arcadedb.database.Database database = factory.create()) {
+            ArcadeDBIndexOptionsTestHelper.assertSimilarityScores(
+                    ArcadeDBEmbeddingStore.embeddedBuilder()
+                            .database(database)
+                            .dimension(ArcadeDBIndexOptionsTestHelper.SIMILARITY_DIMENSION)
+                            .similarityFunction(similarity)
+                            .build(),
+                    similarity);
+            assertThat(vectorIndexMetadata(database).similarityFunction.name()).isEqualTo(similarity);
+        }
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(ArcadeDBVectorQuantization.class)
+    void should_search_with_each_quantization(ArcadeDBVectorQuantization quantization) {
+        try (com.arcadedb.database.DatabaseFactory factory = new com.arcadedb.database.DatabaseFactory(
+                        tempDir.resolve("quantization-" + quantization).toString());
+                com.arcadedb.database.Database database = factory.create()) {
+            ArcadeDBIndexOptionsTestHelper.assertFindsStoredVector(ArcadeDBEmbeddingStore.embeddedBuilder()
+                    .database(database)
+                    .dimension(ArcadeDBIndexOptionsTestHelper.QUANTIZATION_DIMENSION)
+                    .quantization(quantization)
+                    .build());
+            assertThat(vectorIndexMetadata(database).quantizationType.name()).isEqualTo(quantization.name());
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_keep_similarity_and_quantization_when_removing_all() {
+        try (com.arcadedb.database.DatabaseFactory factory = new com.arcadedb.database.DatabaseFactory(
+                        tempDir.resolve("remove-all-options").toString());
+                com.arcadedb.database.Database database = factory.create()) {
+            ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                    .database(database)
+                    .dimension(ArcadeDBIndexOptionsTestHelper.SIMILARITY_DIMENSION)
+                    .similarityFunction("EUCLIDEAN")
+                    .quantization(ArcadeDBVectorQuantization.INT8)
+                    .build();
+            store.add(new Embedding(new float[] {1, 0, 0, 0}));
+            store.removeAll();
+            assertThat(vectorIndexMetadata(database).similarityFunction.name()).isEqualTo("EUCLIDEAN");
+            assertThat(vectorIndexMetadata(database).quantizationType.name()).isEqualTo("INT8");
+        }
+    }
+
+    private static com.arcadedb.schema.LSMVectorIndexMetadata vectorIndexMetadata(
+            com.arcadedb.database.Database database) {
+        com.arcadedb.index.TypeIndex index =
+                (com.arcadedb.index.TypeIndex) database.getSchema().getIndexByName("EmbeddingDocument[embedding]");
+        return ((com.arcadedb.index.vector.LSMVectorIndex) index.getIndexesOnBuckets()[0]).getMetadata();
+    }
+
     @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         try (ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.embeddedBuilder()

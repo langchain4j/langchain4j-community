@@ -25,17 +25,16 @@ import com.arcadedb.remote.RemoteDatabase;
 import com.arcadedb.remote.RemoteServer;
 import com.arcadedb.schema.Schema;
 import com.arcadedb.schema.Type;
+import com.arcadedb.schema.TypeLSMVectorIndexBuilder;
 import com.arcadedb.schema.VertexType;
 import com.arcadedb.utility.Pair;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.CosineSimilarity;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.RelevanceScore;
 import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.filter.comparison.ContainsString;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
@@ -141,6 +140,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     private final ArcadeDBHybridSettings hybrid;
     // Search beam width of the vector index per query; null for the defaults (see dense search in each mode).
     private final Integer efSearch;
+    // Similarity function and quantization of the vector index (as configured; an existing index keeps its own).
+    private final ArcadeDBVectorSimilarity similarity;
+    private final ArcadeDBVectorQuantization quantization;
 
     // Tracks the number of non-deleted vertices to detect HNSW connectivity gaps.
     // HNSW may not traverse all nodes when vectors are identical; if HNSW returns fewer
@@ -161,13 +163,16 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             int batchSize,
             boolean rawFullTextQuery,
             ArcadeDBHybridSettings hybrid,
-            Integer efSearch) {
+            Integer efSearch,
+            ArcadeDBVectorQuantization quantization) {
         this.embeddedMode = false;
         this.remoteBatchSize = batchSize;
         this.embeddedBatchSize = 0;
         this.rawFullTextQuery = rawFullTextQuery;
         this.hybrid = hybrid;
         this.efSearch = efSearch;
+        this.similarity = ArcadeDBVectorSimilarity.of(similarityFunction);
+        this.quantization = quantization;
         this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
         this.embeddedDatabase = null;
         this.typeName = ensureNotBlank(typeName, "typeName");
@@ -177,7 +182,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.embeddedMaxConnections = 0;
         this.embeddedBeamWidth = 0;
         this.activeVertexCount = null;
-        initRemoteSchema(dimension, similarityFunction, maxConnections, beamWidth);
+        initRemoteSchema(dimension, similarity.name(), maxConnections, beamWidth);
     }
 
     // ===== Embedded mode constructor =====
@@ -189,6 +194,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.rawFullTextQuery = builder.rawFullTextQuery;
         this.hybrid = builder.hybrid.copy();
         this.efSearch = builder.efSearch;
+        this.similarity = ArcadeDBVectorSimilarity.of(getOrDefault(builder.similarityFunction, DEFAULT_SIMILARITY));
+        this.quantization = builder.quantization;
         this.remoteDatabase = null;
         this.filterMapper = null;
         this.typeName = builder.typeName;
@@ -321,16 +328,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             embeddedDatabase.transaction(() -> embeddedDatabase.command("sql", "DELETE FROM " + quotedTypeName));
             String indexName = typeName + "[" + EMBEDDED_EMBEDDING + "]";
             embeddedDatabase.transaction(() -> embeddedDatabase.getSchema().dropIndex(indexName));
-            embeddedDatabase.transaction(() -> embeddedDatabase
-                    .getSchema()
-                    .buildTypeIndex(typeName, new String[] {EMBEDDED_EMBEDDING})
-                    .withLSMVectorType()
-                    .withDimensions(embeddedDimension)
-                    .withSimilarity("COSINE")
-                    .withMaxConnections(embeddedMaxConnections)
-                    .withBeamWidth(embeddedBeamWidth)
-                    .withIdProperty(EMBEDDED_ID)
-                    .create());
+            embeddedDatabase.transaction(
+                    () -> createEmbeddedVectorIndex(embeddedDimension, embeddedMaxConnections, embeddedBeamWidth));
             vectorIndex = findVectorIndex();
             activeVertexCount.set(0);
         } else {
@@ -471,7 +470,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             if (docId == null) continue;
             Embedding embedding = resultToEmbedding(doc.getProperty(EMBEDDING_PROPERTY));
             if (embedding == null) continue;
-            double score = RelevanceScore.fromCosineSimilarity(CosineSimilarity.between(queryEmbedding, embedding));
+            double score = similarity.relevance(queryEmbedding, embedding);
             if (score < minScore) continue;
             String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
             Map<String, Object> metadataMap = extractMetadataFromResult(doc);
@@ -551,10 +550,18 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                                 "dimensions": %d,
                                 "similarity": "%s",
                                 "maxConnections": %d,
-                                "beamWidth": %d
+                                "beamWidth": %d%s
                               }
                             """,
-                            typeName, EMBEDDING_PROPERTY, dimension, similarityFunction, maxConnections, beamWidth));
+                            typeName,
+                            EMBEDDING_PROPERTY,
+                            dimension,
+                            similarityFunction,
+                            maxConnections,
+                            beamWidth,
+                            quantization == ArcadeDBVectorQuantization.NONE
+                                    ? ""
+                                    : ",\n    \"quantization\": \"" + quantization.name() + "\""));
         }
     }
 
@@ -649,12 +656,20 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             RID rid = neighbor.getFirst();
             hnswRids.add(rid);
             if (matches.size() >= maxResults) continue;
-            double rawDistance = neighbor.getSecond().doubleValue();
-            double score = 1.0 - rawDistance / 2.0;
+            // ArcadeDB's cosine distance is 1 - cosine; for the other functions the score is computed from the vector.
+            double score = similarity == ArcadeDBVectorSimilarity.COSINE
+                    ? 1.0 - neighbor.getSecond().doubleValue() / 2.0
+                    : Double.NaN;
             if (score < minScore) continue;
             try {
                 Vertex vertex = rid.getRecord(true).asVertex();
                 if (Boolean.TRUE.equals(vertex.get(PROPERTY_DELETED))) continue;
+                if (Double.isNaN(score)) {
+                    Embedding embedding = resultToEmbedding(vertex.get(EMBEDDED_EMBEDDING));
+                    if (embedding == null) continue;
+                    score = similarity.relevance(queryEmbedding, embedding);
+                    if (score < minScore) continue;
+                }
                 if (filter != null) {
                     Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
                     if (!matchesFilter(filter, metadata)) continue;
@@ -728,7 +743,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 if (embedding == null) {
                     continue;
                 }
-                double score = RelevanceScore.fromCosineSimilarity(CosineSimilarity.between(queryEmbedding, embedding));
+                double score = similarity.relevance(queryEmbedding, embedding);
                 if (score >= minScore) {
                     matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
                 }
@@ -763,8 +778,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     }
                     Object rawVector = vertex.get(EMBEDDED_EMBEDDING);
                     if (!(rawVector instanceof float[] vec)) return;
-                    double score = RelevanceScore.fromCosineSimilarity(
-                            CosineSimilarity.between(queryEmbedding, Embedding.from(vec)));
+                    double score = similarity.relevance(queryEmbedding, Embedding.from(vec));
                     if (score >= minScore) {
                         matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
                     }
@@ -842,19 +856,26 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
         // Create LSM vector index
         embeddedDatabase.transaction(() -> {
-            embeddedDatabase
-                    .getSchema()
-                    .buildTypeIndex(typeName, new String[] {EMBEDDED_EMBEDDING})
-                    .withLSMVectorType()
-                    .withDimensions(builder.dimension)
-                    .withSimilarity("COSINE")
-                    .withMaxConnections(builder.maxConnections)
-                    .withBeamWidth(builder.beamWidth)
-                    .withIdProperty(EMBEDDED_ID)
-                    .create();
+            createEmbeddedVectorIndex(builder.dimension, builder.maxConnections, builder.beamWidth);
         });
 
         vectorIndex = findVectorIndex();
+    }
+
+    private void createEmbeddedVectorIndex(int dimension, int maxConnections, int beamWidth) {
+        TypeLSMVectorIndexBuilder index = embeddedDatabase
+                .getSchema()
+                .buildTypeIndex(typeName, new String[] {EMBEDDED_EMBEDDING})
+                .withLSMVectorType()
+                .withDimensions(dimension)
+                .withSimilarity(similarity.name())
+                .withMaxConnections(maxConnections)
+                .withBeamWidth(beamWidth)
+                .withIdProperty(EMBEDDED_ID);
+        if (quantization != ArcadeDBVectorQuantization.NONE) {
+            index.withQuantization(quantization.name());
+        }
+        index.create();
     }
 
     private long queryActiveVertexCount() {
@@ -1224,6 +1245,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private boolean rawFullTextQuery = false;
         private final ArcadeDBHybridSettings hybrid = new ArcadeDBHybridSettings();
         private Integer efSearch;
+        private ArcadeDBVectorQuantization quantization = ArcadeDBVectorQuantization.NONE;
 
         /**
          * @param host ArcadeDB server hostname. Required.
@@ -1282,8 +1304,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
-         * @param similarityFunction The similarity function for vector comparison. Default: "COSINE".
-         *     Options: "COSINE", "EUCLIDEAN", "SQUARED_EUCLIDEAN".
+         * @param similarityFunction The similarity function of the vector index: "COSINE", "EUCLIDEAN" or
+         *     "DOT_PRODUCT" (unit-length vectors only). Default: "COSINE". Scores: (1 + cosine) / 2,
+         *     1 / (1 + distance), (1 + dot) / 2. Applies when the index is created.
          */
         public Builder similarityFunction(String similarityFunction) {
             this.similarityFunction = similarityFunction;
@@ -1299,7 +1322,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
-         * @param beamWidth Beam width for HNSW index search. Default: 100.
+         * @param beamWidth Beam width used while building the vector index graph (build time only; for the search
+         *     beam see {@link #efSearch(Integer)}). Default: 100.
          */
         public Builder beamWidth(int beamWidth) {
             this.beamWidth = beamWidth;
@@ -1350,6 +1374,15 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
          */
         public Builder efSearch(Integer efSearch) {
             this.efSearch = efSearch;
+            return this;
+        }
+
+        /**
+         * @param quantization Quantization of the vectors in the index; the stored embeddings stay full precision.
+         *     Default: {@code NONE}. Applies when the index is created.
+         */
+        public Builder quantization(ArcadeDBVectorQuantization quantization) {
+            this.quantization = quantization;
             return this;
         }
 
@@ -1414,6 +1447,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             ensureTrue(batchSize > 0, "batchSize must be positive");
             hybrid.validate();
             ensureTrue(efSearch == null || efSearch > 0, "efSearch must be positive");
+            ensureNotNull(quantization, "quantization");
+            ArcadeDBVectorSimilarity.of(getOrDefault(similarityFunction, DEFAULT_SIMILARITY));
             ensureNotBlank(databaseName, "databaseName");
             ensureNotBlank(username, "username");
             ensureNotNull(password, "password");
@@ -1438,7 +1473,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     batchSize,
                     rawFullTextQuery,
                     hybrid.copy(),
-                    efSearch);
+                    efSearch,
+                    quantization);
         }
     }
 
@@ -1467,6 +1503,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private int batchSize = DEFAULT_EMBEDDED_BATCH_SIZE;
         private final ArcadeDBHybridSettings hybrid = new ArcadeDBHybridSettings();
         private Integer efSearch;
+        private String similarityFunction = DEFAULT_SIMILARITY;
+        private ArcadeDBVectorQuantization quantization = ArcadeDBVectorQuantization.NONE;
         int dimension = 384;
         int maxConnections = DEFAULT_MAX_CONNECTIONS;
         int beamWidth = DEFAULT_BEAM_WIDTH;
@@ -1522,7 +1560,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
-         * @param beamWidth Search beam width. Higher values improve recall. Default: 100.
+         * @param beamWidth Beam width used while building the vector index graph (build time only; for the search
+         *     beam see {@link #efSearch(Integer)}). Default: 100.
          */
         public EmbeddedBuilder beamWidth(int beamWidth) {
             this.beamWidth = beamWidth;
@@ -1548,6 +1587,25 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
          */
         public EmbeddedBuilder efSearch(Integer efSearch) {
             this.efSearch = efSearch;
+            return this;
+        }
+
+        /**
+         * @param quantization Quantization of the vectors in the index; the stored embeddings stay full precision.
+         *     Default: {@code NONE}. Applies when the index is created.
+         */
+        public EmbeddedBuilder quantization(ArcadeDBVectorQuantization quantization) {
+            this.quantization = quantization;
+            return this;
+        }
+
+        /**
+         * @param similarityFunction The similarity function of the vector index: "COSINE", "EUCLIDEAN" or
+         *     "DOT_PRODUCT" (unit-length vectors only). Default: "COSINE". Scores: (1 + cosine) / 2,
+         *     1 / (1 + distance), (1 + dot) / 2. Applies when the index is created.
+         */
+        public EmbeddedBuilder similarityFunction(String similarityFunction) {
+            this.similarityFunction = similarityFunction;
             return this;
         }
 
@@ -1620,6 +1678,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             ensureTrue(batchSize > 0, "batchSize must be positive");
             hybrid.validate();
             ensureTrue(efSearch == null || efSearch > 0, "efSearch must be positive");
+            ensureNotNull(quantization, "quantization");
+            ArcadeDBVectorSimilarity.of(getOrDefault(similarityFunction, DEFAULT_SIMILARITY));
             return new ArcadeDBEmbeddingStore(this);
         }
     }
