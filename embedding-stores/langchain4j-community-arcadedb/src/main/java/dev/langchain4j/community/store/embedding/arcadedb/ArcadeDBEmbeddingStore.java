@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -143,6 +144,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     // Similarity function and quantization of the vector index (as configured; an existing index keeps its own).
     private final ArcadeDBVectorSimilarity similarity;
     private final ArcadeDBVectorQuantization quantization;
+    // How searches with a metadata filter are executed.
+    private final ArcadeDBFilterStrategy filterStrategy;
 
     // Tracks the number of non-deleted vertices to detect HNSW connectivity gaps.
     // HNSW may not traverse all nodes when vectors are identical; if HNSW returns fewer
@@ -164,7 +167,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             boolean rawFullTextQuery,
             ArcadeDBHybridSettings hybrid,
             Integer efSearch,
-            ArcadeDBVectorQuantization quantization) {
+            ArcadeDBVectorQuantization quantization,
+            ArcadeDBFilterStrategy filterStrategy) {
         this.embeddedMode = false;
         this.remoteBatchSize = batchSize;
         this.embeddedBatchSize = 0;
@@ -173,11 +177,12 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.efSearch = efSearch;
         this.similarity = ArcadeDBVectorSimilarity.of(similarityFunction);
         this.quantization = quantization;
+        this.filterStrategy = filterStrategy;
         this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
         this.embeddedDatabase = null;
         this.typeName = ensureNotBlank(typeName, "typeName");
         this.metadataPrefix = metadataPrefix;
-        this.filterMapper = new ArcadeDBMetadataFilterMapper(metadataPrefix);
+        this.filterMapper = new ArcadeDBMetadataFilterMapper(metadataPrefix, true);
         this.embeddedDimension = 0;
         this.embeddedMaxConnections = 0;
         this.embeddedBeamWidth = 0;
@@ -196,8 +201,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.efSearch = builder.efSearch;
         this.similarity = ArcadeDBVectorSimilarity.of(getOrDefault(builder.similarityFunction, DEFAULT_SIMILARITY));
         this.quantization = builder.quantization;
+        this.filterStrategy = builder.filterStrategy;
         this.remoteDatabase = null;
-        this.filterMapper = null;
+        this.filterMapper = new ArcadeDBMetadataFilterMapper(builder.metadataPrefix, false);
         this.typeName = builder.typeName;
         this.metadataPrefix = builder.metadataPrefix;
         this.embeddedDimension = builder.dimension;
@@ -432,13 +438,41 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         boolean isHybrid = request.query() != null && !request.query().trim().isEmpty();
+        // Remote mode filters in SQL whenever it can (ADAPTIVE and PRE_FILTER): one query on the server, measured
+        // faster than fetching 5x the results and filtering them here, at every selectivity.
+        boolean filterInSql = filter != null
+                && filterStrategy != ArcadeDBFilterStrategy.POST_FILTER
+                && ArcadeDBMetadataFilterMapper.supports(filter);
 
         String query;
         Map<String, Object> parameters = Map.of();
         if (isHybrid) {
+            Map<String, Object> named = new LinkedHashMap<>();
+            named.put("query", fullTextQuery(request.query()));
+            String where = filterInSql ? filterMapper.mapNamed(filter, named) : null;
             query = withoutNestedRecord(buildHybridSearchQuery(
-                    queryEmbedding, EMBEDDING_PROPERTY, TEXT_PROPERTY, maxResults, filter != null, false));
-            parameters = Map.of("query", fullTextQuery(request.query()));
+                    queryEmbedding,
+                    EMBEDDING_PROPERTY,
+                    TEXT_PROPERTY,
+                    maxResults,
+                    filter != null && !filterInSql,
+                    false,
+                    where));
+            parameters = named;
+        } else if (filterInSql) {
+            // The filter selects the allowed records on the server; the search returns the nearest of them.
+            Map<String, Object> named = new LinkedHashMap<>();
+            String where = filterMapper.mapNamed(filter, named);
+            query = withoutNestedRecord(String.format(
+                    "SELECT expand(`vector.neighbors`('%s', %s, %d, { efSearch: %d, filter: (SELECT @rid FROM `%s`"
+                            + " WHERE %s).@rid }))",
+                    typeName + "[" + EMBEDDING_PROPERTY + "]",
+                    embeddingToSql(queryEmbedding),
+                    maxResults,
+                    remoteEfSearch(maxResults, maxResults),
+                    typeName,
+                    where));
+            parameters = named;
         } else {
             int fetchCount = filter != null ? maxResults * 5 : maxResults;
             String vectorSql = embeddingToSql(queryEmbedding);
@@ -474,7 +508,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             if (score < minScore) continue;
             String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
             Map<String, Object> metadataMap = extractMetadataFromResult(doc);
-            if (filter != null && !matchesFilter(filter, metadataMap)) continue;
+            if (filter != null && !filterInSql && !matchesFilter(filter, metadataMap)) continue;
             matches.add(new EmbeddingMatch<>(score, docId, embedding, buildTextSegment(text, metadataMap)));
         }
 
@@ -639,11 +673,18 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         Filter filter = request.filter();
 
         boolean isHybrid = request.query() != null && !request.query().trim().isEmpty();
+        boolean sqlFilterPossible = filter != null
+                && filterStrategy != ArcadeDBFilterStrategy.POST_FILTER
+                && ArcadeDBMetadataFilterMapper.supports(filter);
+        boolean preFilter = sqlFilterPossible && filterStrategy == ArcadeDBFilterStrategy.PRE_FILTER;
         if (isHybrid) {
-            return searchEmbeddedHybrid(request);
+            return searchEmbeddedHybrid(request, preFilter);
         }
 
         int fetchSize = Math.max(maxResults * 4, maxResults + 100);
+        if (preFilter) {
+            return searchEmbeddedPreFiltered(request, fetchSize);
+        }
         List<Pair<RID, Float>> neighbors = efSearch != null
                 ? vectorIndex.findNeighborsFromVector(queryVector, fetchSize, Math.max(efSearch, fetchSize))
                 : vectorIndex.findNeighborsFromVector(queryVector, fetchSize);
@@ -652,6 +693,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         // the score/filter/deleted checks. This is needed to detect unreachable vertices later.
         Set<RID> hnswRids = new HashSet<>();
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
+        boolean rejectedByFilter = false;
         for (Pair<RID, Float> neighbor : neighbors) {
             RID rid = neighbor.getFirst();
             hnswRids.add(rid);
@@ -672,12 +714,21 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 }
                 if (filter != null) {
                     Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
-                    if (!matchesFilter(filter, metadata)) continue;
+                    if (!matchesFilter(filter, metadata)) {
+                        rejectedByFilter = true;
+                        continue;
+                    }
                 }
                 matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
             } catch (Exception e) {
                 log.warn("Failed to load vertex {}: {}", rid, e.getMessage());
             }
+        }
+
+        // ADAPTIVE: the filter rejected candidates and too few were left, while the index has more of them: search
+        // again among the records the filter allows.
+        if (sqlFilterPossible && rejectedByFilter && matches.size() < maxResults && neighbors.size() >= fetchSize) {
+            return searchEmbeddedPreFiltered(request, fetchSize);
         }
 
         // HNSW may not traverse all nodes when vectors are identical or nearly identical —
@@ -694,17 +745,77 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         return new EmbeddingSearchResult<>(matches);
     }
 
-    private EmbeddingSearchResult<TextSegment> searchEmbeddedHybrid(EmbeddingSearchRequest request) {
+    /**
+     * Dense search among the records the filter allows: the filter selects them in SQL, and the vector index searches
+     * only those (exhaustively when there are few). Embedded mode's {@link ArcadeDBFilterStrategy#PRE_FILTER} path, and
+     * the fallback of {@link ArcadeDBFilterStrategy#ADAPTIVE}.
+     */
+    private EmbeddingSearchResult<TextSegment> searchEmbeddedPreFiltered(
+            EmbeddingSearchRequest request, int fetchSize) {
+        Embedding queryEmbedding = request.queryEmbedding();
+        Map<String, Object> named = new LinkedHashMap<>();
+        String where = filterMapper.mapNamed(request.filter(), named);
+        Set<RID> allowed = new HashSet<>();
+        String sql = String.format(
+                "SELECT @rid AS rid FROM `%s` WHERE (`%s` IS NULL OR `%s` != true) AND (%s)",
+                typeName, PROPERTY_DELETED, PROPERTY_DELETED, where);
+        try (ResultSet rs = embeddedDatabase.query("sql", sql, named)) {
+            while (rs.hasNext()) {
+                Object rid = rs.next().getProperty("rid");
+                if (rid instanceof com.arcadedb.database.Identifiable id) {
+                    allowed.add(id.getIdentity());
+                }
+            }
+        }
+        if (allowed.isEmpty()) {
+            return new EmbeddingSearchResult<>(List.of());
+        }
+        float[] queryVector = embeddingToFloatArray(queryEmbedding);
+        List<Pair<RID, Float>> neighbors = efSearch != null
+                ? vectorIndex.findNeighborsFromVector(queryVector, fetchSize, Math.max(efSearch, fetchSize), allowed)
+                : vectorIndex.findNeighborsFromVector(queryVector, fetchSize, allowed);
+
+        List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
+        for (Pair<RID, Float> neighbor : neighbors) {
+            if (matches.size() >= request.maxResults()) break;
+            try {
+                Vertex vertex = neighbor.getFirst().getRecord(true).asVertex();
+                Embedding embedding = resultToEmbedding(vertex.get(EMBEDDED_EMBEDDING));
+                if (embedding == null) continue;
+                double score = similarity.relevance(queryEmbedding, embedding);
+                if (score >= request.minScore()) {
+                    matches.add(toEmbeddingMatch(vertex, score, metadataPrefix));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to load vertex {}: {}", neighbor.getFirst(), e.getMessage());
+            }
+        }
+        matches.sort((a, b) -> Double.compare(b.score(), a.score()));
+        return new EmbeddingSearchResult<>(matches);
+    }
+
+    private EmbeddingSearchResult<TextSegment> searchEmbeddedHybrid(
+            EmbeddingSearchRequest request, boolean filterInSql) {
         Embedding queryEmbedding = request.queryEmbedding();
         int maxResults = request.maxResults();
         double minScore = request.minScore();
         Filter filter = request.filter();
 
+        Map<String, Object> named = new LinkedHashMap<>();
+        named.put("query", fullTextQuery(request.query()));
+        String where = filterInSql ? filterMapper.mapNamed(filter, named) : null;
         String query = buildHybridSearchQuery(
-                queryEmbedding, EMBEDDED_EMBEDDING, EMBEDDED_TEXT, maxResults, filter != null, true);
+                queryEmbedding,
+                EMBEDDED_EMBEDDING,
+                EMBEDDED_TEXT,
+                maxResults,
+                filter != null && !filterInSql,
+                true,
+                where);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        try (ResultSet rs = embeddedDatabase.query("sql", query, Map.of("query", fullTextQuery(request.query())))) {
+        boolean rejectedByFilter = false;
+        try (ResultSet rs = embeddedDatabase.query("sql", query, named)) {
             while (rs.hasNext() && matches.size() < maxResults) {
                 Result result = rs.next();
                 Vertex vertex = null;
@@ -733,9 +844,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 if (Boolean.TRUE.equals(vertex.get(PROPERTY_DELETED))) {
                     continue;
                 }
-                if (filter != null) {
+                if (filter != null && !filterInSql) {
                     Map<String, Object> metadata = extractMetadata(vertex, metadataPrefix);
                     if (!matchesFilter(filter, metadata)) {
+                        rejectedByFilter = true;
                         continue;
                     }
                 }
@@ -753,6 +865,14 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             return searchEmbedded(withoutQuery(request));
         }
 
+        // ADAPTIVE: too few fused candidates passed the filter; fuse again with the filter applied to both sources.
+        if (!filterInSql
+                && rejectedByFilter
+                && matches.size() < maxResults
+                && filterStrategy == ArcadeDBFilterStrategy.ADAPTIVE
+                && ArcadeDBMetadataFilterMapper.supports(filter)) {
+            return searchEmbeddedHybrid(request, true);
+        }
         return new EmbeddingSearchResult<>(matches);
     }
 
@@ -943,6 +1063,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     // ===== Shared helpers =====
 
+    // The filter option of vector.neighbors takes RIDs: the allow-list subquery is projected to them with .@rid
+    // (26.10.2 also accepts the subquery's rows, 26.9.1 rejects them).
+
     /**
      * Remote dense search returns only the rows it needs and widens the search beam instead: the default beam for
      * {@code k} results is about {@code 2k}, so this matches embedded search, which asks for
@@ -978,7 +1101,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             String textProperty,
             int maxResults,
             boolean filtered,
-            boolean excludeSoftDeleted) {
+            boolean excludeSoftDeleted,
+            String filterWhere) {
+        // With filterWhere (the metadata filter in SQL) both sources only return allowed records, so no extra
+        // candidates are needed for a filter applied afterwards (filtered).
+        String fullTextFilter = filterWhere != null ? " AND (" + filterWhere + ")" : "";
         int denseCandidates = filtered ? maxResults * 10 : Math.max(maxResults * 4, maxResults + 100);
         int fullTextCandidates = filtered ? maxResults * 10 : maxResults * 2;
         String denseIndexName = typeName + "[" + embeddingProperty + "]";
@@ -987,25 +1114,36 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         if (excludeSoftDeleted) {
             fullTextSource = String.format(
                     "(SELECT @rid AS rid, score FROM (SELECT @rid, `%s`, $score AS score FROM `%s`"
-                            + " WHERE SEARCH_INDEX('%s', :query) = true ORDER BY $score DESC LIMIT %d)"
+                            + " WHERE SEARCH_INDEX('%s', :query) = true%s ORDER BY $score DESC LIMIT %d)"
                             + " WHERE (`%s` IS NULL OR `%s` != true))",
                     PROPERTY_DELETED,
                     typeName,
                     fullTextIndexName,
+                    fullTextFilter,
                     fullTextCandidates,
                     PROPERTY_DELETED,
                     PROPERTY_DELETED);
         } else {
             fullTextSource = String.format(
-                    "(SELECT @rid AS rid, $score AS score FROM `%s` WHERE SEARCH_INDEX('%s', :query) = true"
+                    "(SELECT @rid AS rid, $score AS score FROM `%s` WHERE SEARCH_INDEX('%s', :query) = true%s"
                             + " ORDER BY $score DESC LIMIT %d)",
-                    typeName, fullTextIndexName, fullTextCandidates);
+                    typeName, fullTextIndexName, fullTextFilter, fullTextCandidates);
         }
         // Only the fused rows that can be returned leave vector.fuse(): the store keeps maxResults of them (more when
         // a metadata filter is applied afterwards).
         int fusedResults = filtered ? maxResults * 10 : maxResults;
-        String denseOptions =
-                efSearch != null ? String.format(", { efSearch: %d }", Math.max(efSearch, denseCandidates)) : "";
+        List<String> options = new ArrayList<>();
+        if (efSearch != null) {
+            options.add("efSearch: " + Math.max(efSearch, denseCandidates));
+        }
+        if (filterWhere != null) {
+            String allowed = excludeSoftDeleted
+                    ? String.format(
+                            "(`%s` IS NULL OR `%s` != true) AND (%s)", PROPERTY_DELETED, PROPERTY_DELETED, filterWhere)
+                    : filterWhere;
+            options.add(String.format("filter: (SELECT @rid FROM `%s` WHERE %s).@rid", typeName, allowed));
+        }
+        String denseOptions = options.isEmpty() ? "" : ", { " + String.join(", ", options) + " }";
         return String.format(
                 "SELECT expand(`vector.fuse`(`vector.neighbors`('%s', %s, %d%s), %s, %s))",
                 denseIndexName,
@@ -1246,6 +1384,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private final ArcadeDBHybridSettings hybrid = new ArcadeDBHybridSettings();
         private Integer efSearch;
         private ArcadeDBVectorQuantization quantization = ArcadeDBVectorQuantization.NONE;
+        private ArcadeDBFilterStrategy filterStrategy = ArcadeDBFilterStrategy.ADAPTIVE;
 
         /**
          * @param host ArcadeDB server hostname. Required.
@@ -1387,6 +1526,15 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
+         * @param filterStrategy How searches with a metadata filter are executed. Default: {@code ADAPTIVE} (see
+         *     {@link ArcadeDBFilterStrategy}).
+         */
+        public Builder filterStrategy(ArcadeDBFilterStrategy filterStrategy) {
+            this.filterStrategy = filterStrategy;
+            return this;
+        }
+
+        /**
          * @param fusion How hybrid search combines the dense and full-text rankings. Default: {@code RRF}.
          */
         public Builder hybridFusion(ArcadeDBHybridFusion fusion) {
@@ -1448,6 +1596,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             hybrid.validate();
             ensureTrue(efSearch == null || efSearch > 0, "efSearch must be positive");
             ensureNotNull(quantization, "quantization");
+            ensureNotNull(filterStrategy, "filterStrategy");
             ArcadeDBVectorSimilarity.of(getOrDefault(similarityFunction, DEFAULT_SIMILARITY));
             ensureNotBlank(databaseName, "databaseName");
             ensureNotBlank(username, "username");
@@ -1474,7 +1623,8 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     rawFullTextQuery,
                     hybrid.copy(),
                     efSearch,
-                    quantization);
+                    quantization,
+                    filterStrategy);
         }
     }
 
@@ -1505,6 +1655,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         private Integer efSearch;
         private String similarityFunction = DEFAULT_SIMILARITY;
         private ArcadeDBVectorQuantization quantization = ArcadeDBVectorQuantization.NONE;
+        private ArcadeDBFilterStrategy filterStrategy = ArcadeDBFilterStrategy.ADAPTIVE;
         int dimension = 384;
         int maxConnections = DEFAULT_MAX_CONNECTIONS;
         int beamWidth = DEFAULT_BEAM_WIDTH;
@@ -1600,6 +1751,15 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         }
 
         /**
+         * @param filterStrategy How searches with a metadata filter are executed. Default: {@code ADAPTIVE} (see
+         *     {@link ArcadeDBFilterStrategy}).
+         */
+        public EmbeddedBuilder filterStrategy(ArcadeDBFilterStrategy filterStrategy) {
+            this.filterStrategy = filterStrategy;
+            return this;
+        }
+
+        /**
          * @param similarityFunction The similarity function of the vector index: "COSINE", "EUCLIDEAN" or
          *     "DOT_PRODUCT" (unit-length vectors only). Default: "COSINE". Scores: (1 + cosine) / 2,
          *     1 / (1 + distance), (1 + dot) / 2. Applies when the index is created.
@@ -1679,6 +1839,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             hybrid.validate();
             ensureTrue(efSearch == null || efSearch > 0, "efSearch must be positive");
             ensureNotNull(quantization, "quantization");
+            ensureNotNull(filterStrategy, "filterStrategy");
             ArcadeDBVectorSimilarity.of(getOrDefault(similarityFunction, DEFAULT_SIMILARITY));
             return new ArcadeDBEmbeddingStore(this);
         }

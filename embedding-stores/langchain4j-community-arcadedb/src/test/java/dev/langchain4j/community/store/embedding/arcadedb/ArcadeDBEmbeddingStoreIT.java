@@ -407,6 +407,39 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_remove_by_a_float_metadata_filter() {
+        clearStore();
+        Embedding embedding = embeddingModel.embed("float metadata").content();
+        embeddingStore.add(embedding, TextSegment.from("one point one", new Metadata(Map.of("key", 1.1f))));
+        embeddingStore.add(embedding, TextSegment.from("two point two", new Metadata(Map.of("key", 2.2f))));
+
+        embeddingStore.removeAll(MetadataFilterBuilder.metadataKey("key").isEqualTo(1.1f));
+
+        assertThat(embeddingStore
+                        .search(EmbeddingSearchRequest.builder()
+                                .queryEmbedding(embedding)
+                                .maxResults(10)
+                                .build())
+                        .matches())
+                .extracting(m -> m.embedded().text())
+                .containsExactly("two point two");
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_return_all_matches_of_a_selective_filter_unless_post_filtering() {
+        ArcadeDBSelectiveFilterTestHelper.assertStrategies(strategy -> ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("Selective" + strategy)
+                .dimension(ArcadeDBSelectiveFilterTestHelper.DIMENSION)
+                .filterStrategy(strategy)
+                .build());
+    }
+
+    @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         clearStore();
         ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.builder()

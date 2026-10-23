@@ -314,6 +314,24 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_return_all_matches_of_a_selective_filter_unless_post_filtering() {
+        List<ArcadeDBEmbeddingStore> stores = new java.util.ArrayList<>();
+        try {
+            ArcadeDBSelectiveFilterTestHelper.assertStrategies(strategy -> {
+                ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                        .databasePath(tempDir.resolve("selective-" + strategy).toString())
+                        .dimension(ArcadeDBSelectiveFilterTestHelper.DIMENSION)
+                        .filterStrategy(strategy)
+                        .build();
+                stores.add(store);
+                return store;
+            });
+        } finally {
+            stores.forEach(ArcadeDBEmbeddingStore::close);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         try (ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.embeddedBuilder()
                 .databasePath(tempDir.resolve("batched-db").toString())
