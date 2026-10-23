@@ -314,6 +314,40 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_not_return_removed_records_when_pre_filtering() {
+        try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(tempDir.resolve("pre-filter-removed").toString())
+                .dimension(DIMENSION)
+                .filterStrategy(ArcadeDBFilterStrategy.PRE_FILTER)
+                .build()) {
+            Embedding embedding = EMBEDDING_MODEL.embed("graph database").content();
+            List<String> ids = store.addAll(
+                    List.of(embedding, embedding, embedding),
+                    List.of(
+                            TextSegment.from("graph database one", new Metadata(Map.of("bucket", 0))),
+                            TextSegment.from("graph database two", new Metadata(Map.of("bucket", 0))),
+                            TextSegment.from("graph database three", new Metadata(Map.of("bucket", 1)))));
+            store.remove(ids.get(0));
+
+            for (String text : new String[] {null, "database"}) {
+                assertThat(store.search(EmbeddingSearchRequest.builder()
+                                        .queryEmbedding(embedding)
+                                        .query(text)
+                                        .filter(
+                                                dev.langchain4j.store.embedding.filter.MetadataFilterBuilder
+                                                        .metadataKey("bucket")
+                                                        .isLessThan(1))
+                                        .maxResults(10)
+                                        .build())
+                                .matches())
+                        .as(text == null ? "dense" : "hybrid")
+                        .extracting(EmbeddingMatch::embeddingId)
+                        .containsExactly(ids.get(1));
+            }
+        }
+    }
+
+    @org.junit.jupiter.api.Test
     void should_return_all_matches_of_a_selective_filter_unless_post_filtering() {
         List<ArcadeDBEmbeddingStore> stores = new java.util.ArrayList<>();
         try {

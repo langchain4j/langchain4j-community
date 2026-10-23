@@ -756,9 +756,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         Map<String, Object> named = new LinkedHashMap<>();
         String where = filterMapper.mapNamed(request.filter(), named);
         Set<RID> allowed = new HashSet<>();
-        String sql = String.format(
-                "SELECT @rid AS rid FROM `%s` WHERE (`%s` IS NULL OR `%s` != true) AND (%s)",
-                typeName, PROPERTY_DELETED, PROPERTY_DELETED, where);
+        // No deleted check here: soft-deleted records are removed from the vector index (and skipped below), and the
+        // check made this scan about 6x slower.
+        String sql = String.format("SELECT @rid AS rid FROM `%s` WHERE %s", typeName, where);
         try (ResultSet rs = embeddedDatabase.query("sql", sql, named)) {
             while (rs.hasNext()) {
                 Object rid = rs.next().getProperty("rid");
@@ -780,6 +780,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             if (matches.size() >= request.maxResults()) break;
             try {
                 Vertex vertex = neighbor.getFirst().getRecord(true).asVertex();
+                if (Boolean.TRUE.equals(vertex.get(PROPERTY_DELETED))) continue;
                 Embedding embedding = resultToEmbedding(vertex.get(EMBEDDED_EMBEDDING));
                 if (embedding == null) continue;
                 double score = similarity.relevance(queryEmbedding, embedding);
@@ -1103,31 +1104,37 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             boolean filtered,
             boolean excludeSoftDeleted,
             String filterWhere) {
-        // With filterWhere (the metadata filter in SQL) both sources only return allowed records, so no extra
-        // candidates are needed for a filter applied afterwards (filtered).
-        String fullTextFilter = filterWhere != null ? " AND (" + filterWhere + ")" : "";
+        // With filterWhere (the metadata filter in SQL) the dense source only returns allowed records, so no extra
+        // candidates are needed for a filter applied afterwards (filtered). The full-text source is filtered after
+        // bounding it to its best matches: filtering every match first loads all of them (about 40 ms more per query on
+        // 100k NQ passages); a selective filter then leaves few lexical candidates, and the dense source still
+        // provides maxResults.
         int denseCandidates = filtered ? maxResults * 10 : Math.max(maxResults * 4, maxResults + 100);
         int fullTextCandidates = filtered ? maxResults * 10 : maxResults * 2;
         String denseIndexName = typeName + "[" + embeddingProperty + "]";
         String fullTextIndexName = typeName + "[" + textProperty + "]";
+        String notDeleted = String.format("(`%s` IS NULL OR `%s` != true)", PROPERTY_DELETED, PROPERTY_DELETED);
         String fullTextSource;
-        if (excludeSoftDeleted) {
+        if (filterWhere != null) {
+            // The bounded rows carry all properties (*), so the filter can test any metadata key.
             fullTextSource = String.format(
-                    "(SELECT @rid AS rid, score FROM (SELECT @rid, `%s`, $score AS score FROM `%s`"
-                            + " WHERE SEARCH_INDEX('%s', :query) = true%s ORDER BY $score DESC LIMIT %d)"
-                            + " WHERE (`%s` IS NULL OR `%s` != true))",
-                    PROPERTY_DELETED,
+                    "(SELECT rid, score FROM (SELECT *, @rid AS rid, $score AS score FROM `%s`"
+                            + " WHERE SEARCH_INDEX('%s', :query) = true ORDER BY $score DESC LIMIT %d) WHERE %s(%s))",
                     typeName,
                     fullTextIndexName,
-                    fullTextFilter,
                     fullTextCandidates,
-                    PROPERTY_DELETED,
-                    PROPERTY_DELETED);
+                    excludeSoftDeleted ? notDeleted + " AND " : "",
+                    filterWhere);
+        } else if (excludeSoftDeleted) {
+            fullTextSource = String.format(
+                    "(SELECT @rid AS rid, score FROM (SELECT @rid, `%s`, $score AS score FROM `%s`"
+                            + " WHERE SEARCH_INDEX('%s', :query) = true ORDER BY $score DESC LIMIT %d) WHERE %s)",
+                    PROPERTY_DELETED, typeName, fullTextIndexName, fullTextCandidates, notDeleted);
         } else {
             fullTextSource = String.format(
-                    "(SELECT @rid AS rid, $score AS score FROM `%s` WHERE SEARCH_INDEX('%s', :query) = true%s"
+                    "(SELECT @rid AS rid, $score AS score FROM `%s` WHERE SEARCH_INDEX('%s', :query) = true"
                             + " ORDER BY $score DESC LIMIT %d)",
-                    typeName, fullTextIndexName, fullTextFilter, fullTextCandidates);
+                    typeName, fullTextIndexName, fullTextCandidates);
         }
         // Only the fused rows that can be returned leave vector.fuse(): the store keeps maxResults of them (more when
         // a metadata filter is applied afterwards).
@@ -1137,11 +1144,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             options.add("efSearch: " + Math.max(efSearch, denseCandidates));
         }
         if (filterWhere != null) {
-            String allowed = excludeSoftDeleted
-                    ? String.format(
-                            "(`%s` IS NULL OR `%s` != true) AND (%s)", PROPERTY_DELETED, PROPERTY_DELETED, filterWhere)
-                    : filterWhere;
-            options.add(String.format("filter: (SELECT @rid FROM `%s` WHERE %s).@rid", typeName, allowed));
+            // Soft-deleted records are removed from the vector index, so the allow-list needs no deleted check (which
+            // made the allow-list scan about 6x slower).
+            options.add(String.format("filter: (SELECT @rid FROM `%s` WHERE %s).@rid", typeName, filterWhere));
         }
         String denseOptions = options.isEmpty() ? "" : ", { " + String.join(", ", options) + " }";
         return String.format(
