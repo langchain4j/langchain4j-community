@@ -314,6 +314,27 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_return_every_record_of_identical_vectors() {
+        // Identical vectors can leave parts of the graph unreachable; the search must still return all of them.
+        try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(tempDir.resolve("identical-vectors").toString())
+                .dimension(DIMENSION)
+                .build()) {
+            Embedding embedding = EMBEDDING_MODEL.embed("the same text").content();
+            List<Embedding> embeddings = java.util.Collections.nCopies(60, embedding);
+            List<String> ids = store.addAll(embeddings);
+
+            assertThat(store.search(EmbeddingSearchRequest.builder()
+                                    .queryEmbedding(embedding)
+                                    .maxResults(60)
+                                    .build())
+                            .matches())
+                    .extracting(EmbeddingMatch::embeddingId)
+                    .containsExactlyInAnyOrderElementsOf(ids);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
     void should_not_return_removed_records_when_pre_filtering() {
         try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
                 .databasePath(tempDir.resolve("pre-filter-removed").toString())
