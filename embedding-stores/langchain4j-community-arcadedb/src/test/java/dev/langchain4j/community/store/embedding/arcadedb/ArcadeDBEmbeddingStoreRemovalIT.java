@@ -9,11 +9,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 public class ArcadeDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT {
-
-    private static final int ARCADE_HTTP_PORT = 2480;
 
     private static GenericContainer<?> arcadedb;
     private static EmbeddingStore<TextSegment> embeddingStore;
@@ -24,18 +21,13 @@ public class ArcadeDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT
         int port;
 
         if (DockerClientFactory.instance().isDockerAvailable()) {
-            arcadedb = new GenericContainer<>("arcadedata/arcadedb:26.7.2")
-                    .withExposedPorts(ARCADE_HTTP_PORT)
-                    .withEnv("JAVA_OPTS", "-Darcadedb.server.rootPassword=playwithdata")
-                    .waitingFor(Wait.forHttp("/api/v1/ready")
-                            .forPort(ARCADE_HTTP_PORT)
-                            .forStatusCode(204));
+            arcadedb = ArcadeDBTestServer.newContainer();
             arcadedb.start();
             host = arcadedb.getHost();
-            port = arcadedb.getMappedPort(ARCADE_HTTP_PORT);
+            port = arcadedb.getMappedPort(ArcadeDBTestServer.HTTP_PORT);
         } else {
             host = "localhost";
-            port = ARCADE_HTTP_PORT;
+            port = ArcadeDBTestServer.HTTP_PORT;
         }
 
         embeddingStore = ArcadeDBEmbeddingStore.builder()
@@ -43,7 +35,7 @@ public class ArcadeDBEmbeddingStoreRemovalIT extends EmbeddingStoreWithRemovalIT
                 .port(port)
                 .databaseName("test_removal")
                 .username("root")
-                .password("playwithdata")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
                 .typeName("EmbeddingDocument")
                 .dimension(384)
                 .createDatabase(true)
