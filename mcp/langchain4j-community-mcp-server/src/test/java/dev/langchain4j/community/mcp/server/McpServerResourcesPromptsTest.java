@@ -57,7 +57,8 @@ class McpServerResourcesPromptsTest {
         assertThat(resources.get(0).get("uri").asText()).isEqualTo("config://app/settings");
         assertThat(resources.get(0).get("name").asText()).isEqualTo("Application Settings");
         assertThat(resources.get(0).get("mimeType").asText()).isEqualTo("application/json");
-        assertThat(list.get("result").get("nextCursor").isNull()).isTrue();
+        // nextCursor is optional: with no pagination the field must be absent, not null.
+        assertThat(list.get("result").has("nextCursor")).isFalse();
 
         JsonNode read = toTree(server.handle(request(2, "resources/read", Map.of("uri", "config://app/settings"))));
 
@@ -77,8 +78,8 @@ class McpServerResourcesPromptsTest {
 
         JsonNode tree = toTree(server.handle(request(1, "resources/read", Map.of("uri", "nope://missing"))));
 
-        assertThat(tree.get("error").get("code").asInt()).isEqualTo(-32602);
-        assertThat(tree.get("error").get("message").asText()).contains("Unknown resource");
+        assertThat(tree.get("error").get("code").asInt()).isEqualTo(-32002);
+        assertThat(tree.get("error").get("message").asText()).contains("Resource not found");
     }
 
     @Test
@@ -90,13 +91,13 @@ class McpServerResourcesPromptsTest {
         JsonNode prompts = tree.get("result").get("prompts");
 
         assertThat(prompts).hasSize(2);
-        assertThat(prompts.get(0).get("name").asText()).isEqualTo("greet");
-        assertThat(prompts.get(0).get("arguments")).hasSize(2);
-        assertThat(prompts.get(0).get("arguments").get(0).get("name").asText()).isEqualTo("name");
-        assertThat(prompts.get(0).get("arguments").get(0).get("required").asBoolean())
-                .isTrue();
-        assertThat(prompts.get(1).get("name").asText()).isEqualTo("farewell");
-        assertThat(tree.get("result").get("nextCursor").isNull()).isTrue();
+        JsonNode greet = findByName(prompts, "greet");
+        assertThat(greet).isNotNull();
+        assertThat(greet.get("arguments")).hasSize(2);
+        assertThat(greet.get("arguments").get(0).get("name").asText()).isEqualTo("name");
+        assertThat(greet.get("arguments").get(0).get("required").asBoolean()).isTrue();
+        assertThat(findByName(prompts, "farewell")).isNotNull();
+        assertThat(tree.get("result").has("nextCursor")).isFalse();
     }
 
     @Test
@@ -169,6 +170,102 @@ class McpServerResourcesPromptsTest {
                 .hasMessageContaining("Duplicated prompt name");
     }
 
+    @Test
+    void should_sort_resources_by_uri_and_prompts_by_name() {
+        // Registered in reverse declaration order to prove the advertised order is sorted, not
+        // whatever getDeclaredMethods() happens to return.
+        McpServer server = McpServer.builder()
+                .resources(List.of(new DocsResource(), new ConfigResource()))
+                .prompts(List.of(new GreetingPrompts()))
+                .build();
+
+        JsonNode resources = toTree(server.handle(request(1, "resources/list", null)))
+                .get("result")
+                .get("resources");
+        assertThat(resources.get(0).get("uri").asText()).isEqualTo("config://app/settings");
+        assertThat(resources.get(1).get("uri").asText()).isEqualTo("docs://readme");
+
+        JsonNode prompts = toTree(server.handle(request(2, "prompts/list", null)))
+                .get("result")
+                .get("prompts");
+        assertThat(prompts.get(0).get("name").asText()).isEqualTo("farewell");
+        assertThat(prompts.get(1).get("name").asText()).isEqualTo("greet");
+    }
+
+    @Test
+    void should_return_internal_error_and_not_leak_message_when_resource_throws() {
+        McpServer server =
+                McpServer.builder().resources(List.of(new ThrowingResource())).build();
+
+        JsonNode tree = toTree(server.handle(request(1, "resources/read", Map.of("uri", "boom://resource"))));
+
+        assertThat(tree.get("error").get("code").asInt()).isEqualTo(-32603);
+        assertThat(tree.get("error").get("message").asText()).doesNotContain("secret-resource-detail");
+    }
+
+    @Test
+    void should_return_internal_error_and_not_leak_message_when_prompt_throws() {
+        McpServer server =
+                McpServer.builder().prompts(List.of(new ThrowingPrompt())).build();
+
+        JsonNode tree = toTree(server.handle(request(1, "prompts/get", Map.of("name", "boom"))));
+
+        assertThat(tree.get("error").get("code").asInt()).isEqualTo(-32603);
+        assertThat(tree.get("error").get("message").asText()).doesNotContain("secret-prompt-detail");
+    }
+
+    @Test
+    void should_reject_duplicated_prompt_argument_name() {
+        assertThatThrownBy(() -> McpServer.builder()
+                        .prompts(List.of(new DuplicateArgumentPrompt()))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Duplicated prompt argument name");
+    }
+
+    @Test
+    void should_reject_non_public_resource_method() {
+        assertThatThrownBy(() -> McpServer.builder()
+                        .resources(List.of(new NonPublicResource()))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be public");
+    }
+
+    @Test
+    void should_reject_non_string_resource_return_type() {
+        assertThatThrownBy(() -> McpServer.builder()
+                        .resources(List.of(new NonStringResource()))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must return String");
+    }
+
+    @Test
+    void should_reject_non_prompt_message_list_return_type() {
+        assertThatThrownBy(() -> McpServer.builder()
+                        .prompts(List.of(new NonPromptMessageListPrompt()))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("List<PromptMessage>");
+    }
+
+    @Test
+    void should_allow_empty_prompt_text() {
+        PromptMessage message = PromptMessage.user("");
+
+        assertThat(message.getContent().get("text")).isEqualTo("");
+    }
+
+    private static JsonNode findByName(JsonNode array, String name) {
+        for (JsonNode node : array) {
+            if (name.equals(node.get("name").asText())) {
+                return node;
+            }
+        }
+        return null;
+    }
+
     private static JsonNode toTree(McpJsonRpcMessage response) {
         return OBJECT_MAPPER.valueToTree(response);
     }
@@ -235,6 +332,54 @@ class McpServerResourcesPromptsTest {
         @Prompt(name = "farewell")
         public List<PromptMessage> farewell(@PromptArg(name = "name", required = true) String name) {
             return List.of(PromptMessage.user("Goodbye, " + name + "!"), PromptMessage.assistant("See you."));
+        }
+    }
+
+    static class ThrowingResource {
+
+        @Resource(uri = "boom://resource", name = "Boom")
+        public String read() {
+            throw new IllegalStateException("secret-resource-detail");
+        }
+    }
+
+    static class ThrowingPrompt {
+
+        @Prompt(name = "boom")
+        public List<PromptMessage> boom() {
+            throw new IllegalStateException("secret-prompt-detail");
+        }
+    }
+
+    static class DuplicateArgumentPrompt {
+
+        @Prompt(name = "dup")
+        public List<PromptMessage> dup(@PromptArg(name = "x") String first, @PromptArg(name = "x") String second) {
+            return List.of(PromptMessage.user(first + second));
+        }
+    }
+
+    static class NonPublicResource {
+
+        @Resource(uri = "private://resource", name = "Private")
+        String read() {
+            return "nope";
+        }
+    }
+
+    static class NonStringResource {
+
+        @Resource(uri = "number://resource", name = "Number")
+        public Integer read() {
+            return 42;
+        }
+    }
+
+    static class NonPromptMessageListPrompt {
+
+        @Prompt(name = "strings")
+        public List<String> strings() {
+            return List.of("a", "b");
         }
     }
 }

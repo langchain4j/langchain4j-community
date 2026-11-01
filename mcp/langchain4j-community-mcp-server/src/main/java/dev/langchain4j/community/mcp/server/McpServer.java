@@ -28,12 +28,20 @@ import dev.langchain4j.service.tool.ToolExecutionResult;
 import dev.langchain4j.service.tool.ToolExecutor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Model Context Protocol (MCP) server that exposes existing {@code @Tool}-annotated methods over
@@ -60,11 +68,15 @@ public class McpServer {
     private static final ObjectMapper OBJECT_MAPPER =
             new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
+    private static final Logger LOG = LoggerFactory.getLogger(McpServer.class);
+
     private static final String DEFAULT_PROTOCOL_VERSION = "2025-06-18";
     private static final String DEFAULT_SERVER_NAME = "LangChain4j";
     private static final int ERROR_CODE_INVALID_REQUEST = -32600;
     private static final int ERROR_CODE_METHOD_NOT_FOUND = -32601;
     private static final int ERROR_CODE_INVALID_PARAMS = -32602;
+    private static final int ERROR_CODE_RESOURCE_NOT_FOUND = -32002;
+    private static final int ERROR_CODE_INTERNAL_ERROR = -32603;
     private static final String PARAMS_FIELD = "params";
     private static final String ARGUMENTS_FIELD = "arguments";
     private static final String URI_FIELD = "uri";
@@ -112,6 +124,10 @@ public class McpServer {
             ensureNotNull(resource, "resource");
             addResources(resource, resourceSuppliers, resourceMetas);
         }
+        // Reflection method order is unspecified by the JVM, so a stable advertised order has to be
+        // imposed explicitly; otherwise the same server can list resources in a different order
+        // between runs (or between JIT tiers) and every index-based client breaks.
+        resourceMetas.sort(Comparator.comparing(meta -> String.valueOf(meta.get(URI_FIELD))));
         this.resourceSuppliers = Map.copyOf(resourceSuppliers);
         this.mcpResources = List.copyOf(resourceMetas);
 
@@ -121,6 +137,7 @@ public class McpServer {
             ensureNotNull(prompt, "prompt");
             addPrompts(prompt, promptExecutors, promptMetas);
         }
+        promptMetas.sort(Comparator.comparing(meta -> String.valueOf(meta.get(NAME_FIELD))));
         this.promptExecutors = Map.copyOf(promptExecutors);
         this.mcpPrompts = List.copyOf(promptMetas);
     }
@@ -249,7 +266,7 @@ public class McpServer {
         ResourceSupplier supplier = resourceSuppliers.get(uri);
         if (supplier == null) {
             return new McpErrorResponse(
-                    id, new McpErrorResponse.Error(ERROR_CODE_INVALID_PARAMS, "Unknown resource: " + uri, null));
+                    id, new McpErrorResponse.Error(ERROR_CODE_RESOURCE_NOT_FOUND, "Resource not found: " + uri, null));
         }
 
         try {
@@ -260,8 +277,9 @@ public class McpServer {
             content.put("text", text);
             return new McpReadResourceResult(id, List.of(content));
         } catch (Exception e) {
-            return new McpErrorResponse(
-                    id, new McpErrorResponse.Error(ERROR_CODE_INVALID_PARAMS, safeMessage(e), null));
+            // The cause is logged server-side; surfacing it verbatim would leak internals (e.g. the
+            // reflective "cannot access a member of class ..." message for a non-public method).
+            return internalError(id, "Failed to read resource: " + uri, e);
         }
     }
 
@@ -311,17 +329,11 @@ public class McpServer {
             return new McpGetPromptResult(id, executor.description(), messages);
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause() != null ? e.getCause() : e;
-            return new McpErrorResponse(
-                    id,
-                    new McpErrorResponse.Error(
-                            ERROR_CODE_INVALID_PARAMS,
-                            cause.getMessage() != null && !cause.getMessage().isBlank()
-                                    ? cause.getMessage()
-                                    : cause.getClass().getName(),
-                            null));
+            // A prompt method throwing is a server-side failure, not a client error, and its message
+            // must not be forwarded verbatim.
+            return internalError(id, "Failed to execute prompt: " + name, cause);
         } catch (Exception e) {
-            return new McpErrorResponse(
-                    id, new McpErrorResponse.Error(ERROR_CODE_INVALID_PARAMS, safeMessage(e), null));
+            return internalError(id, "Failed to execute prompt: " + name, e);
         }
     }
 
@@ -370,6 +382,14 @@ public class McpServer {
             if (method.getParameterCount() != 0) {
                 throw new IllegalArgumentException("Resource method must not take parameters: " + annotation.uri());
             }
+            // Enforce at registration what Resource documents, so a mis-annotated method fails fast
+            // instead of registering and only breaking when a client reads it.
+            if (!Modifier.isPublic(method.getModifiers())) {
+                throw new IllegalArgumentException("Resource method must be public: " + annotation.uri());
+            }
+            if (method.getReturnType() != String.class) {
+                throw new IllegalArgumentException("Resource method must return String: " + annotation.uri());
+            }
             if (suppliers.containsKey(annotation.uri())) {
                 throw new IllegalArgumentException("Duplicated resource uri: " + annotation.uri());
             }
@@ -395,18 +415,25 @@ public class McpServer {
             if (annotation == null) {
                 continue;
             }
-            if (!List.class.isAssignableFrom(method.getReturnType())) {
+            if (!isListOfPromptMessage(method)) {
                 throw new IllegalArgumentException(
                         "Prompt method must return List<PromptMessage>: " + annotation.name());
             }
 
             List<PromptArgumentSpec> arguments = new ArrayList<>();
+            Set<String> argumentNames = new HashSet<>();
             Parameter[] parameters = method.getParameters();
             for (int i = 0; i < parameters.length; i++) {
                 PromptArg arg = parameters[i].getAnnotation(PromptArg.class);
                 if (arg == null) {
                     throw new IllegalArgumentException(
                             "Prompt method parameter is missing @PromptArg: " + annotation.name());
+                }
+                // Duplicate names would make every slot resolve the same client value, silently
+                // producing wrong prompt content with no error — reject at registration instead.
+                if (!argumentNames.add(arg.name())) {
+                    throw new IllegalArgumentException(
+                            "Duplicated prompt argument name '" + arg.name() + "' in prompt: " + annotation.name());
                 }
                 arguments.add(new PromptArgumentSpec(
                         arg.name(), arg.description(), arg.required(), parameters[i].getType(), i));
@@ -435,11 +462,8 @@ public class McpServer {
 
     private String invokeResource(Object resource, Method method) throws Exception {
         try {
-            Object out = method.invoke(resource);
-            if (out instanceof String text) {
-                return text;
-            }
-            return OBJECT_MAPPER.writeValueAsString(out);
+            // The return type is validated as String at registration, so no JSON fallback is needed.
+            return (String) method.invoke(resource);
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause() != null ? e.getCause() : e;
             if (cause instanceof Exception exception) {
@@ -518,6 +542,29 @@ public class McpServer {
             return null;
         }
         return idNode.isNumber() ? idNode.asLong() : null;
+    }
+
+    /** Returns {@code true} only when the method is declared to return {@code List<PromptMessage>}. */
+    private static boolean isListOfPromptMessage(Method method) {
+        Type genericReturnType = method.getGenericReturnType();
+        if (!(genericReturnType instanceof ParameterizedType parameterizedType)) {
+            return false;
+        }
+        Type rawType = parameterizedType.getRawType();
+        if (!(rawType instanceof Class<?> rawClass) || !List.class.isAssignableFrom(rawClass)) {
+            return false;
+        }
+        Type[] typeArguments = parameterizedType.getActualTypeArguments();
+        return typeArguments.length == 1 && typeArguments[0] == PromptMessage.class;
+    }
+
+    /**
+     * Builds a JSON-RPC {@code -32603} (Internal error) response. The cause is logged server-side;
+     * only {@code publicMessage} is sent to the client so implementation details never leak.
+     */
+    private McpErrorResponse internalError(Long id, String publicMessage, Throwable cause) {
+        LOG.warn(publicMessage, cause);
+        return new McpErrorResponse(id, new McpErrorResponse.Error(ERROR_CODE_INTERNAL_ERROR, publicMessage, null));
     }
 
     private String safeMessage(Exception e) {

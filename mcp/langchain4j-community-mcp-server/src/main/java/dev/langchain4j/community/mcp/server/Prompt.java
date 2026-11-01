@@ -13,6 +13,9 @@ import java.lang.annotation.Target;
  * parameters annotated with {@link PromptArg}. Clients fill those arguments through
  * {@code prompts/get}.
  *
+ * <p>Only methods declared directly on the annotated class are discovered; {@code @Prompt}
+ * methods inherited from a superclass or interface are ignored.
+ *
  * <p>Example:
  *
  * <pre>{@code

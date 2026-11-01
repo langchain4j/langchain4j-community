@@ -12,6 +12,12 @@ import java.lang.annotation.Target;
  * <p>The annotated method must be public, take no parameters, and return the resource content as a
  * {@link String}. Each URI must be unique within a server.
  *
+ * <p>Only textual content is supported: the returned {@code String} is exposed as an MCP
+ * {@code text} content block. Binary ({@code blob}) resources are not supported yet.
+ *
+ * <p>Only methods declared directly on the annotated class are discovered; {@code @Resource}
+ * methods inherited from a superclass or interface are ignored.
+ *
  * <p>Example:
  *
  * <pre>{@code

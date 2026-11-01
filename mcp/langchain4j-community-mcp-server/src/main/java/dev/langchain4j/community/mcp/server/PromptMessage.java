@@ -1,6 +1,7 @@
 package dev.langchain4j.community.mcp.server;
 
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import java.util.Map;
 
@@ -17,7 +18,8 @@ public class PromptMessage {
 
     private PromptMessage(String role, String text) {
         this.role = ensureNotBlank(role, "role");
-        this.content = Map.of("type", "text", "text", ensureNotBlank(text, "text"));
+        // MCP's TextContent allows an empty string, so only null is rejected here.
+        this.content = Map.of("type", "text", "text", ensureNotNull(text, "text"));
     }
 
     public static PromptMessage user(String text) {

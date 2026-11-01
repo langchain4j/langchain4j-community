@@ -1,5 +1,6 @@
 package dev.langchain4j.community.mcp.server;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.langchain4j.mcp.protocol.McpJsonRpcMessage;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,14 @@ public class McpListPromptsResult extends McpJsonRpcMessage {
             return prompts;
         }
 
-        /** Always {@code null}: this server does not paginate prompts yet. */
+        /**
+         * Always {@code null}: this server does not paginate prompts yet.
+         *
+         * <p>{@code nextCursor} is an optional string in the MCP schema; when there is no next page
+         * the field must be omitted, not serialized as {@code null}, otherwise strict clients reject
+         * the whole response.
+         */
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public String getNextCursor() {
             return null;
         }
