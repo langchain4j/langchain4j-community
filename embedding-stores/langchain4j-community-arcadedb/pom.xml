@@ -12,7 +12,10 @@
     <name>LangChain4j :: Community :: Integration :: ArcadeDB</name>
 
     <properties>
-        <arcadedb.version>26.9.1</arcadedb.version>
+        <arcadedb.version>26.10.2</arcadedb.version>
+        <!-- ArcadeDB 26.10.2 depends on slf4j-api 2.0.20; the parent manages 2.0.18, which fails the
+             enforcer's upper-bound rule. -->
+        <slf4j.version>2.0.20</slf4j.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
