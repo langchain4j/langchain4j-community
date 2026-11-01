@@ -172,13 +172,14 @@ class SerpApiClient {
     }
 
     /**
-     * SerpApi paginates Google-family engines with a zero-based {@code start} offset.
-     * {@link WebSearchRequest#startIndex()} is treated as that offset directly and wins over
-     * {@link WebSearchRequest#startPage()}, which is one-based and assumes pages of 10 results.
+     * SerpApi paginates Google-family engines with a zero-based {@code start} offset, while
+     * {@link WebSearchRequest#startIndex()} is one-based (OpenSearch: the index of the first result,
+     * defaulting to 1). {@code startIndex} therefore wins over {@link WebSearchRequest#startPage()},
+     * which is one-based and assumes pages of 10 results.
      */
     static int startOffset(Integer startPage, Integer startIndex) {
         if (startIndex != null) {
-            return Math.max(startIndex, 0);
+            return Math.max(startIndex - 1, 0);
         }
         if (startPage == null || startPage <= 1) {
             return 0;

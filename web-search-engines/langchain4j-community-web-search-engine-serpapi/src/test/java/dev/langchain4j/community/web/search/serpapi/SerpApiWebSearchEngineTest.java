@@ -8,6 +8,7 @@ import dev.langchain4j.web.search.WebSearchOrganicResult;
 import dev.langchain4j.web.search.WebSearchRequest;
 import dev.langchain4j.web.search.WebSearchResults;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class SerpApiWebSearchEngineTest {
@@ -129,6 +130,25 @@ class SerpApiWebSearchEngineTest {
         assertThat(results.searchInformation().totalResults()).isZero();
         assertThat(results.searchInformation().metadata())
                 .containsEntry(SerpApiWebSearchEngine.TOTAL_RESULTS_ESTIMATED_KEY, true);
+    }
+
+    @Test
+    void should_not_expose_api_key_in_search_metadata() {
+        String json = """
+                {"search_metadata": {"id": "abc", "status": "Success"},
+                 "search_parameters": {"engine": "google", "q": "q", "api_key": "secret-key-123"},
+                 "organic_results": []}
+                """;
+
+        Map<String, Object> searchMetadata =
+                map(json, "google", WebSearchRequest.from("q"), false, false).searchMetadata();
+
+        assertThat(searchMetadata.get("search_parameters"))
+                .isInstanceOfSatisfying(
+                        Map.class,
+                        parameters ->
+                                assertThat(parameters).containsEntry("q", "q").doesNotContainKey("api_key"));
+        assertThat(searchMetadata.toString()).doesNotContain("secret-key-123");
     }
 
     @Test

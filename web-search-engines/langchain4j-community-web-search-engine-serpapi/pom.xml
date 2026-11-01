@@ -24,7 +24,7 @@
     </licenses>
 
     <properties>
-        <skipSerpApiITs>false</skipSerpApiITs>
+        <skipSerpApiITs>${skipITs}</skipSerpApiITs>
     </properties>
 
     <dependencies>
@@ -82,7 +82,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <skipTests>${skipSerpApiITs}</skipTests>
+                    <skipITs>${skipSerpApiITs}</skipITs>
                 </configuration>
             </plugin>
         </plugins>

@@ -73,9 +73,24 @@ class SerpApiClientTest {
 
     @Test
     void should_prefer_start_index_over_start_page() {
-        assertThat(SerpApiClient.startOffset(3, 5)).isEqualTo(5);
+        // startIndex is one-based (OpenSearch), SerpApi's start is a zero-based offset.
+        assertThat(SerpApiClient.startOffset(3, 5)).isEqualTo(4);
+        assertThat(SerpApiClient.startOffset(3, 1)).isZero();
+        assertThat(SerpApiClient.startOffset(3, 11)).isEqualTo(10);
         assertThat(SerpApiClient.startOffset(3, null)).isEqualTo(20);
         assertThat(SerpApiClient.startOffset(null, null)).isZero();
+    }
+
+    @Test
+    void should_send_start_index_as_zero_based_start_offset() {
+        HttpRequest request = client("google", null, null)
+                .buildRequest(WebSearchRequest.builder()
+                        .searchTerms("q")
+                        .startPage(3)
+                        .startIndex(11)
+                        .build());
+
+        assertThat(request.url()).contains("start=10");
     }
 
     @Test

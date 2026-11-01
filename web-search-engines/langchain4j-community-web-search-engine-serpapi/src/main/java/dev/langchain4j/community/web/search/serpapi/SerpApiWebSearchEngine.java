@@ -56,7 +56,8 @@ import java.util.stream.Stream;
  * <p>
  * Request mapping: {@code language} → {@code hl}, {@code geoLocation} → {@code gl},
  * {@code safeSearch} → {@code safe} (google only), {@code startPage}/{@code startIndex} → {@code start}
- * (google and google_scholar; {@code startIndex} is a zero-based offset and wins over {@code startPage}).
+ * (google and google_scholar; {@code startIndex} is the one-based index of the first desired result and
+ * wins over {@code startPage}).
  * {@code maxResults} is applied client-side. Engine-specific parameters can be passed through
  * {@link WebSearchRequest#additionalParams()}, which take precedence over everything else.
  * <p>
