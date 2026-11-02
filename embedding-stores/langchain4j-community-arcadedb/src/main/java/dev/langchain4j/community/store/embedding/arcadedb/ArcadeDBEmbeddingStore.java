@@ -684,7 +684,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         boolean rejectedByFilter = false;
         for (Pair<RID, Float> neighbor : neighbors) {
             RID rid = neighbor.getFirst();
-            if (matches.size() >= maxResults) continue;
+            if (matches.size() >= maxResults) break;
             // ArcadeDB's cosine distance is 1 - cosine; for the other functions the score is computed from the vector.
             double score = similarity == ArcadeDBVectorSimilarity.COSINE
                     ? 1.0 - neighbor.getSecond().doubleValue() / 2.0
