@@ -405,10 +405,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             int m = 0;
             for (Map.Entry<String, Object> entry : segment.metadata().toMap().entrySet()) {
                 String name = "m" + row + "_" + m++;
-                script.append(", `")
-                        .append(metadataPrefix)
-                        .append(entry.getKey())
-                        .append("` = :")
+                script.append(", ")
+                        .append(ArcadeDBMetadataFilterMapper.quoteIdentifier(metadataPrefix + entry.getKey()))
+                        .append(" = :")
                         .append(name);
                 parameters.put(name, toParameter(entry.getValue()));
             }

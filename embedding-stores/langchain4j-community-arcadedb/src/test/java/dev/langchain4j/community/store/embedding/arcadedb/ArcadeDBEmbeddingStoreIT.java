@@ -439,6 +439,26 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                 .build());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(ArcadeDBFilterStrategy.class)
+    void should_quote_metadata_keys_safely(ArcadeDBFilterStrategy strategy) {
+        java.util.function.Supplier<ArcadeDBEmbeddingStore> store = () -> ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("KeyEscaping" + strategy)
+                .dimension(ArcadeDBKeyEscapingTestHelper.DIMENSION)
+                .filterStrategy(strategy)
+                .build();
+        ArcadeDBEmbeddingStore injection = store.get();
+        injection.removeAll();
+        ArcadeDBKeyEscapingTestHelper.assertKeyCannotChangeTheFilter(injection);
+        injection.removeAll();
+        ArcadeDBKeyEscapingTestHelper.assertUnusualKeysWork(injection);
+    }
+
     @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         clearStore();
