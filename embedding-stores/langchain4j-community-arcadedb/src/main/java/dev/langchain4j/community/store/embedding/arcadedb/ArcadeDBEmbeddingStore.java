@@ -301,16 +301,14 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         if (embeddedMode) {
             removeAllByFilterEmbedded(filter);
         } else {
-            log.info(
-                    "Number of embeddings before delete: {}",
-                    findAllRemote(1000).size());
             List<Object> parameters = new ArrayList<>();
             String whereClause = filterMapper.map(filter, parameters);
             String sql = String.format("DELETE FROM `%s` WHERE %s", typeName, whereClause);
             log.debug("Removing with filter: {}", sql);
-            remoteDatabase.command("sql", sql, parameters.toArray());
-            log.info(
-                    "Number of embeddings after delete: {}", findAllRemote(1000).size());
+            ResultSet result = remoteDatabase.command("sql", sql, parameters.toArray());
+            if (log.isDebugEnabled() && result.hasNext()) {
+                log.debug("Removed {} embeddings", (Object) result.next().getProperty("count"));
+            }
         }
     }
 
@@ -508,28 +506,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             matches.sort((a, b) -> Double.compare(b.score(), a.score()));
         }
         return new EmbeddingSearchResult<>(matches);
-    }
-
-    /**
-     * Retrieves all stored embeddings using a SQL scan. Package-private for use in tests.
-     */
-    List<EmbeddingMatch<TextSegment>> findAllRemote(int maxResults) {
-        String sql = String.format("SELECT * FROM `%s` LIMIT %d", typeName, maxResults);
-        ResultSet resultSet = remoteDatabase.query("sql", sql);
-
-        List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        while (resultSet.hasNext()) {
-            Result doc = resultSet.next();
-            String docId = doc.getProperty(ID_PROPERTY);
-            if (docId == null) continue;
-            Embedding embedding = resultToEmbedding(doc.getProperty(EMBEDDING_PROPERTY));
-            if (embedding == null) continue;
-            String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
-            Map<String, Object> metadataMap = extractMetadataFromResult(doc);
-            matches.add(new EmbeddingMatch<>(1.0, docId, embedding, buildTextSegment(text, metadataMap)));
-        }
-        log.info("findAll: SQL returned {} matches", matches.size());
-        return matches;
     }
 
     private void initRemoteSchema(int dimension, String similarityFunction, int maxConnections, int beamWidth) {
