@@ -386,6 +386,36 @@ class ArcadeDBEmbeddingStoreEmbeddedIT extends EmbeddingStoreWithFilteringIT {
         }
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(ArcadeDBFilterStrategy.class)
+    void should_quote_metadata_keys_safely(ArcadeDBFilterStrategy strategy) {
+        try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                .databasePath(tempDir.resolve("key-escaping-" + strategy).toString())
+                .dimension(ArcadeDBKeyEscapingTestHelper.DIMENSION)
+                .filterStrategy(strategy)
+                .build()) {
+            ArcadeDBKeyEscapingTestHelper.assertKeyCannotChangeTheFilter(store);
+            store.removeAll();
+            ArcadeDBKeyEscapingTestHelper.assertUnusualKeysWork(store);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_not_drop_hybrid_matches_ranked_below_records_under_the_min_score() {
+        for (int test = 0; test < 2; test++) {
+            try (ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.embeddedBuilder()
+                    .databasePath(tempDir.resolve("hybrid-min-score-" + test).toString())
+                    .dimension(ArcadeDBHybridMinScoreTestHelper.DIMENSION)
+                    .build()) {
+                if (test == 0) {
+                    ArcadeDBHybridMinScoreTestHelper.assertOneMatchIsNotDropped(store);
+                } else {
+                    ArcadeDBHybridMinScoreTestHelper.assertSeveralMatchesAreNotDropped(store);
+                }
+            }
+        }
+    }
+
     @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         try (ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.embeddedBuilder()
