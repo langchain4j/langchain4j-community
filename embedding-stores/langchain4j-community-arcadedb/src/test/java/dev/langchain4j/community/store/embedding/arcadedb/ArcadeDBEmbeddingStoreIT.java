@@ -460,6 +460,27 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
     }
 
     @org.junit.jupiter.api.Test
+    void should_not_drop_hybrid_matches_ranked_below_records_under_the_min_score() {
+        for (int test = 0; test < 2; test++) {
+            ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.builder()
+                    .host(host)
+                    .port(port)
+                    .databaseName("test_embeddings")
+                    .username("root")
+                    .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                    .typeName("HybridMinScore" + test)
+                    .dimension(ArcadeDBHybridMinScoreTestHelper.DIMENSION)
+                    .build();
+            store.removeAll();
+            if (test == 0) {
+                ArcadeDBHybridMinScoreTestHelper.assertOneMatchIsNotDropped(store);
+            } else {
+                ArcadeDBHybridMinScoreTestHelper.assertSeveralMatchesAreNotDropped(store);
+            }
+        }
+    }
+
+    @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         clearStore();
         ArcadeDBEmbeddingStore batched = ArcadeDBEmbeddingStore.builder()

@@ -444,6 +444,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     EMBEDDING_PROPERTY,
                     TEXT_PROPERTY,
                     maxResults,
+                    minScore,
                     filter != null && !filterInSql,
                     false,
                     where));
@@ -785,6 +786,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 EMBEDDED_EMBEDDING,
                 EMBEDDED_TEXT,
                 maxResults,
+                minScore,
                 filter != null && !filterInSql,
                 true,
                 where);
@@ -1027,6 +1029,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             String embeddingProperty,
             String textProperty,
             int maxResults,
+            double minScore,
             boolean filtered,
             boolean excludeSoftDeleted,
             String filterWhere) {
@@ -1063,8 +1066,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     typeName, fullTextIndexName, fullTextCandidates);
         }
         // Only the fused rows that can be returned leave vector.fuse(): the store keeps maxResults of them (more when
-        // a metadata filter is applied afterwards).
-        int fusedResults = filtered ? maxResults * 10 : maxResults;
+        // a metadata filter is applied afterwards). Rows below minScore are skipped afterwards and not backfilled,
+        // and a row that passes minScore can rank below rows that do not, so with a minimum score every candidate is
+        // fused.
+        int fusedResults =
+                minScore > 0 ? denseCandidates + fullTextCandidates : filtered ? maxResults * 10 : maxResults;
         List<String> options = new ArrayList<>();
         if (efSearch != null) {
             options.add("efSearch: " + Math.max(efSearch, denseCandidates));
