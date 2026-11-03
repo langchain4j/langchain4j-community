@@ -1,7 +1,6 @@
 package dev.langchain4j.community.mcp.server.support;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.mcp.client.McpCallContext;
 import dev.langchain4j.mcp.client.transport.McpOperationHandler;
@@ -41,7 +40,7 @@ public class InMemoryMcpTransport implements McpTransport {
     }
 
     @Override
-    public CompletableFuture<JsonNode> initialize(McpInitializeRequest request) {
+    public CompletableFuture<String> sendInitializeRequest(McpInitializeRequest request) {
         try {
             String requestString = OBJECT_MAPPER.writeValueAsString(request);
             String initializationNotification = OBJECT_MAPPER.writeValueAsString(new McpInitializationNotification());
@@ -54,7 +53,7 @@ public class InMemoryMcpTransport implements McpTransport {
     }
 
     @Override
-    public CompletableFuture<JsonNode> executeOperationWithResponse(McpClientMessage request) {
+    public CompletableFuture<String> sendRequest(McpClientMessage request) {
         try {
             String requestString = OBJECT_MAPPER.writeValueAsString(request);
             return execute(requestString, request.getId());
@@ -64,12 +63,12 @@ public class InMemoryMcpTransport implements McpTransport {
     }
 
     @Override
-    public CompletableFuture<JsonNode> executeOperationWithResponse(McpCallContext context) {
-        return executeOperationWithResponse(context.message());
+    public CompletableFuture<String> sendRequest(McpCallContext context) {
+        return sendRequest(context.message());
     }
 
     @Override
-    public void executeOperationWithoutResponse(McpClientMessage request) {
+    public void sendMessage(McpClientMessage request) {
         try {
             String requestString = OBJECT_MAPPER.writeValueAsString(request);
             execute(requestString, null);
@@ -79,8 +78,8 @@ public class InMemoryMcpTransport implements McpTransport {
     }
 
     @Override
-    public void executeOperationWithoutResponse(McpCallContext context) {
-        executeOperationWithoutResponse(context.message());
+    public void sendMessage(McpCallContext context) {
+        sendMessage(context.message());
     }
 
     @Override
@@ -100,10 +99,10 @@ public class InMemoryMcpTransport implements McpTransport {
         }
     }
 
-    private CompletableFuture<JsonNode> execute(String request, Long id) {
-        CompletableFuture<JsonNode> future = new CompletableFuture<>();
+    private CompletableFuture<String> execute(String request, Long id) {
+        CompletableFuture<String> future = new CompletableFuture<>();
         if (id != null) {
-            messageHandler.startOperation(id, future);
+            messageHandler.expectResponse(id, future);
         }
         try {
             ioHandler.submit(request);

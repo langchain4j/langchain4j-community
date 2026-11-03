@@ -99,7 +99,7 @@ class McpServerErrorIT {
     private static JsonNode executeRawCall(InMemoryMcpTransport transport, String toolName, Map<String, Object> arguments)
             throws Exception {
         McpCallToolRequest request = new McpCallToolRequest(RAW_REQUEST_ID, toolName, arguments);
-        return transport.executeOperationWithResponse(request).get(5, TimeUnit.SECONDS);
+        return OBJECT_MAPPER.readTree(transport.sendRequest(request).get(5, TimeUnit.SECONDS));
     }
 
     private static Map<String, Object> toolArgumentsFor(ToolSpecification tool, Object... values) {

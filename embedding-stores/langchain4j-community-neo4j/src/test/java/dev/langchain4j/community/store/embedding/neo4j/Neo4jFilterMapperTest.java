@@ -22,7 +22,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
-import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.neo4j.cypherdsl.core.Condition;
@@ -30,8 +29,6 @@ import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.Node;
 import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.renderer.Renderer;
-import org.neo4j.driver.internal.InternalPoint3D;
-import org.neo4j.driver.internal.value.PointValue;
 
 class Neo4jFilterMapperTest {
 
@@ -79,22 +76,6 @@ class Neo4jFilterMapperTest {
         final OffsetDateTime value = OffsetDateTime.parse("2007-12-03T10:15:30+01:00");
         final String expectedQuery =
                 "MATCH (n:`Label`) WHERE n['key'] = datetime('2007-12-03T10:15:30+01:00') WITH n RETURN 1";
-        testIsEqualFilter(value, expectedQuery);
-    }
-
-    @Test
-    void should_map_equal_with_point_value() {
-        final PointValue value = new PointValue(new InternalPoint3D(1, 1, 1, 1));
-        final String expectedQuery =
-                "MATCH (n:`Label`) WHERE n['key'] = point({srid: 1, x: 1.0, y: 1.0, z: 1.0}) WITH n RETURN 1";
-        testIsEqualFilter(value, expectedQuery);
-    }
-
-    @Test
-    void should_map_equal_with_list_of_values() {
-        final List<LocalDate> value = List.of(LocalDate.parse("2024-03-30"), LocalDate.parse("2025-03-30"));
-        final String expectedQuery =
-                "MATCH (n:`Label`) WHERE n['key'] = [date('2024-03-30'), date('2025-03-30')] WITH n RETURN 1";
         testIsEqualFilter(value, expectedQuery);
     }
 

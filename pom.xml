@@ -5,7 +5,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
-        <version>1.23.0-beta33-SNAPSHOT</version>
+        <version>1.24.0-beta34-SNAPSHOT</version>
         <relativePath></relativePath>
     </parent>
 
@@ -81,6 +81,7 @@
         <module>web-search-engines/langchain4j-community-web-search-engine-brave</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-serply</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-firecrawl</module>
+        <module>web-search-engines/langchain4j-community-web-search-engine-serpapi</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-deepseek</module>
 
         <!-- Integration of document loaders -->
@@ -127,12 +128,12 @@
 
     <properties>
         <gib.disable>true</gib.disable>
-        <langchain4j.core.version>1.23.0-SNAPSHOT</langchain4j.core.version>
-        <langchain4j.version>1.23.0-SNAPSHOT</langchain4j.version>
-        <langchain4j.http-client-jdk.version>1.23.0-SNAPSHOT</langchain4j.http-client-jdk.version>
-        <langchain4j.reactive-streaming.version>1.23.0-beta33-SNAPSHOT</langchain4j.reactive-streaming.version>
-        <langchain4j.open-ai.version>1.23.0-SNAPSHOT</langchain4j.open-ai.version>
-        <langchain4j.azure-open-ai.version>1.23.0-SNAPSHOT</langchain4j.azure-open-ai.version>
+        <langchain4j.core.version>1.24.0-SNAPSHOT</langchain4j.core.version>
+        <langchain4j.version>1.24.0-SNAPSHOT</langchain4j.version>
+        <langchain4j.http-client-jdk.version>1.24.0-SNAPSHOT</langchain4j.http-client-jdk.version>
+        <langchain4j.reactive-streaming.version>1.24.0-beta34-SNAPSHOT</langchain4j.reactive-streaming.version>
+        <langchain4j.open-ai.version>1.24.0-SNAPSHOT</langchain4j.open-ai.version>
+        <langchain4j.azure-open-ai.version>1.24.0-SNAPSHOT</langchain4j.azure-open-ai.version>
         <project.build.outputTimestamp>2026-04-30T10:00:00Z</project.build.outputTimestamp>
     </properties>
 
