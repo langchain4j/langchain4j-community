@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
@@ -24,6 +25,7 @@ class DeepSeekWebSearchEngineTest {
 
     private static final String SEARCH_RESPONSE = """
         {
+          "request_id": "future-top-level-field",
           "results": [
             {
               "rerank_score": 2.4,
@@ -35,7 +37,8 @@ class DeepSeekWebSearchEngineTest {
               "site_name": "Example News",
               "site_icon": "https://example.com/favicon.ico",
               "date": "2026-06-01T00:00:00+00:00",
-              "authority": 3
+              "authority": 3,
+              "future_result_field": "ignored"
             }
           ]
         }
@@ -73,7 +76,7 @@ class DeepSeekWebSearchEngineTest {
 
     private DeepSeekWebSearchEngine.Builder engineBuilder() {
         return DeepSeekWebSearchEngine.builder()
-                .baseUrl("http://localhost:" + server.getAddress().getPort() + "/v1/tools/")
+                .baseUrl("http://localhost:" + server.getAddress().getPort())
                 .apiKey("test-key");
     }
 
@@ -85,6 +88,30 @@ class DeepSeekWebSearchEngineTest {
         assertThatThrownBy(() -> DeepSeekWebSearchEngine.withApiKey(" "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("apiKey");
+    }
+
+    @Test
+    void should_append_tools_path_to_base_url_and_ignore_trailing_slash() {
+        DeepSeekWebSearchEngine engine = DeepSeekWebSearchEngine.builder()
+                .baseUrl("http://localhost:" + server.getAddress().getPort() + "/")
+                .apiKey("test-key")
+                .build();
+
+        engine.search("DeepSeek V4");
+
+        assertThat(requestPath.get()).isEqualTo("/v1/tools/search");
+    }
+
+    @Test
+    void should_reject_null_request() {
+        DeepSeekWebSearchEngine engine = engineBuilder().build();
+
+        assertThatThrownBy(() -> engine.search((WebSearchRequest) null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("request");
+        assertThatThrownBy(() -> engine.searchAsync(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("request");
     }
 
     @Test
@@ -125,6 +152,72 @@ class DeepSeekWebSearchEngineTest {
                 .containsEntry("date", "2026-06-01T00:00:00+00:00")
                 .containsEntry("rerank_score", "2.4")
                 .containsEntry("authority", "3");
+    }
+
+    @Test
+    void should_apply_request_scoped_parameters_per_search() {
+        DeepSeekWebSearchEngine engine = engineBuilder().build();
+
+        engine.search(WebSearchRequest.builder()
+                .searchTerms("first search")
+                .additionalParams(Map.of(
+                        "ori_question", "first question",
+                        "localization", "1.1.1.1",
+                        "need_content", true))
+                .build());
+
+        assertThat(requestBody.get())
+                .contains("\"query\":\"first search\"")
+                .contains("\"ori_question\":\"first question\"")
+                .contains("\"localization\":\"1.1.1.1\"")
+                .contains("\"need_content\":true");
+
+        engine.search(WebSearchRequest.builder()
+                .searchTerms("second search")
+                .additionalParams(Map.of(
+                        "ori_question", "second question",
+                        "localization", "2.2.2.2",
+                        "need_content", false))
+                .build());
+
+        assertThat(requestBody.get())
+                .contains("\"query\":\"second search\"")
+                .contains("\"ori_question\":\"second question\"")
+                .contains("\"localization\":\"2.2.2.2\"")
+                .contains("\"need_content\":false");
+    }
+
+    @Test
+    void should_prefer_request_parameters_over_builder_defaults() {
+        engineBuilder()
+                .originalQuestion("builder question")
+                .localization("10.0.0.1")
+                .needContent(true)
+                .build()
+                .search(WebSearchRequest.builder()
+                        .searchTerms("DeepSeek V4")
+                        .additionalParams(Map.of("ori_question", "request question"))
+                        .build());
+
+        assertThat(requestBody.get())
+                .contains("\"ori_question\":\"request question\"")
+                .contains("\"localization\":\"10.0.0.1\"")
+                .contains("\"need_content\":true");
+    }
+
+    @Test
+    void should_keep_builder_defaults_when_request_parameters_are_absent() {
+        engineBuilder()
+                .originalQuestion("builder question")
+                .localization("10.0.0.1")
+                .needContent(true)
+                .build()
+                .search("DeepSeek V4");
+
+        assertThat(requestBody.get())
+                .contains("\"ori_question\":\"builder question\"")
+                .contains("\"localization\":\"10.0.0.1\"")
+                .contains("\"need_content\":true");
     }
 
     @Test

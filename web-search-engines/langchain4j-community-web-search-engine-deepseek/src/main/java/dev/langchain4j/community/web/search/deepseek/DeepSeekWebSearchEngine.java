@@ -2,10 +2,9 @@ package dev.langchain4j.community.web.search.deepseek;
 
 import static dev.langchain4j.internal.CompletableFutureUtils.propagateCancellation;
 import static dev.langchain4j.internal.UriUtils.createUriSafely;
-import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNotNullOrBlank;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
-import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.web.search.WebSearchEngine;
@@ -21,9 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-/** A {@link WebSearchEngine} backed by DeepSeek's web search API. */
+/**
+ * A {@link WebSearchEngine} backed by DeepSeek's web search API.
+ * <br>
+ * The {@code ori_question}, {@code localization} and {@code need_content} parameters can be set as engine-level
+ * defaults through the builder or per request through {@link WebSearchRequest#additionalParams()}. Request-level
+ * values take precedence over builder defaults.
+ */
 public class DeepSeekWebSearchEngine implements WebSearchEngine {
-    private static final String DEFAULT_BASE_URL = "https://api.deepseek.com/v1/tools/";
     private static final int MAX_COUNT = 50;
     private final DeepSeekClient client;
     private final String originalQuestion;
@@ -31,13 +35,7 @@ public class DeepSeekWebSearchEngine implements WebSearchEngine {
     private final Boolean needContent;
 
     private DeepSeekWebSearchEngine(Builder builder) {
-        this.client = new DeepSeekClient(
-                builder.httpClientBuilder,
-                getOrDefault(builder.baseUrl, DEFAULT_BASE_URL),
-                ensureNotBlank(builder.apiKey, "apiKey"),
-                getOrDefault(builder.timeout, Duration.ofSeconds(30)),
-                builder.logRequests,
-                builder.logResponses);
+        this.client = builder.clientBuilder.build();
         this.originalQuestion = builder.originalQuestion;
         this.localization = builder.localization;
         this.needContent = builder.needContent;
@@ -53,11 +51,13 @@ public class DeepSeekWebSearchEngine implements WebSearchEngine {
 
     @Override
     public WebSearchResults search(WebSearchRequest request) {
+        ensureNotNull(request, "request");
         return toWebSearchResults(client.search(toRequest(request)));
     }
 
     @Override
     public CompletableFuture<WebSearchResults> searchAsync(WebSearchRequest request) {
+        ensureNotNull(request, "request");
         CompletableFuture<DeepSeekSearchResponse> response = client.searchAsync(toRequest(request));
         CompletableFuture<WebSearchResults> result = response.thenApply(this::toWebSearchResults);
         propagateCancellation(result, response);
@@ -65,8 +65,33 @@ public class DeepSeekWebSearchEngine implements WebSearchEngine {
     }
 
     private DeepSeekSearchRequest toRequest(WebSearchRequest request) {
+        Map<String, Object> params = request.additionalParams();
         return new DeepSeekSearchRequest(
-                request.searchTerms(), count(request.maxResults()), originalQuestion, localization, needContent);
+                request.searchTerms(),
+                count(request.maxResults()),
+                stringParam(params, "ori_question", originalQuestion),
+                stringParam(params, "localization", localization),
+                booleanParam(params, "need_content", needContent));
+    }
+
+    private static String stringParam(Map<String, Object> params, String name, String defaultValue) {
+        Object value = params == null ? null : params.get(name);
+        if (value == null) {
+            return defaultValue;
+        }
+        String stringValue = String.valueOf(value);
+        return stringValue.isBlank() ? defaultValue : stringValue;
+    }
+
+    private static Boolean booleanParam(Map<String, Object> params, String name, Boolean defaultValue) {
+        Object value = params == null ? null : params.get(name);
+        if (value instanceof Boolean booleanValue) {
+            return booleanValue;
+        }
+        if (value instanceof String stringValue && !stringValue.isBlank()) {
+            return Boolean.valueOf(stringValue);
+        }
+        return defaultValue;
     }
 
     private WebSearchResults toWebSearchResults(DeepSeekSearchResponse response) {
@@ -107,28 +132,43 @@ public class DeepSeekWebSearchEngine implements WebSearchEngine {
     }
 
     public static class Builder {
-        private String apiKey;
-        private String baseUrl;
-        private Duration timeout;
+        private final DeepSeekClient.Builder clientBuilder = DeepSeekClient.builder();
         private String originalQuestion;
         private String localization;
         private Boolean needContent;
-        private HttpClientBuilder httpClientBuilder;
-        private Boolean logRequests;
-        private Boolean logResponses;
 
         public Builder apiKey(String apiKey) {
-            this.apiKey = apiKey;
+            clientBuilder.apiKey(apiKey);
             return this;
         }
 
+        /**
+         * Sets the DeepSeek API host, for example {@code https://api.deepseek.com}.
+         * <br>
+         * The {@code /v1/tools/} path is appended internally, so the value must not include it.
+         */
         public Builder baseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
+            clientBuilder.baseUrl(baseUrl);
             return this;
         }
 
         public Builder timeout(Duration timeout) {
-            this.timeout = timeout;
+            clientBuilder.timeout(timeout);
+            return this;
+        }
+
+        public Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
+            clientBuilder.httpClientBuilder(httpClientBuilder);
+            return this;
+        }
+
+        public Builder logRequests(Boolean logRequests) {
+            clientBuilder.logRequests(logRequests);
+            return this;
+        }
+
+        public Builder logResponses(Boolean logResponses) {
+            clientBuilder.logResponses(logResponses);
             return this;
         }
 
@@ -144,21 +184,6 @@ public class DeepSeekWebSearchEngine implements WebSearchEngine {
 
         public Builder needContent(Boolean needContent) {
             this.needContent = needContent;
-            return this;
-        }
-
-        public Builder httpClientBuilder(HttpClientBuilder builder) {
-            this.httpClientBuilder = builder;
-            return this;
-        }
-
-        public Builder logRequests(Boolean value) {
-            this.logRequests = value;
-            return this;
-        }
-
-        public Builder logResponses(Boolean value) {
-            this.logResponses = value;
             return this;
         }
 

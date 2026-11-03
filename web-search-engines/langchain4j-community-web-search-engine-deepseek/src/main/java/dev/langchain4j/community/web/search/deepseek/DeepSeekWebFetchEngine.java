@@ -1,6 +1,5 @@
 package dev.langchain4j.community.web.search.deepseek;
 
-import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 
 import dev.langchain4j.http.client.HttpClientBuilder;
@@ -14,18 +13,10 @@ import java.time.Duration;
  */
 public class DeepSeekWebFetchEngine {
 
-    private static final String DEFAULT_BASE_URL = "https://api.deepseek.com/v1/tools/";
-
     private final DeepSeekClient client;
 
     private DeepSeekWebFetchEngine(Builder builder) {
-        this.client = new DeepSeekClient(
-                builder.httpClientBuilder,
-                getOrDefault(builder.baseUrl, DEFAULT_BASE_URL),
-                ensureNotBlank(builder.apiKey, "apiKey"),
-                getOrDefault(builder.timeout, Duration.ofSeconds(30)),
-                builder.logRequests,
-                builder.logResponses);
+        this.client = builder.clientBuilder.build();
     }
 
     public static Builder builder() {
@@ -48,40 +39,40 @@ public class DeepSeekWebFetchEngine {
     }
 
     public static class Builder {
-        private String apiKey;
-        private String baseUrl;
-        private Duration timeout;
-        private HttpClientBuilder httpClientBuilder;
-        private Boolean logRequests;
-        private Boolean logResponses;
+        private final DeepSeekClient.Builder clientBuilder = DeepSeekClient.builder();
 
         public Builder apiKey(String apiKey) {
-            this.apiKey = apiKey;
+            clientBuilder.apiKey(apiKey);
             return this;
         }
 
+        /**
+         * Sets the DeepSeek API host, for example {@code https://api.deepseek.com}.
+         * <br>
+         * The {@code /v1/tools/} path is appended internally, so the value must not include it.
+         */
         public Builder baseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
+            clientBuilder.baseUrl(baseUrl);
             return this;
         }
 
         public Builder timeout(Duration timeout) {
-            this.timeout = timeout;
+            clientBuilder.timeout(timeout);
             return this;
         }
 
         public Builder httpClientBuilder(HttpClientBuilder httpClientBuilder) {
-            this.httpClientBuilder = httpClientBuilder;
+            clientBuilder.httpClientBuilder(httpClientBuilder);
             return this;
         }
 
         public Builder logRequests(Boolean logRequests) {
-            this.logRequests = logRequests;
+            clientBuilder.logRequests(logRequests);
             return this;
         }
 
         public Builder logResponses(Boolean logResponses) {
-            this.logResponses = logResponses;
+            clientBuilder.logResponses(logResponses);
             return this;
         }
 
