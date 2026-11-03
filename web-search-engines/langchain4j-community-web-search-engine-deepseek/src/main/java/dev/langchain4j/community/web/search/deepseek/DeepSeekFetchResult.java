@@ -7,7 +7,7 @@ public class DeepSeekFetchResult {
     private final String content;
 
     public DeepSeekFetchResult(String title, String content) {
-        this.title = title;
+        this.title = title == null ? "" : title;
         this.content = content;
     }
 
@@ -16,7 +16,7 @@ public class DeepSeekFetchResult {
         return title;
     }
 
-    /** Returns the page content converted to Markdown. */
+    /** Returns the page content converted to Markdown, or null when the response contains no content. */
     public String content() {
         return content;
     }

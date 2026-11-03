@@ -21,7 +21,8 @@ class DeepSeekWebFetchEngineTest {
     private final AtomicReference<String> requestAuthorization = new AtomicReference<>();
     private final AtomicReference<String> requestBody = new AtomicReference<>();
     private volatile int responseStatus = 200;
-    private volatile String responseBody = "{\"title\":\"Fetched page\",\"content\":\"# Markdown content\"}";
+    private volatile String responseBody =
+            "{\"title\":\"Fetched page\",\"content\":\"# Markdown content\",\"future_field\":\"ignored\"}";
 
     @BeforeEach
     void startServer() throws IOException {
@@ -48,7 +49,7 @@ class DeepSeekWebFetchEngineTest {
 
     private DeepSeekWebFetchEngine.Builder engineBuilder() {
         return DeepSeekWebFetchEngine.builder()
-                .baseUrl("http://localhost:" + server.getAddress().getPort() + "/v1/tools/")
+                .baseUrl("http://localhost:" + server.getAddress().getPort())
                 .apiKey("test-key");
     }
 
@@ -78,6 +79,21 @@ class DeepSeekWebFetchEngineTest {
         assertThatThrownBy(() -> engineBuilder().build().fetch(" "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("url");
+        assertThatThrownBy(() -> engineBuilder().build().fetch(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("url");
+    }
+
+    @Test
+    void should_append_tools_path_to_base_url_and_ignore_trailing_slash() {
+        DeepSeekWebFetchEngine engine = DeepSeekWebFetchEngine.builder()
+                .baseUrl("http://localhost:" + server.getAddress().getPort() + "/")
+                .apiKey("test-key")
+                .build();
+
+        engine.fetch("https://example.com/page");
+
+        assertThat(requestPath.get()).isEqualTo("/v1/tools/fetch");
     }
 
     @Test
@@ -95,7 +111,7 @@ class DeepSeekWebFetchEngineTest {
 
         DeepSeekFetchResult result = engineBuilder().build().fetch("https://example.com/page");
 
-        assertThat(result.title()).isNull();
+        assertThat(result.title()).isEmpty();
         assertThat(result.content()).isNull();
     }
 }
