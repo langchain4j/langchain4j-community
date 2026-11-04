@@ -29,6 +29,7 @@
 
         <module>langchain4j-community-core</module>
         <module>langchain4j-community-prompt-repetition</module>
+        <module>langchain4j-community-outputgate</module>
 
         <!-- LangChain4j Community Bill of Materials POM -->
         <module>langchain4j-community-bom</module>

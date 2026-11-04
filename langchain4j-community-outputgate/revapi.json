@@ -1,0 +1,25 @@
+[
+  {
+    "extension": "revapi.differences",
+    "configuration": {
+      "ignore": true,
+      "differences": [
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class io.github.ravismash.outputgate.Contract",
+          "justification": "The guardrail takes an outputgate contract and exposes its verdict and source types by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class io.github.ravismash.outputgate.SourceDocument",
+          "justification": "The guardrail takes an outputgate contract and exposes its verdict and source types by design"
+        },
+        {
+          "code": "java.class.externalClassExposedInAPI",
+          "new": "missing-class io.github.ravismash.outputgate.Verdict",
+          "justification": "The guardrail takes an outputgate contract and exposes its verdict and source types by design"
+        }
+      ]
+    }
+  }
+]
