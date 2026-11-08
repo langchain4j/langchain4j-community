@@ -110,10 +110,7 @@ public class ParentChildEmbeddingStoreIngestor extends EmbeddingStoreIngestor {
                 // Convert back to Document to apply DocumentSplitter
                 Document parentDoc = Document.from(segment.text(), segment.metadata());
                 List<TextSegment> childSegments = documentChildSplitter.split(parentDoc).stream()
-                        .map(i -> {
-                            assert childTextSegmentTransformer != null;
-                            return childTextSegmentTransformer.transform(i);
-                        })
+                        .map(i -> childTextSegmentTransformer == null ? i : childTextSegmentTransformer.transform(i))
                         .toList();
 
                 Response<List<Embedding>> embeddingsResponse = embeddingModel.embedAll(childSegments);
