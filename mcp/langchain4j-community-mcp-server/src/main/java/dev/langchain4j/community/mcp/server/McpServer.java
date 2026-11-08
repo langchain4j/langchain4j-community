@@ -1,5 +1,7 @@
 package dev.langchain4j.community.mcp.server;
 
+import static dev.langchain4j.internal.Utils.allConcreteMethods;
+import static dev.langchain4j.internal.Utils.getAnnotatedMethod;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,6 +31,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -197,19 +200,23 @@ public class McpServer {
     }
 
     private void addExecutors(Object tool, Map<String, ToolExecutor> executors) {
-        for (Method method : tool.getClass().getDeclaredMethods()) {
-            if (!method.isAnnotationPresent(Tool.class)) {
+        // The specs come from every concrete method of the object, including the ones inherited from a superclass or
+        // declared as an interface default method, so the executors have to be collected the same way.
+        for (Method method : allConcreteMethods(tool.getClass())) {
+            Optional<Method> annotatedMethod = getAnnotatedMethod(method, Tool.class);
+            if (annotatedMethod.isEmpty()) {
                 continue;
             }
-            ToolSpecification specification = ToolSpecifications.toolSpecificationFrom(method);
-            String toolName = specification.name();
+            Method toolMethod = annotatedMethod.get();
+            String toolName =
+                    ToolSpecifications.toolSpecificationFrom(toolMethod).name();
             if (executors.containsKey(toolName)) {
                 throw new IllegalArgumentException("Duplicated tool name: " + toolName);
             }
             ToolExecutor executor = DefaultToolExecutor.builder()
                     .object(tool)
-                    .originalMethod(method)
-                    .methodToInvoke(method)
+                    .originalMethod(toolMethod)
+                    .methodToInvoke(toolMethod)
                     .wrapToolArgumentsExceptions(true)
                     .propagateToolExecutionExceptions(true)
                     .build();
