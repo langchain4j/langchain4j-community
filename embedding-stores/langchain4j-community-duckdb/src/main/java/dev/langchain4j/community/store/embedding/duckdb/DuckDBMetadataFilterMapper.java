@@ -121,22 +121,30 @@ public class DuckDBMetadataFilterMapper {
     }
 
     String formatKey(String key, Class<?> valueType) {
-        return format("(metadata->>'%s')::%s", key, SQL_TYPE_MAP.get(valueType));
+        return format("(metadata->>%s)::%s", literal(key), SQL_TYPE_MAP.get(valueType));
     }
 
     String formatKeyAsString(String key) {
-        return format("(metadata->>'%s')", key);
+        return format("(metadata->>%s)", literal(key));
     }
 
     String formatValue(Object value) {
         if (value instanceof String || value instanceof UUID) {
-            return "'" + value + "'";
+            return literal(value.toString());
         } else {
             return value.toString();
         }
     }
 
     String formatValuesAsString(Collection<?> values) {
-        return "(" + values.stream().map(v -> format("'%s'", v)).collect(Collectors.joining(",")) + ")";
+        return "(" + values.stream().map(v -> literal(v.toString())).collect(Collectors.joining(",")) + ")";
+    }
+
+    /**
+     * Wraps the given text in single quotes, doubling every single quote it contains, so that a metadata key or value
+     * is always read back as data and never as part of the SQL statement.
+     */
+    private static String literal(String value) {
+        return "'" + value.replace("'", "''") + "'";
     }
 }
