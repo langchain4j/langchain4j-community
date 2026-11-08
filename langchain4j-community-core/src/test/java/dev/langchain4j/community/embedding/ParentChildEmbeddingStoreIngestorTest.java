@@ -247,4 +247,44 @@ class ParentChildEmbeddingStoreIngestorTest {
 
         assertThat(ingestionResult.tokenUsage()).isEqualTo(tokenUsage);
     }
+
+    @Test
+    void should_embed_the_child_segments_unchanged_when_no_child_text_segment_transformer_is_specified() {
+
+        // given
+        Document document = Document.from("First sentence.");
+        TextSegment parentSegment = textSegment("First sentence.");
+
+        DocumentSplitter documentSplitter = mock(DocumentSplitter.class);
+        when(documentSplitter.splitAll(singletonList(document))).thenReturn(singletonList(parentSegment));
+
+        DocumentSplitter documentChildSplitter = mock(DocumentSplitter.class);
+        when(documentChildSplitter.split(any()))
+                .thenReturn(asList(textSegment("First child."), textSegment("Second child.")));
+
+        List<Embedding> childEmbeddings = asList(Embedding.from(new float[] {1}), Embedding.from(new float[] {2}));
+        TokenUsage tokenUsage = new TokenUsage(1, 2, 3);
+        EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
+        when(embeddingModel.embedAll(any())).thenReturn(Response.from(childEmbeddings, tokenUsage));
+
+        @SuppressWarnings("unchecked")
+        EmbeddingStore<TextSegment> embeddingStore = mock(EmbeddingStore.class);
+
+        // The child text segment transformer is documented as optional.
+        ParentChildEmbeddingStoreIngestor ingestor = ParentChildEmbeddingStoreIngestor.builder()
+                .documentSplitter(documentSplitter)
+                .documentChildSplitter(documentChildSplitter)
+                .embeddingModel(embeddingModel)
+                .embeddingStore(embeddingStore)
+                .build();
+
+        // when
+        IngestionResult ingestionResult = ingestor.ingest(document);
+
+        // then
+        List<TextSegment> expectedChildSegments = asList(textSegment("First child."), textSegment("Second child."));
+        verify(embeddingModel).embedAll(expectedChildSegments);
+        verify(embeddingStore).addAll(childEmbeddings, expectedChildSegments);
+        assertThat(ingestionResult.tokenUsage()).isEqualTo(tokenUsage);
+    }
 }
