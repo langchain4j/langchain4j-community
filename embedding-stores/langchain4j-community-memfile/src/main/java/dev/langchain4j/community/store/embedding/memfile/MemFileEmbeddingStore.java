@@ -292,14 +292,14 @@ public class MemFileEmbeddingStore<Embedded> implements EmbeddingStore<Embedded>
         for (Entry<Embedded> entry : entries) {
             Embedded embedded = null;
 
-            // Load embedded content from file if needed for filtering
-            if (filter != null && entry.chunkFilePath != null) {
+            // A filter is evaluated against the segment metadata, so entries without
+            // content, or whose content cannot be loaded, cannot match it. They are
+            // excluded rather than let through: an entry that cannot be proven to match
+            // must not be returned. This mirrors the rule documented by the in-memory store.
+            if (filter != null) {
                 embedded = loadChunkFromFile(entry.chunkFilePath);
-                if (embedded instanceof TextSegment) {
-                    Metadata metadata = ((TextSegment) embedded).metadata();
-                    if (!filter.test(metadata)) {
-                        continue;
-                    }
+                if (!(embedded instanceof TextSegment) || !filter.test(((TextSegment) embedded).metadata())) {
+                    continue;
                 }
             }
 
