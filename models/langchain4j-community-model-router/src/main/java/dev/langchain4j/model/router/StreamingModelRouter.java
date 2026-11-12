@@ -11,6 +11,14 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatModelStreamingEvent;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.CompleteToolCall;
+import dev.langchain4j.model.chat.response.PartialResponse;
+import dev.langchain4j.model.chat.response.PartialResponseContext;
+import dev.langchain4j.model.chat.response.PartialThinking;
+import dev.langchain4j.model.chat.response.PartialThinkingContext;
+import dev.langchain4j.model.chat.response.PartialToolCall;
+import dev.langchain4j.model.chat.response.PartialToolCallContext;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,9 +81,14 @@ public class StreamingModelRouter implements StreamingChatModel {
     }
 
     /**
-     * Handler-based entry point. Failover applies to exceptions thrown synchronously by the
-     * delegate invocation only; asynchronous errors are reported to the handler unchanged, as
-     * they were before the reactive API existed.
+     * Handler-based entry point. If the route selected by the routing strategy fails before
+     * delivering any event to the handler, the request is retried on the next route selected by the
+     * strategy, up to the number of configured routes. A route fails either by throwing from
+     * {@code chat(...)} or by calling {@link StreamingChatResponseHandler#onError(Throwable)}, on the
+     * calling thread or later on another thread. Once an event has been delivered to the handler, or
+     * when no attempt is left, the failure is propagated instead of being retried. Signals that a
+     * route sends after it failed over or completed are ignored, so the handler receives only one
+     * terminal signal.
      */
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
@@ -88,12 +101,16 @@ public class StreamingModelRouter implements StreamingChatModel {
 
     private void doChatInternal(ChatRequest chatRequest, StreamingChatResponseHandler handler, int attemptsLeft) {
         StreamingChatModelWrapper delegate = resolveDelegate(chatRequest);
+        FailoverHandler failoverHandler = new FailoverHandler(chatRequest, handler, attemptsLeft);
         try {
-            delegate.chat(chatRequest, handler);
+            delegate.chat(chatRequest, failoverHandler);
         } catch (NoMatchingModelFoundException e) {
             throw e;
         } catch (Exception e) {
-            if (attemptsLeft <= 1) {
+            if (!failoverHandler.finish()) {
+                return; // the route already reported its outcome through the handler
+            }
+            if (!failoverHandler.canFailOver()) {
                 throw e;
             }
             doChatInternal(chatRequest, handler, attemptsLeft - 1);
@@ -156,6 +173,130 @@ public class StreamingModelRouter implements StreamingChatModel {
 
         public StreamingModelRouter build() {
             return new StreamingModelRouter(this);
+        }
+    }
+
+    /**
+     * The handler given to one route by {@link #doChat(ChatRequest, StreamingChatResponseHandler)}.
+     * It forwards the events of the route to the caller's handler and fails over to the next route
+     * when the route reports an error before any event was forwarded.
+     */
+    private final class FailoverHandler implements StreamingChatResponseHandler {
+
+        private final ChatRequest chatRequest;
+        private final StreamingChatResponseHandler handler;
+        private final int attemptsLeft;
+        private boolean delivered; // guarded by this
+        private boolean finished; // guarded by this
+
+        FailoverHandler(ChatRequest chatRequest, StreamingChatResponseHandler handler, int attemptsLeft) {
+            this.chatRequest = chatRequest;
+            this.handler = handler;
+            this.attemptsLeft = attemptsLeft;
+        }
+
+        @Override
+        public void onPartialResponse(String partialResponse) {
+            if (deliver()) {
+                handler.onPartialResponse(partialResponse);
+            }
+        }
+
+        @Override
+        public void onPartialResponse(PartialResponse partialResponse, PartialResponseContext context) {
+            if (deliver()) {
+                handler.onPartialResponse(partialResponse, context);
+            }
+        }
+
+        @Override
+        public void onPartialThinking(PartialThinking partialThinking) {
+            if (deliver()) {
+                handler.onPartialThinking(partialThinking);
+            }
+        }
+
+        @Override
+        public void onPartialThinking(PartialThinking partialThinking, PartialThinkingContext context) {
+            if (deliver()) {
+                handler.onPartialThinking(partialThinking, context);
+            }
+        }
+
+        @Override
+        public void onPartialToolCall(PartialToolCall partialToolCall) {
+            if (deliver()) {
+                handler.onPartialToolCall(partialToolCall);
+            }
+        }
+
+        @Override
+        public void onPartialToolCall(PartialToolCall partialToolCall, PartialToolCallContext context) {
+            if (deliver()) {
+                handler.onPartialToolCall(partialToolCall, context);
+            }
+        }
+
+        @Override
+        public void onCompleteToolCall(CompleteToolCall completeToolCall) {
+            if (deliver()) {
+                handler.onCompleteToolCall(completeToolCall);
+            }
+        }
+
+        @Override
+        public void onUnmappedRawEvent(Object rawEvent) {
+            if (deliver()) {
+                handler.onUnmappedRawEvent(rawEvent);
+            }
+        }
+
+        @Override
+        public void onCompleteResponse(ChatResponse completeResponse) {
+            if (finish()) {
+                handler.onCompleteResponse(completeResponse);
+            }
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            if (!finish()) {
+                return;
+            }
+            if (!canFailOver()) {
+                handler.onError(error);
+                return;
+            }
+            try {
+                doChatInternal(chatRequest, handler, attemptsLeft - 1);
+            } catch (Exception e) {
+                // this callback may run on the route's own thread, where a thrown exception would be lost
+                handler.onError(e);
+            }
+        }
+
+        private synchronized boolean deliver() {
+            if (finished) {
+                return false;
+            }
+            delivered = true;
+            return true;
+        }
+
+        /**
+         * Marks the route as done. Returns {@code false} if it was already done, in which case the
+         * signal that called this method must be ignored.
+         */
+        private synchronized boolean finish() {
+            if (finished) {
+                return false;
+            }
+            finished = true;
+            return true;
+        }
+
+        private synchronized boolean canFailOver() {
+            return !delivered && attemptsLeft > 1;
         }
     }
 

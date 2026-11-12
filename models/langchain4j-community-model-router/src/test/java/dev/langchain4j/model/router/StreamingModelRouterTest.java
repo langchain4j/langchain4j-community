@@ -16,6 +16,7 @@ import dev.langchain4j.model.chat.response.CompleteResponse;
 import dev.langchain4j.model.chat.response.PartialResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -499,19 +500,28 @@ class StreamingModelRouterTest {
 
     private static final class HandlerCollector implements StreamingChatResponseHandler {
 
+        private final List<String> partialResponses = new CopyOnWriteArrayList<>();
         private final AtomicReference<ChatResponse> completeResponse = new AtomicReference<>();
         private final AtomicReference<Throwable> error = new AtomicReference<>();
+        private final AtomicInteger terminalSignals = new AtomicInteger();
         private final CountDownLatch terminal = new CountDownLatch(1);
+
+        @Override
+        public void onPartialResponse(String partialResponse) {
+            partialResponses.add(partialResponse);
+        }
 
         @Override
         public void onCompleteResponse(ChatResponse response) {
             completeResponse.set(response);
+            terminalSignals.incrementAndGet();
             terminal.countDown();
         }
 
         @Override
         public void onError(Throwable error) {
             this.error.set(error);
+            terminalSignals.incrementAndGet();
             terminal.countDown();
         }
 
@@ -702,7 +712,124 @@ class StreamingModelRouterTest {
 
         assertNull(collector.error.get());
         assertEquals("healthy", collector.completeResponse.get().aiMessage().text());
+        assertEquals(1, collector.terminalSignals.get());
         assertEquals(1, throwing.handlerCalls());
         assertEquals(1, healthy.handlerCalls());
+    }
+
+    /**
+     * The handler-based entry point also fails over when a delegate reports its failure through
+     * {@code onError} before any event, on the calling thread or on another thread.
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void handlerBasedCallFailsOverWhenRouteReportsErrorBeforeAnyEvent(boolean fromAnotherThread)
+            throws InterruptedException {
+        ScriptedStreamingModel failing = new ScriptedStreamingModel(null, handler -> {
+            Runnable reportError = () -> handler.onError(new IllegalStateException("reported failure"));
+            if (fromAnotherThread) {
+                CompletableFuture.runAsync(reportError);
+            } else {
+                reportError.run();
+            }
+        });
+        ScriptedStreamingModel healthy = successfulModel("healthy");
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(failing, healthy)
+                .routingStrategy(roundRobinStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertNull(collector.error.get());
+        assertEquals("healthy", collector.completeResponse.get().aiMessage().text());
+        assertEquals(1, collector.terminalSignals.get());
+        assertEquals(1, failing.handlerCalls());
+        assertEquals(1, healthy.handlerCalls());
+    }
+
+    /**
+     * Once an event has been delivered to the handler, a failure is reported to it instead of being
+     * retried.
+     */
+    @Test
+    void handlerBasedCallDoesNotFailOverAfterAnEventWasDelivered() throws InterruptedException {
+        ScriptedStreamingModel partialThenFailing = new ScriptedStreamingModel(null, handler -> {
+            handler.onPartialResponse("partial");
+            handler.onError(new IllegalStateException("mid-stream failure"));
+        });
+        ScriptedStreamingModel healthy = successfulModel("healthy");
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(partialThenFailing, healthy)
+                .routingStrategy(roundRobinStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertEquals(List.of("partial"), collector.partialResponses);
+        assertEquals("mid-stream failure", collector.error.get().getMessage());
+        assertNull(collector.completeResponse.get());
+        assertEquals(1, collector.terminalSignals.get());
+        assertEquals(0, healthy.handlerCalls());
+    }
+
+    /**
+     * A route that reports its failure several times, here twice through {@code onError} and then by
+     * throwing, fails over only once, and the handler receives only one terminal signal.
+     */
+    @Test
+    void handlerBasedCallFailsOverOnlyOncePerRoute() throws InterruptedException {
+        ScriptedStreamingModel failing = new ScriptedStreamingModel(null, handler -> {
+            handler.onError(new IllegalStateException("first failure"));
+            handler.onError(new IllegalStateException("second failure"));
+            throw new IllegalStateException("thrown failure");
+        });
+        ScriptedStreamingModel healthy = successfulModel("healthy");
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(failing, healthy)
+                .routingStrategy(roundRobinStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        assertDoesNotThrow(() -> router.chat(REQUEST, collector));
+        collector.awaitTerminal();
+
+        assertNull(collector.error.get());
+        assertEquals("healthy", collector.completeResponse.get().aiMessage().text());
+        assertEquals(1, collector.terminalSignals.get());
+        assertEquals(1, failing.handlerCalls());
+        assertEquals(1, healthy.handlerCalls());
+    }
+
+    /**
+     * When a failover started from {@code onError} on another thread reaches a last route that throws,
+     * the failure is reported to the handler instead of being lost on that thread.
+     */
+    @Test
+    void handlerBasedCallReportsLastFailureToHandlerWhenFailoverStartedFromOnError() throws InterruptedException {
+        ScriptedStreamingModel asyncFailing = new ScriptedStreamingModel(
+                null,
+                handler -> CompletableFuture.runAsync(
+                        () -> handler.onError(new IllegalStateException("reported failure"))));
+        ScriptedStreamingModel throwing = new ScriptedStreamingModel(null, handler -> {
+            throw new IllegalStateException("sync failure");
+        });
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(asyncFailing, throwing)
+                .routingStrategy(roundRobinStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertEquals("sync failure", collector.error.get().getMessage());
+        assertEquals(1, collector.terminalSignals.get());
+        assertEquals(1, asyncFailing.handlerCalls());
+        assertEquals(1, throwing.handlerCalls());
     }
 }
