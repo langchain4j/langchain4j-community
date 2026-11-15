@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.guardrail.ChatExecutor;
@@ -12,6 +14,7 @@ import dev.langchain4j.guardrail.GuardrailRequestParams;
 import dev.langchain4j.guardrail.GuardrailResult;
 import dev.langchain4j.guardrail.OutputGuardrailRequest;
 import dev.langchain4j.guardrail.OutputGuardrailResult;
+import dev.langchain4j.invocation.InvocationContext;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
@@ -19,7 +22,6 @@ import dev.langchain4j.rag.AugmentationResult;
 import dev.langchain4j.rag.content.Content;
 import io.github.ravismash.outputgate.BudgetGate;
 import io.github.ravismash.outputgate.Contract;
-import io.github.ravismash.outputgate.ProvenanceGate;
 import io.github.ravismash.outputgate.SourceDocument;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +117,24 @@ class OutputgateOutputGuardrailTest {
     }
 
     @Test
+    void should_keep_thinking_and_attributes_when_unwrapping_a_code_fence() {
+        AiMessage fenced = AiMessage.builder()
+                .text("```json\n" + Contracts.VALID + "\n```")
+                .thinking("Counted the answers.")
+                .attributes(Map.of("trace", "abc-123"))
+                .build();
+
+        OutputGuardrailRequest request = request(fenced, userMessageRequest("q"), params());
+
+        OutputGuardrailResult result = guardrail.validate(request);
+
+        AiMessage passedOn = result.<ChatResponse>response(request).aiMessage();
+        assertThat(passedOn.text()).isEqualTo(Contracts.VALID);
+        assertThat(passedOn.thinking()).isEqualTo("Counted the answers.");
+        assertThat(passedOn.attributes()).containsEntry("trace", "abc-123");
+    }
+
+    @Test
     void should_check_fenced_text_as_is_when_unwrapping_is_off() {
         OutputgateOutputGuardrail strict = OutputgateOutputGuardrail.builder()
                 .contract(Contracts.survey())
@@ -156,13 +176,14 @@ class OutputgateOutputGuardrailTest {
     @Test
     void should_check_quotes_against_the_user_message() {
         OutputgateOutputGuardrail grounded = OutputgateOutputGuardrail.builder()
-                .contract(groundedContract())
+                .contract(Contracts.grounded())
                 .source(OutputgateOutputGuardrail.userMessageAsSource())
                 .build();
 
-        assertThat(grounded.validate(request(quoting("70 said yes"), SOURCE)).isSuccess())
+        assertThat(grounded.validate(request(Contracts.quoting("70 said yes"), SOURCE))
+                        .isSuccess())
                 .isTrue();
-        OutputGuardrailResult invented = grounded.validate(request(quoting("80 said yes"), SOURCE));
+        OutputGuardrailResult invented = grounded.validate(request(Contracts.quoting("80 said yes"), SOURCE));
         assertThat(invented.isReprompt()).isTrue();
         assertThat(invented.getReprompt())
                 .hasValueSatisfying(
@@ -172,7 +193,7 @@ class OutputgateOutputGuardrailTest {
     @Test
     void should_check_quotes_against_retrieved_content() {
         OutputgateOutputGuardrail grounded = OutputgateOutputGuardrail.builder()
-                .contract(groundedContract())
+                .contract(Contracts.grounded())
                 .source(OutputgateOutputGuardrail.retrievedContentAsSource())
                 .build();
         AugmentationResult augmentation = AugmentationResult.builder()
@@ -181,8 +202,10 @@ class OutputgateOutputGuardrailTest {
                         Content.from(TextSegment.from("Unrelated page.")), Content.from(TextSegment.from(SOURCE))))
                 .build();
 
-        OutputGuardrailResult onPageTwo = grounded.validate(request(quoting("70 said yes", 2), "q", augmentation));
-        OutputGuardrailResult onPageOne = grounded.validate(request(quoting("70 said yes", 1), "q", augmentation));
+        OutputGuardrailResult onPageTwo =
+                grounded.validate(request(Contracts.quoting("70 said yes", 2), "q", augmentation));
+        OutputGuardrailResult onPageOne =
+                grounded.validate(request(Contracts.quoting("70 said yes", 1), "q", augmentation));
 
         assertThat(onPageTwo.isSuccess()).isTrue();
         assertThat(onPageOne.isReprompt()).isTrue();
@@ -191,17 +214,17 @@ class OutputgateOutputGuardrailTest {
     @Test
     void should_report_a_grounded_gate_without_source_as_a_violation() {
         OutputgateOutputGuardrail grounded = OutputgateOutputGuardrail.builder()
-                .contract(groundedContract())
+                .contract(Contracts.grounded())
                 .source(OutputgateOutputGuardrail.retrievedContentAsSource())
                 .build();
 
-        OutputGuardrailResult result = grounded.validate(request(quoting("70 said yes")));
+        OutputGuardrailResult result = grounded.validate(request(Contracts.quoting("70 said yes")));
 
         assertThat(result.isReprompt()).isTrue();
     }
 
     @Test
-    void should_give_no_source_when_the_user_message_is_not_single_text() {
+    void should_give_no_source_when_there_is_no_user_message() {
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(AiMessage.from("not a user message"))
                 .build();
@@ -210,6 +233,68 @@ class OutputgateOutputGuardrailTest {
         SourceDocument source = OutputgateOutputGuardrail.userMessageAsSource().apply(request);
 
         assertThat(source).isNull();
+    }
+
+    @Test
+    void should_report_a_missing_source_instead_of_failing_when_there_is_no_chat_request() {
+        OutputgateOutputGuardrail grounded = OutputgateOutputGuardrail.builder()
+                .contract(Contracts.grounded())
+                .source(OutputgateOutputGuardrail.userMessageAsSource())
+                .build();
+
+        OutputGuardrailResult result =
+                grounded.validate(request(AiMessage.from(Contracts.quoting("70 said yes")), null, params()));
+
+        assertThat(result.isReprompt()).isTrue();
+        assertThat(result.getReprompt())
+                .hasValueSatisfying(reprompt -> assertThat(reprompt).contains("no source document"));
+    }
+
+    @Test
+    void should_prefer_the_original_user_message_over_a_later_reprompt() {
+        OutputgateOutputGuardrail grounded = OutputgateOutputGuardrail.builder()
+                .contract(Contracts.grounded())
+                .source(OutputgateOutputGuardrail.userMessageAsSource())
+                .build();
+        ChatRequest retry = ChatRequest.builder()
+                .messages(UserMessage.from("Your previous response did not pass these checks: ..."))
+                .build();
+        GuardrailRequestParams params = params(InvocationContext.builder()
+                .originalUserMessage(UserMessage.from(SOURCE))
+                .build());
+
+        OutputGuardrailResult result =
+                grounded.validate(request(AiMessage.from(Contracts.quoting("70 said yes")), retry, params));
+
+        assertThat(result.isSuccess()).isTrue();
+    }
+
+    @Test
+    void should_use_every_text_part_of_a_user_message_with_an_image() {
+        UserMessage withImage = UserMessage.from(
+                TextContent.from("Summarize the survey on the photo."),
+                ImageContent.from("https://example.com/survey.png"),
+                TextContent.from(SOURCE));
+        OutputGuardrailRequest request = request(
+                AiMessage.from(Contracts.VALID),
+                ChatRequest.builder().messages(withImage).build(),
+                params());
+
+        SourceDocument source = OutputgateOutputGuardrail.userMessageAsSource().apply(request);
+
+        assertThat(source.pages()).containsExactly("Summarize the survey on the photo.\n" + SOURCE);
+    }
+
+    @Test
+    void should_give_no_source_for_a_user_message_without_text() {
+        UserMessage imageOnly = UserMessage.from(ImageContent.from("https://example.com/survey.png"));
+        OutputGuardrailRequest request = request(
+                AiMessage.from(Contracts.VALID),
+                ChatRequest.builder().messages(imageOnly).build(),
+                params());
+
+        assertThat(OutputgateOutputGuardrail.userMessageAsSource().apply(request))
+                .isNull();
     }
 
     @Test
@@ -234,21 +319,6 @@ class OutputgateOutputGuardrailTest {
         assertThatThrownBy(() -> OutputgateOutputGuardrail.builder().build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("contract");
-    }
-
-    private static Contract groundedContract() {
-        return Contract.builder()
-                .gate(ProvenanceGate.builder().require("finding").grounded().build())
-                .build();
-    }
-
-    private static String quoting(String quote) {
-        return quoting(quote, 1);
-    }
-
-    private static String quoting(String quote, int page) {
-        return "{\"finding\": {\"value\": \"" + quote + "\", \"source_span\": {\"page\": " + page + ", \"text\": \""
-                + quote + "\"}}}";
     }
 
     private static OutputGuardrailRequest request(String output) {
@@ -282,11 +352,37 @@ class OutputgateOutputGuardrailTest {
                 .variables(Map.of())
                 .augmentationResult(augmentation)
                 .build();
+        return request(response, chatRequest, params);
+    }
+
+    private static OutputGuardrailRequest request(
+            AiMessage output, ChatRequest chatRequest, GuardrailRequestParams params) {
+        return request(ChatResponse.builder().aiMessage(output).build(), chatRequest, params);
+    }
+
+    private static OutputGuardrailRequest request(
+            ChatResponse response, ChatRequest chatRequest, GuardrailRequestParams params) {
         return OutputGuardrailRequest.builder()
                 .responseFromLLM(response)
                 .chatRequest(chatRequest)
                 .chatExecutor(new UnusedChatExecutor())
                 .requestParams(params)
+                .build();
+    }
+
+    private static ChatRequest userMessageRequest(String text) {
+        return ChatRequest.builder().messages(UserMessage.from(text)).build();
+    }
+
+    private static GuardrailRequestParams params() {
+        return params(null);
+    }
+
+    private static GuardrailRequestParams params(InvocationContext invocationContext) {
+        return GuardrailRequestParams.builder()
+                .userMessageTemplate("")
+                .variables(Map.of())
+                .invocationContext(invocationContext)
                 .build();
     }
 
