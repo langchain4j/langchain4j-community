@@ -269,18 +269,26 @@ public class McpServer {
                     id, new McpErrorResponse.Error(ERROR_CODE_RESOURCE_NOT_FOUND, "Resource not found: " + uri, null));
         }
 
+        String text;
         try {
-            String text = supplier.read();
-            Map<String, Object> content = new LinkedHashMap<>();
-            content.put(URI_FIELD, uri);
-            content.put("mimeType", supplier.mimeType());
-            content.put("text", text);
-            return new McpReadResourceResult(id, List.of(content));
+            text = supplier.read();
         } catch (Exception e) {
             // The cause is logged server-side; surfacing it verbatim would leak internals (e.g. the
             // reflective "cannot access a member of class ..." message for a non-public method).
             return internalError(id, "Failed to read resource: " + uri, e);
         }
+        // "text" is a required string in TextContent: a null would serialize as "text": null, which
+        // strict clients reject the same way they reject "nextCursor": null.
+        if (text == null) {
+            LOG.warn("Resource returned null, which cannot be represented as text content: {}", uri);
+            return new McpErrorResponse(
+                    id, new McpErrorResponse.Error(ERROR_CODE_INTERNAL_ERROR, "Failed to read resource: " + uri, null));
+        }
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put(URI_FIELD, uri);
+        content.put("mimeType", supplier.mimeType());
+        content.put("text", text);
+        return new McpReadResourceResult(id, List.of(content));
     }
 
     private McpListPromptsResult handleListPrompts(Long id) {
@@ -384,9 +392,7 @@ public class McpServer {
             }
             // Enforce at registration what Resource documents, so a mis-annotated method fails fast
             // instead of registering and only breaking when a client reads it.
-            if (!Modifier.isPublic(method.getModifiers())) {
-                throw new IllegalArgumentException("Resource method must be public: " + annotation.uri());
-            }
+            ensureInvokable(resource, method, annotation.uri(), "Resource");
             if (method.getReturnType() != String.class) {
                 throw new IllegalArgumentException("Resource method must return String: " + annotation.uri());
             }
@@ -419,6 +425,9 @@ public class McpServer {
                 throw new IllegalArgumentException(
                         "Prompt method must return List<PromptMessage>: " + annotation.name());
             }
+            // Same rule as @Resource: Prompt documents "must be public", so advertise only what
+            // prompts/get can actually invoke.
+            ensureInvokable(prompt, method, annotation.name(), "Prompt");
 
             List<PromptArgumentSpec> arguments = new ArrayList<>();
             Set<String> argumentNames = new HashSet<>();
@@ -556,6 +565,32 @@ public class McpServer {
         }
         Type[] typeArguments = parameterizedType.getActualTypeArguments();
         return typeArguments.length == 1 && typeArguments[0] == PromptMessage.class;
+    }
+
+    /**
+     * Verifies at registration that an annotated method can actually be invoked reflectively, so a
+     * mis-annotated method never gets advertised and then fails at read time.
+     *
+     * <p>A method that is not publicly invocable from another package (for example a
+     * {@code public} method on a package-private class) is made accessible here, mirroring the
+     * fallback {@code DefaultToolExecutor} applies to {@code @Tool}.
+     *
+     * @param instance the object the method will be invoked on
+     * @param kind {@code "Resource"} or {@code "Prompt"}, used to build the error message
+     * @param identifier the resource uri or prompt name, so the failure names the offending method
+     */
+    private static void ensureInvokable(Object instance, Method method, String identifier, String kind) {
+        if (!Modifier.isPublic(method.getModifiers())) {
+            throw new IllegalArgumentException(kind + " method must be public: " + identifier);
+        }
+        if (!method.canAccess(instance)) {
+            try {
+                method.setAccessible(true);
+            } catch (RuntimeException e) {
+                throw new IllegalArgumentException(
+                        kind + " method is declared on a class that cannot be accessed: " + identifier, e);
+            }
+        }
     }
 
     /**

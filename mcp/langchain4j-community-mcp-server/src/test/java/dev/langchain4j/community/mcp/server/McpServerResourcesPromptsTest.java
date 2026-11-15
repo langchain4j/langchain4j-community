@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.community.mcp.server.support.CrossPackageResources;
 import dev.langchain4j.mcp.protocol.McpErrorResponse;
 import dev.langchain4j.mcp.protocol.McpJsonRpcMessage;
 import java.util.List;
@@ -257,6 +258,57 @@ class McpServerResourcesPromptsTest {
         assertThat(message.getContent().get("text")).isEqualTo("");
     }
 
+    @Test
+    void should_return_internal_error_when_resource_returns_null() {
+        // TextContent.text is a required string, so a null must not reach the wire as "text": null.
+        McpServer server =
+                McpServer.builder().resources(List.of(new NullResource())).build();
+
+        JsonNode tree = toTree(server.handle(request(1, "resources/read", Map.of("uri", "null://resource"))));
+
+        assertThat(tree.get("error").get("code").asInt()).isEqualTo(-32603);
+        assertThat(tree.has("result")).isFalse();
+    }
+
+    @Test
+    void should_reject_non_public_prompt_method() {
+        // Prompt documents "must be public"; without this check the prompt is advertised in
+        // prompts/list and only fails at prompts/get.
+        assertThatThrownBy(() -> McpServer.builder()
+                        .prompts(List.of(new NonPublicPrompt()))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must be public");
+    }
+
+    @Test
+    void should_invoke_public_methods_declared_on_package_private_class() {
+        // A public method on a non-public class is not accessible from another package; the server
+        // makes it accessible at registration instead of advertising a resource it cannot read.
+        // The fixture lives in a different package on purpose.
+        Object holder = CrossPackageResources.packagePrivateHolder();
+        McpServer server = McpServer.builder()
+                .resources(List.of(holder))
+                .prompts(List.of(holder))
+                .build();
+
+        JsonNode list = toTree(server.handle(request(1, "resources/list", null)));
+        assertThat(list.get("result").get("resources")).hasSize(1);
+
+        JsonNode read = toTree(server.handle(request(2, "resources/read", Map.of("uri", "pkg://resource"))));
+        assertThat(read.get("result").get("contents").get(0).get("text").asText())
+                .isEqualTo("readable");
+
+        JsonNode prompt = toTree(server.handle(request(3, "prompts/get", Map.of("name", "pkg-prompt"))));
+        assertThat(prompt.get("result")
+                        .get("messages")
+                        .get(0)
+                        .get("content")
+                        .get("text")
+                        .asText())
+                .isEqualTo("readable");
+    }
+
     private static JsonNode findByName(JsonNode array, String name) {
         for (JsonNode node : array) {
             if (name.equals(node.get("name").asText())) {
@@ -380,6 +432,22 @@ class McpServerResourcesPromptsTest {
         @Prompt(name = "strings")
         public List<String> strings() {
             return List.of("a", "b");
+        }
+    }
+
+    static class NullResource {
+
+        @Resource(uri = "null://resource", name = "Null")
+        public String read() {
+            return null;
+        }
+    }
+
+    static class NonPublicPrompt {
+
+        @Prompt(name = "hidden")
+        List<PromptMessage> hidden() {
+            return List.of(PromptMessage.user("nope"));
         }
     }
 }
