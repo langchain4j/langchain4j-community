@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,19 +148,19 @@ public class SQLChatMemoryStore implements ChatMemoryStore {
             DatabaseMetaData databaseMetaData = connection.getMetaData();
 
             String normalisedTableName = databaseMetaData.storesUpperCaseIdentifiers()
-                    ? tableName.toUpperCase()
-                    : databaseMetaData.storesLowerCaseIdentifiers() ? tableName.toLowerCase() : tableName;
+                    ? tableName.toUpperCase(Locale.ROOT)
+                    : databaseMetaData.storesLowerCaseIdentifiers() ? tableName.toLowerCase(Locale.ROOT) : tableName;
 
             String normalisedMemoryIdColumnName = databaseMetaData.storesUpperCaseIdentifiers()
-                    ? memoryIdColumnName.toUpperCase()
+                    ? memoryIdColumnName.toUpperCase(Locale.ROOT)
                     : databaseMetaData.storesLowerCaseIdentifiers()
-                            ? memoryIdColumnName.toLowerCase()
+                            ? memoryIdColumnName.toLowerCase(Locale.ROOT)
                             : memoryIdColumnName;
 
             String normalisedContentColumnName = databaseMetaData.storesUpperCaseIdentifiers()
-                    ? contentColumnName.toUpperCase()
+                    ? contentColumnName.toUpperCase(Locale.ROOT)
                     : databaseMetaData.storesLowerCaseIdentifiers()
-                            ? contentColumnName.toLowerCase()
+                            ? contentColumnName.toLowerCase(Locale.ROOT)
                             : contentColumnName;
 
             doesTableExist =
