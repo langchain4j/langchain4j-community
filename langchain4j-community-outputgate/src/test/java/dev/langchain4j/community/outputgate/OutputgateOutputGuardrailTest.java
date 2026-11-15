@@ -56,7 +56,23 @@ class OutputgateOutputGuardrailTest {
         assertThat(result.<OutputGuardrailResult.Failure>failures())
                 .singleElement()
                 .satisfies(failure -> assertThat(failure.message())
-                        .startsWith("The output failed its contract: total_responses: sum of"));
+                        .isEqualTo("The output failed its contract:\n"
+                                + "- total_responses: sum of options[*].count is 120 but total_responses is 130"
+                                + " (tolerance 0) (math)"));
+    }
+
+    @Test
+    void should_list_violations_the_same_way_in_the_failure_message_and_the_reprompt() {
+        OutputGuardrailResult result =
+                guardrail.validate(request("{\"question\": \"Q\", \"total_responses\": \"many\", \"options\": []}"));
+
+        String failure = result.<OutputGuardrailResult.Failure>failures().get(0).message();
+        String list = failure.substring(failure.indexOf('\n') + 1);
+        assertThat(list.lines())
+                .hasSizeGreaterThan(1)
+                .allSatisfy(line -> assertThat(line).startsWith("- "));
+        assertThat(result.getReprompt())
+                .hasValueSatisfying(reprompt -> assertThat(reprompt).contains(list));
     }
 
     @Test

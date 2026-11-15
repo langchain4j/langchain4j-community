@@ -98,7 +98,7 @@ public class OutputgateOutputGuardrail implements OutputGuardrail {
                     : successWith(response.aiMessage().withText(json));
         }
 
-        String message = "The output failed its contract: " + describe(verdict.violations());
+        String message = "The output failed its contract:\n" + bulletList(verdict.violations());
         return repromptOnViolation ? reprompt(message, repromptMessage.apply(verdict)) : fatal(message);
     }
 
@@ -120,8 +120,9 @@ public class OutputgateOutputGuardrail implements OutputGuardrail {
         return matcher.matches() ? matcher.group(1) : text;
     }
 
-    private static String describe(List<Violation> violations) {
-        return violations.stream().map(OutputgateOutputGuardrail::line).collect(Collectors.joining("; "));
+    /** One {@code - path: message (gate)} line per violation, as in the failure message and the default reprompt. */
+    private static String bulletList(List<Violation> violations) {
+        return violations.stream().map(violation -> "- " + line(violation)).collect(Collectors.joining("\n"));
     }
 
     private static String line(Violation violation) {
@@ -138,10 +139,7 @@ public class OutputgateOutputGuardrail implements OutputGuardrail {
      * @return the text sent to the model
      */
     public static String defaultRepromptMessage(Verdict verdict) {
-        String lines = verdict.violations().stream()
-                .map(violation -> "- " + line(violation))
-                .collect(Collectors.joining("\n"));
-        return "Your previous response did not pass these checks:\n" + lines
+        return "Your previous response did not pass these checks:\n" + bulletList(verdict.violations())
                 + "\nFix only what these checks report and return the whole corrected JSON, with no other text.";
     }
 
@@ -263,8 +261,11 @@ public class OutputgateOutputGuardrail implements OutputGuardrail {
         }
 
         /**
+         * The failure message always lists the violations one per line, whatever this function
+         * returns.
+         *
          * @param repromptMessage builds the reprompt text from a failed verdict; defaults to
-         *     {@link #defaultRepromptMessage(Verdict)}
+         *     {@link #defaultRepromptMessage(Verdict)}, which lists the violations the same way
          * @return this builder
          */
         public Builder repromptMessage(Function<Verdict, String> repromptMessage) {
