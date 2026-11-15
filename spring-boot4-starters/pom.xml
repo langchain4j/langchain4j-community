@@ -55,11 +55,15 @@
             (1.5.32), which is lower than what Spring Boot 4.1.x's starter-logging
             requires (1.5.38); this direct entry must be kept in sync with the
             spring-boot-dependencies version imported below.
+            jackson-annotations is versioned separately by jackson-bom 2.20+ under
+            `jackson.version.annotations` (2.23, without the trailing .0), so it cannot
+            use ${jackson.version}; keep this literal in sync with the jackson-bom
+            imported by langchain4j-parent.
             -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
-                <version>2.22</version>
+                <version>2.23</version>
             </dependency>
 
             <dependency>
