@@ -4,10 +4,13 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import dev.langchain4j.Experimental;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.guardrail.OutputGuardrail;
 import dev.langchain4j.guardrail.OutputGuardrailRequest;
 import dev.langchain4j.guardrail.OutputGuardrailResult;
+import dev.langchain4j.invocation.InvocationContext;
+import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.TokenUsage;
 import dev.langchain4j.rag.AugmentationResult;
@@ -40,7 +43,8 @@ import java.util.stream.Collectors;
  * instead.
  * <p>
  * A Markdown code fence around the JSON is removed before the check, and the unwrapped text is
- * passed on as the response.
+ * passed on as the response. The rest of the model's message (thinking, tool execution requests,
+ * attributes) is kept.
  */
 @Experimental
 public class OutputgateOutputGuardrail implements OutputGuardrail {
@@ -89,7 +93,9 @@ public class OutputgateOutputGuardrail implements OutputGuardrail {
         String json = stripCodeFence ? unwrapCodeFence(text) : text;
         Verdict verdict = contract.evaluate(json, context(request, response));
         if (verdict.passed()) {
-            return json.equals(text) ? success() : successWith(json);
+            return json.equals(text)
+                    ? success()
+                    : successWith(response.aiMessage().withText(json));
         }
 
         String message = "The output failed its contract: " + describe(verdict.violations());
@@ -140,21 +146,56 @@ public class OutputgateOutputGuardrail implements OutputGuardrail {
     }
 
     /**
-     * Uses the text of the last user message as the source document, for contracts with a
-     * grounded provenance gate whose quotes come from the prompt.
+     * Uses the user's message as the source document, for contracts with a grounded provenance
+     * gate whose quotes come from the prompt.
+     * <p>
+     * Inside an AI service this is the {@linkplain InvocationContext#originalUserMessage() original
+     * user message}: the one the service method built from its prompt template, before RAG
+     * augmentation, contents added from method parameters, input guardrails and output format
+     * instructions. It stays the same on every reprompt, so a corrected answer is checked against
+     * the user's text, not against the reprompt. Without an invocation context (the guardrail called
+     * directly), it is the last user message of the chat request, if there is one.
+     * <p>
+     * A message with several parts, such as text and an image, contributes all of its text parts,
+     * joined by line breaks.
      *
      * @return a source function for {@link Builder#source(Function)}
      */
     public static Function<OutputGuardrailRequest, SourceDocument> userMessageAsSource() {
         return request -> {
-            List<ChatMessage> messages = request.chatRequest().messages();
-            for (int i = messages.size() - 1; i >= 0; i--) {
-                if (messages.get(i) instanceof UserMessage userMessage && userMessage.hasSingleText()) {
-                    return SourceDocument.of(userMessage.singleText());
-                }
+            UserMessage userMessage = originalUserMessage(request);
+            if (userMessage == null) {
+                userMessage = lastUserMessage(request.chatRequest());
             }
-            return null;
+            String text = userMessage == null ? null : text(userMessage);
+            return text == null ? null : SourceDocument.of(text);
         };
+    }
+
+    private static UserMessage originalUserMessage(OutputGuardrailRequest request) {
+        InvocationContext invocationContext = request.requestParams().invocationContext();
+        return invocationContext == null ? null : invocationContext.originalUserMessage();
+    }
+
+    private static UserMessage lastUserMessage(ChatRequest chatRequest) {
+        if (chatRequest == null) {
+            return null;
+        }
+        List<ChatMessage> messages = chatRequest.messages();
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            if (messages.get(i) instanceof UserMessage userMessage) {
+                return userMessage;
+            }
+        }
+        return null;
+    }
+
+    private static String text(UserMessage userMessage) {
+        List<String> texts = userMessage.contents().stream()
+                .filter(TextContent.class::isInstance)
+                .map(content -> ((TextContent) content).text())
+                .toList();
+        return texts.isEmpty() ? null : String.join("\n", texts);
     }
 
     /**

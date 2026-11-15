@@ -2,9 +2,13 @@ package dev.langchain4j.community.outputgate;
 
 import io.github.ravismash.outputgate.Contract;
 import io.github.ravismash.outputgate.MathGate;
+import io.github.ravismash.outputgate.ProvenanceGate;
 import io.github.ravismash.outputgate.SchemaGate;
 
-/** Contracts shared by the tests: a survey summary whose option counts must add up. */
+/**
+ * Contracts shared by the tests: a survey summary whose option counts must add up, and a finding
+ * whose quote must occur in the source document.
+ */
 final class Contracts {
 
     static final String SCHEMA = """
@@ -47,5 +51,20 @@ final class Contracts {
                         .sumEquals("options[*].count", "total_responses")
                         .build())
                 .build();
+    }
+
+    static Contract grounded() {
+        return Contract.builder()
+                .gate(ProvenanceGate.builder().require("finding").grounded().build())
+                .build();
+    }
+
+    static String quoting(String quote) {
+        return quoting(quote, 1);
+    }
+
+    static String quoting(String quote, int page) {
+        return "{\"finding\": {\"value\": \"" + quote + "\", \"source_span\": {\"page\": " + page + ", \"text\": \""
+                + quote + "\"}}}";
     }
 }

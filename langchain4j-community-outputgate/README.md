@@ -46,6 +46,9 @@ Your previous response did not pass these checks:
 Fix only what these checks report and return the whole corrected JSON, with no other text.
 ```
 
+Configure chat memory as above. Without it, the reprompt is sent on its own and the model no
+longer sees the original request.
+
 ### Checking quotes against the source
 
 For a contract with a grounded `ProvenanceGate`, tell the guardrail where the source document is:
@@ -57,6 +60,10 @@ OutputgateOutputGuardrail guardrail = OutputgateOutputGuardrail.builder()
         // or .source(OutputgateOutputGuardrail.userMessageAsSource())
         .build();
 ```
+
+`userMessageAsSource()` uses the user message the AI service method built from its template,
+before RAG augmentation and input guardrails, so a reprompted answer is still checked against the
+user's text. All text parts of the message are used; images and other parts are skipped.
 
 ### Options
 

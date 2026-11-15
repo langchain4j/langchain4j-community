@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 
 class OutputgateOutputGuardrailAiServicesTest {
 
+    private static final String SURVEY = "Of 120 people asked, 70 said yes and 50 said no.";
+
     @Test
     void should_reprompt_with_violations_and_return_the_corrected_output() {
         ScriptedChatModel model = new ScriptedChatModel(Contracts.WRONG_TOTAL, Contracts.VALID);
@@ -30,7 +32,7 @@ class OutputgateOutputGuardrailAiServicesTest {
                 .outputGuardrails(new OutputgateOutputGuardrail(Contracts.survey()))
                 .build();
 
-        String output = extractor.extract("Of 120 people asked, 70 said yes and 50 said no.");
+        String output = extractor.extract(SURVEY);
 
         assertThat(output).isEqualTo(Contracts.VALID);
         assertThat(model.requests).hasSize(2);
@@ -46,7 +48,7 @@ class OutputgateOutputGuardrailAiServicesTest {
                 .outputGuardrails(new OutputgateOutputGuardrail(Contracts.survey()))
                 .build();
 
-        Survey survey = extractor.extract("Of 120 people asked, 70 said yes and 50 said no.");
+        Survey survey = extractor.extract(SURVEY);
 
         assertThat(survey.total_responses()).isEqualTo(120);
         assertThat(survey.options()).extracting(Option::count).containsExactly(70, 50);
@@ -64,10 +66,68 @@ class OutputgateOutputGuardrailAiServicesTest {
                 .outputGuardrails(new OutputgateOutputGuardrail(Contracts.survey()))
                 .build();
 
-        assertThatThrownBy(() -> extractor.extract("Of 120 people asked, 70 said yes and 50 said no."))
+        assertThatThrownBy(() -> extractor.extract(SURVEY))
                 .isInstanceOf(OutputGuardrailException.class)
                 .hasMessageContaining("total_responses");
         assertThat(model.requests).hasSize(2);
+    }
+
+    @Test
+    void should_check_the_corrected_quote_against_the_user_message_after_a_reprompt() {
+        ScriptedChatModel model =
+                new ScriptedChatModel(Contracts.quoting("80 said yes"), Contracts.quoting("70 said yes"));
+        SurveyExtractor extractor = AiServices.builder(SurveyExtractor.class)
+                .chatModel(model)
+                .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
+                .outputGuardrails(groundedInUserMessage())
+                .build();
+
+        String output = extractor.extract(SURVEY);
+
+        assertThat(output).isEqualTo(Contracts.quoting("70 said yes"));
+        assertThat(model.requests).hasSize(2);
+        assertThat(lastUserMessage(model.requests.get(1)))
+                .contains("finding: source_span.text \"80 said yes\" not found in the source document")
+                .contains("(provenance)");
+    }
+
+    @Test
+    void should_check_the_corrected_quote_after_a_reprompt_without_chat_memory() {
+        ScriptedChatModel model =
+                new ScriptedChatModel(Contracts.quoting("80 said yes"), Contracts.quoting("70 said yes"));
+        SurveyExtractor extractor = AiServices.builder(SurveyExtractor.class)
+                .chatModel(model)
+                .outputGuardrails(groundedInUserMessage())
+                .build();
+
+        assertThat(extractor.extract(SURVEY)).isEqualTo(Contracts.quoting("70 said yes"));
+        assertThat(model.requests).hasSize(2);
+    }
+
+    @Test
+    void should_report_the_ungrounded_quote_once_reprompts_are_used_up() {
+        ScriptedChatModel model =
+                new ScriptedChatModel(Contracts.quoting("80 said yes"), Contracts.quoting("80 said yes"));
+        SurveyExtractor extractor = AiServices.builder(SurveyExtractor.class)
+                .chatModel(model)
+                .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
+                .outputGuardrailsConfig(
+                        OutputGuardrailsConfig.builder().maxRetries(2).build())
+                .outputGuardrails(groundedInUserMessage())
+                .build();
+
+        assertThatThrownBy(() -> extractor.extract(SURVEY))
+                .isInstanceOf(OutputGuardrailException.class)
+                .hasMessageContaining("\"80 said yes\" not found in the source document")
+                .hasMessageNotContaining("no source document");
+        assertThat(model.requests).hasSize(2);
+    }
+
+    private static OutputgateOutputGuardrail groundedInUserMessage() {
+        return OutputgateOutputGuardrail.builder()
+                .contract(Contracts.grounded())
+                .source(OutputgateOutputGuardrail.userMessageAsSource())
+                .build();
     }
 
     private static String lastUserMessage(ChatRequest request) {
