@@ -439,6 +439,47 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
                 .build());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(ArcadeDBFilterStrategy.class)
+    void should_quote_metadata_keys_safely(ArcadeDBFilterStrategy strategy) {
+        java.util.function.Supplier<ArcadeDBEmbeddingStore> store = () -> ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName("KeyEscaping" + strategy)
+                .dimension(ArcadeDBKeyEscapingTestHelper.DIMENSION)
+                .filterStrategy(strategy)
+                .build();
+        ArcadeDBEmbeddingStore injection = store.get();
+        injection.removeAll();
+        ArcadeDBKeyEscapingTestHelper.assertKeyCannotChangeTheFilter(injection);
+        injection.removeAll();
+        ArcadeDBKeyEscapingTestHelper.assertUnusualKeysWork(injection);
+    }
+
+    @org.junit.jupiter.api.Test
+    void should_not_drop_hybrid_matches_ranked_below_records_under_the_min_score() {
+        for (int test = 0; test < 2; test++) {
+            ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.builder()
+                    .host(host)
+                    .port(port)
+                    .databaseName("test_embeddings")
+                    .username("root")
+                    .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                    .typeName("HybridMinScore" + test)
+                    .dimension(ArcadeDBHybridMinScoreTestHelper.DIMENSION)
+                    .build();
+            store.removeAll();
+            if (test == 0) {
+                ArcadeDBHybridMinScoreTestHelper.assertOneMatchIsNotDropped(store);
+            } else {
+                ArcadeDBHybridMinScoreTestHelper.assertSeveralMatchesAreNotDropped(store);
+            }
+        }
+    }
+
     @org.junit.jupiter.api.Test
     void should_add_all_in_several_batches() {
         clearStore();

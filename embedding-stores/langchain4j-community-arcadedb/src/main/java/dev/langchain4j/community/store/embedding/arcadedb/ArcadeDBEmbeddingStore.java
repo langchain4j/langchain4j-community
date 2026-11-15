@@ -301,16 +301,14 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         if (embeddedMode) {
             removeAllByFilterEmbedded(filter);
         } else {
-            log.info(
-                    "Number of embeddings before delete: {}",
-                    findAllRemote(1000).size());
             List<Object> parameters = new ArrayList<>();
             String whereClause = filterMapper.map(filter, parameters);
             String sql = String.format("DELETE FROM `%s` WHERE %s", typeName, whereClause);
             log.debug("Removing with filter: {}", sql);
-            remoteDatabase.command("sql", sql, parameters.toArray());
-            log.info(
-                    "Number of embeddings after delete: {}", findAllRemote(1000).size());
+            ResultSet result = remoteDatabase.command("sql", sql, parameters.toArray());
+            if (log.isDebugEnabled() && result.hasNext()) {
+                log.debug("Removed {} embeddings", (Object) result.next().getProperty("count"));
+            }
         }
     }
 
@@ -405,10 +403,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             int m = 0;
             for (Map.Entry<String, Object> entry : segment.metadata().toMap().entrySet()) {
                 String name = "m" + row + "_" + m++;
-                script.append(", `")
-                        .append(metadataPrefix)
-                        .append(entry.getKey())
-                        .append("` = :")
+                script.append(", ")
+                        .append(ArcadeDBMetadataFilterMapper.quoteIdentifier(metadataPrefix + entry.getKey()))
+                        .append(" = :")
                         .append(name);
                 parameters.put(name, toParameter(entry.getValue()));
             }
@@ -445,6 +442,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     EMBEDDING_PROPERTY,
                     TEXT_PROPERTY,
                     maxResults,
+                    minScore,
                     filter != null && !filterInSql,
                     false,
                     where));
@@ -508,28 +506,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             matches.sort((a, b) -> Double.compare(b.score(), a.score()));
         }
         return new EmbeddingSearchResult<>(matches);
-    }
-
-    /**
-     * Retrieves all stored embeddings using a SQL scan. Package-private for use in tests.
-     */
-    List<EmbeddingMatch<TextSegment>> findAllRemote(int maxResults) {
-        String sql = String.format("SELECT * FROM `%s` LIMIT %d", typeName, maxResults);
-        ResultSet resultSet = remoteDatabase.query("sql", sql);
-
-        List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
-        while (resultSet.hasNext()) {
-            Result doc = resultSet.next();
-            String docId = doc.getProperty(ID_PROPERTY);
-            if (docId == null) continue;
-            Embedding embedding = resultToEmbedding(doc.getProperty(EMBEDDING_PROPERTY));
-            if (embedding == null) continue;
-            String text = doc.hasProperty(TEXT_PROPERTY) ? doc.getProperty(TEXT_PROPERTY) : null;
-            Map<String, Object> metadataMap = extractMetadataFromResult(doc);
-            matches.add(new EmbeddingMatch<>(1.0, docId, embedding, buildTextSegment(text, metadataMap)));
-        }
-        log.info("findAll: SQL returned {} matches", matches.size());
-        return matches;
     }
 
     private void initRemoteSchema(int dimension, String similarityFunction, int maxConnections, int beamWidth) {
@@ -684,7 +660,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         boolean rejectedByFilter = false;
         for (Pair<RID, Float> neighbor : neighbors) {
             RID rid = neighbor.getFirst();
-            if (matches.size() >= maxResults) continue;
+            if (matches.size() >= maxResults) break;
             // ArcadeDB's cosine distance is 1 - cosine; for the other functions the score is computed from the vector.
             double score = similarity == ArcadeDBVectorSimilarity.COSINE
                     ? 1.0 - neighbor.getSecond().doubleValue() / 2.0
@@ -786,6 +762,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                 EMBEDDED_EMBEDDING,
                 EMBEDDED_TEXT,
                 maxResults,
+                minScore,
                 filter != null && !filterInSql,
                 true,
                 where);
@@ -1028,6 +1005,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             String embeddingProperty,
             String textProperty,
             int maxResults,
+            double minScore,
             boolean filtered,
             boolean excludeSoftDeleted,
             String filterWhere) {
@@ -1064,8 +1042,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                     typeName, fullTextIndexName, fullTextCandidates);
         }
         // Only the fused rows that can be returned leave vector.fuse(): the store keeps maxResults of them (more when
-        // a metadata filter is applied afterwards).
-        int fusedResults = filtered ? maxResults * 10 : maxResults;
+        // a metadata filter is applied afterwards). Rows below minScore are skipped afterwards and not backfilled,
+        // and a row that passes minScore can rank below rows that do not, so with a minimum score every candidate is
+        // fused.
+        int fusedResults =
+                minScore > 0 ? denseCandidates + fullTextCandidates : filtered ? maxResults * 10 : maxResults;
         List<String> options = new ArrayList<>();
         if (efSearch != null) {
             options.add("efSearch: " + Math.max(efSearch, denseCandidates));

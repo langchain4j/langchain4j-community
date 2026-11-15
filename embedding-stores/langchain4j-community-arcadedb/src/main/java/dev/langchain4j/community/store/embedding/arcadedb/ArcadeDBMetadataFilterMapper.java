@@ -120,7 +120,15 @@ class ArcadeDBMetadataFilterMapper {
     }
 
     String formatKey(String key) {
-        return format("`%s%s`", metadataPrefix, key);
+        return quoteIdentifier(metadataPrefix + key);
+    }
+
+    /**
+     * Quotes a property name for ArcadeDB SQL: wraps it in backticks and escapes the backslashes and backticks inside
+     * it, so a metadata key can never end the quoted name and inject SQL ({@code tenant` = 'a' OR 1 = 1 OR `tenant}).
+     */
+    static String quoteIdentifier(String name) {
+        return "`" + name.replace("\\", "\\\\").replace("`", "\\`") + "`";
     }
 
     private String placeholders(Collection<?> values, Function<Object, String> bind) {
