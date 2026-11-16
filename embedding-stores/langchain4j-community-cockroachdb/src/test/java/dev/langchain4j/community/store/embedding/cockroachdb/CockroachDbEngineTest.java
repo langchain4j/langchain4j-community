@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Unit tests that do not require a running CockroachDB.
@@ -40,5 +42,35 @@ class CockroachDbEngineTest {
     void rejects_unsupported_scheme() {
         assertThatThrownBy(() -> CockroachDbEngine.toJdbcUrl("mysql://foo"))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void unsupported_scheme_error_does_not_contain_credentials() {
+        assertThatThrownBy(() -> CockroachDbEngine.toJdbcUrl("mysql://user:secret-password@host:3306/db"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Unsupported connection-string scheme: mysql");
+
+        assertThatThrownBy(() -> CockroachDbEngine.toJdbcUrl("user:secret-password@host:26257/db"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageNotContaining("secret-password");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "jdbc:postgresql://user:secret-password@host:26257/db?sslmode=verify-full, jdbc:postgresql://host:26257/db",
+        "jdbc:postgresql://user:secret-password@host:26257/db, jdbc:postgresql://host:26257/db",
+        "jdbc:postgresql://user@host:26257/db, jdbc:postgresql://host:26257/db",
+        "jdbc:postgresql://host:26257/db?user=root&password=secret-password, jdbc:postgresql://host:26257/db",
+        "jdbc:postgresql://host:26257/db?sslpassword=secret-password, jdbc:postgresql://host:26257/db",
+        "jdbc:postgresql://user:secret/password@host:26257/db, jdbc:postgresql://host:26257/db",
+        "jdbc:postgresql://user:secret?password@host:26257/db, ***",
+        "jdbc:postgresql://host:26257/db?options=a@secret-password, ***",
+        "jdbc:postgresql:db?password=secret-password, jdbc:postgresql:db",
+        "'jdbc:postgresql://user:secret-password@host1:26257,host2:26257/db', 'jdbc:postgresql://host1:26257,host2:26257/db'"
+    })
+    void removes_credentials_from_url_for_logging(String jdbcUrl, String expected) {
+        assertThat(CockroachDbEngine.withoutCredentials(jdbcUrl))
+                .isEqualTo(expected)
+                .doesNotContain("secret");
     }
 }

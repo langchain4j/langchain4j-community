@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.regex.Pattern;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 public record CockroachDbEngine(DataSource dataSource) {
 
     private static final Logger logger = LoggerFactory.getLogger(CockroachDbEngine.class);
+    private static final Pattern SCHEME = Pattern.compile("[A-Za-z][A-Za-z0-9+.-]*");
 
     public static Builder builder() {
         return new Builder();
@@ -59,7 +61,30 @@ public record CockroachDbEngine(DataSource dataSource) {
         if (url.startsWith("postgres://")) {
             return "jdbc:postgresql://" + url.substring("postgres://".length());
         }
-        throw new IllegalArgumentException("Unsupported connection-string scheme: " + url);
+        int schemeEnd = url.indexOf("://");
+        String scheme = schemeEnd > 0 ? url.substring(0, schemeEnd) : "";
+        if (SCHEME.matcher(scheme).matches()) {
+            throw new IllegalArgumentException("Unsupported connection-string scheme: " + scheme);
+        }
+        throw new IllegalArgumentException("Unsupported connection string: it does not start with a supported scheme");
+    }
+
+    /**
+     * Returns the URL without user info and query parameters, as both can carry credentials.
+     * Returns {@code ***} when the user info cannot be told apart from the rest of the URL.
+     */
+    static String withoutCredentials(String jdbcUrl) {
+        int queryStart = jdbcUrl.indexOf('?');
+        String withoutQuery = queryStart < 0 ? jdbcUrl : jdbcUrl.substring(0, queryStart);
+        int userInfoEnd = jdbcUrl.lastIndexOf('@');
+        if (userInfoEnd < 0) {
+            return withoutQuery;
+        }
+        int authorityStart = withoutQuery.indexOf("//");
+        if (authorityStart < 0 || userInfoEnd < authorityStart || userInfoEnd >= withoutQuery.length()) {
+            return "***";
+        }
+        return withoutQuery.substring(0, authorityStart + 2) + withoutQuery.substring(userInfoEnd + 1);
     }
 
     public Connection getConnection() {
@@ -188,7 +213,7 @@ public record CockroachDbEngine(DataSource dataSource) {
             config.addDataSourceProperty("tcpKeepAlive", "true");
             config.addDataSourceProperty("reWriteBatchedInserts", "true");
 
-            logger.info("Initializing CockroachDB connection pool: {}", jdbcUrl);
+            logger.info("Initializing CockroachDB connection pool: {}", withoutCredentials(jdbcUrl));
 
             try {
                 return new CockroachDbEngine(new HikariDataSource(config));
