@@ -2,9 +2,8 @@ package dev.langchain4j.community.model.xinference.client;
 
 import dev.langchain4j.internal.Utils;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import okhttp3.Headers;
@@ -20,8 +19,13 @@ class RequestLoggingInterceptor implements Interceptor {
 
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingInterceptor.class);
 
-    private static final Set<String> COMMON_SECRET_HEADERS =
-            new HashSet<>(List.of("authorization", "x-api-key", "x-auth-token"));
+    /**
+     * A header whose name contains any of these is assumed to carry a credential.
+     */
+    private static final List<String> SECRET_HEADER_NAME_KEYWORDS =
+            List.of("auth", "key", "token", "secret", "password", "credential", "cookie", "signature", "session");
+
+    private static final int MIN_LENGTH_TO_SHOW_PARTIALLY = 20;
 
     private static String getBody(Request request) {
         try {
@@ -37,17 +41,22 @@ class RequestLoggingInterceptor implements Interceptor {
         }
     }
 
-    private static String getHeaders(Headers headers) {
+    static String getHeaders(Headers headers) {
         return StreamSupport.stream(headers.spliterator(), false)
                 .map(header -> formatHeader(header.component1(), header.component2()))
                 .collect(Collectors.joining(", "));
     }
 
     private static String formatHeader(String headerKey, String headerValue) {
-        if (COMMON_SECRET_HEADERS.contains(headerKey.toLowerCase())) {
+        if (isSecretHeader(headerKey)) {
             headerValue = maskSecretKey(headerValue);
         }
         return String.format("[%s: %s]", headerKey, headerValue);
+    }
+
+    private static boolean isSecretHeader(String headerKey) {
+        String lowerCaseHeaderKey = headerKey.toLowerCase(Locale.ROOT);
+        return SECRET_HEADER_NAME_KEYWORDS.stream().anyMatch(lowerCaseHeaderKey::contains);
     }
 
     private static String maskSecretKey(String key) {
@@ -55,10 +64,10 @@ class RequestLoggingInterceptor implements Interceptor {
             return key;
         }
 
-        if (key.length() >= 7) {
+        if (key.length() >= MIN_LENGTH_TO_SHOW_PARTIALLY) {
             return key.substring(0, 5) + "..." + key.substring(key.length() - 2);
         } else {
-            return "..."; // to short to be masked
+            return "...";
         }
     }
 

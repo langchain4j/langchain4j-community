@@ -85,13 +85,13 @@ abstract class BraveBuilder<T extends BraveBuilder<T>> {
     static boolean isSensitive(String name) {
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
         return lowerCaseName.contains("auth")
-                || lowerCaseName.contains("api-key")
-                || lowerCaseName.contains("api_key")
-                || lowerCaseName.contains("apikey")
+                || lowerCaseName.contains("key")
                 || lowerCaseName.contains("token")
                 || lowerCaseName.contains("secret")
                 || lowerCaseName.contains("password")
                 || lowerCaseName.contains("credential")
-                || lowerCaseName.contains("cookie");
+                || lowerCaseName.contains("cookie")
+                || lowerCaseName.contains("signature")
+                || lowerCaseName.contains("session");
     }
 }

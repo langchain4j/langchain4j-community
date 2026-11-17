@@ -643,12 +643,12 @@ public class SQLServerEmbeddingStore implements EmbeddingStore<TextSegment> {
                     if (setter != null) {
                         Object convertedValue = convertValue(setter.getParameterTypes()[0], value);
                         setter.invoke(dataSource, convertedValue);
-                        logger.debug("Applied connection property: {} = {}", key, value);
+                        logger.debug("Applied connection property: {}", key);
                     } else {
                         logger.warn("Could not find setter method for property: {}", key);
                     }
                 } catch (Exception e) {
-                    logger.warn("Failed to set connection property: {} = {}", key, value, e);
+                    logger.warn("Failed to set connection property: {}", key, e);
                 }
             }
         }
