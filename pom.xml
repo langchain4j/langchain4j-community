@@ -6,7 +6,7 @@
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
         <version>1.24.0-beta34-SNAPSHOT</version>
-        <relativePath></relativePath>
+        <relativePath/>
     </parent>
 
     <artifactId>langchain4j-community</artifactId>
@@ -82,6 +82,7 @@
         <module>web-search-engines/langchain4j-community-web-search-engine-serply</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-firecrawl</module>
         <module>web-search-engines/langchain4j-community-web-search-engine-serpapi</module>
+        <module>web-search-engines/langchain4j-community-web-search-engine-olostep</module>
 
         <!-- Integration of document loaders -->
         <module>document-loaders/langchain4j-community-document-loader-confluence</module>
@@ -299,12 +300,12 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <banDuplicatePomDependencyVersions></banDuplicatePomDependencyVersions>
-                                <dependencyConvergence></dependencyConvergence>
+                                <banDuplicatePomDependencyVersions/>
+                                <dependencyConvergence/>
                                 <requireMavenVersion>
                                     <version>3.8</version>
                                 </requireMavenVersion>
-                                <requireUpperBoundDeps></requireUpperBoundDeps>
+                                <requireUpperBoundDeps/>
                             </rules>
                         </configuration>
                     </execution>
