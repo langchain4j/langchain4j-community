@@ -4,6 +4,8 @@ import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddi
 import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.embeddingToFloatArray;
 import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.extractMetadata;
 import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBEmbeddingUtils.toEmbeddingMatch;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBMetadataFilterMapper.quoteIdentifier;
+import static dev.langchain4j.community.store.embedding.arcadedb.ArcadeDBMetadataFilterMapper.quoteString;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
@@ -116,6 +118,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     // Shared fields
     private final String typeName;
+    // typeName as an escaped SQL identifier, and the index names as escaped SQL string literals
+    private final String quotedTypeName;
+    private final String quotedEmbeddingIndexName;
+    private final String quotedTextIndexName;
     private final String metadataPrefix;
 
     // Remote mode fields (null in embedded mode)
@@ -174,6 +180,9 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.remoteDatabase = ensureNotNull(remoteDatabase, "database");
         this.embeddedDatabase = null;
         this.typeName = ensureNotBlank(typeName, "typeName");
+        this.quotedTypeName = quoteIdentifier(this.typeName);
+        this.quotedEmbeddingIndexName = quoteString(indexName(this.typeName, EMBEDDING_PROPERTY));
+        this.quotedTextIndexName = quoteString(indexName(this.typeName, TEXT_PROPERTY));
         this.metadataPrefix = metadataPrefix;
         this.filterMapper = new ArcadeDBMetadataFilterMapper(metadataPrefix, true);
         this.embeddedDimension = 0;
@@ -196,7 +205,10 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         this.filterStrategy = builder.filterStrategy;
         this.remoteDatabase = null;
         this.filterMapper = new ArcadeDBMetadataFilterMapper(builder.metadataPrefix, false);
-        this.typeName = builder.typeName;
+        this.typeName = ensureNotBlank(builder.typeName, "typeName");
+        this.quotedTypeName = quoteIdentifier(this.typeName);
+        this.quotedEmbeddingIndexName = quoteString(indexName(this.typeName, EMBEDDED_EMBEDDING));
+        this.quotedTextIndexName = quoteString(indexName(this.typeName, EMBEDDED_TEXT));
         this.metadataPrefix = builder.metadataPrefix;
         this.embeddedDimension = builder.dimension;
         this.embeddedMaxConnections = builder.maxConnections;
@@ -290,7 +302,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         } else {
             remoteDatabase.command(
                     "sql",
-                    String.format("DELETE FROM `%s` WHERE `%s` IN :ids", typeName, ID_PROPERTY),
+                    String.format("DELETE FROM %s WHERE `%s` IN :ids", quotedTypeName, ID_PROPERTY),
                     Map.of("ids", List.copyOf(ids)));
         }
     }
@@ -303,7 +315,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         } else {
             List<Object> parameters = new ArrayList<>();
             String whereClause = filterMapper.map(filter, parameters);
-            String sql = String.format("DELETE FROM `%s` WHERE %s", typeName, whereClause);
+            String sql = String.format("DELETE FROM %s WHERE %s", quotedTypeName, whereClause);
             log.debug("Removing with filter: {}", sql);
             ResultSet result = remoteDatabase.command("sql", sql, parameters.toArray());
             if (log.isDebugEnabled() && result.hasNext()) {
@@ -315,19 +327,18 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     @Override
     public void removeAll() {
         if (embeddedMode) {
-            String quotedTypeName = "`" + typeName + "`";
             // Delete all records and drop+recreate the vector index to guarantee a clean HNSW graph.
             // REBUILD INDEX alone does not reset the entry point, so subsequent insertions of
             // identical vectors can result in a disconnected graph that findNeighborsFromVector
             // cannot fully traverse. Dropping and recreating the index ensures a fresh graph state.
             embeddedDatabase.transaction(() -> embeddedDatabase.command("sql", "DELETE FROM " + quotedTypeName));
-            String indexName = typeName + "[" + EMBEDDED_EMBEDDING + "]";
+            String indexName = indexName(typeName, EMBEDDED_EMBEDDING);
             embeddedDatabase.transaction(() -> embeddedDatabase.getSchema().dropIndex(indexName));
             embeddedDatabase.transaction(
                     () -> createEmbeddedVectorIndex(embeddedDimension, embeddedMaxConnections, embeddedBeamWidth));
             vectorIndex = findVectorIndex();
         } else {
-            remoteDatabase.command("sql", String.format("DELETE FROM `%s`", typeName));
+            remoteDatabase.command("sql", "DELETE FROM " + quotedTypeName);
         }
     }
 
@@ -380,15 +391,15 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             String id,
             Embedding embedding,
             TextSegment segment) {
-        script.append("DELETE FROM `")
-                .append(typeName)
-                .append("` WHERE `")
+        script.append("DELETE FROM ")
+                .append(quotedTypeName)
+                .append(" WHERE `")
                 .append(ID_PROPERTY)
                 .append("` = :id");
         script.append(row).append(";\n");
-        script.append("INSERT INTO `")
-                .append(typeName)
-                .append("` SET `")
+        script.append("INSERT INTO ")
+                .append(quotedTypeName)
+                .append(" SET `")
                 .append(ID_PROPERTY)
                 .append("` = :id");
         script.append(row);
@@ -404,7 +415,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             for (Map.Entry<String, Object> entry : segment.metadata().toMap().entrySet()) {
                 String name = "m" + row + "_" + m++;
                 script.append(", ")
-                        .append(ArcadeDBMetadataFilterMapper.quoteIdentifier(metadataPrefix + entry.getKey()))
+                        .append(quoteIdentifier(metadataPrefix + entry.getKey()))
                         .append(" = :")
                         .append(name);
                 parameters.put(name, toParameter(entry.getValue()));
@@ -438,39 +449,31 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             named.put("query", fullTextQuery(request.query()));
             String where = filterInSql ? filterMapper.mapNamed(filter, named) : null;
             query = withoutNestedRecord(buildHybridSearchQuery(
-                    queryEmbedding,
-                    EMBEDDING_PROPERTY,
-                    TEXT_PROPERTY,
-                    maxResults,
-                    minScore,
-                    filter != null && !filterInSql,
-                    false,
-                    where));
+                    queryEmbedding, maxResults, minScore, filter != null && !filterInSql, false, where));
             parameters = named;
         } else if (filterInSql) {
             // The filter selects the allowed records on the server; the search returns the nearest of them.
             Map<String, Object> named = new LinkedHashMap<>();
             String where = filterMapper.mapNamed(filter, named);
             query = withoutNestedRecord(String.format(
-                    "SELECT expand(`vector.neighbors`('%s', %s, %d, { efSearch: %d, filter: (SELECT @rid FROM `%s`"
+                    "SELECT expand(`vector.neighbors`(%s, %s, %d, { efSearch: %d, filter: (SELECT @rid FROM %s"
                             + " WHERE %s).@rid }))",
-                    typeName + "[" + EMBEDDING_PROPERTY + "]",
+                    quotedEmbeddingIndexName,
                     embeddingToSql(queryEmbedding),
                     maxResults,
                     remoteEfSearch(maxResults, maxResults),
-                    typeName,
+                    quotedTypeName,
                     where));
             parameters = named;
         } else {
             int fetchCount = filter != null ? maxResults * 5 : maxResults;
             String vectorSql = embeddingToSql(queryEmbedding);
-            String indexName = typeName + "[" + EMBEDDING_PROPERTY + "]";
             // Expand the neighbours themselves. Projecting vector.neighbors() per row of the type instead runs one
             // ANN search for every record and returns the records in scan order, not by similarity.
             // Only fetchCount rows cross the network; the beam (efSearch) is as wide as embedded search's.
             query = withoutNestedRecord(String.format(
-                    "SELECT expand(`vector.neighbors`('%s', %s, %d, { efSearch: %d }))",
-                    indexName, vectorSql, fetchCount, remoteEfSearch(maxResults, fetchCount)));
+                    "SELECT expand(`vector.neighbors`(%s, %s, %d, { efSearch: %d }))",
+                    quotedEmbeddingIndexName, vectorSql, fetchCount, remoteEfSearch(maxResults, fetchCount)));
         }
 
         ResultSet resultSet;
@@ -509,23 +512,13 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     }
 
     private void initRemoteSchema(int dimension, String similarityFunction, int maxConnections, int beamWidth) {
-        String script = String.format(
-                """
-                CREATE VERTEX TYPE `%s` IF NOT EXISTS;
-                CREATE PROPERTY `%s`.`%s` IF NOT EXISTS STRING;
-                CREATE PROPERTY `%s`.`%s` IF NOT EXISTS ARRAY_OF_FLOATS;
-                CREATE PROPERTY `%s`.`%s` IF NOT EXISTS STRING;
-                CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) NOTUNIQUE;
-                """,
-                typeName,
-                typeName,
-                ID_PROPERTY,
-                typeName,
-                EMBEDDING_PROPERTY,
-                typeName,
-                TEXT_PROPERTY,
-                typeName,
-                ID_PROPERTY);
+        String script = String.format("""
+                CREATE VERTEX TYPE %1$s IF NOT EXISTS;
+                CREATE PROPERTY %1$s.`%2$s` IF NOT EXISTS STRING;
+                CREATE PROPERTY %1$s.`%3$s` IF NOT EXISTS ARRAY_OF_FLOATS;
+                CREATE PROPERTY %1$s.`%4$s` IF NOT EXISTS STRING;
+                CREATE INDEX IF NOT EXISTS ON %1$s (`%2$s`) NOTUNIQUE;
+                """, quotedTypeName, ID_PROPERTY, EMBEDDING_PROPERTY, TEXT_PROPERTY);
         log.debug("Initializing ArcadeDB schema (remote mode)");
         remoteDatabase.command("sqlscript", script);
 
@@ -533,19 +526,19 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         // EXISTS fails when the existing index has a different configuration (e.g. maxConnections), so it is only
         // sent when the index is missing.
         // The full-text index carries settings too (analyzer, BM25), so the same rule applies.
-        if (!remoteIndexExists(typeName + "[" + TEXT_PROPERTY + "]")) {
+        if (!remoteIndexExists(indexName(typeName, TEXT_PROPERTY))) {
             remoteDatabase.command(
                     "sql",
                     String.format(
-                            "CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) FULL_TEXT%s",
-                            typeName, TEXT_PROPERTY, hybrid.fullTextIndexMetadata()));
+                            "CREATE INDEX IF NOT EXISTS ON %s (`%s`) FULL_TEXT%s",
+                            quotedTypeName, TEXT_PROPERTY, hybrid.fullTextIndexMetadata()));
         }
-        if (!remoteIndexExists(typeName + "[" + EMBEDDING_PROPERTY + "]")) {
+        if (!remoteIndexExists(indexName(typeName, EMBEDDING_PROPERTY))) {
             remoteDatabase.command(
                     "sql",
                     String.format(
                             """
-                            CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) LSM_VECTOR
+                            CREATE INDEX IF NOT EXISTS ON %s (`%s`) LSM_VECTOR
                               METADATA {
                                 "dimensions": %d,
                                 "similarity": "%s",
@@ -553,7 +546,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                                 "beamWidth": %d%s
                               }
                             """,
-                            typeName,
+                            quotedTypeName,
                             EMBEDDING_PROPERTY,
                             dimension,
                             similarityFunction,
@@ -563,6 +556,11 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
                                     ? ""
                                     : ",\n    \"quantization\": \"" + quantization.name() + "\""));
         }
+    }
+
+    /** The name ArcadeDB gives the index on {@code property} of {@code typeName}. */
+    private static String indexName(String typeName, String property) {
+        return typeName + "[" + property + "]";
     }
 
     private boolean remoteIndexExists(String indexName) {
@@ -710,7 +708,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         Set<RID> allowed = new HashSet<>();
         // No deleted check here: soft-deleted records are removed from the vector index (and skipped below), and the
         // check made this scan about 6x slower.
-        String sql = String.format("SELECT @rid AS rid FROM `%s` WHERE %s", typeName, where);
+        String sql = String.format("SELECT @rid AS rid FROM %s WHERE %s", quotedTypeName, where);
         try (ResultSet rs = embeddedDatabase.query("sql", sql, named)) {
             while (rs.hasNext()) {
                 Object rid = rs.next().getProperty("rid");
@@ -758,14 +756,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         named.put("query", fullTextQuery(request.query()));
         String where = filterInSql ? filterMapper.mapNamed(filter, named) : null;
         String query = buildHybridSearchQuery(
-                queryEmbedding,
-                EMBEDDED_EMBEDDING,
-                EMBEDDED_TEXT,
-                maxResults,
-                minScore,
-                filter != null && !filterInSql,
-                true,
-                where);
+                queryEmbedding, maxResults, minScore, filter != null && !filterInSql, true, where);
 
         List<EmbeddingMatch<TextSegment>> matches = new ArrayList<>();
         boolean rejectedByFilter = false;
@@ -831,7 +822,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     }
 
     private void removeAllByFilterEmbedded(Filter filter) {
-        String quotedTypeName = "`" + typeName + "`";
         embeddedDatabase.transaction(() -> {
             try (ResultSet rs = embeddedDatabase.query(
                     "sql",
@@ -879,13 +869,13 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         });
 
         // Create the full-text index on the text property (with the analyzer / BM25 settings); an existing one is kept.
-        String ftIndexName = typeName + "[" + EMBEDDED_TEXT + "]";
+        String ftIndexName = indexName(typeName, EMBEDDED_TEXT);
         if (!embeddedDatabase.getSchema().existsIndex(ftIndexName)) {
             embeddedDatabase.command(
                     "sql",
                     String.format(
-                            "CREATE INDEX IF NOT EXISTS ON `%s` (`%s`) FULL_TEXT%s",
-                            typeName, EMBEDDED_TEXT, hybrid.fullTextIndexMetadata()));
+                            "CREATE INDEX IF NOT EXISTS ON %s (`%s`) FULL_TEXT%s",
+                            quotedTypeName, EMBEDDED_TEXT, hybrid.fullTextIndexMetadata()));
         }
 
         // Check if vector index already exists
@@ -920,7 +910,7 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     private LSMVectorIndex findVectorIndex() {
         try {
-            String indexName = typeName + "[" + EMBEDDED_EMBEDDING + "]";
+            String indexName = indexName(typeName, EMBEDDED_EMBEDDING);
             var index = embeddedDatabase.getSchema().getIndexByName(indexName);
             if (index instanceof TypeIndex typeIndex) {
                 for (IndexInternal subIndex : typeIndex.getSubIndexes()) {
@@ -938,7 +928,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
     }
 
     private void softDeleteById(String id) {
-        String quotedTypeName = "`" + typeName + "`";
         try (ResultSet rs =
                 embeddedDatabase.query("sql", "SELECT FROM " + quotedTypeName + " WHERE " + EMBEDDED_ID + " = ?", id)) {
             while (rs.hasNext()) {
@@ -1002,8 +991,6 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
      */
     private String buildHybridSearchQuery(
             Embedding queryEmbedding,
-            String embeddingProperty,
-            String textProperty,
             int maxResults,
             double minScore,
             boolean filtered,
@@ -1016,30 +1003,28 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         // provides maxResults.
         int denseCandidates = filtered ? maxResults * 10 : Math.max(maxResults * 4, maxResults + 100);
         int fullTextCandidates = filtered ? maxResults * 10 : maxResults * 2;
-        String denseIndexName = typeName + "[" + embeddingProperty + "]";
-        String fullTextIndexName = typeName + "[" + textProperty + "]";
         String notDeleted = String.format("(`%s` IS NULL OR `%s` != true)", PROPERTY_DELETED, PROPERTY_DELETED);
         String fullTextSource;
         if (filterWhere != null) {
             // The bounded rows carry all properties (*), so the filter can test any metadata key.
             fullTextSource = String.format(
-                    "(SELECT rid, score FROM (SELECT *, @rid AS rid, $score AS score FROM `%s`"
-                            + " WHERE SEARCH_INDEX('%s', :query) = true ORDER BY $score DESC LIMIT %d) WHERE %s(%s))",
-                    typeName,
-                    fullTextIndexName,
+                    "(SELECT rid, score FROM (SELECT *, @rid AS rid, $score AS score FROM %s"
+                            + " WHERE SEARCH_INDEX(%s, :query) = true ORDER BY $score DESC LIMIT %d) WHERE %s(%s))",
+                    quotedTypeName,
+                    quotedTextIndexName,
                     fullTextCandidates,
                     excludeSoftDeleted ? notDeleted + " AND " : "",
                     filterWhere);
         } else if (excludeSoftDeleted) {
             fullTextSource = String.format(
-                    "(SELECT @rid AS rid, score FROM (SELECT @rid, `%s`, $score AS score FROM `%s`"
-                            + " WHERE SEARCH_INDEX('%s', :query) = true ORDER BY $score DESC LIMIT %d) WHERE %s)",
-                    PROPERTY_DELETED, typeName, fullTextIndexName, fullTextCandidates, notDeleted);
+                    "(SELECT @rid AS rid, score FROM (SELECT @rid, `%s`, $score AS score FROM %s"
+                            + " WHERE SEARCH_INDEX(%s, :query) = true ORDER BY $score DESC LIMIT %d) WHERE %s)",
+                    PROPERTY_DELETED, quotedTypeName, quotedTextIndexName, fullTextCandidates, notDeleted);
         } else {
             fullTextSource = String.format(
-                    "(SELECT @rid AS rid, $score AS score FROM `%s` WHERE SEARCH_INDEX('%s', :query) = true"
+                    "(SELECT @rid AS rid, $score AS score FROM %s WHERE SEARCH_INDEX(%s, :query) = true"
                             + " ORDER BY $score DESC LIMIT %d)",
-                    typeName, fullTextIndexName, fullTextCandidates);
+                    quotedTypeName, quotedTextIndexName, fullTextCandidates);
         }
         // Only the fused rows that can be returned leave vector.fuse(): the store keeps maxResults of them (more when
         // a metadata filter is applied afterwards). Rows below minScore are skipped afterwards and not backfilled,
@@ -1054,12 +1039,12 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         if (filterWhere != null) {
             // Soft-deleted records are removed from the vector index, so the allow-list needs no deleted check (which
             // made the allow-list scan about 6x slower).
-            options.add(String.format("filter: (SELECT @rid FROM `%s` WHERE %s).@rid", typeName, filterWhere));
+            options.add(String.format("filter: (SELECT @rid FROM %s WHERE %s).@rid", quotedTypeName, filterWhere));
         }
         String denseOptions = options.isEmpty() ? "" : ", { " + String.join(", ", options) + " }";
         return String.format(
-                "SELECT expand(`vector.fuse`(`vector.neighbors`('%s', %s, %d%s), %s, %s))",
-                denseIndexName,
+                "SELECT expand(`vector.fuse`(`vector.neighbors`(%s, %s, %d%s), %s, %s))",
+                quotedEmbeddingIndexName,
                 embeddingToSql(queryEmbedding),
                 denseCandidates,
                 denseOptions,
