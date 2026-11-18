@@ -30,9 +30,10 @@ import java.util.concurrent.CompletableFuture;
  * <br>
  * When {@link Builder#scrapeContent(Boolean)} is set to {@code true}, Olostep also scrapes each result and its
  * content appears as Markdown in the {@link WebSearchOrganicResult#content()} field. Scraping uses additional
- * credits and takes longer, so the default timeout is raised to 60 seconds in that case, which leaves a margin
- * over the 25 second budget Olostep allows the scrape phase by default. A result whose page could not be
- * scraped in time keeps {@link WebSearchOrganicResult#content()} {@code null}.
+ * credits and takes longer, so the default timeout is raised to 90 seconds in that case. Olostep allows the
+ * scrape phase 25 seconds by default, but a whole search-and-scrape request can take close to a minute under
+ * load. A result whose page could not be scraped in time keeps {@link WebSearchOrganicResult#content()}
+ * {@code null}.
  * <br>
  * {@link WebSearchRequest#maxResults()} is sent as the {@code limit}, which Olostep accepts between 1 and 25,
  * so values outside that range are clamped to it. When it is not set, Olostep returns up to 12 results.
@@ -41,7 +42,7 @@ public class OlostepWebSearchEngine implements WebSearchEngine {
 
     private static final String DEFAULT_BASE_URL = "https://api.olostep.com";
     private static final Duration DEFAULT_TIMEOUT = ofSeconds(30);
-    private static final Duration DEFAULT_SCRAPE_TIMEOUT = ofSeconds(60);
+    private static final Duration DEFAULT_SCRAPE_TIMEOUT = ofSeconds(90);
     private static final int MIN_LIMIT = 1;
     private static final int MAX_LIMIT = 25;
 
@@ -174,7 +175,7 @@ public class OlostepWebSearchEngine implements WebSearchEngine {
         }
 
         /**
-         * @param timeout connect and read timeout, defaults to 30 seconds, or 60 seconds when content is scraped
+         * @param timeout connect and read timeout, defaults to 30 seconds, or 90 seconds when content is scraped
          * @return {@link Builder}
          */
         public Builder timeout(Duration timeout) {
