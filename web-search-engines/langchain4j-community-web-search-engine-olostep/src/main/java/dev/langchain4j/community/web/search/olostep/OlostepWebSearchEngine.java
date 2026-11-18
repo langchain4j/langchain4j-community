@@ -26,7 +26,8 @@ import java.util.concurrent.CompletableFuture;
  * Represents Olostep Search API as a {@code WebSearchEngine}.
  * See more details <a href="https://docs.olostep.com/features/search">here</a>.
  * <br>
- * Each result carries the description returned by Olostep in {@link WebSearchOrganicResult#snippet()}.
+ * Each result carries the description returned by Olostep in {@link WebSearchOrganicResult#snippet()}. Results
+ * that Olostep returns without a title or a description are skipped.
  * <br>
  * When {@link Builder#scrapeContent(Boolean)} is set to {@code true}, Olostep also scrapes each result and its
  * content appears as Markdown in the {@link WebSearchOrganicResult#content()} field. Scraping uses additional
@@ -123,7 +124,8 @@ public class OlostepWebSearchEngine implements WebSearchEngine {
         List<WebSearchOrganicResult> results = new ArrayList<>();
         if (links != null) {
             for (OlostepSearchResult link : links) {
-                if (isNullOrBlank(link.getTitle())) {
+                // A result is only useful with a title and a snippet, so incomplete ones are skipped.
+                if (isNullOrBlank(link.getTitle()) || isNullOrBlank(link.getDescription())) {
                     continue;
                 }
                 URI url = UriUtils.createUriSafely(link.getUrl());

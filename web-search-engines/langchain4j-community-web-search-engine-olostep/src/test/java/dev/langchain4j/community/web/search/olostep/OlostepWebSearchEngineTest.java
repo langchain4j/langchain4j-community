@@ -47,8 +47,10 @@ class OlostepWebSearchEngineTest {
             + "    {\"url\": \"https://docs.langchain4j.dev/intro/\", \"title\": \"Introduction | LangChain4j\","
             + "     \"description\": \"LangChain4j simplifies integrating LLMs into Java applications.\"},"
             + "    {\"url\": \"https://example.com/no-title\", \"title\": null, \"description\": \"skipped\"},"
+            + "    {\"url\": \"https://example.com/no-description\", \"title\": \"No description\","
+            + "     \"description\": \"\"},"
             + "    {\"url\": \"https://github.com/langchain4j/langchain4j\", \"title\": \"LangChain4j on GitHub\","
-            + "     \"description\": null}"
+            + "     \"description\": \"Java library for LLM apps\"}"
             + "  ]"
             + "}}";
 
@@ -228,7 +230,7 @@ class OlostepWebSearchEngineTest {
         WebSearchOrganicResult second = results.get(1);
         assertThat(second.title()).isEqualTo("LangChain4j on GitHub");
         assertThat(second.url()).isEqualTo(URI.create("https://github.com/langchain4j/langchain4j"));
-        assertThat(second.snippet()).isNull();
+        assertThat(second.snippet()).isEqualTo("Java library for LLM apps");
         assertThat(second.content()).isNull();
     }
 
