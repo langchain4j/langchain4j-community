@@ -124,11 +124,19 @@ class ArcadeDBMetadataFilterMapper {
     }
 
     /**
-     * Quotes a property name for ArcadeDB SQL: wraps it in backticks and escapes the backslashes and backticks inside
-     * it, so a metadata key can never end the quoted name and inject SQL ({@code tenant` = 'a' OR 1 = 1 OR `tenant}).
+     * Quotes a type or property name for ArcadeDB SQL: wraps it in backticks and escapes the backslashes and backticks
+     * inside it, so a name can never end the quoted name and inject SQL ({@code tenant` = 'a' OR 1 = 1 OR `tenant}).
      */
     static String quoteIdentifier(String name) {
         return "`" + name.replace("\\", "\\\\").replace("`", "\\`") + "`";
+    }
+
+    /**
+     * Quotes a value as an ArcadeDB SQL string literal: wraps it in single quotes and escapes the backslashes and single
+     * quotes inside it. Used for index names, which ArcadeDB's vector and full-text functions take as strings.
+     */
+    static String quoteString(String value) {
+        return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'";
     }
 
     private String placeholders(Collection<?> values, Function<Object, String> bind) {

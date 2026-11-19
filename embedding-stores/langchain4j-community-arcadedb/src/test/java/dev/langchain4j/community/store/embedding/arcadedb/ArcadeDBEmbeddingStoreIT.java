@@ -459,6 +459,23 @@ class ArcadeDBEmbeddingStoreIT extends EmbeddingStoreWithFilteringIT {
         ArcadeDBKeyEscapingTestHelper.assertUnusualKeysWork(injection);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(ArcadeDBFilterStrategy.class)
+    void should_quote_the_type_name_safely(ArcadeDBFilterStrategy strategy) {
+        ArcadeDBEmbeddingStore store = ArcadeDBEmbeddingStore.builder()
+                .host(host)
+                .port(port)
+                .databaseName("test_embeddings")
+                .username("root")
+                .password(ArcadeDBTestServer.ROOT_PASSWORD)
+                .typeName(ArcadeDBTypeNameEscapingTestHelper.UNUSUAL_TYPE_NAME + strategy)
+                .dimension(ArcadeDBTypeNameEscapingTestHelper.DIMENSION)
+                .filterStrategy(strategy)
+                .build();
+        store.removeAll();
+        ArcadeDBTypeNameEscapingTestHelper.assertUnusualTypeNameWorks(store);
+    }
+
     @org.junit.jupiter.api.Test
     void should_not_drop_hybrid_matches_ranked_below_records_under_the_min_score() {
         for (int test = 0; test < 2; test++) {
