@@ -456,14 +456,13 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
             Map<String, Object> named = new LinkedHashMap<>();
             String where = filterMapper.mapNamed(filter, named);
             query = withoutNestedRecord(String.format(
-                    "SELECT expand(`vector.neighbors`(%s, %s, %d, { efSearch: %d, filter: (SELECT @rid FROM %s"
-                            + " WHERE %s).@rid }))",
+                    "SELECT expand(`vector.neighbors`(%s, %s, %d, { efSearch: %d, filter: %s }))%s",
                     quotedEmbeddingIndexName,
                     embeddingToSql(queryEmbedding),
                     maxResults,
                     remoteEfSearch(maxResults, maxResults),
-                    quotedTypeName,
-                    where));
+                    ALLOW_LIST_FILTER,
+                    allowListLet(where)));
             parameters = named;
         } else {
             int fetchCount = filter != null ? maxResults * 5 : maxResults;
@@ -957,8 +956,22 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
 
     // ===== Shared helpers =====
 
-    // The filter option of vector.neighbors takes RIDs: the allow-list subquery is projected to them with .@rid
-    // (26.10.2 also accepts the subquery's rows, 26.9.1 rejects them).
+    /**
+     * The filter option of vector.neighbors: the RIDs of the allow-list that {@link #allowListLet(String)} selects (the
+     * option takes RIDs, not the allow-list's rows).
+     */
+    private static final String ALLOW_LIST_FILTER = "$allowed.@rid";
+
+    /**
+     * Selects the records allowed by a metadata filter in a statement-level {@code LET}, before any row exists. Since
+     * ArcadeDB 26.11.1 a subquery evaluated in the projection of a {@code SELECT} without {@code FROM} (as an inline
+     * filter subquery in {@code vector.neighbors} is) scans the type on one thread; in a {@code LET} the scan stays
+     * parallel. Measured on 100k records over HTTP: a filter passing 1 % took 41 ms per query inline, 19 ms with
+     * {@code LET}.
+     */
+    private String allowListLet(String filterWhere) {
+        return String.format(" LET $allowed = (SELECT @rid FROM %s WHERE %s)", quotedTypeName, filterWhere);
+    }
 
     /**
      * Remote dense search returns only the rows it needs and widens the search beam instead: the default beam for
@@ -1039,17 +1052,18 @@ public class ArcadeDBEmbeddingStore implements EmbeddingStore<TextSegment>, Clos
         if (filterWhere != null) {
             // Soft-deleted records are removed from the vector index, so the allow-list needs no deleted check (which
             // made the allow-list scan about 6x slower).
-            options.add(String.format("filter: (SELECT @rid FROM %s WHERE %s).@rid", quotedTypeName, filterWhere));
+            options.add("filter: " + ALLOW_LIST_FILTER);
         }
         String denseOptions = options.isEmpty() ? "" : ", { " + String.join(", ", options) + " }";
         return String.format(
-                "SELECT expand(`vector.fuse`(`vector.neighbors`(%s, %s, %d%s), %s, %s))",
+                "SELECT expand(`vector.fuse`(`vector.neighbors`(%s, %s, %d%s), %s, %s))%s",
                 quotedEmbeddingIndexName,
                 embeddingToSql(queryEmbedding),
                 denseCandidates,
                 denseOptions,
                 fullTextSource,
-                hybrid.fuseOptions(fusedResults));
+                hybrid.fuseOptions(fusedResults),
+                filterWhere != null ? allowListLet(filterWhere) : "");
     }
 
     private static Embedding resultToEmbedding(Object embObj) {
