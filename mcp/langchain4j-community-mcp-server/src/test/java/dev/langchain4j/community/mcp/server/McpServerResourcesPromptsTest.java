@@ -252,6 +252,52 @@ class McpServerResourcesPromptsTest {
     }
 
     @Test
+    void should_reject_blank_resource_uri() {
+        assertThatThrownBy(() -> McpServer.builder()
+                        .resources(List.of(new BlankUriResource()))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("uri");
+    }
+
+    @Test
+    void should_accept_prompt_returning_list_of_wildcard_prompt_message() {
+        McpServer server =
+                McpServer.builder().prompts(List.of(new WildcardPrompt())).build();
+
+        JsonNode tree = toTree(server.handle(request(1, "prompts/get", Map.of("name", "wildcard"))));
+
+        assertThat(tree.get("result")
+                        .get("messages")
+                        .get(0)
+                        .get("content")
+                        .get("text")
+                        .asText())
+                .isEqualTo("wild");
+    }
+
+    @Test
+    void should_reject_prompt_returning_list_of_lower_bounded_wildcard() {
+        assertThatThrownBy(() -> McpServer.builder()
+                        .prompts(List.of(new SuperWildcardPrompt()))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("List<PromptMessage>");
+    }
+
+    @Test
+    void should_return_clean_error_when_prompt_argument_has_wrong_type() {
+        McpServer server =
+                McpServer.builder().prompts(List.of(new GreetingPrompts())).build();
+
+        JsonNode tree = toTree(server.handle(request(
+                1, "prompts/get", Map.of("name", "greet", "arguments", Map.of("name", Map.of("a", "b"))))));
+
+        assertThat(tree.get("error").get("code").asInt()).isEqualTo(-32602);
+        assertThat(tree.get("error").get("message").asText()).isEqualTo("Invalid prompt argument: name");
+    }
+
+    @Test
     void should_allow_empty_prompt_text() {
         PromptMessage message = PromptMessage.user("");
 
@@ -432,6 +478,30 @@ class McpServerResourcesPromptsTest {
         @Prompt(name = "strings")
         public List<String> strings() {
             return List.of("a", "b");
+        }
+    }
+
+    static class BlankUriResource {
+
+        @Resource(uri = "   ", name = "blank")
+        public String read() {
+            return "x";
+        }
+    }
+
+    static class WildcardPrompt {
+
+        @Prompt(name = "wildcard")
+        public List<? extends PromptMessage> wildcard() {
+            return List.of(PromptMessage.user("wild"));
+        }
+    }
+
+    static class SuperWildcardPrompt {
+
+        @Prompt(name = "super")
+        public List<? super PromptMessage> superWildcard() {
+            return List.of(PromptMessage.user("nope"));
         }
     }
 
