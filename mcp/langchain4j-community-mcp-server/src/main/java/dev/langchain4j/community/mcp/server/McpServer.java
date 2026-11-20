@@ -1,5 +1,6 @@
 package dev.langchain4j.community.mcp.server;
 
+import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -32,6 +33,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -319,7 +321,14 @@ public class McpServer {
                         new McpErrorResponse.Error(
                                 ERROR_CODE_INVALID_PARAMS, "Missing required prompt argument: " + spec.name(), null));
             }
-            values[spec.index()] = value == null ? null : OBJECT_MAPPER.convertValue(value, spec.type());
+            try {
+                values[spec.index()] = value == null ? null : OBJECT_MAPPER.convertValue(value, spec.type());
+            } catch (IllegalArgumentException e) {
+                return new McpErrorResponse(
+                        id,
+                        new McpErrorResponse.Error(
+                                ERROR_CODE_INVALID_PARAMS, "Invalid prompt argument: " + spec.name(), null));
+            }
         }
 
         try {
@@ -387,6 +396,7 @@ public class McpServer {
             if (annotation == null) {
                 continue;
             }
+            ensureNotBlank(annotation.uri(), "uri");
             if (method.getParameterCount() != 0) {
                 throw new IllegalArgumentException("Resource method must not take parameters: " + annotation.uri());
             }
@@ -553,7 +563,10 @@ public class McpServer {
         return idNode.isNumber() ? idNode.asLong() : null;
     }
 
-    /** Returns {@code true} only when the method is declared to return {@code List<PromptMessage>}. */
+    /**
+     * Returns {@code true} only when the method is declared to return {@code List<PromptMessage>} or
+     * {@code List<? extends PromptMessage>}.
+     */
     private static boolean isListOfPromptMessage(Method method) {
         Type genericReturnType = method.getGenericReturnType();
         if (!(genericReturnType instanceof ParameterizedType parameterizedType)) {
@@ -564,7 +577,17 @@ public class McpServer {
             return false;
         }
         Type[] typeArguments = parameterizedType.getActualTypeArguments();
-        return typeArguments.length == 1 && typeArguments[0] == PromptMessage.class;
+        if (typeArguments.length != 1) {
+            return false;
+        }
+        Type element = typeArguments[0];
+        if (element instanceof WildcardType wildcard) {
+            Type[] upperBounds = wildcard.getUpperBounds();
+            return wildcard.getLowerBounds().length == 0
+                    && upperBounds.length == 1
+                    && upperBounds[0] == PromptMessage.class;
+        }
+        return element == PromptMessage.class;
     }
 
     /**
