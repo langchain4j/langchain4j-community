@@ -8,6 +8,8 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.io.TempDir;
@@ -84,6 +86,40 @@ class MemFileEmbeddingStoreTest {
         store.add("doc-1", EMBEDDING, replacement);
 
         assertThat(contents(store)).containsExactly(replacement);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 2})
+    void should_exclude_an_embedding_without_content_when_a_filter_is_present(int cacheSize) {
+        var store = new MemFileEmbeddingStore<TextSegment>(tempDir, cacheSize);
+        store.add("with-content", EMBEDDING, segment("kept", "v1"));
+        store.add("vector-only", EMBEDDING);
+
+        assertThat(store.search(filteredByVersion("v1")).matches())
+                .extracting(EmbeddingMatch::embeddingId)
+                .containsExactly("with-content");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 2})
+    void should_exclude_an_embedding_whose_content_disappeared_when_a_filter_is_present(int cacheSize)
+            throws IOException {
+        var store = new MemFileEmbeddingStore<TextSegment>(tempDir, cacheSize);
+        store.add("with-content", EMBEDDING, segment("kept", "v1"));
+        store.add("lost-content", EMBEDDING, segment("gone", "v1"));
+        Files.delete(tempDir.resolve("lost-content.json"));
+
+        assertThat(store.search(filteredByVersion("v1")).matches())
+                .extracting(EmbeddingMatch::embeddingId)
+                .containsExactly("with-content");
+    }
+
+    private static EmbeddingSearchRequest filteredByVersion(String version) {
+        return EmbeddingSearchRequest.builder()
+                .queryEmbedding(EMBEDDING)
+                .maxResults(10)
+                .filter(new IsEqualTo("version", version))
+                .build();
     }
 
     private static TextSegment segment(String text, String version) {
