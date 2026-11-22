@@ -21,7 +21,7 @@ This module implements `EmbeddingStore` using [OceanBase](https://www.oceanbase.
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j-community-oceanbase</artifactId>
-    <version>1.24.0-beta34</version>
+    <version>1.25.0-beta35-SNAPSHOT</version>
 </dependency>
 ```
 
