@@ -6,7 +6,7 @@
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-parent</artifactId>
         <version>1.25.0-beta35-SNAPSHOT</version>
-        <relativePath></relativePath>
+        <relativePath/>
     </parent>
 
     <artifactId>langchain4j-community</artifactId>
@@ -300,12 +300,12 @@
                         </goals>
                         <configuration>
                             <rules>
-                                <banDuplicatePomDependencyVersions></banDuplicatePomDependencyVersions>
-                                <dependencyConvergence></dependencyConvergence>
+                                <banDuplicatePomDependencyVersions/>
+                                <dependencyConvergence/>
                                 <requireMavenVersion>
                                     <version>3.8</version>
                                 </requireMavenVersion>
-                                <requireUpperBoundDeps></requireUpperBoundDeps>
+                                <requireUpperBoundDeps/>
                             </rules>
                         </configuration>
                     </execution>
