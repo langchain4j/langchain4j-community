@@ -18,6 +18,14 @@ class ArcadeDBMetadataFilterMapperTest {
     }
 
     @Test
+    void should_quote_strings_and_escape_backslashes_and_single_quotes() {
+        assertThat(ArcadeDBMetadataFilterMapper.quoteString("Doc[embedding]")).isEqualTo("'Doc[embedding]'");
+        assertThat(ArcadeDBMetadataFilterMapper.quoteString("a'b")).isEqualTo("'a\\'b'");
+        assertThat(ArcadeDBMetadataFilterMapper.quoteString("a\\b")).isEqualTo("'a\\\\b'");
+        assertThat(ArcadeDBMetadataFilterMapper.quoteString("trailing\\")).isEqualTo("'trailing\\\\'");
+    }
+
+    @Test
     void should_keep_a_key_that_closes_the_quoted_name_inside_it() {
         List<Object> parameters = new ArrayList<>();
         String where = new ArcadeDBMetadataFilterMapper("meta_", true)
