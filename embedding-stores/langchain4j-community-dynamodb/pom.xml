@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community</artifactId>
-        <version>1.24.0-beta34-SNAPSHOT</version>
+        <version>1.25.0-beta35-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -17,7 +17,7 @@
             DynamoDB native vector search (the SearchVectors operation and vector
             indexes) was introduced in AWS SDK for Java v2 2.51.0 (August 2026).
         -->
-        <aws.sdk.version>2.51.0</aws.sdk.version>
+        <aws.sdk.version>2.59.7</aws.sdk.version>
     </properties>
 
     <dependencyManagement>

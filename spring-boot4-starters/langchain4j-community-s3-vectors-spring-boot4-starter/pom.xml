@@ -4,7 +4,7 @@
     <parent>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-community-spring-boot4-starters</artifactId>
-        <version>1.24.0-beta34-SNAPSHOT</version>
+        <version>1.25.0-beta35-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -25,7 +25,7 @@
             The s3vectors artifact was introduced in AWS SDK 2.41.0; align with the version used by
             the langchain4j-community-s3-vectors module.
         -->
-        <aws.sdk.version>2.43.1</aws.sdk.version>
+        <aws.sdk.version>2.59.7</aws.sdk.version>
     </properties>
 
     <dependencyManagement>
