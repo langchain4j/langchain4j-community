@@ -196,7 +196,7 @@ class QianfanChatModelIT extends AbstractChatModelIT {
 
     @Override
     protected boolean supportsDefaultRequestParameters() {
-        return false; // TODO
+        return true;
     }
 
     @Override
@@ -221,7 +221,7 @@ class QianfanChatModelIT extends AbstractChatModelIT {
 
     @Override
     protected boolean supportsJsonResponseFormat() {
-        return false; // TODO
+        return true;
     }
 
     @Override
@@ -256,16 +256,16 @@ class QianfanChatModelIT extends AbstractChatModelIT {
 
     @Override
     protected boolean supportsStopSequencesParameter() {
-        return false; // TODO
+        return true;
     }
 
     @Override
     protected boolean supportsModelNameParameter() {
-        return false; // TODO
+        return true;
     }
 
     @Override
     protected boolean supportsMaxOutputTokensParameter() {
-        return false; // TODO
+        return true;
     }
 }
