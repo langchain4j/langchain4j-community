@@ -189,7 +189,7 @@ class KeenableWebSearchEngineTest {
                         .safeSearch(true)
                         .build());
 
-        assertThat(requestBody.get()).doesNotContain("exclude_domains").doesNotContain("safe_search");
+        assertThat(requestBody.get()).doesNotContain("exclude_domains").doesNotContain("safety_mode");
     }
 
     @Test

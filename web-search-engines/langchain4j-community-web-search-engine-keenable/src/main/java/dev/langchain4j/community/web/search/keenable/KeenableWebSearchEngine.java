@@ -36,7 +36,8 @@ import java.util.concurrent.CompletableFuture;
  * <br>
  * {@link WebSearchRequest#maxResults()} is sent as {@code max_results}, which Keenable accepts between 1 and 50;
  * larger values are capped at 50. {@link WebSearchRequest#safeSearch()} is not mapped: {@code WebSearchRequest}
- * turns it on by default, while Keenable's {@code safe_search} defaults to off and is not available in every mode.
+ * turns it on by default, while Keenable's {@code safety_mode} defaults to {@code off} and is rejected outside
+ * the {@code pro} and {@code realtime} modes, so mapping it would filter every call.
  */
 public class KeenableWebSearchEngine implements WebSearchEngine {
 
