@@ -13,6 +13,7 @@ class KeenableSearchRequest {
     private final Integer maxResults;
     private final Integer snippetMaxLength;
     private final List<String> excludeDomains;
+    private final Boolean disableCards;
 
     private KeenableSearchRequest(Builder builder) {
         this.query = builder.query;
@@ -20,6 +21,7 @@ class KeenableSearchRequest {
         this.maxResults = builder.maxResults;
         this.snippetMaxLength = builder.snippetMaxLength;
         this.excludeDomains = builder.excludeDomains;
+        this.disableCards = builder.disableCards;
     }
 
     static Builder builder() {
@@ -46,12 +48,17 @@ class KeenableSearchRequest {
         return excludeDomains;
     }
 
+    public Boolean getDisableCards() {
+        return disableCards;
+    }
+
     static class Builder {
         private String query;
         private String mode;
         private Integer maxResults;
         private Integer snippetMaxLength;
         private List<String> excludeDomains;
+        private Boolean disableCards;
 
         Builder query(String query) {
             this.query = query;
@@ -75,6 +82,11 @@ class KeenableSearchRequest {
 
         Builder excludeDomains(List<String> excludeDomains) {
             this.excludeDomains = excludeDomains;
+            return this;
+        }
+
+        Builder disableCards(Boolean disableCards) {
+            this.disableCards = disableCards;
             return this;
         }
 

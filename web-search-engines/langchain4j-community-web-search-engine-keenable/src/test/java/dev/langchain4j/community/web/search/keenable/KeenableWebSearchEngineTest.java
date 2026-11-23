@@ -89,7 +89,7 @@ class KeenableWebSearchEngineTest {
         assertThat(requestPath.get()).isEqualTo("/v1/search/public");
         assertThat(requestApiKey.get()).isNull();
         assertThat(requestTitle.get()).isEqualTo("LangChain4j");
-        assertThat(requestBody.get()).isEqualTo("{\"query\":\"What is LangChain4j?\"}");
+        assertThat(requestBody.get()).isEqualTo("{\"query\":\"What is LangChain4j?\",\"disable_cards\":true}");
     }
 
     @Test
@@ -165,6 +165,58 @@ class KeenableWebSearchEngineTest {
                 .contains("\"max_results\":5")
                 .contains("\"snippet_max_length\":500")
                 .contains("\"exclude_domains\":[\"pinterest.com\",\"example.org\"]");
+    }
+
+    @Test
+    void should_disable_cards_by_default_and_allow_turning_them_back_on() {
+        engineBuilder().build().search("USD to EUR");
+        assertThat(requestBody.get()).contains("\"disable_cards\":true");
+
+        engineBuilder().disableCards(false).build().search("USD to EUR");
+        assertThat(requestBody.get()).doesNotContain("disable_cards");
+    }
+
+    @Test
+    void should_reject_max_results_below_one_before_calling_the_api() {
+        KeenableWebSearchEngine engine = engineBuilder().build();
+
+        assertThatThrownBy(() -> engine.search(WebSearchRequest.builder()
+                        .searchTerms("What is LangChain4j?")
+                        .maxResults(0)
+                        .build()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("maxResults");
+        assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void should_validate_builder_values_at_build_time() {
+        assertThatThrownBy(() -> KeenableWebSearchEngine.builder().mode("bogus").build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("mode");
+        assertThatThrownBy(() ->
+                        KeenableWebSearchEngine.builder().snippetMaxLength(100).build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("snippetMaxLength");
+        assertThatThrownBy(() -> KeenableWebSearchEngine.builder()
+                        .snippetMaxLength(10001)
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("snippetMaxLength");
+        assertThatThrownBy(() -> KeenableWebSearchEngine.builder()
+                        .excludeDomains(List.of("un.org/press"))
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("excludeDomains");
+        assertThatThrownBy(() -> KeenableWebSearchEngine.builder().baseUrl(" ").build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("baseUrl");
+        assertThat(KeenableWebSearchEngine.builder()
+                        .mode("pro")
+                        .snippetMaxLength(180)
+                        .excludeDomains(List.of("pinterest.com"))
+                        .build())
+                .isNotNull();
     }
 
     @Test

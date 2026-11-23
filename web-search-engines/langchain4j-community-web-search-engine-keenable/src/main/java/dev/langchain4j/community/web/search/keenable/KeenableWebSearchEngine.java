@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -35,7 +36,7 @@ import java.util.concurrent.CompletableFuture;
  * {@code acquired_at} (ISO 8601, UTC).
  * <br>
  * {@link WebSearchRequest#maxResults()} is sent as {@code max_results}, which Keenable accepts between 1 and 50;
- * larger values are capped at 50. {@link WebSearchRequest#safeSearch()} is not mapped: {@code WebSearchRequest}
+ * larger values are capped at 50 and values below 1 are rejected. {@link WebSearchRequest#safeSearch()} is not mapped: {@code WebSearchRequest}
  * turns it on by default, while Keenable's {@code safety_mode} defaults to {@code off} and is rejected outside
  * the {@code pro} and {@code realtime} modes, so mapping it would filter every call.
  */
@@ -45,11 +46,15 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
     private static final String DEFAULT_APP_TITLE = "LangChain4j";
     private static final Duration DEFAULT_TIMEOUT = ofSeconds(30);
     private static final int MAX_RESULTS_LIMIT = 50;
+    private static final int SNIPPET_MAX_LENGTH_MIN = 180;
+    private static final int SNIPPET_MAX_LENGTH_MAX = 10000;
+    private static final Set<String> MODES = Set.of("pro", "realtime");
 
     private final KeenableClient client;
     private final String mode;
     private final Integer snippetMaxLength;
     private final List<String> excludeDomains;
+    private final boolean disableCards;
 
     private KeenableWebSearchEngine(Builder builder) {
         String appTitle = getOrDefault(builder.appTitle, DEFAULT_APP_TITLE);
@@ -60,6 +65,27 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
             throw new IllegalArgumentException(
                     "appTitle must contain only printable ISO-8859-1 characters, so no line breaks or other"
                             + " control characters and nothing outside Latin-1");
+        }
+        if (builder.baseUrl != null) {
+            ensureNotBlank(builder.baseUrl, "baseUrl");
+        }
+        if (builder.mode != null && !MODES.contains(builder.mode)) {
+            throw new IllegalArgumentException("mode must be \"pro\" or \"realtime\", but is: " + builder.mode);
+        }
+        if (builder.snippetMaxLength != null
+                && (builder.snippetMaxLength < SNIPPET_MAX_LENGTH_MIN
+                        || builder.snippetMaxLength > SNIPPET_MAX_LENGTH_MAX)) {
+            throw new IllegalArgumentException("snippetMaxLength must be between " + SNIPPET_MAX_LENGTH_MIN + " and "
+                    + SNIPPET_MAX_LENGTH_MAX + ", but is: " + builder.snippetMaxLength);
+        }
+        if (builder.excludeDomains != null) {
+            for (String domain : builder.excludeDomains) {
+                if (isNullOrBlank(domain) || domain.contains("/")) {
+                    throw new IllegalArgumentException(
+                            "excludeDomains entries must be hosts such as \"example.com\" (no scheme or path),"
+                                    + " but got: " + domain);
+                }
+            }
         }
         this.client = new KeenableClient(
                 builder.httpClientBuilder,
@@ -72,6 +98,7 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
         this.mode = builder.mode;
         this.snippetMaxLength = builder.snippetMaxLength;
         this.excludeDomains = builder.excludeDomains == null ? null : List.copyOf(builder.excludeDomains);
+        this.disableCards = getOrDefault(builder.disableCards, Boolean.TRUE);
     }
 
     /**
@@ -114,12 +141,17 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
 
     private KeenableSearchRequest toKeenableRequest(WebSearchRequest webSearchRequest) {
         Integer maxResults = webSearchRequest.maxResults();
+        if (maxResults != null && maxResults < 1) {
+            throw new IllegalArgumentException("maxResults must be at least 1, but is: " + maxResults);
+        }
         return KeenableSearchRequest.builder()
                 .query(webSearchRequest.searchTerms())
                 .mode(mode)
                 .maxResults(maxResults == null ? null : Math.min(maxResults, MAX_RESULTS_LIMIT))
                 .snippetMaxLength(snippetMaxLength)
                 .excludeDomains(excludeDomains == null || excludeDomains.isEmpty() ? null : excludeDomains)
+                // instant-answer cards (cards.keenable.ai) expire after a day, so they are off unless asked for
+                .disableCards(disableCards ? Boolean.TRUE : null)
                 .build();
     }
 
@@ -161,6 +193,7 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
         private String mode;
         private Integer snippetMaxLength;
         private List<String> excludeDomains;
+        private Boolean disableCards;
         private HttpClientBuilder httpClientBuilder;
         private Boolean logRequests;
         private Boolean logResponses;
@@ -206,7 +239,7 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
         }
 
         /**
-         * @param mode search mode, {@code "pro"} (Keenable's default, deeper retrieval) or {@code "realtime"}
+         * @param mode search mode (checked at {@code build()}), {@code "pro"} (Keenable's default, deeper retrieval) or {@code "realtime"}
          *             (fastest response). Left out when {@code null}.
          * @return {@link Builder}
          */
@@ -216,7 +249,8 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
         }
 
         /**
-         * @param snippetMaxLength cap on the characters of page text in each snippet, from 180 to 10000.
+         * @param snippetMaxLength cap on the characters of page text in each snippet, from 180 to 10000
+         *                         (checked at {@code build()}).
          *                         Left out when {@code null}.
          * @return {@link Builder}
          */
@@ -227,11 +261,22 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
 
         /**
          * @param excludeDomains hosts never to return results from, e.g. {@code "pinterest.com"}
-         *                       (subdomains are excluded too)
+         *                       (subdomains are excluded too). Hosts only: entries with a path are rejected
          * @return {@link Builder}
          */
         public Builder excludeDomains(List<String> excludeDomains) {
             this.excludeDomains = excludeDomains;
+            return this;
+        }
+
+        /**
+         * @param disableCards whether to ask Keenable not to return instant-answer cards, defaults to {@code true}.
+         *                     Cards (e.g. for {@code "USD to EUR"}) are served from {@code cards.keenable.ai} URLs
+         *                     that stop working after one day, so a URL kept from such a result can 404 later.
+         * @return {@link Builder}
+         */
+        public Builder disableCards(Boolean disableCards) {
+            this.disableCards = disableCards;
             return this;
         }
 
@@ -276,7 +321,8 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
             return "KeenableWebSearchEngine.Builder(baseUrl=" + baseUrl + ", apiKey="
                     + (apiKey == null ? null : "********") + ", appTitle=" + appTitle + ", timeout=" + timeout
                     + ", mode=" + mode + ", snippetMaxLength=" + snippetMaxLength + ", excludeDomains="
-                    + excludeDomains + ", logRequests=" + logRequests + ", logResponses=" + logResponses + ")";
+                    + excludeDomains + ", disableCards=" + disableCards + ", logRequests=" + logRequests
+                    + ", logResponses=" + logResponses + ")";
         }
     }
 }
