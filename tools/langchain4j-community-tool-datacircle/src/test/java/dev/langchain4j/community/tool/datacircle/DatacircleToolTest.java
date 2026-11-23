@@ -3,17 +3,22 @@ package dev.langchain4j.community.tool.datacircle;
 import static java.util.stream.Collectors.toMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class DatacircleToolTest {
@@ -214,6 +219,149 @@ class DatacircleToolTest {
                     .isEqualTo("Error: sort must be one of [price, provider, score]");
             assertThat(tool.getBestPlans("email-finder", 100)).isEqualTo("Error: limit must be between 1 and 50");
             assertThat(tool.getProvider("  ")).startsWith("Error: provider cannot be null or blank");
+            assertThat(server.requests()).hasValue(0);
+        }
+    }
+
+    @Test
+    void keepsPricesBelowATenthOfACentExact() throws Exception {
+        String body = """
+                [{"api": "News search", "slug": "news", "plans": 120, "providers": 30,
+                  "best": {"provider": "Feedly", "plan": "Pro", "score": 61.24, "perThousand": 0.00023}},
+                 {"api": "Email validation", "slug": "email-verification", "plans": 1200, "providers": 150,
+                  "best": {"provider": "Bouncer", "plan": "Pay as you go", "score": 70, "perThousand": 0.00043}}]
+                """;
+        try (TestServer server = startServer(200, body)) {
+            assertThat(tool(server).listApis(null))
+                    .contains("Best: Feedly, Pro, score 61.2/100, $0.00023 per 1,000.")
+                    .contains("Best: Bouncer, Pay as you go, score 70/100, $0.00043 per 1,000.");
+        }
+    }
+
+    @Test
+    void searchPlans_saysWhenTheOffsetIsPastTheLastPlan() throws Exception {
+        try (TestServer server = startServer(200, "{\"total\":147092,\"offset\":999999999,\"plans\":[]}")) {
+            assertThat(tool(server).searchPlans(null, null, null, 2, 999999999))
+                    .isEqualTo("Found 147,092 plans, but the offset 999999999 is past the last one. "
+                            + "Use an offset below 147092.");
+        }
+        try (TestServer server = startServer(200, "{\"total\":12,\"plans\":[]}")) {
+            assertThat(tool(server).searchPlans(null, null, null, null, 40))
+                    .isEqualTo("Found 12 plans, but the offset 40 is past the last one. Use an offset below 12.");
+        }
+    }
+
+    @Test
+    void searchPlans_pointsTheModelToListApisOnAnUnknownApi() throws Exception {
+        try (TestServer server = startServer(400, "{\"error\":\"api must be one of: Employee profile\"}")) {
+            assertThat(tool(server).searchPlans("nope", null, null, null, null))
+                    .isEqualTo("Error: Datacircle API request failed: HTTP 400. api must be one of: Employee profile. "
+                            + "Call listApis for every API's name and slug.");
+        }
+    }
+
+    @Test
+    void getProvider_saysHowToFindAProviderNamedInOtherLetters() throws Exception {
+        try (TestServer server = startServer(200, PROVIDER_RESPONSE)) {
+            assertThat(tool(server).getProvider("互亿无线"))
+                    .startsWith("Error: Datacircle writes each provider's name in Latin letters")
+                    .endsWith("or find the provider with searchPlans.");
+            assertThat(server.requests()).hasValue(0);
+        }
+    }
+
+    @Test
+    void getProvider_countsTheApisPastTheHundredItShows() throws Exception {
+        String apis = IntStream.rangeClosed(1, 101)
+                .mapToObj(i -> "{\"api\": \"API " + i + "\", \"slug\": \"api-" + i + "\", \"rank\": 1, \"plans\": []}")
+                .collect(Collectors.joining(","));
+        try (TestServer server = startServer(200, "{\"provider\": \"Big\", \"apis\": [" + apis + "]}")) {
+            String result = tool(server).getProvider("big");
+
+            assertThat(result)
+                    .startsWith("Big sells 101 APIs.")
+                    .contains("- API 100 (api-100): rank 1, 0 plans.")
+                    .doesNotContain("api-101")
+                    .endsWith(NL + "And 1 more API.");
+        }
+    }
+
+    @Test
+    void saysSoWhenTheApiLeavesOutACount() throws Exception {
+        String body = "[{\"api\": \"Employee email\", \"slug\": \"email-finder\"}]";
+        try (TestServer server = startServer(200, body)) {
+            assertThat(tool(server).listApis(null))
+                    .startsWith("- Employee email (email-finder): ? plans from ? providers.");
+        }
+        String best = "{\"api\": \"Employee email\", \"slug\": \"email-finder\", \"plans\": ["
+                + "{\"provider\": \"Emelia\", \"plan\": \"Pro\", \"rank\": 1, \"score\": 76.1, \"perThousand\": 4.99}]}";
+        try (TestServer server = startServer(200, best)) {
+            assertThat(tool(server).getBestPlans("email-finder", 1))
+                    .startsWith("Employee email (email-finder): the best 1 of ? plans.");
+        }
+    }
+
+    @Test
+    void returnsAnErrorWhenAnAnswerHasAnUnexpectedShape() throws Exception {
+        String shape = "Error: The Datacircle API returned an answer of an unexpected shape: ";
+        String end = ". Retry later, or read https://api.datacircle.dev/v1/openapi.json.";
+        try (TestServer server = startServer(200, "{\"apis\": []}")) {
+            assertThat(tool(server).listApis(null)).isEqualTo(shape + "the list of APIs is not a list" + end);
+        }
+        try (TestServer server = startServer(200, "[{\"name\": \"Employee email\", \"slug\": \"email-finder\"}]")) {
+            assertThat(tool(server).listApis(null)).isEqualTo(shape + "api is missing" + end);
+        }
+        try (TestServer server =
+                startServer(200, "{\"api\": \"Employee email\", \"slug\": \"email-finder\", \"results\": []}")) {
+            assertThat(tool(server).getBestPlans("email-finder", null)).isEqualTo(shape + "plans is not a list" + end);
+        }
+        try (TestServer server =
+                startServer(200, "{\"total\": 1, \"plans\": [{\"name\": \"Hunter\", \"score\": 76.1}]}")) {
+            assertThat(tool(server).searchPlans(null, null, null, null, null))
+                    .isEqualTo(shape + "provider is missing" + end);
+        }
+        try (TestServer server = startServer(200, "{\"provider\": \"Hunter\", \"plans\": []}")) {
+            assertThat(tool(server).getProvider("hunter")).isEqualTo(shape + "apis is not a list" + end);
+        }
+    }
+
+    @Test
+    void saysWhenTheApiDoesNotAnswerInTime() throws Exception {
+        try (TestServer server = startServer(exchange -> {
+            try {
+                Thread.sleep(3_000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.close();
+        })) {
+            DatacircleTool tool = DatacircleTool.builder()
+                    .baseUrl(server.baseUrl())
+                    .timeout(Duration.ofSeconds(1))
+                    .build();
+
+            assertThat(tool.listApis(null))
+                    .isEqualTo("Error: The Datacircle API did not answer within 1 s. Retry in a moment.");
+        }
+    }
+
+    @Test
+    void saysWhenTheConnectionIsRefusedOrLost() throws Exception {
+        int closedPort;
+        try (ServerSocket socket = new ServerSocket(0)) {
+            closedPort = socket.getLocalPort();
+        }
+        DatacircleTool refused = DatacircleTool.builder()
+                .baseUrl("http://localhost:" + closedPort)
+                .timeout(Duration.ofSeconds(5))
+                .build();
+        assertThat(refused.listApis(null))
+                .isEqualTo("Error: The Datacircle API refused the connection. Check the network and the base URL.");
+
+        try (TestServer server = startServer(exchange -> exchange.close())) {
+            assertThat(tool(server).listApis(null))
+                    .isEqualTo(
+                            "Error: The connection to the Datacircle API was lost before it answered. Retry in a moment.");
         }
     }
 
@@ -234,10 +382,7 @@ class DatacircleToolTest {
     }
 
     private static TestServer startServer(int statusCode, String responseBody) throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        server.setExecutor(executor);
-        server.createContext("/", exchange -> {
+        return startServer(exchange -> {
             byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(statusCode, responseBytes.length);
@@ -245,11 +390,23 @@ class DatacircleToolTest {
                 outputStream.write(responseBytes);
             }
         });
-        server.start();
-        return new TestServer(server, executor);
     }
 
-    private record TestServer(HttpServer server, ExecutorService executor) implements AutoCloseable {
+    private static TestServer startServer(HttpHandler handler) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        AtomicInteger requests = new AtomicInteger();
+        server.setExecutor(executor);
+        server.createContext("/", exchange -> {
+            requests.incrementAndGet();
+            handler.handle(exchange);
+        });
+        server.start();
+        return new TestServer(server, executor, requests);
+    }
+
+    private record TestServer(HttpServer server, ExecutorService executor, AtomicInteger requests)
+            implements AutoCloseable {
 
         private String baseUrl() {
             return "http://localhost:" + server.getAddress().getPort();

@@ -82,7 +82,7 @@ public final class DatacircleTool {
         try {
             return formatBestPlans(client.getBestPlans(api, limit));
         } catch (RuntimeException e) {
-            return formatError(e) + (isNotFound(e) ? " Call listApis for every API's slug." : "");
+            return formatError(e) + (isStatus(e, 404) ? " Call listApis for every API's slug." : "");
         }
     }
 
@@ -117,9 +117,10 @@ public final class DatacircleTool {
             @P(name = "offset", value = "Number of found plans to skip first. Defaults to 0", required = false)
                     Integer offset) {
         try {
-            return formatSearch(client.searchPlans(api, query, sort, limit, offset));
+            return formatSearch(client.searchPlans(api, query, sort, limit, offset), offset == null ? 0 : offset);
         } catch (RuntimeException e) {
-            return formatError(e);
+            boolean unknownApi = api != null && !api.isBlank() && (isStatus(e, 400) || isStatus(e, 404));
+            return formatError(e) + (unknownApi ? " Call listApis for every API's name and slug." : "");
         }
     }
 
@@ -142,14 +143,17 @@ public final class DatacircleTool {
     }
 
     private static String formatApis(JsonNode apis, String query) {
-        if (!apis.isArray() || apis.isEmpty()) {
+        if (!apis.isArray()) {
+            throw unexpected("the list of APIs is not a list");
+        }
+        if (apis.isEmpty()) {
             return "The Datacircle API returned no APIs.";
         }
         List<String> words = words(query);
         List<String> lines = new ArrayList<>();
         for (JsonNode api : apis) {
-            String name = text(api, "api", "unknown");
-            String slug = text(api, "slug", "");
+            String name = required(api, "api");
+            String slug = required(api, "slug");
             if (!matchesAll(name + " " + slug, words)) {
                 continue;
             }
@@ -165,9 +169,9 @@ public final class DatacircleTool {
             JsonNode best = api.path("best");
             if (best.isObject()) {
                 line.append(" Best: ")
-                        .append(truncate(text(best, "provider", "unknown")))
+                        .append(truncate(required(best, "provider")))
                         .append(", ")
-                        .append(truncate(text(best, "plan", "unknown")))
+                        .append(truncate(required(best, "plan")))
                         .append(", ")
                         .append(score(best.path("score")))
                         .append(", ")
@@ -185,13 +189,13 @@ public final class DatacircleTool {
     }
 
     private static String formatBestPlans(JsonNode response) {
-        JsonNode plans = response.path("plans");
+        JsonNode plans = list(response, "plans");
         StringBuilder result = new StringBuilder()
-                .append(text(response, "api", "unknown"))
+                .append(required(response, "api"))
                 .append(" (")
-                .append(text(response, "slug", ""))
+                .append(required(response, "slug"))
                 .append("): ");
-        if (!plans.isArray() || plans.isEmpty()) {
+        if (plans.isEmpty()) {
             return result.append("no plans found.").toString();
         }
         result.append("the best ")
@@ -206,14 +210,19 @@ public final class DatacircleTool {
         return result.toString();
     }
 
-    private static String formatSearch(JsonNode response) {
-        JsonNode plans = response.path("plans");
-        if (!plans.isArray() || plans.isEmpty()) {
+    private static String formatSearch(JsonNode response, int requestedOffset) {
+        JsonNode plans = list(response, "plans");
+        JsonNode total = response.path("total");
+        int offset = response.path("offset").isInt() ? response.path("offset").asInt() : requestedOffset;
+        if (plans.isEmpty()) {
+            if (total.isNumber() && total.asLong() > 0) {
+                return "Found " + count(total, "plan") + ", but the offset " + offset
+                        + " is past the last one. Use an offset below " + total.asLong() + ".";
+            }
             return "No plans found.";
         }
-        int offset = response.path("offset").asInt(0);
         StringBuilder result = new StringBuilder("Found ")
-                .append(count(response.path("total"), "plan"))
+                .append(count(total, "plan"))
                 .append("; showing ")
                 .append(offset + 1)
                 .append(" to ")
@@ -227,13 +236,13 @@ public final class DatacircleTool {
     }
 
     private static String formatProvider(JsonNode response) {
-        JsonNode apis = response.path("apis");
-        StringBuilder result = new StringBuilder(text(response, "provider", "unknown"));
+        JsonNode apis = list(response, "apis");
+        StringBuilder result = new StringBuilder(required(response, "provider"));
         String website = text(response, "website", "");
         if (!website.isEmpty()) {
             result.append(" (").append(website).append(')');
         }
-        if (!apis.isArray() || apis.isEmpty()) {
+        if (apis.isEmpty()) {
             return result.append(" sells no API on Datacircle.").toString();
         }
         result.append(" sells ").append(plural(apis.size(), "API")).append(". Its rank among each API's providers:");
@@ -242,27 +251,27 @@ public final class DatacircleTool {
             if (shown == MAX_PROVIDER_APIS) {
                 result.append(System.lineSeparator())
                         .append("And ")
-                        .append(apis.size() - shown)
-                        .append(" more APIs.");
+                        .append(plural(apis.size() - shown, "more API"))
+                        .append('.');
                 break;
             }
             shown++;
             JsonNode rank = api.path("rank");
-            JsonNode plans = api.path("plans");
+            JsonNode plans = list(api, "plans");
             result.append(System.lineSeparator())
                     .append("- ")
-                    .append(truncate(text(api, "api", "unknown")))
+                    .append(truncate(required(api, "api")))
                     .append(" (")
-                    .append(text(api, "slug", ""))
+                    .append(required(api, "slug"))
                     .append("): ")
                     .append(rank.isNumber() ? "rank " + rank.asInt() : "not ranked")
                     .append(", ")
-                    .append(plural(plans.isArray() ? plans.size() : 0, "plan"))
+                    .append(plural(plans.size(), "plan"))
                     .append('.');
             JsonNode best = bestScored(plans);
             if (best != null) {
                 result.append(" Best: ")
-                        .append(truncate(text(best, "plan", "unknown")))
+                        .append(truncate(required(best, "plan")))
                         .append(", ")
                         .append(score(best.path("score")))
                         .append(", ")
@@ -275,14 +284,12 @@ public final class DatacircleTool {
 
     private static JsonNode bestScored(JsonNode plans) {
         JsonNode best = null;
-        if (plans.isArray()) {
-            for (JsonNode plan : plans) {
-                if (plan.path("score").isNumber()
-                        && (best == null
-                                || plan.path("score").asDouble()
-                                        > best.path("score").asDouble())) {
-                    best = plan;
-                }
+        for (JsonNode plan : plans) {
+            if (plan.path("score").isNumber()
+                    && (best == null
+                            || plan.path("score").asDouble()
+                                    > best.path("score").asDouble())) {
+                best = plan;
             }
         }
         return best;
@@ -292,11 +299,11 @@ public final class DatacircleTool {
         StringBuilder line = new StringBuilder();
         JsonNode rank = plan.path("rank");
         line.append(!withApi && rank.isNumber() ? rank.asInt() + ". " : "- ")
-                .append(truncate(text(plan, "provider", "unknown")))
+                .append(truncate(required(plan, "provider")))
                 .append(", ")
-                .append(truncate(text(plan, "plan", "unknown")));
+                .append(truncate(required(plan, "plan")));
         if (withApi) {
-            line.append(" (").append(truncate(text(plan, "api", "unknown"))).append(')');
+            line.append(" (").append(truncate(required(plan, "api"))).append(')');
         }
         line.append(": ");
         if (withApi && rank.isNumber()) {
@@ -336,7 +343,7 @@ public final class DatacircleTool {
     }
 
     private static String dollars(JsonNode amount) {
-        return "$" + decimal(amount, 4);
+        return "$" + amount.decimalValue().stripTrailingZeros().toPlainString();
     }
 
     private static String decimal(JsonNode number, int scale) {
@@ -377,6 +384,27 @@ public final class DatacircleTool {
         }
     }
 
+    private static String required(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        if (!value.isTextual() || value.asText().isBlank()) {
+            throw unexpected(field + " is missing");
+        }
+        return value.asText();
+    }
+
+    private static JsonNode list(JsonNode node, String field) {
+        JsonNode value = node.path(field);
+        if (!value.isArray()) {
+            throw unexpected(field + " is not a list");
+        }
+        return value;
+    }
+
+    private static DatacircleClientException unexpected(String what) {
+        return new DatacircleClientException("The Datacircle API returned an answer of an unexpected shape: " + what
+                + ". Retry later, or read https://api.datacircle.dev/v1/openapi.json.");
+    }
+
     private static String text(JsonNode node, String field, String fallback) {
         JsonNode value = node.path(field);
         return value.isTextual() && !value.asText().isBlank() ? value.asText() : fallback;
@@ -389,8 +417,8 @@ public final class DatacircleTool {
         return text.substring(0, MAX_TEXT_LENGTH - 3) + "...";
     }
 
-    private static boolean isNotFound(RuntimeException error) {
-        return error instanceof DatacircleClientException e && e.statusCode() == 404;
+    private static boolean isStatus(RuntimeException error, int statusCode) {
+        return error instanceof DatacircleClientException e && e.statusCode() == statusCode;
     }
 
     private static String formatError(RuntimeException error) {

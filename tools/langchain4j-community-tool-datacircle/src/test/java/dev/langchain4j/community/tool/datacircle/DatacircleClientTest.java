@@ -85,7 +85,9 @@ class DatacircleClientTest {
                 .hasMessageContaining("provider cannot be null or blank");
         assertThatThrownBy(() -> DatacircleClient.providerSlug("互亿无线"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("provider must hold letters or digits");
+                .hasMessage("Datacircle writes each provider's name in Latin letters, so \"互亿无线\" finds none. "
+                        + "Pass the name in Latin letters or its website's domain, like ihuyi for ihuyi.com, "
+                        + "or find the provider with searchPlans.");
     }
 
     @Test

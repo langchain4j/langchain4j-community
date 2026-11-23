@@ -11,8 +11,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 /**
- * Calls the live Datacircle API, which needs no key.
+ * Calls the live Datacircle API, which needs no key. Runs only when {@code DATACIRCLE_LIVE} is set, so the build
+ * never depends on the API's uptime, its rate limit or its data. The last test also needs {@code OPENAI_API_KEY}.
  */
+@EnabledIfEnvironmentVariable(named = "DATACIRCLE_LIVE", matches = ".+")
 class DatacircleToolIT {
 
     interface Assistant {

@@ -7,19 +7,29 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.exception.HttpException;
+import dev.langchain4j.exception.TimeoutException;
 import dev.langchain4j.http.client.HttpClient;
 import dev.langchain4j.http.client.HttpClientBuilder;
 import dev.langchain4j.http.client.HttpClientBuilderLoader;
 import dev.langchain4j.http.client.HttpRequest;
 import dev.langchain4j.http.client.SuccessfulHttpResponse;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
+import java.net.http.HttpTimeoutException;
+import java.nio.channels.UnresolvedAddressException;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import javax.net.ssl.SSLException;
 
 /**
  * Low-level client for the open Datacircle API at {@code https://api.datacircle.dev/v1}.
@@ -33,16 +43,16 @@ final class DatacircleClient {
     static final Set<String> SORTS = Set.of("score", "provider", "price");
 
     private static final String DEFAULT_BASE_URL = "https://api.datacircle.dev/v1";
-    private static final int MAX_RESPONSE_BYTES = 20 * 1024 * 1024;
     private static final int MAX_ERROR_LENGTH = 300;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final HttpClient httpClient;
     private final String baseUrl;
+    private final Duration timeout;
 
     private DatacircleClient(Builder builder) {
         this.baseUrl = normalizeBaseUrl(builder.baseUrl);
-        Duration timeout = Objects.requireNonNull(builder.timeout, "timeout must not be null");
+        this.timeout = Objects.requireNonNull(builder.timeout, "timeout must not be null");
         HttpClientBuilder httpClientBuilder = HttpClientBuilderLoader.loadHttpClientBuilder()
                 .connectTimeout(timeout)
                 .readTimeout(timeout);
@@ -123,7 +133,9 @@ final class DatacircleClient {
                 .replaceAll("[^a-z0-9]+", "-")
                 .replaceAll("^-+|-+$", "");
         if (slug.isEmpty()) {
-            throw new IllegalArgumentException("provider must hold letters or digits");
+            throw new IllegalArgumentException("Datacircle writes each provider's name in Latin letters, so \""
+                    + name.trim() + "\" finds none. Pass the name in Latin letters or its website's domain, "
+                    + "like ihuyi for ihuyi.com, or find the provider with searchPlans.");
         }
         return slug;
     }
@@ -145,9 +157,6 @@ final class DatacircleClient {
             if (body == null || body.isBlank()) {
                 throw new DatacircleClientException("The Datacircle API returned an empty response.");
             }
-            if (body.getBytes(StandardCharsets.UTF_8).length > MAX_RESPONSE_BYTES) {
-                throw new DatacircleClientException("The Datacircle API response exceeds the 20 MiB safety limit.");
-            }
             return OBJECT_MAPPER.readTree(body);
         } catch (HttpException e) {
             throw new DatacircleClientException(e.statusCode(), httpErrorMessage(e.statusCode(), e.getMessage()), e);
@@ -156,8 +165,37 @@ final class DatacircleClient {
         } catch (DatacircleClientException e) {
             throw e;
         } catch (RuntimeException e) {
-            throw new DatacircleClientException("The Datacircle API request failed.", e);
+            throw new DatacircleClientException(transportErrorMessage(e), e);
         }
+    }
+
+    /** Says why no answer came: a timeout, an unknown host, a TLS failure, a refused or a lost connection. */
+    private String transportErrorMessage(Throwable error) {
+        List<Throwable> causes = new ArrayList<>();
+        for (Throwable cause = error; cause != null && !causes.contains(cause); cause = cause.getCause()) {
+            causes.add(cause);
+        }
+        if (causes.stream()
+                .anyMatch(c -> c instanceof TimeoutException
+                        || c instanceof HttpTimeoutException
+                        || c instanceof SocketTimeoutException)) {
+            return "The Datacircle API did not answer within " + timeout.toSeconds() + " s. Retry in a moment.";
+        }
+        if (causes.stream()
+                .anyMatch(c -> c instanceof UnknownHostException || c instanceof UnresolvedAddressException)) {
+            return "The Datacircle API's host " + URI.create(baseUrl).getHost()
+                    + " could not be found. Check the network and the base URL.";
+        }
+        if (causes.stream().anyMatch(SSLException.class::isInstance)) {
+            return "The secure connection to the Datacircle API failed (TLS). Check the network and the base URL.";
+        }
+        if (causes.stream().anyMatch(ConnectException.class::isInstance)) {
+            return "The Datacircle API refused the connection. Check the network and the base URL.";
+        }
+        if (causes.stream().anyMatch(IOException.class::isInstance)) {
+            return "The connection to the Datacircle API was lost before it answered. Retry in a moment.";
+        }
+        return "The Datacircle API request failed: " + error.getClass().getSimpleName() + ".";
     }
 
     private static String httpErrorMessage(int statusCode, String body) {
