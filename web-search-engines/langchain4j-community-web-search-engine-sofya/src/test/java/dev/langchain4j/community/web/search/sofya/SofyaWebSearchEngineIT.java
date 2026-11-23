@@ -93,7 +93,8 @@ class SofyaWebSearchEngineIT extends WebSearchEngineIT {
         // then
         assertThat(webSearchResults.results())
                 .isNotEmpty()
-                .allMatch(result -> result.url().getHost().endsWith("github.com"));
+                .allMatch(result -> result.url().getHost().equals("github.com")
+                        || result.url().getHost().endsWith(".github.com"));
     }
 
     @Test

@@ -17,6 +17,8 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -37,9 +39,10 @@ class SofyaWebSearchEngineTest {
             + "  {\"title\": \"Introduction | LangChain4j\", \"url\": \"https://docs.langchain4j.dev/intro/\","
             + "   \"content\": \"# Introduction\\n\\nWelcome!\","
             + "   \"description\": \"The goal of LangChain4j is to simplify integrating LLMs into Java applications.\","
-            + "   \"fetched\": true, \"published_date\": null, \"sublinks\": [], \"table\": {}},"
+            + "   \"fetched\": true, \"content_fetched_at\": \"2026-11-23T08:00:00Z\", \"published_date\": null,"
+            + "   \"sublinks\": [], \"table\": {}},"
             + "  {\"title\": \"No URL\", \"url\": \"\", \"content\": \"skipped\", \"fetched\": false},"
-            + "  {\"title\": \" \", \"url\": \"https://example.com/no-title\", \"content\": \"skipped\", \"fetched\": false},"
+            + "  {\"title\": \" \", \"url\": \"https://example.com/no-title\", \"content\": \"untitled\", \"fetched\": false},"
             + "  {\"title\": \"LangChain4j on GitHub\", \"url\": \"https://github.com/langchain4j/langchain4j\","
             + "   \"content\": \"Java library for LLM apps\", \"description\": \"Java library for LLM apps\","
             + "   \"fetched\": false, \"published_date\": \"2023-06-20\", \"sublinks\": [], \"table\": {}}"
@@ -181,8 +184,8 @@ class SofyaWebSearchEngineTest {
         assertThat(requestBody.get()).contains("\"search_depth\":\"basic\"");
 
         List<WebSearchOrganicResult> results = webSearchResults.results();
-        assertThat(results).hasSize(2);
-        assertThat(webSearchResults.searchInformation().totalResults()).isEqualTo(2L);
+        assertThat(results).hasSize(3);
+        assertThat(webSearchResults.searchInformation().totalResults()).isEqualTo(3L);
         assertThat(webSearchResults.searchMetadata()).containsExactlyEntriesOf(Map.of("query", "What is LangChain4j?"));
 
         WebSearchOrganicResult first = results.get(0);
@@ -190,14 +193,23 @@ class SofyaWebSearchEngineTest {
         assertThat(first.url()).isEqualTo(URI.create("https://docs.langchain4j.dev/intro/"));
         assertThat(first.snippet()).startsWith("The goal of LangChain4j");
         assertThat(first.content()).isEqualTo("# Introduction\n\nWelcome!");
-        assertThat(first.metadata()).isEmpty();
+        assertThat(first.metadata())
+                .containsExactlyInAnyOrderEntriesOf(
+                        Map.of("content_fetched_at", "2026-11-23T08:00:00Z", "fetched", "true"));
+
+        // a result without a title is kept, titled with its host
+        WebSearchOrganicResult untitled = results.get(1);
+        assertThat(untitled.title()).isEqualTo("example.com");
+        assertThat(untitled.url()).isEqualTo(URI.create("https://example.com/no-title"));
+        assertThat(untitled.snippet()).isEqualTo("untitled");
 
         // a page that was not fetched in time has no content, only its snippet
-        WebSearchOrganicResult second = results.get(1);
-        assertThat(second.url()).isEqualTo(URI.create("https://github.com/langchain4j/langchain4j"));
-        assertThat(second.snippet()).isEqualTo("Java library for LLM apps");
-        assertThat(second.content()).isNull();
-        assertThat(second.metadata()).containsExactlyEntriesOf(Map.of("published_date", "2023-06-20"));
+        WebSearchOrganicResult third = results.get(2);
+        assertThat(third.url()).isEqualTo(URI.create("https://github.com/langchain4j/langchain4j"));
+        assertThat(third.snippet()).isEqualTo("Java library for LLM apps");
+        assertThat(third.content()).isNull();
+        assertThat(third.metadata())
+                .containsExactlyInAnyOrderEntriesOf(Map.of("published_date", "2023-06-20", "fetched", "false"));
     }
 
     @Test
@@ -229,6 +241,54 @@ class SofyaWebSearchEngineTest {
                 .containsEntry("answer", "LangChain4j is a Java library for building LLM applications.")
                 .containsEntry("altered_query", "What is LangChain4j")
                 .doesNotContainKey("relaxed_query");
+    }
+
+    @Test
+    void default_timeout_should_allow_for_page_text_and_answers() {
+        assertThat(engineBuilder().build().timeout()).isEqualTo(Duration.ofSeconds(30));
+        assertThat(engineBuilder()
+                        .searchDepth(SofyaSearchDepth.SNIPPETS)
+                        .build()
+                        .timeout())
+                .isEqualTo(Duration.ofSeconds(30));
+        assertThat(engineBuilder().searchDepth(SofyaSearchDepth.BASIC).build().timeout())
+                .isEqualTo(Duration.ofSeconds(90));
+        assertThat(engineBuilder().includeAnswer(true).build().timeout()).isEqualTo(Duration.ofSeconds(90));
+        assertThat(engineBuilder().includeAnswer(false).build().timeout()).isEqualTo(Duration.ofSeconds(30));
+        assertThat(engineBuilder()
+                        .searchDepth(SofyaSearchDepth.BASIC)
+                        .timeout(Duration.ofSeconds(5))
+                        .build()
+                        .timeout())
+                .isEqualTo(Duration.ofSeconds(5));
+    }
+
+    @Test
+    void should_copy_domain_lists() {
+        List<String> include = new ArrayList<>(List.of("github.com"));
+        List<String> exclude = new ArrayList<>(List.of("pinterest.com"));
+        SofyaWebSearchEngine engine =
+                engineBuilder().includeDomains(include).excludeDomains(exclude).build();
+        include.add("example.com");
+        exclude.clear();
+
+        engine.search("What is LangChain4j?");
+
+        assertThat(requestBody.get())
+                .contains("\"include_domains\":[\"github.com\"]")
+                .contains("\"exclude_domains\":[\"pinterest.com\"]");
+    }
+
+    @Test
+    void should_reject_null_request() {
+        SofyaWebSearchEngine engine = engineBuilder().build();
+
+        assertThatThrownBy(() -> engine.search((WebSearchRequest) null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("webSearchRequest");
+        assertThatThrownBy(() -> engine.searchAsync(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("webSearchRequest");
     }
 
     @Test

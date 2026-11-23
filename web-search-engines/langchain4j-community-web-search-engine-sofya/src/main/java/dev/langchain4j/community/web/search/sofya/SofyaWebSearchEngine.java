@@ -4,6 +4,7 @@ import static dev.langchain4j.internal.CompletableFutureUtils.propagateCancellat
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.internal.Utils.isNullOrBlank;
 import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static java.time.Duration.ofSeconds;
 
 import dev.langchain4j.http.client.HttpClientBuilder;
@@ -34,25 +35,35 @@ import java.util.concurrent.CompletableFuture;
  * {@code content()} at {@code null}.
  * <br>
  * When the publication date of a result is known, it is in the {@code published_date} metadata entry
- * ({@code YYYY-MM-DD}).
+ * ({@code YYYY-MM-DD}). When {@code content()} holds page text, the {@code content_fetched_at} metadata entry says
+ * when that text was read (UTC). At {@code BASIC} depth it can be earlier than the search, because a page that
+ * cannot be read in time comes from Sofya's index instead. The {@code fetched} entry is {@code "true"} when
+ * {@code content()} is page text and {@code "false"} when Sofya returned only the snippet.
+ * <br>
+ * A result without a title keeps its URL and is titled with the URL's host.
  * <br>
  * When {@link Builder#includeAnswer(Boolean)} is set to {@code true}, Sofya also writes a short answer from the
  * results. It is prepended as a result whose {@code result_type} metadata entry is {@code answer}, so the model
  * reads it first, and it is also available under the {@code answer} key of {@link WebSearchResults#searchMetadata()}.
  * This uses additional credits.
  * <br>
- * {@link WebSearchRequest#maxResults()} is sent as {@code max_results}, which Sofya accepts between 1 and 20
- * (values outside are clamped). Other {@link WebSearchRequest} fields are not supported and are ignored.
+ * {@link WebSearchRequest#maxResults()} is sent as {@code max_results} unchanged. The Sofya API accepts 1 to 20
+ * and clamps other values itself; this class does not. Other {@link WebSearchRequest} fields are not supported
+ * and are ignored.
  */
 public class SofyaWebSearchEngine implements WebSearchEngine {
 
     private static final String DEFAULT_BASE_URL = "https://sofya.co/";
+    // Snippets only come back in a few seconds. Page text (BASIC) or an answer can take most of the API's
+    // 60 s request limit, and Sofya's docs ask clients to allow at least 90 s for those.
     private static final Duration DEFAULT_TIMEOUT = ofSeconds(30);
+    private static final Duration DEFAULT_CONTENT_TIMEOUT = ofSeconds(90);
     private static final SofyaSearchDepth DEFAULT_SEARCH_DEPTH = SofyaSearchDepth.SNIPPETS;
     private static final String ANSWER_TITLE = "Sofya answer";
     private static final URI ANSWER_URL = URI.create("https://sofya.co/");
 
     private final SofyaClient client;
+    private final Duration timeout;
     private final SofyaSearchDepth searchDepth;
     private final Boolean includeAnswer;
     private final List<String> includeDomains;
@@ -61,17 +72,22 @@ public class SofyaWebSearchEngine implements WebSearchEngine {
     private final String freshness;
 
     private SofyaWebSearchEngine(Builder builder) {
+        this.searchDepth = getOrDefault(builder.searchDepth, DEFAULT_SEARCH_DEPTH);
+        this.includeAnswer = builder.includeAnswer;
+        this.timeout = getOrDefault(
+                builder.timeout,
+                searchDepth == SofyaSearchDepth.BASIC || Boolean.TRUE.equals(includeAnswer)
+                        ? DEFAULT_CONTENT_TIMEOUT
+                        : DEFAULT_TIMEOUT);
         this.client = new SofyaClient(
                 builder.httpClientBuilder,
                 getOrDefault(builder.baseUrl, DEFAULT_BASE_URL),
                 ensureNotBlank(builder.apiKey, "apiKey"),
-                getOrDefault(builder.timeout, DEFAULT_TIMEOUT),
+                timeout,
                 builder.logRequests,
                 builder.logResponses);
-        this.searchDepth = getOrDefault(builder.searchDepth, DEFAULT_SEARCH_DEPTH);
-        this.includeAnswer = builder.includeAnswer;
-        this.includeDomains = builder.includeDomains;
-        this.excludeDomains = builder.excludeDomains;
+        this.includeDomains = builder.includeDomains == null ? null : List.copyOf(builder.includeDomains);
+        this.excludeDomains = builder.excludeDomains == null ? null : List.copyOf(builder.excludeDomains);
         this.topic = builder.topic;
         this.freshness = builder.freshness;
     }
@@ -95,8 +111,13 @@ public class SofyaWebSearchEngine implements WebSearchEngine {
         return builder().apiKey(apiKey).build();
     }
 
+    Duration timeout() {
+        return timeout;
+    }
+
     @Override
     public WebSearchResults search(WebSearchRequest webSearchRequest) {
+        ensureNotNull(webSearchRequest, "webSearchRequest");
         return toWebSearchResults(client.search(toSofyaRequest(webSearchRequest)));
     }
 
@@ -106,6 +127,7 @@ public class SofyaWebSearchEngine implements WebSearchEngine {
      */
     @Override
     public CompletableFuture<WebSearchResults> searchAsync(WebSearchRequest webSearchRequest) {
+        ensureNotNull(webSearchRequest, "webSearchRequest");
         CompletableFuture<SofyaSearchResponse> searchFuture = client.searchAsync(toSofyaRequest(webSearchRequest));
         CompletableFuture<WebSearchResults> result = searchFuture.thenApply(SofyaWebSearchEngine::toWebSearchResults);
         propagateCancellation(result, searchFuture);
@@ -129,15 +151,12 @@ public class SofyaWebSearchEngine implements WebSearchEngine {
         List<WebSearchOrganicResult> results = new ArrayList<>();
         if (response.getResults() != null) {
             for (SofyaSearchResult result : response.getResults()) {
-                if (isNullOrBlank(result.getTitle())) {
-                    continue;
-                }
                 URI url = UriUtils.createUriSafely(result.getUrl());
                 if (url == null) {
                     continue;
                 }
                 results.add(WebSearchOrganicResult.from(
-                        result.getTitle(), url, snippet(result), content(result), metadata(result)));
+                        title(result, url), url, snippet(result), content(result), metadata(result)));
             }
         }
         WebSearchInformationResult information = WebSearchInformationResult.from((long) results.size());
@@ -161,6 +180,13 @@ public class SofyaWebSearchEngine implements WebSearchEngine {
         return WebSearchResults.from(searchMetadata, information, results);
     }
 
+    private static String title(SofyaSearchResult result, URI url) {
+        if (!isNullOrBlank(result.getTitle())) {
+            return result.getTitle();
+        }
+        return isNullOrBlank(url.getHost()) ? url.toString() : url.getHost();
+    }
+
     private static String snippet(SofyaSearchResult result) {
         if (!isNullOrBlank(result.getDescription())) {
             return result.getDescription();
@@ -176,12 +202,16 @@ public class SofyaWebSearchEngine implements WebSearchEngine {
     }
 
     private static Map<String, String> metadata(SofyaSearchResult result) {
-        return isNullOrBlank(result.getPublishedDate())
-                ? Collections.emptyMap()
-                : Collections.singletonMap("published_date", result.getPublishedDate());
+        Map<String, String> metadata = new HashMap<>();
+        putIfNotBlank(metadata, "published_date", result.getPublishedDate());
+        putIfNotBlank(metadata, "content_fetched_at", result.getContentFetchedAt());
+        if (result.getFetched() != null) {
+            metadata.put("fetched", result.getFetched().toString());
+        }
+        return metadata;
     }
 
-    private static void putIfNotBlank(Map<String, Object> map, String key, String value) {
+    private static void putIfNotBlank(Map<String, ? super String> map, String key, String value) {
         if (!isNullOrBlank(value)) {
             map.put(key, value);
         }
@@ -225,8 +255,10 @@ public class SofyaWebSearchEngine implements WebSearchEngine {
         }
 
         /**
-         * @param timeout connect and read timeout, defaults to 30 seconds, which leaves room for page fetching
-         *                and an answer
+         * @param timeout connect and read timeout. Defaults to 90 seconds when {@link #searchDepth} is
+         *                {@link SofyaSearchDepth#BASIC} or {@link #includeAnswer} is {@code true}, since page text
+         *                and an answer can take most of the API's 60 second request limit, and to 30 seconds
+         *                otherwise
          * @return {@link Builder}
          */
         public Builder timeout(Duration timeout) {

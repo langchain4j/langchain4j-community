@@ -7,6 +7,7 @@ class SofyaSearchResult {
     private String content;
     private String description;
     private Boolean fetched;
+    private String contentFetchedAt;
     private String publishedDate;
 
     SofyaSearchResult() {}
@@ -29,6 +30,10 @@ class SofyaSearchResult {
 
     public Boolean getFetched() {
         return fetched;
+    }
+
+    public String getContentFetchedAt() {
+        return contentFetchedAt;
     }
 
     public String getPublishedDate() {
