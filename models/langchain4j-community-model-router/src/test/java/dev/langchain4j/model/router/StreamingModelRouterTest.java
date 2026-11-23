@@ -705,4 +705,178 @@ class StreamingModelRouterTest {
         assertEquals(1, throwing.handlerCalls());
         assertEquals(1, healthy.handlerCalls());
     }
+
+    /**
+     * A delegate reports a synchronous failure through {@code onError} rather than by throwing, which is
+     * what {@link StreamingChatModel#chat(ChatRequest, StreamingChatResponseHandler)} does. The router must
+     * treat it exactly like a thrown failure and fail over.
+     */
+    @Test
+    void handlerBasedCallFailsOverWhenTheDelegateReportsTheFailureThroughOnError() throws InterruptedException {
+        ScriptedStreamingModel reporting = new ScriptedStreamingModel(null, handler -> {
+            handler.onError(new IllegalStateException("reported failure"));
+        });
+        ScriptedStreamingModel healthy = successfulModel("healthy");
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(reporting, healthy)
+                .routingStrategy(roundRobinStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertNull(collector.error.get());
+        assertEquals("healthy", collector.completeResponse.get().aiMessage().text());
+        assertEquals(1, reporting.handlerCalls());
+        assertEquals(1, healthy.handlerCalls());
+    }
+
+    /**
+     * A failure reported on another thread, after the delegate invocation returned, is asynchronous:
+     * the request may already be in flight, so it must reach the handler instead of failing over.
+     */
+    @Test
+    void handlerBasedCallDoesNotFailOverOnAnAsynchronousError() throws Exception {
+        CountDownLatch reported = new CountDownLatch(1);
+        ScriptedStreamingModel failing = new ScriptedStreamingModel(
+                null,
+                handler -> new Thread(() -> {
+                            handler.onError(new IllegalStateException("async failure"));
+                            reported.countDown();
+                        })
+                        .start());
+        ScriptedStreamingModel healthy = successfulModel("healthy");
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(failing, healthy)
+                .routingStrategy(roundRobinStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        assertTrue(reported.await(10, TimeUnit.SECONDS));
+        collector.awaitTerminal();
+
+        assertInstanceOf(IllegalStateException.class, collector.error.get());
+        assertEquals("async failure", collector.error.get().getMessage());
+        assertEquals(1, failing.handlerCalls());
+        assertEquals(0, healthy.handlerCalls());
+    }
+
+    /**
+     * Once an event reached the handler, a later failure is reported and never retried: a retry would
+     * repeat output the handler already received.
+     */
+    @Test
+    void handlerBasedCallDoesNotFailOverAfterAnEventWasDelivered() throws InterruptedException {
+        ScriptedStreamingModel partialThenFailing = new ScriptedStreamingModel(null, handler -> {
+            handler.onPartialResponse("partial");
+            handler.onError(new IllegalStateException("after partial"));
+        });
+        ScriptedStreamingModel healthy = successfulModel("healthy");
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(partialThenFailing, healthy)
+                .routingStrategy(roundRobinStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertInstanceOf(IllegalStateException.class, collector.error.get());
+        assertEquals("after partial", collector.error.get().getMessage());
+        assertEquals(0, healthy.handlerCalls());
+    }
+
+    /**
+     * The retry is bounded by the number of routes: a strategy that keeps selecting a failing route
+     * surfaces the failure instead of retrying without end.
+     */
+    @Test
+    void handlerBasedCallIsBoundedByTheRouteCount() throws InterruptedException {
+        ScriptedStreamingModel failing = new ScriptedStreamingModel(null, handler -> {
+            throw new IllegalStateException("persistent failure");
+        });
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(failing, failing, failing)
+                .routingStrategy(fixedIndexStrategy(0))
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertInstanceOf(IllegalStateException.class, collector.error.get());
+        assertEquals("persistent failure", collector.error.get().getMessage());
+        assertEquals(3, failing.handlerCalls());
+    }
+
+    /**
+     * A routing failure is not a delegate failure: it is reported without invoking any model, and
+     * without retrying the same selection.
+     */
+    @Test
+    void handlerBasedCallFailsWhenNoRouteMatches() throws InterruptedException {
+        ScriptedStreamingModel unused = successfulModel("unused");
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(unused)
+                .routingStrategy((availableModels, chatRequest) -> null)
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertInstanceOf(IllegalStateException.class, collector.error.get());
+        assertEquals(
+                "No matching route for request found", collector.error.get().getMessage());
+        assertEquals(0, unused.handlerCalls());
+    }
+
+    /**
+     * A single route is attempted once: there is nothing to fail over to, so the failure is reported
+     * immediately rather than retried on the same route.
+     */
+    @Test
+    void handlerBasedCallPropagatesFailureOfSingleRoute() throws InterruptedException {
+        ScriptedStreamingModel failing = new ScriptedStreamingModel(null, handler -> {
+            throw new IllegalStateException("permanent delegate failure");
+        });
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(failing)
+                .routingStrategy(new LowestTokenUsageRoutingStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertInstanceOf(IllegalStateException.class, collector.error.get());
+        assertEquals("permanent delegate failure", collector.error.get().getMessage());
+        assertEquals(1, failing.handlerCalls());
+    }
+
+    /**
+     * A delegate reporting {@link NoMatchingModelFoundException} is not retried: the failure says the
+     * selection itself is wrong, so the same strategy would only select the same route again.
+     */
+    @Test
+    void handlerBasedCallDoesNotRetryNoMatchingModelFound() throws InterruptedException {
+        ScriptedStreamingModel noMatch = new ScriptedStreamingModel(null, handler -> {
+            handler.onError(new NoMatchingModelFoundException("no match"));
+        });
+        ScriptedStreamingModel healthy = successfulModel("healthy");
+        StreamingModelRouter router = StreamingModelRouter.builder()
+                .addRoutes(noMatch, healthy)
+                .routingStrategy(roundRobinStrategy())
+                .build();
+
+        HandlerCollector collector = new HandlerCollector();
+        router.chat(REQUEST, collector);
+        collector.awaitTerminal();
+
+        assertInstanceOf(NoMatchingModelFoundException.class, collector.error.get());
+        assertEquals(1, noMatch.handlerCalls());
+        assertEquals(0, healthy.handlerCalls());
+    }
 }

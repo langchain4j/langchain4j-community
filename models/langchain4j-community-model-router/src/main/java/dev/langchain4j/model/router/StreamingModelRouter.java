@@ -11,6 +11,14 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatModelStreamingEvent;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.CompleteToolCall;
+import dev.langchain4j.model.chat.response.PartialResponse;
+import dev.langchain4j.model.chat.response.PartialResponseContext;
+import dev.langchain4j.model.chat.response.PartialThinking;
+import dev.langchain4j.model.chat.response.PartialThinkingContext;
+import dev.langchain4j.model.chat.response.PartialToolCall;
+import dev.langchain4j.model.chat.response.PartialToolCallContext;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,30 +81,203 @@ public class StreamingModelRouter implements StreamingChatModel {
     }
 
     /**
-     * Handler-based entry point. Failover applies to exceptions thrown synchronously by the
-     * delegate invocation only; asynchronous errors are reported to the handler unchanged, as
-     * they were before the reactive API existed.
+     * Handler-based entry point. Failover applies to a failure a delegate reports before the delegate
+     * invocation returns and before any event reaches the handler; a failure reported later, on another
+     * thread, or after an event was delivered is passed to the handler unchanged.
+     * <p>
+     * {@link StreamingChatModel#chat(ChatRequest, StreamingChatResponseHandler)} does not throw: a model
+     * that fails synchronously reports the failure to {@link StreamingChatResponseHandler#onError(Throwable)}
+     * on the calling thread before returning. The failure is therefore observed as an error rather than
+     * caught as an exception.
      */
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
         // Bound the failover retry to the number of configured routes: each route is
         // given a single attempt before the original failure propagates. Without this
-        // bound, a persistently-failing delegate would cause unbounded recursion and a
-        // StackOverflowError instead of surfacing the underlying failure.
-        doChatInternal(chatRequest, handler, this.routes.size());
+        // bound, a persistently-failing delegate would retry without end instead of
+        // surfacing the underlying failure.
+        new HandlerFailover(chatRequest, handler, Math.max(0, this.routes.size() - 1)).start();
     }
 
-    private void doChatInternal(ChatRequest chatRequest, StreamingChatResponseHandler handler, int attemptsLeft) {
-        StreamingChatModelWrapper delegate = resolveDelegate(chatRequest);
-        try {
-            delegate.chat(chatRequest, handler);
-        } catch (NoMatchingModelFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            if (attemptsLeft <= 1) {
-                throw e;
+    /**
+     * State for one handler-based call, deciding whether a reported failure is retried on the next
+     * route or delivered to the handler.
+     */
+    private final class HandlerFailover implements StreamingChatResponseHandler {
+
+        private final ChatRequest chatRequest;
+        private final StreamingChatResponseHandler downstream;
+        private final Thread callingThread = Thread.currentThread();
+
+        private int retriesLeft; // guarded by this
+        private boolean emitted; // guarded by this: an event reached the handler
+        private boolean invoking; // guarded by this: a delegate invocation is in progress
+        private boolean terminated; // guarded by this: the handler received its terminal signal
+        private Throwable retryFailure; // guarded by this
+
+        private HandlerFailover(ChatRequest chatRequest, StreamingChatResponseHandler downstream, int retriesLeft) {
+            this.chatRequest = chatRequest;
+            this.downstream = downstream;
+            this.retriesLeft = retriesLeft;
+        }
+
+        private void start() {
+            while (true) {
+                StreamingChatModelWrapper delegate;
+                try {
+                    delegate = resolveDelegate(chatRequest);
+                } catch (Throwable error) {
+                    // A routing failure is not a delegate failure: retrying it would select the same route.
+                    terminate(error);
+                    return;
+                }
+
+                Throwable failure;
+                synchronized (this) {
+                    if (terminated) {
+                        return;
+                    }
+                    invoking = true;
+                    retryFailure = null;
+                }
+                try {
+                    delegate.chat(chatRequest, this);
+                } catch (Throwable error) {
+                    // StreamingChatModel.chat(...) reports a model failure to onError, so this only covers
+                    // a delegate that overrides chat(...) and still throws.
+                    failed(error);
+                } finally {
+                    synchronized (this) {
+                        invoking = false;
+                        failure = retryFailure;
+                        retryFailure = null;
+                    }
+                }
+
+                if (failure == null) {
+                    // The call either signalled terminally or is still running asynchronously.
+                    return;
+                }
+
+                synchronized (this) {
+                    retriesLeft--;
+                }
             }
-            doChatInternal(chatRequest, handler, attemptsLeft - 1);
+        }
+
+        private void failed(Throwable error) {
+            synchronized (this) {
+                if (terminated) {
+                    return;
+                }
+                // A synchronous failure is one reported on the calling thread while the delegate invocation
+                // is still running. Retrying after an event was delivered would repeat output the handler
+                // already received. A NoMatchingModelFoundException means the selection itself is wrong, so
+                // retrying it would ask the same strategy again.
+                if (invoking
+                        && !emitted
+                        && Thread.currentThread() == callingThread
+                        && retriesLeft > 0
+                        && !(error instanceof NoMatchingModelFoundException)) {
+                    if (retryFailure == null) {
+                        retryFailure = error;
+                    }
+                    return;
+                }
+            }
+            terminate(error);
+        }
+
+        private void terminate(Throwable error) {
+            synchronized (this) {
+                if (terminated) {
+                    return;
+                }
+                terminated = true;
+            }
+            downstream.onError(error);
+        }
+
+        private boolean beginEvent() {
+            synchronized (this) {
+                if (terminated) {
+                    return false;
+                }
+                emitted = true;
+                return true;
+            }
+        }
+
+        @Override
+        public void onPartialResponse(String partialResponse) {
+            if (beginEvent()) {
+                downstream.onPartialResponse(partialResponse);
+            }
+        }
+
+        @Override
+        public void onPartialResponse(PartialResponse partialResponse, PartialResponseContext context) {
+            if (beginEvent()) {
+                downstream.onPartialResponse(partialResponse, context);
+            }
+        }
+
+        @Override
+        public void onPartialThinking(PartialThinking partialThinking) {
+            if (beginEvent()) {
+                downstream.onPartialThinking(partialThinking);
+            }
+        }
+
+        @Override
+        public void onPartialThinking(PartialThinking partialThinking, PartialThinkingContext context) {
+            if (beginEvent()) {
+                downstream.onPartialThinking(partialThinking, context);
+            }
+        }
+
+        @Override
+        public void onPartialToolCall(PartialToolCall partialToolCall) {
+            if (beginEvent()) {
+                downstream.onPartialToolCall(partialToolCall);
+            }
+        }
+
+        @Override
+        public void onPartialToolCall(PartialToolCall partialToolCall, PartialToolCallContext context) {
+            if (beginEvent()) {
+                downstream.onPartialToolCall(partialToolCall, context);
+            }
+        }
+
+        @Override
+        public void onCompleteToolCall(CompleteToolCall completeToolCall) {
+            if (beginEvent()) {
+                downstream.onCompleteToolCall(completeToolCall);
+            }
+        }
+
+        @Override
+        public void onUnmappedRawEvent(Object rawEvent) {
+            if (beginEvent()) {
+                downstream.onUnmappedRawEvent(rawEvent);
+            }
+        }
+
+        @Override
+        public void onCompleteResponse(ChatResponse completeResponse) {
+            synchronized (this) {
+                if (terminated) {
+                    return;
+                }
+                terminated = true;
+            }
+            downstream.onCompleteResponse(completeResponse);
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            failed(error);
         }
     }
 
