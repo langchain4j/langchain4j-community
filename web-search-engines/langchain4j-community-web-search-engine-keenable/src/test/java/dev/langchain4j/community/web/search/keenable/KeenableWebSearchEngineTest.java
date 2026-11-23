@@ -127,6 +127,15 @@ class KeenableWebSearchEngineTest {
                         .build())
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("appTitle");
+        // outside ISO-8859-1 the JDK HttpClient rejects the header on every call
+        assertThatThrownBy(() -> KeenableWebSearchEngine.builder()
+                        .appTitle("\u6211\u7684\u5e94\u7528")
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("appTitle");
+        // Latin-1 accents are fine
+        assertThat(KeenableWebSearchEngine.builder().appTitle("Caf\u00e9").build())
+                .isNotNull();
     }
 
     @Test

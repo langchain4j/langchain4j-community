@@ -53,9 +53,12 @@ public class KeenableWebSearchEngine implements WebSearchEngine {
     private KeenableWebSearchEngine(Builder builder) {
         String appTitle = getOrDefault(builder.appTitle, DEFAULT_APP_TITLE);
         ensureNotBlank(appTitle, "appTitle");
-        // the title is sent as a header value, so it must not carry line breaks or other control characters
-        if (appTitle.chars().anyMatch(c -> c < 0x20 || c == 0x7f)) {
-            throw new IllegalArgumentException("appTitle must not contain control characters");
+        // the title is sent as a header value: line breaks, other control characters and anything outside
+        // ISO-8859-1 make the JDK HttpClient reject every request, so reject them here instead
+        if (appTitle.chars().anyMatch(c -> c < 0x20 || c == 0x7f || c > 0xff)) {
+            throw new IllegalArgumentException(
+                    "appTitle must contain only printable ISO-8859-1 characters, so no line breaks or other"
+                            + " control characters and nothing outside Latin-1");
         }
         this.client = new KeenableClient(
                 builder.httpClientBuilder,
