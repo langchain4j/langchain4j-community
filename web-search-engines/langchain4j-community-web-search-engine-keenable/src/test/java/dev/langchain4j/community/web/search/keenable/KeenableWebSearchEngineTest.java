@@ -198,7 +198,7 @@ class KeenableWebSearchEngineTest {
                 .isEqualTo("The goal of LangChain4j is to simplify integrating LLMs into Java applications.");
         assertThat(first.content()).isNull();
         assertThat(first.metadata())
-                .containsExactlyEntriesOf(Map.of(
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
                         "position", "1",
                         "published_at", "2026-10-30T00:00:00Z",
                         "acquired_at", "2026-11-03T08:57:22Z"));
