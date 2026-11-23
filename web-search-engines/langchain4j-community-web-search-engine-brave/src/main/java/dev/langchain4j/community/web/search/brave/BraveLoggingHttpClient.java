@@ -35,7 +35,7 @@ final class BraveLoggingHttpClient implements HttpClient {
             LOG.info(
                     "HTTP response:\n- status code: {}\n- headers: {}\n- body: {}",
                     response.statusCode(),
-                    response.headers(),
+                    maskHeaders(response.headers()),
                     response.body());
         }
         return response;
@@ -64,7 +64,7 @@ final class BraveLoggingHttpClient implements HttpClient {
         }
     }
 
-    private static Map<String, List<String>> maskHeaders(Map<String, List<String>> headers) {
+    static Map<String, List<String>> maskHeaders(Map<String, List<String>> headers) {
         return headers.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> {
             if (BraveBuilder.isSensitive(entry.getKey())) {
                 return entry.getValue().stream().map(BraveBuilder::maskSecret).collect(Collectors.toList());

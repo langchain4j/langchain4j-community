@@ -31,7 +31,7 @@ class ResponseLoggingInterceptor implements Interceptor {
             log(
                     "Response:\n- status code: {}\n- headers: {}\n- body: {}",
                     response.code(),
-                    response.headers(),
+                    RequestLoggingInterceptor.getHeaders(response.headers()),
                     this.getBody(response));
         } catch (Exception e) {
             log.warn("Error while logging response: {}", e.getMessage());

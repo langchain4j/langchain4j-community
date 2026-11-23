@@ -1,22 +1,32 @@
 package dev.langchain4j.community.model.qianfan.client;
 
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import okhttp3.Headers;
+import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
 import okio.Buffer;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RequestLoggingInterceptor implements Interceptor {
 
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingInterceptor.class);
-    private static final Pattern BEARER_PATTERN = Pattern.compile("(Bearer\\s*sk-)(\\w{2})(\\w+)(\\w{2})");
+
+    /**
+     * A header, query parameter or JSON field whose name contains any of these is assumed to carry a credential.
+     * {@code client_id} is listed because it carries the API key when requesting an access token.
+     */
+    private static final List<String> SECRET_NAME_KEYWORDS = List.of(
+            "auth", "key", "token", "secret", "password", "credential", "cookie", "signature", "session", "client_id");
+
+    private static final int MIN_LENGTH_TO_SHOW_PARTIALLY = 20;
 
     public RequestLoggingInterceptor() {}
 
@@ -25,7 +35,7 @@ public class RequestLoggingInterceptor implements Interceptor {
             log.debug(
                     "Request:\n- method: {}\n- url: {}\n- headers: {}\n- body: {}",
                     request.method(),
-                    request.url(),
+                    maskUrl(request.url()),
                     inOneLine(request.headers()),
                     getBody(request));
         } catch (Exception var2) {
@@ -38,10 +48,8 @@ public class RequestLoggingInterceptor implements Interceptor {
                 .map((header) -> {
                     String headerKey = header.component1();
                     String headerValue = header.component2();
-                    if (headerKey.equals("Authorization")) {
-                        headerValue = maskAuthorizationHeaderValue(headerValue);
-                    } else if (headerKey.equals("api-key")) {
-                        headerValue = maskApiKeyHeaderValue(headerValue);
+                    if (isSecret(headerKey)) {
+                        headerValue = maskSecret(headerValue);
                     }
 
                     return String.format("[%s: %s]", headerKey, headerValue);
@@ -49,31 +57,29 @@ public class RequestLoggingInterceptor implements Interceptor {
                 .collect(Collectors.joining(", "));
     }
 
-    private static String maskAuthorizationHeaderValue(String authorizationHeaderValue) {
-        try {
-            Matcher matcher = BEARER_PATTERN.matcher(authorizationHeaderValue);
-            StringBuffer sb = new StringBuffer();
-
-            while (matcher.find()) {
-                matcher.appendReplacement(sb, matcher.group(1) + matcher.group(2) + "..." + matcher.group(4));
-            }
-
-            matcher.appendTail(sb);
-            return sb.toString();
-        } catch (Exception var3) {
-            return "Failed to mask the API key.";
+    static String maskUrl(HttpUrl url) {
+        HttpUrl.Builder maskedUrl = url.newBuilder().query(null);
+        for (int i = 0; i < url.querySize(); i++) {
+            String name = url.queryParameterName(i);
+            String value = url.queryParameterValue(i);
+            maskedUrl.addQueryParameter(name, isSecret(name) ? maskSecret(value) : value);
         }
+        return maskedUrl.build().toString();
     }
 
-    private static String maskApiKeyHeaderValue(String apiKeyHeaderValue) {
-        try {
-            return apiKeyHeaderValue.length() <= 4
-                    ? apiKeyHeaderValue
-                    : apiKeyHeaderValue.substring(0, 2) + "..."
-                            + apiKeyHeaderValue.substring(apiKeyHeaderValue.length() - 2);
-        } catch (Exception var2) {
-            return "Failed to mask the API key.";
+    static boolean isSecret(String name) {
+        String lowerCaseName = name.toLowerCase(Locale.ROOT);
+        return SECRET_NAME_KEYWORDS.stream().anyMatch(lowerCaseName::contains);
+    }
+
+    static @Nullable String maskSecret(@Nullable String secret) {
+        if (secret == null || secret.isBlank()) {
+            return secret;
         }
+        if (secret.length() >= MIN_LENGTH_TO_SHOW_PARTIALLY) {
+            return secret.substring(0, 5) + "..." + secret.substring(secret.length() - 2);
+        }
+        return "...";
     }
 
     private static String getBody(Request request) {

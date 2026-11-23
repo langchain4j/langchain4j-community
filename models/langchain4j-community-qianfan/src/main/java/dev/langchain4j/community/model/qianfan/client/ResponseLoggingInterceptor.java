@@ -1,6 +1,11 @@
 package dev.langchain4j.community.model.qianfan.client;
 
+import static dev.langchain4j.community.model.qianfan.client.RequestLoggingInterceptor.isSecret;
+import static dev.langchain4j.community.model.qianfan.client.RequestLoggingInterceptor.maskSecret;
+
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import okhttp3.Interceptor;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -10,6 +15,7 @@ import org.slf4j.LoggerFactory;
 public class ResponseLoggingInterceptor implements Interceptor {
 
     private static final Logger log = LoggerFactory.getLogger(ResponseLoggingInterceptor.class);
+    private static final Pattern JSON_STRING_FIELD = Pattern.compile("\"([^\"\\\\]*)\"(\\s*:\\s*)\"([^\"]*)\"");
 
     public ResponseLoggingInterceptor() {}
 
@@ -28,7 +34,21 @@ public class ResponseLoggingInterceptor implements Interceptor {
     private static String getBody(Response response) throws IOException {
         return isEventStream(response)
                 ? "[skipping response body due to streaming]"
-                : response.peekBody(Long.MAX_VALUE).string();
+                : maskSecretFields(response.peekBody(Long.MAX_VALUE).string());
+    }
+
+    static String maskSecretFields(String json) {
+        Matcher matcher = JSON_STRING_FIELD.matcher(json);
+        StringBuilder masked = new StringBuilder();
+        while (matcher.find()) {
+            String name = matcher.group(1);
+            String field = isSecret(name)
+                    ? "\"" + name + "\"" + matcher.group(2) + "\"" + maskSecret(matcher.group(3)) + "\""
+                    : matcher.group();
+            matcher.appendReplacement(masked, Matcher.quoteReplacement(field));
+        }
+        matcher.appendTail(masked);
+        return masked.toString();
     }
 
     private static boolean isEventStream(Response response) {

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import org.jspecify.annotations.Nullable;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
@@ -74,12 +75,16 @@ public class ChatTokenResponse {
     @Override
     public String toString() {
         return "ChatTokenResponse{" +
-                "refreshToken='" + refreshToken + '\'' +
+                "refreshToken=" + mask(refreshToken) +
                 ", expiresIn=" + expiresIn +
-                ", sessionKey='" + sessionKey + '\'' +
-                ", accessToken='" + accessToken + '\'' +
+                ", sessionKey=" + mask(sessionKey) +
+                ", accessToken=" + mask(accessToken) +
                 ", scope='" + scope + '\'' +
-                ", sessionSecret='" + sessionSecret + '\'' +
+                ", sessionSecret=" + mask(sessionSecret) +
                 '}';
+    }
+
+    private static @Nullable String mask(@Nullable String secret) {
+        return secret == null ? null : "***";
     }
 }
